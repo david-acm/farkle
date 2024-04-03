@@ -6,13 +6,14 @@
 @code {
 
   [Fact]
-  public async Task UpdateDiceWithReceivedValues()
+  public void UpdateDiceWithReceivedValues()
   {
     // Given
     JSInterop.Mode = JSRuntimeMode.Loose;
     var gameService = Mock.Of<IGameService>();
     Services.AddScoped<IGameService>(_ => gameService);
-    Mock.Get(gameService).Setup(g => g.RollDiceAsync(It.IsAny<int>(), It.IsAny<int>()))
+    Mock.Get(gameService)
+      .Setup(g => g.RollDiceAsync(It.IsAny<int>(), It.IsAny<int>()))
       .ReturnsAsync(new List<DiceValue>()
       {
         DiceValue.One
