@@ -18,6 +18,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{429E4E3B
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".github", ".github", "{A6E29EB8-B644-41A8-A5DF-D06369BC4797}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Farkle.Web", "Farkle.Web\Farkle.Web.csproj", "{604F3CD2-F8AB-4BAE-8BD0-89160B95F69B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -52,6 +54,10 @@ Global
 		{7B3CA627-136C-481F-A55D-02E3434E1835}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7B3CA627-136C-481F-A55D-02E3434E1835}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7B3CA627-136C-481F-A55D-02E3434E1835}.Release|Any CPU.Build.0 = Release|Any CPU
+		{604F3CD2-F8AB-4BAE-8BD0-89160B95F69B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{604F3CD2-F8AB-4BAE-8BD0-89160B95F69B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{604F3CD2-F8AB-4BAE-8BD0-89160B95F69B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{604F3CD2-F8AB-4BAE-8BD0-89160B95F69B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{5D0C1C9A-01CF-4F21-8E3A-997290F734DE} = {88DC3DC0-4EC0-4073-A2C8-D03FFDACA728}

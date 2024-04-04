@@ -30,7 +30,7 @@ public class CalculateForShould
     var sut = new Spa.Components.RotationCalculator();
 
     // Act
-    (var x, var y, var z) = sut.CalculateFor(DiceValue.FromValue(value));
+    var (x, y, z) = sut.CalculateFor(DiceValue.FromValue(value));
 
     // Assert
     (
@@ -41,6 +41,8 @@ public class CalculateForShould
   }
 
   [Fact]
-  public void DateShould() =>
+  public void DateShould()
+  {
     _logger.WriteLine($"{DateTime.Today.AddYears(-5).ToString("dd/MMMM/yyyy")}");
+  }
 }

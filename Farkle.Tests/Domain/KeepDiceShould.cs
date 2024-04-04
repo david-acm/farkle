@@ -17,17 +17,11 @@ public class KeepDiceShould : GameWithThreePlayersTest
   {
     yield return new[]
     {
-      (Action<Game>)(g => g.KeepDice(new Command.KeepDice(1, 2, new[]
-      {
-        DiceValue.Five, DiceValue.One
-      })))
+      (Action<Game>)(g => g.KeepDice(new Command.KeepDice(1, 2, new[] { DiceValue.Five, DiceValue.One })))
     };
     yield return new[]
     {
-      (Action<Game>)(g => g.KeepDiceV2(new Command.KeepDice(1, 2, new[]
-      {
-        DiceValue.Five, DiceValue.One
-      })))
+      (Action<Game>)(g => g.KeepDiceV2(new Command.KeepDice(1, 2, new[] { DiceValue.Five, DiceValue.One })))
     };
   }
 
@@ -50,10 +44,7 @@ public class KeepDiceShould : GameWithThreePlayersTest
   {
     // Arrange
     Game.RollDiceV2(new Command.RollDice(1, 1));
-    var action = () => Game.KeepDice(new Command.KeepDice(1, 1, new[]
-    {
-      DiceValue.Four
-    }));
+    var action = () => Game.KeepDice(new Command.KeepDice(1, 1, new[] { DiceValue.Four }));
 
     //Act
     action.Should().Throw<PreconditionsFailedException>();
@@ -65,13 +56,19 @@ public class KeepDiceShould : GameWithThreePlayersTest
   {
     // Arrange
     SetupDiceToRoll(new List<int>
-      { 4, 4, 4, 2, 1, 2, 3 });
+    {
+      4,
+      4,
+      4,
+      2,
+      1,
+      2,
+      3
+    });
     Game.RollDiceV2(new Command.RollDice(1, 1));
 
-    var action = () => Game.KeepDice(new Command.KeepDice(1, 1, new[]
-    {
-      DiceValue.Four, DiceValue.Four, DiceValue.Four
-    }));
+    var action = ()
+      => Game.KeepDice(new Command.KeepDice(1, 1, new[] { DiceValue.Four, DiceValue.Four, DiceValue.Four }));
 
     //Act
     action.Should().NotThrow<PreconditionsFailedException>();
@@ -83,13 +80,20 @@ public class KeepDiceShould : GameWithThreePlayersTest
   {
     // Arrange
     SetupDiceToRoll(new List<int>
-      { 4, 4, 4, 4, 1, 2, 3 });
+    {
+      4,
+      4,
+      4,
+      4,
+      1,
+      2,
+      3
+    });
     Game.RollDiceV2(new Command.RollDice(1, 1));
 
-    var action = () => Game.KeepDice(new Command.KeepDice(1, 1, new[]
-    {
-      DiceValue.Four, DiceValue.Four, DiceValue.Four, DiceValue.Four
-    }));
+    var action = ()
+      => Game.KeepDice(new Command.KeepDice(1, 1,
+        new[] { DiceValue.Four, DiceValue.Four, DiceValue.Four, DiceValue.Four }));
 
     //Act
     action.Should().NotThrow<PreconditionsFailedException>();
@@ -101,11 +105,16 @@ public class KeepDiceShould : GameWithThreePlayersTest
   {
     // Arrange
     SetupDiceToRoll(new List<int>
-      { 1, 2, 3, 4, 5, 6 });
-    var action = () => Game.KeepDice(new Command.KeepDice(1, 1, new[]
     {
-      DiceValue.One, DiceValue.Two, DiceValue.Three, DiceValue.Four, DiceValue.Five, DiceValue.Six
-    }));
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    });
+    var action = () => Game.KeepDice(new Command.KeepDice(1, 1,
+      new[] { DiceValue.One, DiceValue.Two, DiceValue.Three, DiceValue.Four, DiceValue.Five, DiceValue.Six }));
 
     //Act
     Game.RollDiceV2(new Command.RollDice(1, 1));
@@ -140,14 +149,16 @@ public class KeepDiceShould : GameWithThreePlayersTest
     // Arrange
     var values = new List<int>
     {
-      1, 1, 3, 4, 5, 6
+      1,
+      1,
+      3,
+      4,
+      5,
+      6
     };
     SetupDiceToRoll(values);
     Game.RollDiceV2(new Command.RollDice(1, 1));
-    var diceValues = new[]
-    {
-      DiceValue.One
-    };
+    var diceValues = new[] { DiceValue.One };
 
     var tableCenter = State.TableCenter!;
 
@@ -169,7 +180,14 @@ public class KeepDiceShould : GameWithThreePlayersTest
   {
     // Arrange
     SetupDiceToRoll(new List<int>
-      { 1, 2, 3, 4, 5, 6 });
+    {
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    });
     var diceToKeep = new[] { DiceValue.One, DiceValue.Five };
 
     //Act
@@ -206,12 +224,26 @@ public class KeepDiceShould : GameWithThreePlayersTest
   {
     // Arrange
     SetupDiceToRoll(new List<int>
-      { 1, 2, 3, 4, 5, 6 });
+    {
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    });
     Game.RollDiceV2(new Command.RollDice(1, 1));
     Game.KeepDice(new Command.KeepDice(1, 1, new[] { DiceValue.One }));
 
     SetupDiceToRoll(new List<int>
-      { 2, 2, 3, 3, 4, 6 });
+    {
+      2,
+      2,
+      3,
+      3,
+      4,
+      6
+    });
     // Act
     Game.RollDiceV2(new Command.RollDice(1, 1));
 
@@ -223,11 +255,26 @@ public class KeepDiceShould : GameWithThreePlayersTest
   public void AddToTurnScore()
   {
     // Arrange
-    SetupDiceToRoll(new List<int> { 1, 2, 3, 4, 5, 6 });
+    SetupDiceToRoll(new List<int>
+    {
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    });
     Game.RollDiceV2(new Command.RollDice(1, 1));
     Game.KeepDice(new Command.KeepDice(1, 1, new[] { DiceValue.One }));
 
-    SetupDiceToRoll(new List<int> { 1, 1, 3, 3, 4 });
+    SetupDiceToRoll(new List<int>
+    {
+      1,
+      1,
+      3,
+      3,
+      4
+    });
     Game.RollDiceV2(new Command.RollDice(1, 1));
     Game.KeepDice(new Command.KeepDice(1, 1, new[] { DiceValue.One }));
 
@@ -239,7 +286,15 @@ public class KeepDiceShould : GameWithThreePlayersTest
   public void ResetDiceInTableCenterWhenAllDiceHaveBeenKept()
   {
     // Arrange
-    SetupDiceToRoll(new List<int> { 1, 1, 1, 2, 3, 4 });
+    SetupDiceToRoll(new List<int>
+    {
+      1,
+      1,
+      1,
+      2,
+      3,
+      4
+    });
     Game.RollDiceV2(new Command.RollDice(1, 1));
     Game.KeepDice(new Command.KeepDice(1, 1, new[] { DiceValue.One, DiceValue.One, DiceValue.One }));
 
@@ -253,25 +308,21 @@ public class KeepDiceShould : GameWithThreePlayersTest
 
   public static IEnumerable<object[]> TricksAndScore()
   {
+    yield return new object[] { "1 should add 100", new[] { 1, 2, 2, 3, 4, 4 }, new[] { DiceValue.One }, 100 };
     yield return new object[]
     {
-      "1 should add 100",
-      new[] { 1, 2, 2, 3, 4, 4 }, new[] { DiceValue.One }, 100
+      "1 and 5 should add 150", new[] { 1, 1, 2, 3, 4, 5 }, new[] { DiceValue.One, DiceValue.Five, DiceValue.One },
+      250
     };
     yield return new object[]
     {
-      "1 and 5 should add 150",
-      new[] { 1, 1, 2, 3, 4, 5 }, new[] { DiceValue.One, DiceValue.Five, DiceValue.One }, 250
+      "2, 2, 2 should add 200", new[] { 3, 3, 3, 3, 4, 4 },
+      new[] { DiceValue.Three, DiceValue.Three, DiceValue.Three }, 300
     };
     yield return new object[]
     {
-      "2, 2, 2 should add 200",
-      new[] { 3, 3, 3, 3, 4, 4 }, new[] { DiceValue.Three, DiceValue.Three, DiceValue.Three }, 300
-    };
-    yield return new object[]
-    {
-      "4, 4, 4, 4 should add 1000",
-      new[] { 3, 3, 4, 4, 4, 4 }, new[] { DiceValue.Four, DiceValue.Four, DiceValue.Four, DiceValue.Four }, 1000
+      "4, 4, 4, 4 should add 1000", new[] { 3, 3, 4, 4, 4, 4 },
+      new[] { DiceValue.Four, DiceValue.Four, DiceValue.Four, DiceValue.Four }, 1000
     };
   }
 }

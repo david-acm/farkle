@@ -10,7 +10,8 @@ public partial class Die
   private (int, int, int) _rotation;
   private double          _scale = 1;
 
-  [Parameter] public DiceValue DiceValue { get; set; }
+  // TODO: remove nullable
+  [Parameter] public DiceValue? DiceValue { get; set; }
 
   [Parameter] public int Size { get; set; } = 50;
 
@@ -18,62 +19,83 @@ public partial class Die
 
   [Parameter] public bool IsDragging { get; set; }
 
-  [Inject] public ILogger<Die> Logger { get; set; }
+  // TODO: remove nullable
+  [Inject] public ILogger<Die>? Logger { get; set; }
 
-  [Inject] public IRotationCalculator _rotationCalculator { get; set; }
+  // TODO: remove nullable
+  [Inject] public IRotationCalculator? _rotationCalculator { get; set; }
 
-  private double AngleFor(char a) => a switch
+  private double AngleFor(char a)
   {
-    'x' => _rotation.Item1,
-    'y' => _rotation.Item2,
-    'z' => _rotation.Item3,
-    _   => 0
-  };
+    return a switch
+    {
+      'x' => _rotation.Item1,
+      'y' => _rotation.Item2,
+      'z' => _rotation.Item3,
+      _   => 0
+    };
+  }
 
   protected override async Task OnInitializedAsync()
   {
     if (IsDragging)
+    {
       RotateToValue();
+    }
+
     await base.OnInitializedAsync();
   }
 
   protected override Task OnParametersSetAsync()
   {
-    if (_number != DiceValue.None && _number != DiceValue) RotateToValue();
+    if (_number != DiceValue.None && _number != DiceValue)
+    {
+      RotateToValue();
+    }
 
     return base.OnParametersSetAsync();
   }
 
   protected override async Task OnAfterRenderAsync(bool firstRender)
   {
-    if (firstRender) await DelayedRotateToValue();
+    if (firstRender)
+    {
+      DelayedRotateToValue();
+    }
+
     // RotateToValue();
     await base.OnAfterRenderAsync(firstRender);
   }
 
-  private async Task DelayedRotateToValue() =>
-    _ = new Timer(async _ =>
+  private void DelayedRotateToValue()
+  {
+    _ = new Timer(Callback, null, 0, -1);
+  }
+
+  private async void Callback(object? _)
+  {
+    await InvokeAsync(() =>
     {
-      await InvokeAsync(async () =>
-      {
-        RotateToValue();
-        StateHasChanged();
-      });
-    }, null, 0, -1);
+      RotateToValue();
+      StateHasChanged();
+    });
+  }
 
   private void RotateToValue()
   {
-    _number = DiceValue;
-    var rotation = _rotationCalculator.CalculateFor(_number, !IsDragging);
+    // TODO: remove nullable
+    var rotation = _rotationCalculator!.CalculateFor(DiceValue!, !IsDragging);
     SetRotationTo(rotation);
   }
 
-  private void SetRotationTo((int, int, int) rotation) =>
+  private void SetRotationTo((int, int, int) rotation)
+  {
     _rotation = rotation;
+  }
 
   private void MouseLeave(MouseEventArgs e)
   {
-    (var x, var y, var z) = _rotation;
+    var (x, y, z) = _rotation;
     SetRotationTo((x, y - 10, z - 10));
     Scale(1);
     StateHasChanged();
@@ -81,12 +103,14 @@ public partial class Die
 
   private void MouseEnter(MouseEventArgs e)
   {
-    (var x, var y, var z) = _rotation;
+    var (x, y, z) = _rotation;
     SetRotationTo((x, y + 10, z + 10));
     Scale(1.4);
     StateHasChanged();
   }
 
-  private void Scale(double scale) =>
+  private void Scale(double scale)
+  {
     _scale = scale;
+  }
 }

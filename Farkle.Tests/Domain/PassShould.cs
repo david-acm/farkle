@@ -46,7 +46,16 @@ public class PassShould : GameWithThreePlayersTest
     // Act
     Game.RollDiceV2(new RollDice(1, 1));
     Game.PassTurn(new PassTurn(1, 1));
-    SetupDiceToRoll(new List<int> { 4, 4, 4, 2, 1, 2, 3 });
+    SetupDiceToRoll(new List<int>
+    {
+      4,
+      4,
+      4,
+      2,
+      1,
+      2,
+      3
+    });
     var passOutOfTurn = () => Game.RollDiceV2(new RollDice(1, 1));
     var playOutOfTurn = () => Game.PassTurn(new PassTurn(1, 1));
     var passTurn      = () => Game.PassTurn(new PassTurn(1, 2));
@@ -63,11 +72,27 @@ public class PassShould : GameWithThreePlayersTest
   public void AddToGameScoreIfPlayerKeptTricks()
   {
     // Arrange
-    SetupDiceToRoll(new List<int> { 1, 2, 3, 4, 5, 6 });
+    SetupDiceToRoll(new List<int>
+    {
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    });
     Game.RollDiceV2(new RollDice(1, 1));
     Game.KeepDice(new KeepDice(1, 1, new[] { One }));
 
-    SetupDiceToRoll(new List<int> { 2, 2, 2, 4, 5, 6 });
+    SetupDiceToRoll(new List<int>
+    {
+      2,
+      2,
+      2,
+      4,
+      5,
+      6
+    });
     Game.RollDiceV2(new RollDice(1, 1));
     Game.KeepDice(new KeepDice(1, 1, new[] { Two, Two, Two }));
     Game.PassTurn(new PassTurn(1, 1));
@@ -81,7 +106,15 @@ public class PassShould : GameWithThreePlayersTest
   public void ResetDiceInTableCenter()
   {
     // Arrange
-    SetupDiceToRoll(new List<int> { 1, 5, 1, 4, 5, 6 });
+    SetupDiceToRoll(new List<int>
+    {
+      1,
+      5,
+      1,
+      4,
+      5,
+      6
+    });
     Game.RollDiceV2(new RollDice(1, 1));
     Game.KeepDice(new KeepDice(1, 1, new[] { One, Five, One }));
 

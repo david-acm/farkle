@@ -34,20 +34,29 @@ public static class GameValidator
       _ => Validate(false, $"No validation performed for event {@event}")
     };
 
-    if (valid) return;
+    if (valid)
+    {
+      return;
+    }
 
     throw new PreconditionsFailedException(valid.FailedValidationEvent.ToString()!, valid.FailedValidationEvent);
   }
 
-  private static Dice GetDice(V2.DiceKept e) =>
-    Dice.FromValues(e.Dice.ToList());
+  private static Dice GetDice(V2.DiceKept e)
+  {
+    return Dice.FromValues(e.Dice.ToList());
+  }
 
 
-  private static Dice GetDice(V1.DiceKept e) =>
-    Dice.FromValues(e.Dice.ToList());
+  private static Dice GetDice(V1.DiceKept e)
+  {
+    return Dice.FromValues(e.Dice.ToList());
+  }
 
-  private static ValidationResult Validate(bool validation, object failedValidationEvent) =>
-    new(validation, failedValidationEvent);
+  private static ValidationResult Validate(bool validation, object failedValidationEvent)
+  {
+    return new ValidationResult(validation, failedValidationEvent);
+  }
 }
 
 public class SingleRoll : Validator
@@ -62,8 +71,10 @@ public class SingleRoll : Validator
   }
 
   public override ValidationResult IsSatisfied()
-    => new(_state.GameStage == GameStage.Rolling,
+  {
+    return new ValidationResult(_state.GameStage == GameStage.Rolling,
       new V1.RolledTwice(_playerId));
+  }
 }
 
 public class PlayerHasThoseDice : Validator
@@ -98,16 +109,18 @@ public class DiceAreStair : Validator
     _dice = dice.DiceValues;
   }
 
-  public override ValidationResult IsSatisfied() =>
-    new(_dice.Count() == 6              &&
-        _dice.Contains(DiceValue.One)   &&
-        _dice.Contains(DiceValue.Two)   &&
-        _dice.Contains(DiceValue.Three) &&
-        _dice.Contains(DiceValue.Four)  &&
-        _dice.Contains(DiceValue.Five)  &&
-        _dice.Contains(DiceValue.Six),
+  public override ValidationResult IsSatisfied()
+  {
+    return new ValidationResult(_dice.Count() == 6              &&
+                                _dice.Contains(DiceValue.One)   &&
+                                _dice.Contains(DiceValue.Two)   &&
+                                _dice.Contains(DiceValue.Three) &&
+                                _dice.Contains(DiceValue.Four)  &&
+                                _dice.Contains(DiceValue.Five)  &&
+                                _dice.Contains(DiceValue.Six),
       new DiceNotAllowedToBeKept("Dice are not a stair", _dice.ToPrimitiveArray())
     );
+  }
 }
 
 [EventType("V1.GameAlreadyStarted")]
@@ -128,9 +141,11 @@ public class DiceAreOnesOrFives : Validator
     _dice = dice.DiceValues;
   }
 
-  public override ValidationResult IsSatisfied() =>
-    new(_dice.All(d => d == DiceValue.One || d == DiceValue.Five),
+  public override ValidationResult IsSatisfied()
+  {
+    return new ValidationResult(_dice.All(d => d == DiceValue.One || d == DiceValue.Five),
       new DiceNotAllowedToBeKept("Dice are not ones or fives", _dice.ToPrimitiveArray()));
+  }
 }
 
 public class CanKeepDice : Validator
@@ -163,13 +178,20 @@ public class DiceAreTrips : Validator
     _dice = dice.DiceValues;
   }
 
-  public override ValidationResult IsSatisfied() =>
-    new(AreThree(_dice) && AllDiceHaveTheSameValue(_dice), $"The dice {_dice} are not trips.");
+  public override ValidationResult IsSatisfied()
+  {
+    return new ValidationResult(AreThree(_dice) && AllDiceHaveTheSameValue(_dice), $"The dice {_dice} are not trips.");
+  }
 
-  private static bool AreThree(IEnumerable<DiceValue> destination) => destination.Count() == 3;
+  private static bool AreThree(IEnumerable<DiceValue> destination)
+  {
+    return destination.Count() == 3;
+  }
 
-  private static bool AllDiceHaveTheSameValue(IEnumerable<DiceValue> destination) =>
-    destination.GroupBy(v => v).Count() == 1;
+  private static bool AllDiceHaveTheSameValue(IEnumerable<DiceValue> destination)
+  {
+    return destination.GroupBy(v => v).Count() == 1;
+  }
 }
 
 public class DiceAreStraight : Validator
@@ -181,12 +203,16 @@ public class DiceAreStraight : Validator
     _dice = dice.DiceValues;
   }
 
-  public override ValidationResult IsSatisfied() =>
-    new(_dice.Count() == 4 && AllDiceHaveTheSameValue(_dice),
+  public override ValidationResult IsSatisfied()
+  {
+    return new ValidationResult(_dice.Count() == 4 && AllDiceHaveTheSameValue(_dice),
       "Dice are not a straight");
+  }
 
-  private static bool AllDiceHaveTheSameValue(IEnumerable<DiceValue> destination) =>
-    destination.GroupBy(v => v).Count() == 1;
+  private static bool AllDiceHaveTheSameValue(IEnumerable<DiceValue> destination)
+  {
+    return destination.GroupBy(v => v).Count() == 1;
+  }
 }
 
 public class PlayerIsInTurn : Validator
@@ -200,9 +226,11 @@ public class PlayerIsInTurn : Validator
     _playerId = playerId;
   }
 
-  public override ValidationResult IsSatisfied() =>
-    new(_state.PlayerInTurn == _playerId,
+  public override ValidationResult IsSatisfied()
+  {
+    return new ValidationResult(_state.PlayerInTurn == _playerId,
       new V1.PlayedOutOfTurn(_playerId, _state.PlayerInTurn));
+  }
 }
 
 public class PlayerCanPass : Validator
@@ -216,30 +244,34 @@ public class PlayerCanPass : Validator
     _playerId = playerId;
   }
 
-  public override ValidationResult IsSatisfied() =>
-    new(
-      _game.Current.LastEventsWere(typeof(V2.DiceRolled))
+  public override ValidationResult IsSatisfied()
+  {
+    return new ValidationResult(
+      _game.Current.LastEventsWhere(typeof(V2.DiceRolled))
       ||
-      _game.Current.LastEventsWere(typeof(V1.DiceRolled))
+      _game.Current.LastEventsWhere(typeof(V1.DiceRolled))
       ||
-      _game.Current.LastEventsWere(typeof(V2.DiceKept)) ||
-      _game.Current.LastEventsWere(typeof(V1.DiceKept)),
+      _game.Current.LastEventsWhere(typeof(V2.DiceKept)) ||
+      _game.Current.LastEventsWhere(typeof(V1.DiceKept)),
       new V1.PassedWithoutRolling(_playerId));
+  }
 }
 
 public static class EnumerableExtensions
 {
-  public static bool LastEventsWere<T>(
+  public static bool LastEventsWhere<T>(
     this IEnumerable<T> events,
     IList<Type>         expectedEvents)
   {
-    var itemList = events.Where(i => i is not IErrorEvent).Select(e => e.GetType()).Reverse().ToList();
+    var itemList = events.Where(i => i is not IErrorEvent).Select(e => e!.GetType()).Reverse().ToList();
 
     return !expectedEvents.Where((t, index) => itemList[index] != t).Any();
   }
 
-  public static bool LastEventsWere<T>(
+  public static bool LastEventsWhere<T>(
     this IEnumerable<T> events,
-    Type                expectedEvent) =>
-    events.LastEventsWere(new[] { expectedEvent });
+    Type                expectedEvent)
+  {
+    return events.LastEventsWhere(new[] { expectedEvent });
+  }
 }

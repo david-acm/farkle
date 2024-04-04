@@ -65,7 +65,15 @@ public class RollShould : GameWithThreePlayersTest
     // Act
     Game.RollDiceV2(new RollDice(1, 1));
     SetupDiceToRoll(new List<int>
-      { 4, 4, 4, 2, 1, 2, 3 });
+    {
+      4,
+      4,
+      4,
+      2,
+      1,
+      2,
+      3
+    });
     var action = () => Game.RollDiceV2(new RollDice(1, 1));
 
     // Assert
@@ -81,7 +89,15 @@ public class RollShould : GameWithThreePlayersTest
     // Act
     Game.RollDiceV2(new RollDice(1, 1));
     SetupDiceToRoll(new List<int>
-      { 4, 4, 4, 2, 1, 2, 3 });
+    {
+      4,
+      4,
+      4,
+      2,
+      1,
+      2,
+      3
+    });
 
     var action = () => Game.RollDiceV2(new RollDice(1, 2));
 
@@ -98,13 +114,28 @@ public class RollShould : GameWithThreePlayersTest
   public void RollOnlyAvailableDiceAtTheTableCenter()
   {
     // Arrange
-    SetupDiceToRoll(new List<int> { 4, 4, 5, 2, 1, 2 });
+    SetupDiceToRoll(new List<int>
+    {
+      4,
+      4,
+      5,
+      2,
+      1,
+      2
+    });
     // Act
     Game.RollDiceV2(new RollDice(1, 1));
     Game.KeepDice(new KeepDice(1, 1, new[] { One }));
 
 
-    SetupDiceToRoll(new List<int> { 4, 4, 5, 2, 1 });
+    SetupDiceToRoll(new List<int>
+    {
+      4,
+      4,
+      5,
+      2,
+      1
+    });
 
     Game.RollDiceV2(new RollDice(1, 1));
 

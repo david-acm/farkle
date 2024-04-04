@@ -18,7 +18,8 @@ public record GameState : State<GameState>
     On<V2.DiceKept>(HandleDiceKeptV2);
   }
 
-  public GameId    Id        { get; private init; }
+  // TODO: Remove nullable
+  public GameId?   Id        { get; private init; }
   public GameStage GameStage { get; private init; }
   public Score     TurnScore { get; private init; } = new(0);
 
@@ -31,29 +32,41 @@ public record GameState : State<GameState>
 
   internal int PlayerInTurn => Players[0].Id;
 
-  public Score  GameScoreFor(PlayerId playerId) => new(ScoreTable[playerId]);
-  public Player GetPlayer(int         id)       => Players.Single(p => p.Id == id);
+  public Score GameScoreFor(PlayerId playerId)
+  {
+    return new Score(ScoreTable[playerId]);
+  }
+
+  public Player GetPlayer(int id)
+  {
+    return Players.Single(p => p.Id == id);
+  }
 
   private static GameState HandleDiceKept(GameState state, V1.DiceKept e)
-    => state with
+  {
+    return state with
     {
       DiceKept = state.DiceKept.AddRange(Dice.FromValues(e.Dice).DiceValues),
       TurnScore = e.NewTurnScore,
       TableCenter = ImmutableArray<DiceValue>.Empty.AddRange(e.TableCenter.ToDiceValues()),
       GameStage = GameStage.Rolling
     };
+  }
 
   private static GameState HandleDiceKeptV2(GameState state, V2.DiceKept e)
-    => state with
+  {
+    return state with
     {
       DiceKept = state.DiceKept.AddRange(Dice.FromValues(e.Dice).DiceValues),
       TurnScore = e.NewTurnScore,
       TableCenter = ImmutableArray<DiceValue>.Empty.AddRange(e.TableCenter.ToDiceValues()),
       GameStage = e.Stage
     };
+  }
 
   private static GameState HandleTurnPassed(GameState state, V1.TurnPassed e)
-    => state with
+  {
+    return state with
     {
       Players = e.PlayerOrder,
       ScoreTable = state.ScoreTable.SetItem(
@@ -63,47 +76,65 @@ public record GameState : State<GameState>
       GameStage = GameStage.Rolling,
       DiceKept = state.TableCenter.Clear()
     };
+  }
 
   private static GameState HandleDiceRolled(GameState state, V1.DiceRolled e)
-    => state with
+  {
+    return state with
     {
       TurnScore = e.TurnScore,
       TableCenter = ImmutableArray<DiceValue>.Empty.AddRange(e.Dice.ToDiceValues()),
       GameStage = GameStage.Keeping
     };
+  }
 
   private static GameState HandleDiceRolledV2(GameState state, V2.DiceRolled e)
-    => state with
+  {
+    return state with
     {
       TurnScore = e.TurnScore,
       TableCenter = ImmutableArray<DiceValue>.Empty.AddRange(e.Dice.ToDiceValues()),
       GameStage = e.Stage
     };
+  }
 
   private static GameState HandlePlayerJoined(GameState state, V1.PlayerJoined playerJoined)
-    => state with
+  {
+    return state with
     {
       Players = state.Players.Add(new Player(playerJoined.Id, playerJoined.Name)),
       ScoreTable = state.ScoreTable.Add(playerJoined.Id, 0)
     };
+  }
 
   private static GameState HandleGameStarted(GameState gameState, V1.GameStarted e)
-    => gameState with
-    {
-      Id = e.Id,
-      GameStage = GameStage.Rolling
-    };
+  {
+    return gameState with { Id = e.Id, GameStage = GameStage.Rolling };
+  }
 }
 
 public record Score(int Value)
 {
-  public static implicit operator int(Score score) => score.Value;
+  public static implicit operator int(Score score)
+  {
+    return score.Value;
+  }
 
-  public static implicit operator Score(int score) => new(score);
+  public static implicit operator Score(int score)
+  {
+    return new Score(score);
+  }
 }
 
-public record GameId(int Id) : AggregateId($"{Id}")
+public record GameId(int Id) : Id($"{Id}")
 {
-  public static implicit operator GameId(int id) => new(id);
-  public static implicit operator int(GameId id) => id.Id;
+  public static implicit operator GameId(int id)
+  {
+    return new GameId(id);
+  }
+
+  public static implicit operator int(GameId id)
+  {
+    return id.Id;
+  }
 }

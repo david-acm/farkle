@@ -38,12 +38,18 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
       KeepDice(1, new[] { 1 }, gameId));
   }
 
-  private static object KeepDice(int playerId, int[] diceValues, int gameId) =>
-    new { GameId = gameId, PlayerId = playerId, DiceValues = diceValues };
+  private static object KeepDice(int playerId, int[] diceValues, int gameId)
+  {
+    return new { GameId = gameId, PlayerId = playerId, DiceValues = diceValues };
+  }
 
-  private static object RollDice(int playerId, int gameId) =>
-    new { GameId = gameId, PlayerId = playerId };
+  private static object RollDice(int playerId, int gameId)
+  {
+    return new { GameId = gameId, PlayerId = playerId };
+  }
 
-  private static object JoinPlayerRequest(int playerId, string playerName, int gameId) =>
-    new { GameId = gameId, PlayerId = playerId, PlayerName = playerName };
+  private static object JoinPlayerRequest(int playerId, string playerName, int gameId)
+  {
+    return new { GameId = gameId, PlayerId = playerId, PlayerName = playerName };
+  }
 }

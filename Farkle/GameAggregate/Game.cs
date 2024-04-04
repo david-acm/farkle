@@ -17,10 +17,15 @@ public class Game : Aggregate<GameState>
     _randomProvider = randomProvider ?? new DefaultRandomProvider();
   }
 
-  public void Start(Command.StartGame startGame) => Apply(new V1.GameStarted(startGame));
+  public void Start(Command.StartGame startGame)
+  {
+    Apply(new V1.GameStarted(startGame));
+  }
 
-  public void JoinPlayer(Command.JoinPlayer joinPlayer) =>
+  public void JoinPlayer(Command.JoinPlayer joinPlayer)
+  {
     Apply(new V1.PlayerJoined(joinPlayer.Id, joinPlayer.Name));
+  }
 
   public void RollDiceV1(Command.RollDice rollDice)
   {
@@ -47,33 +52,44 @@ public class Game : Aggregate<GameState>
       GameStage.Keeping));
   }
 
-  public void PassTurn(Command.PassTurn passTurn) =>
+  public void PassTurn(Command.PassTurn passTurn)
+  {
     Apply(new V1.TurnPassed(
       passTurn.PlayerId,
       GetPlayerOrder(passTurn.PlayerId),
       GetScore(passTurn.PlayerId)));
+  }
 
-  public void KeepDice(Command.KeepDice keepDice) =>
+  public void KeepDice(Command.KeepDice keepDice)
+  {
     Apply(new V1.DiceKept(keepDice.PlayerId, keepDice.DiceValues.ToPrimitiveArray(),
       GetTableCenterDice(keepDice),
       GetNewTurnScore(keepDice.DiceValues, State.TurnScore)));
+  }
 
-  public void KeepDiceV2(Command.KeepDice keepDice) =>
+  public void KeepDiceV2(Command.KeepDice keepDice)
+  {
     Apply(new V2.DiceKept(keepDice.PlayerId, keepDice.DiceValues.ToPrimitiveArray(),
       GetTableCenterDice(keepDice),
       GetNewTurnScore(keepDice.DiceValues, State.TurnScore),
       GameStage.Rolling));
+  }
 
   private int[] GetTableCenterDice(Command.KeepDice keepDice)
   {
     var tableCenter = State.TableCenter.RemoveRange(keepDice.DiceValues);
-    if (!tableCenter.IsEmpty) return tableCenter.ToPrimitiveArray();
+    if (!tableCenter.IsEmpty)
+    {
+      return tableCenter.ToPrimitiveArray();
+    }
 
     return State.TableCenter.AddRange(keepDice.DiceValues).ToPrimitiveArray();
   }
 
-  private int GetScore(Command.PlayerId playerId) =>
-    State.GameScoreFor(playerId) + State.TurnScore;
+  private int GetScore(Command.PlayerId playerId)
+  {
+    return State.GameScoreFor(playerId) + State.TurnScore;
+  }
 
   private ImmutableArray<Player> GetPlayerOrder(int playerId)
   {
@@ -97,7 +113,10 @@ public class Game : Aggregate<GameState>
     }
   }
 
-  private int GetNumberOfDiceToTrow() => 6 - State.DiceKept.Length;
+  private int GetNumberOfDiceToTrow()
+  {
+    return 6 - State.DiceKept.Length;
+  }
 
   private static int GetNewTurnScore(IEnumerable<DiceValue> diceKept, int currentScore)
   {
@@ -108,7 +127,8 @@ public class Game : Aggregate<GameState>
       { new DiceAreTrips(dice), dice.DiceValues.First().Value * 100 },
       {
         new DiceAreOnesOrFives(dice),
-        dice.DiceValues.Count(d => d == DiceValue.One) * 100 + dice.DiceValues.Count(d => d == DiceValue.Five) * 50
+        (dice.DiceValues.Count(d => d == DiceValue.One)  * 100) +
+        (dice.DiceValues.Count(d => d == DiceValue.Five) * 50)
       },
       { new DiceAreStair(dice), 1500 }
     };

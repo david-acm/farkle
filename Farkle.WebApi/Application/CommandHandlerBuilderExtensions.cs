@@ -18,7 +18,7 @@ public static class CommandHandlerBuilderExtensions
       {
         action.Invoke(game, cmd);
       }
-      catch (DomainException e)
+      catch (DomainException)
       {
         // We ignore the domain exceptions because other wise the error events would not be persisted to the store. In a future version these events will be handled and will return the appropriate HTTP 400 Bad Request response
       }

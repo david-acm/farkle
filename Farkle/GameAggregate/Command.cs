@@ -6,7 +6,10 @@ public static class Command
 
   public record StartGame(GameId GameId)
   {
-    public static implicit operator int(StartGame startGame) => startGame.GameId.Id;
+    public static implicit operator int(StartGame startGame)
+    {
+      return startGame.GameId.Id;
+    }
   }
 
   public record JoinPlayer(int GameId, PlayerId Id, string Name);
@@ -17,7 +20,14 @@ public static class Command
 
   public record PlayerId(int Id)
   {
-    public static implicit operator int(PlayerId id) => id.Id;
-    public static implicit operator PlayerId(int id) => new(id);
+    public static implicit operator int(PlayerId id)
+    {
+      return id.Id;
+    }
+
+    public static implicit operator PlayerId(int id)
+    {
+      return new PlayerId(id);
+    }
   }
 }

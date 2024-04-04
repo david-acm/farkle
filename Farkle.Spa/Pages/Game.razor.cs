@@ -11,8 +11,9 @@ public partial class Game
   private          int    _gameId;
   private          int    _playerId;
 
-  [Inject] public IGameService? GameService { get; set; }
-  [Inject] public ILogger<Game> Logger      { get; set; }
+  // TODO: Review if this is a good approach for the nullable services below
+  [Inject] public IGameService  GameService { get; set; } = null!;
+  [Inject] public ILogger<Game> Logger      { get; set; } = null!;
 
   public string? Values { get; set; } = "1 2 3 4 5 6";
 
@@ -44,6 +45,9 @@ public partial class Game
     await GameService.JoinPlayerAsync(_gameId, _playerId, _playerName);
   }
 
-  private void DieDropped(MudItemDropInfo<DragabbleDice.DropItem> obj) =>
-    Logger.LogInformation($"Die {obj.Item.Value} dropped with index: {obj.Item.Index}");
+  // TODO: Remove nullable
+  private void DieDropped(MudItemDropInfo<DragabbleDice.DropItem> obj)
+  {
+    Logger.LogInformation($"Die {obj!.Item!.Value} dropped with index: {obj.Item.Index}");
+  }
 }

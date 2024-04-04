@@ -5,7 +5,7 @@ namespace Greedy.Spa.Components;
 
 public partial class DragabbleDice
 {
-  [Parameter] public List<DiceValue> DiceValues { get; set; }
+  [Parameter] public List<DiceValue> DiceValues { get; set; } = new();
 
   [Parameter] public EventCallback<MudItemDropInfo<DropItem>> OnDropCallback { get; set; }
 
@@ -13,31 +13,34 @@ public partial class DragabbleDice
 
   private async Task ItemUpdated(MudItemDropInfo<DropItem> dropItem)
   {
-    dropItem.Item.Identifier = dropItem.DropzoneIdentifier;
+    // TODO: Remove nullable
+    dropItem!.Item!.Identifier = dropItem.DropzoneIdentifier;
     await OnDropCallback.InvokeAsync(dropItem);
   }
 
   protected override void OnInitialized()
-    => _items = DiceValues.Select((d, i) => new DropItem
-      {
-        Index      = i,
-        Value      = d,
-        Identifier = "Rolled"
-      })
+  {
+    _items = DiceValues.Select((d, i) => new DropItem { Index = i, Value = d, Identifier = "Rolled" })
       .ToList();
+  }
 
   protected override void OnParametersSet()
   {
-    var itemsCount                                                 = Math.Min(_items.Count, DiceValues.Count);
-    for (var i = 0; i < itemsCount; i++) _items.ElementAt(i).Value = DiceValues.ElementAt(i);
+    var itemsCount = Math.Min(_items.Count, DiceValues.Count);
+    for (var i = 0; i < itemsCount; i++)
+    {
+      _items.ElementAt(i).Value = DiceValues.ElementAt(i);
+    }
 
     base.OnParametersSet();
   }
 
   public class DropItem
   {
-    public int       Index      { get; set; }
-    public DiceValue Value      { get; set; }
-    public string?   Identifier { get; set; }
+    public int Index { get; set; }
+
+    // TODO: remove nullable
+    public DiceValue? Value      { get; set; }
+    public string?    Identifier { get; set; }
   }
 }

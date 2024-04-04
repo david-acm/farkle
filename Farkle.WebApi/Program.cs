@@ -24,8 +24,9 @@ builder.Services.AddAggregateStore<EsdbEventStore>();
 
 IConfigurationRefresher refresher = default!;
 
-var configuration     = builder.Configuration;
-var appConfigEndpoint = configuration.GetValue<string>("AppConfigEndpoint");
+var configuration = builder.Configuration;
+// TODO: Use a guard class instead
+var appConfigEndpoint = configuration.GetValue<string>("AppConfigEndpoint") ?? string.Empty;
 
 builder.Configuration.AddAzureAppConfiguration(options =>
 {
@@ -42,7 +43,8 @@ builder.Configuration.AddAzureAppConfiguration(options =>
 });
 
 await RegisterRefreshEventHandlerAsync(configuration, refresher);
-var esdbConnString = configuration.GetConnectionString("Esdb");
+// TODO: Use Guard clause instead
+var esdbConnString = configuration.GetConnectionString("Esdb") ?? string.Empty;
 builder.Services.AddEventStoreClient(esdbConnString);
 
 builder.Services.AddCors(options =>

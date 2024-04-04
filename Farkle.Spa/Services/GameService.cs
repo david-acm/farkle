@@ -19,10 +19,7 @@ public class GameService : IGameService
       await _gameClient.PostAsJsonAsync("http://localhost:5276/diceRolls",
         new { GameId = gameId, PlayerId = playerId });
 
-    var options = new JsonSerializerOptions
-    {
-      PropertyNameCaseInsensitive = true
-    };
+    var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
 
     var stringContent = await result.Content.ReadAsStringAsync();
     var response      = JsonSerializer.Deserialize<CommandResponse>(stringContent, options);
@@ -31,10 +28,14 @@ public class GameService : IGameService
     return tableCenter ?? new List<DiceValue>();
   }
 
-  public async Task JoinPlayerAsync(int gameId, int playerId, string playerName) =>
+  public async Task JoinPlayerAsync(int gameId, int playerId, string playerName)
+  {
     await _gameClient.PostAsJsonAsync("http://localhost:5276/players",
       new { GameId = gameId, PlayerId = playerId, PlayerName = playerName });
+  }
 
-  public async Task StartGameAsync(int gameId) =>
+  public async Task StartGameAsync(int gameId)
+  {
     await _gameClient.PostAsJsonAsync("http://localhost:5276/games", new { Id = gameId });
+  }
 }

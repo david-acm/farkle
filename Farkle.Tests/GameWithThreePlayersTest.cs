@@ -18,7 +18,15 @@ public class GameWithThreePlayersTest
     // Arrange
     _randomProvider = Mock.Of<IRandom>();
     SetupDiceToRoll(new List<int>
-      { 4, 4, 4, 2, 1, 2, 3 });
+    {
+      4,
+      4,
+      4,
+      2,
+      1,
+      2,
+      3
+    });
     var game = new Game(_randomProvider);
 
     // Act

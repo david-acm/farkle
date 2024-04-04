@@ -10,8 +10,10 @@ public record Dice(IEnumerable<DiceValue> DiceValues)
   {
     var dice = new List<DiceValue>();
     for (var i = 1; i <= diceToRoll; i++)
+    {
       dice.Add(DiceValue.FromValue(randomizer.Next(1,
         6)));
+    }
 
     return new Dice(dice);
   }
@@ -19,7 +21,11 @@ public record Dice(IEnumerable<DiceValue> DiceValues)
   public static Dice FromValues(IEnumerable<int> values)
   {
     var valueList = values.ToList();
-    if (valueList.Count > 6) throw new ArgumentOutOfRangeException($"Can't Roll more than 6 dice. Found: {valueList}");
+    if (valueList.Count > 6)
+    {
+      throw new ArgumentOutOfRangeException($"Can't Roll more than 6 dice. Found: {valueList}");
+    }
+
     return new Dice(valueList.ToDiceValues());
   }
 }
