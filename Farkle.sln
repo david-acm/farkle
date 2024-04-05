@@ -12,13 +12,20 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Farkle.SpaTests", "Farkle.S
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Farkle.Spa", "Farkle.Spa\Farkle.Spa.csproj", "{7B3CA627-136C-481F-A55D-02E3434E1835}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{88DC3DC0-4EC0-4073-A2C8-D03FFDACA728}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Farkle Module", "Farkle Module", "{88DC3DC0-4EC0-4073-A2C8-D03FFDACA728}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{429E4E3B-7CDB-4ABE-96DB-EBFF4494B3B3}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".github", ".github", "{A6E29EB8-B644-41A8-A5DF-D06369BC4797}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Farkle.Web", "Farkle.Web\Farkle.Web.csproj", "{604F3CD2-F8AB-4BAE-8BD0-89160B95F69B}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{7D7CA886-DF51-4B34-81D0-E837F62E9DD1}"
+	ProjectSection(SolutionItems) = preProject
+		docker-compose.yml = docker-compose.yml
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Users Module", "Users Module", "{934DC8F6-A414-4DA8-B35F-B413890CD161}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

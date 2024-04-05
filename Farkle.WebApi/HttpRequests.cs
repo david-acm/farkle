@@ -1,7 +1,7 @@
 using Eventuous.AspNetCore.Web;
 using Greedy.GameAggregate;
 
-namespace Greedy.WebApi;
+namespace Farkle.WebApi;
 
 [AggregateCommands<Game>]
 public static class V1

@@ -8,7 +8,7 @@ namespace Greedy.SpaTests.GameServiceTests;
 public class JoinPlayerShould
 {
   [Fact]
-  public async Task CallApi()
+  public async Task CallApiAsync()
   {
     // Given
     var mock = MockHttpClientBUnitHelpers.GetMockHttpClient();

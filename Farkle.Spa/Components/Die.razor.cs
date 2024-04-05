@@ -23,7 +23,7 @@ public partial class Die
   [Inject] public ILogger<Die>? Logger { get; set; }
 
   // TODO: remove nullable
-  [Inject] public IRotationCalculator? _rotationCalculator { get; set; }
+  [Inject] public IRotationCalculator? RotationCalculator { get; set; }
 
   private double AngleFor(char a)
   {
@@ -69,10 +69,10 @@ public partial class Die
 
   private void DelayedRotateToValue()
   {
-    _ = new Timer(Callback, null, 0, -1);
+    _ = new Timer(CallbackAsync, null, 0, -1);
   }
 
-  private async void Callback(object? _)
+  private async void CallbackAsync(object? _)
   {
     await InvokeAsync(() =>
     {
@@ -84,7 +84,7 @@ public partial class Die
   private void RotateToValue()
   {
     // TODO: remove nullable
-    var rotation = _rotationCalculator!.CalculateFor(DiceValue!, !IsDragging);
+    var rotation = RotationCalculator!.CalculateFor(DiceValue!, !IsDragging);
     SetRotationTo(rotation);
   }
 

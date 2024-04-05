@@ -10,30 +10,30 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
   }
 
   [Fact]
-  public async Task AllowPlayerToRollDice()
+  public async Task AllowPlayerToRollDiceAsync()
   {
     // Arrange
     const int gameId = 208;
 
     // Act
     // Assert
-    await _client.PostAndEnsureOkStatusCode(
+    await _client.PostAndEnsureOkStatusCodeAsync(
       "/games",
       new { Id = gameId });
 
-    await _client.PostAndEnsureOkStatusCode(
+    await _client.PostAndEnsureOkStatusCodeAsync(
       "/players",
       JoinPlayerRequest(1, "David", gameId));
 
-    await _client.PostAndEnsureOkStatusCode(
+    await _client.PostAndEnsureOkStatusCodeAsync(
       "/players",
       JoinPlayerRequest(2, "Allison", gameId));
 
-    var roll = await _client.PostAndEnsureOkStatusCode(
+    var roll = await _client.PostAndEnsureOkStatusCodeAsync(
       "/diceRolls",
       RollDice(1, gameId));
 
-    await _client.PostAndEnsureOkStatusCode(
+    await _client.PostAndEnsureOkStatusCodeAsync(
       "/diceKeeps",
       KeepDice(1, new[] { 1 }, gameId));
   }

@@ -102,6 +102,7 @@ public class Game : Aggregate<GameState>
   {
     try
     {
+      // TODO: Change Exception for Ardalis.Result
       GameValidator.EnsurePreconditions(
         this, @event);
       base.Apply(@event);

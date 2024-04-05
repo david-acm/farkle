@@ -4,3 +4,10 @@ GET {{Farkle.Web_HostAddress}}/weatherforecast/
 Accept: application/json
 
 ###
+
+POST https://localhost:8001/api/games/2/players/2/rolls
+Content-Type: application/json
+
+{
+
+}

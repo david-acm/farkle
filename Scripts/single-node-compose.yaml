@@ -17,7 +17,7 @@ services:
       - ./certs:/certs
     depends_on:
       - setup
-  eventstore.db:
+  esdb:
     image: eventstore/eventstore:23.10.0-bookworm-slim
     environment:
       - EVENTSTORE_CLUSTER_SIZE=1

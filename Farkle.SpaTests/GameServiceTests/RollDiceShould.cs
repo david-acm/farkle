@@ -11,7 +11,7 @@ namespace Greedy.SpaTests.GameServiceTests;
 public class RollDiceShould
 {
   [Fact]
-  public async Task ReturnDiceValues()
+  public async Task ReturnDiceValuesAsync()
   {
     // Given
     var mock = GetMockHttpClient();

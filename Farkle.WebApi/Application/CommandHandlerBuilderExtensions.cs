@@ -1,6 +1,6 @@
 using Eventuous;
 
-namespace Greedy.WebApi.Application;
+namespace Farkle.WebApi.Application;
 
 public static class CommandHandlerBuilderExtensions
 {
@@ -20,7 +20,7 @@ public static class CommandHandlerBuilderExtensions
       }
       catch (DomainException)
       {
-        // We ignore the domain exceptions because other wise the error events would not be persisted to the store. In a future version these events will be handled and will return the appropriate HTTP 400 Bad Request response
+        // We ignore the domain exceptions because otherwise the error events would not be persisted to the store. In a future version these events will be handled and will return the appropriate HTTP 400 Bad Request response
       }
     });
 

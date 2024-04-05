@@ -1,3 +1,8 @@
+using System.Reflection;
+using Farkle.WebApi;
+using FastEndpoints;
+using FastEndpoints.Security;
+using FastEndpoints.Swagger;
 using Serilog;
 
 var logger = Log.Logger = new LoggerConfiguration()
@@ -9,21 +14,48 @@ logger.Information("Starting web host");
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Host.UseSerilog((_, config) =>
+  config.ReadFrom.Configuration(builder.Configuration));
+
+var services = builder.Services;
+services.AddEndpointsApiExplorer();
+services.AddSwaggerGen();
+services
+  .AddAuthenticationJwtBearer(s =>
+  {
+    // TODO: Load from config
+    s.SigningKey = builder.Configuration["Auth:JwtSecret"];
+  })
+  .AddAuthorization()
+  .SwaggerDocument()
+  .AddFastEndpoints();
+
+List<Assembly> mediatRAssemblies = [];
+builder.Services.AddFarkleModuleServices(builder.Configuration, logger, mediatRAssemblies);
+
+// await builder.AddAzureAppConfigurationAsync(logger);
+
+// TODO: specify from config
+const string myAllowSpecificOrigins = "MyAllowSpecificOrigins";
+builder.Services.AddCors(options =>
+{
+  options.AddPolicy(myAllowSpecificOrigins,
+    policy => { policy.WithOrigins("http://localhost:5186").AllowAnyHeader().AllowAnyMethod(); });
+});
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-  app.UseSwagger();
-  app.UseSwaggerUI();
-}
+// app.UseHttpsRedirection();
+app.SetUpFarkleModule();
 
-app.UseHttpsRedirection();
-
+app.UseAuthentication()
+  .UseAuthorization()
+  .UseFastEndpoints()
+  .UseSwaggerGen();
 
 app.Run();
+
+public partial class Program
+{
+}
+

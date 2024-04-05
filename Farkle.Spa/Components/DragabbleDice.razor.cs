@@ -11,7 +11,7 @@ public partial class DragabbleDice
 
   private List<DropItem> _items = new();
 
-  private async Task ItemUpdated(MudItemDropInfo<DropItem> dropItem)
+  private async Task ItemUpdatedAsync(MudItemDropInfo<DropItem> dropItem)
   {
     // TODO: Remove nullable
     dropItem!.Item!.Identifier = dropItem.DropzoneIdentifier;

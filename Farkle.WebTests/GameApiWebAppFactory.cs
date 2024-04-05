@@ -1,5 +1,5 @@
 using DotNet.Testcontainers.Builders;
-using Greedy.WebApi.Application;
+using Farkle.WebApi.Application;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 

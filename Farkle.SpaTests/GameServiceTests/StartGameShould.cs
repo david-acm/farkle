@@ -8,7 +8,7 @@ namespace Greedy.SpaTests.GameServiceTests;
 public class StartGameShould
 {
   [Fact]
-  public async Task CallApi()
+  public async Task CallApiAsync()
   {
     // Given
     var mock = MockHttpClientBUnitHelpers.GetMockHttpClient();

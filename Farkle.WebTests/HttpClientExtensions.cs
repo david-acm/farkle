@@ -5,7 +5,7 @@ namespace Greedy.WebTests;
 
 public static class HttpClientExtensions
 {
-  public static async Task<HttpResponseMessage> PostAndEnsureOkStatusCode(this HttpClient client, string route,
+  public static async Task<HttpResponseMessage> PostAndEnsureOkStatusCodeAsync(this HttpClient client, string route,
     object                                                                                body)
   {
     var result  = await client.PostAsJsonAsync(route, body);
