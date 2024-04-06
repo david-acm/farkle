@@ -1,7 +1,7 @@
-using Farkle.GameAggregate;
+using Farkle.Domain.GameAggregate;
 using FluentAssertions;
-using static Farkle.GameAggregate.Command;
-using static Farkle.GameAggregate.GameEvents.V1;
+using static Farkle.Domain.GameAggregate.Command;
+using static Farkle.Domain.GameAggregate.GameEvents.V1;
 
 namespace Farkle.Tests.Domain;
 

@@ -1,5 +1,5 @@
 using Eventuous.AspNetCore.Web;
-using Farkle.GameAggregate;
+using Farkle.Domain.GameAggregate;
 
 namespace Farkle.WebApi;
 

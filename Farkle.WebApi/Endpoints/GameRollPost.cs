@@ -1,6 +1,6 @@
 ﻿using Eventuous;
+using Farkle.Domain.GameAggregate;
 using FastEndpoints;
-using Farkle.GameAggregate;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Logging;
 using GameService=Farkle.WebApi.Application.GameService;

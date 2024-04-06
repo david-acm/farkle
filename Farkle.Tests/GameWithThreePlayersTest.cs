@@ -1,7 +1,7 @@
-using Farkle.GameAggregate;
+using Farkle.Domain.GameAggregate;
 using Moq;
 using Xunit.Abstractions;
-using static Farkle.GameAggregate.Command;
+using static Farkle.Domain.GameAggregate.Command;
 
 namespace Farkle.Tests;
 

@@ -1,9 +1,9 @@
 using System.Collections.Immutable;
 using Eventuous;
-using static Farkle.GameAggregate.Command;
-using static Farkle.GameAggregate.GameEvents;
+using static Farkle.Domain.GameAggregate.Command;
+using static Farkle.Domain.GameAggregate.GameEvents;
 
-namespace Farkle.GameAggregate;
+namespace Farkle.Domain.GameAggregate;
 
 public record GameState : State<GameState>
 {

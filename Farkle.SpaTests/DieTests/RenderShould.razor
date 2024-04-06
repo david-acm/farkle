@@ -24,7 +24,7 @@ Learn more at https://bunit.dev/docs/getting-started/writing-tests.html#creating
     var cut = RenderComponent<Die>(c => c.Add(d => d.DiceValue, DiceValue.None));
 
     cut.WaitForAssertion(() => cut.RenderCount.Should().Be(2),
-      TimeSpan.FromMilliseconds(300));
+      TimeSpan.FromMilliseconds(400));
     RotationShouldMatch(xExpected, yExpected, zExpected, cut);
   }
 

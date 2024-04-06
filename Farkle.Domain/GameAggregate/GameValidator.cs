@@ -1,7 +1,7 @@
 using Eventuous;
-using static Farkle.GameAggregate.GameEvents;
+using static Farkle.Domain.GameAggregate.GameEvents;
 
-namespace Farkle.GameAggregate;
+namespace Farkle.Domain.GameAggregate;
 
 public static class GameValidator
 {

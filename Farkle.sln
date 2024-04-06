@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Farkle", "Farkle\Farkle.csproj", "{5D0C1C9A-01CF-4F21-8E3A-997290F734DE}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Farkle.Domain", "Farkle.Domain\Farkle.Domain.csproj", "{5D0C1C9A-01CF-4F21-8E3A-997290F734DE}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Farkle.Tests", "Farkle.Tests\Farkle.Tests.csproj", "{36178C4F-8477-495A-92BC-D8AF1CC64B6A}"
 EndProject

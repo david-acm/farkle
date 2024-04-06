@@ -1,4 +1,4 @@
-namespace Farkle.GameAggregate;
+namespace Farkle.Domain.GameAggregate;
 
 public static class EventExtensions
 {

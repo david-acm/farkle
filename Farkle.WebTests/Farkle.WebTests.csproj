@@ -28,7 +28,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Farkle.WebApi\Farkle.WebApi.csproj"/>
-    <ProjectReference Include="..\Farkle\Farkle.csproj"/>
+    <ProjectReference Include="..\Farkle.Domain\Farkle.Domain.csproj" />
   </ItemGroup>
 
 </Project>

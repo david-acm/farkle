@@ -1,4 +1,4 @@
-namespace Farkle;
+namespace Farkle.Domain;
 
 public record ValidationResult(bool IsValid, object FailedValidationEvent)
 {

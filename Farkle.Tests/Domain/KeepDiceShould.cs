@@ -1,8 +1,9 @@
-using Farkle.GameAggregate;
+using Farkle.Domain;
+using Farkle.Domain.GameAggregate;
 using FluentAssertions;
 using Farkle.Tests.Framework;
 using Xunit.Abstractions;
-using static Farkle.GameAggregate.GameEvents.V1;
+using static Farkle.Domain.GameAggregate.GameEvents.V1;
 
 namespace Farkle.Tests.Domain;
 
@@ -91,12 +92,10 @@ public class KeepDiceShould : GameWithThreePlayersTest
     });
     Game.RollDiceV2(new Command.RollDice(1, 1));
 
-    var action = ()
-      => Game.KeepDice(new Command.KeepDice(1, 1,
+    //Act
+    Game.KeepDice(new Command.KeepDice(1, 1,
         new[] { DiceValue.Four, DiceValue.Four, DiceValue.Four, DiceValue.Four }));
 
-    //Act
-    action.Should().NotThrow<PreconditionsFailedException>();
     Changes.Should().NotContainAnyEvent<DiceNotAllowedToBeKept>();
   }
 
@@ -169,10 +168,10 @@ public class KeepDiceShould : GameWithThreePlayersTest
 
     diceToKeep = State.DiceKept.First();
 
-    var action = () => Game.KeepDice(new Command.KeepDice(1, 1, new[] { diceToKeep }));
-
     //Act
-    action.Should().NotThrow<PreconditionsFailedException>();
+    Game.KeepDice(new Command.KeepDice(1, 1, new[] { diceToKeep }));
+
+    // Assert
     Changes.Should().NotContainAnyEvent<DiceNotAllowedToBeKept>();
   }
 
@@ -191,12 +190,11 @@ public class KeepDiceShould : GameWithThreePlayersTest
     });
     var diceToKeep = new[] { DiceValue.One, DiceValue.Five };
 
-    //Act
+    // Act
     Game.RollDiceV2(new Command.RollDice(1, 1));
-    var action = () => Game.KeepDice(new Command.KeepDice(1, 1, diceToKeep));
+    Game.KeepDice(new Command.KeepDice(1, 1, diceToKeep));
 
     // Assert
-    action.Should().NotThrow<PreconditionsFailedException>();
     State.TableCenter.Should().HaveCount(4);
   }
 
@@ -211,10 +209,11 @@ public class KeepDiceShould : GameWithThreePlayersTest
     // Arrange
     SetupDiceToRoll(rolledDice);
     Game.RollDiceV2(new Command.RollDice(1, 1));
-    var action = () => Game.KeepDice(new Command.KeepDice(1, 1, diceToKeep));
+    
+    // Act
+    Game.KeepDice(new Command.KeepDice(1, 1, diceToKeep));
 
     // Assert
-    action.Should().NotThrow<PreconditionsFailedException>();
     State.TurnScore.Should()
       .Be(new Score(expectedScore),
         $"{reason} but got {State.TurnScore}");

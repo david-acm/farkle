@@ -32,7 +32,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Farkle.Spa\Farkle.Spa.csproj" />
-    <ProjectReference Include="..\Farkle\Farkle.csproj" />
+    <ProjectReference Include="..\Farkle.Domain\Farkle.Domain.csproj" />
   </ItemGroup>
 
 </Project>

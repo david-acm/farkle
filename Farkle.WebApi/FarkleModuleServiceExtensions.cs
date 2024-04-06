@@ -1,8 +1,8 @@
 ﻿using System.Reflection;
 using Eventuous;
 using Eventuous.EventStore;
+using Farkle.Domain.GameAggregate;
 using Farkle.WebApi.Application;
-using Farkle.GameAggregate;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
@@ -28,7 +28,7 @@ public static class FarkleModuleServiceExtensions
     services.AddEventStoreClient(esdbConnString);
     logger.Information($"Using esdb connection string: {esdbConnString}");
     
-    logger.Information("{Module} module services registered", "Farkle");
+    logger.Information("{Module} module services registered", "Farkle.Domain");
 
     return services;
   }

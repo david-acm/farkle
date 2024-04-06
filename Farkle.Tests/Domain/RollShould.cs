@@ -1,10 +1,10 @@
-using Farkle.GameAggregate;
+using Farkle.Domain.GameAggregate;
 using FluentAssertions;
 using Farkle.Tests.Framework;
 using Xunit.Abstractions;
-using static Farkle.GameAggregate.Command;
-using static Farkle.GameAggregate.DiceValue;
-using static Farkle.GameAggregate.GameEvents;
+using static Farkle.Domain.GameAggregate.Command;
+using static Farkle.Domain.GameAggregate.DiceValue;
+using static Farkle.Domain.GameAggregate.GameEvents;
 
 namespace Farkle.Tests.Domain;
 

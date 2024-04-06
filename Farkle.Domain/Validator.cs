@@ -1,4 +1,4 @@
-namespace Farkle;
+namespace Farkle.Domain;
 
 public abstract class Validator
 {

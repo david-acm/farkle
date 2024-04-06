@@ -1,5 +1,5 @@
 using Eventuous;
-using Farkle.GameAggregate;
+using Farkle.Domain.GameAggregate;
 using static Eventuous.ExpectedState;
 
 namespace Farkle.WebApi.Application;

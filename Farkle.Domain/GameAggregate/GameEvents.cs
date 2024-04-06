@@ -2,7 +2,7 @@ using System.Collections.Immutable;
 using Ardalis.SmartEnum;
 using Eventuous;
 
-namespace Farkle.GameAggregate;
+namespace Farkle.Domain.GameAggregate;
 
 public record Dice(IEnumerable<DiceValue> DiceValues)
 {

@@ -1,4 +1,4 @@
-namespace Farkle.GameAggregate;
+namespace Farkle.Domain.GameAggregate;
 
 public class DefaultRandomProvider : IRandom
 {
