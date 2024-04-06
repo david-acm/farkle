@@ -23,19 +23,10 @@ public class GamePlayerPost(
     logger.LogInformation("ℹ️ In game post fast endpoint");
     var command = new Command.JoinPlayer(req.GameId, req.PlayerId, req.PlayerName);
 
-    var result = await new GameService(store).Handle(command, ct);
-    
-    if (result is ErrorResult<GameState> error)
-    {
-      var responseAction = error.Exception switch
-      {
-        DomainException e => (Func<Task>)(() => SendResultAsync(TypedResults.Conflict(e.Message))),
-        _                 => () => SendResultAsync(TypedResults.StatusCode(500))
-      };
-      await responseAction();
-      return;
-    }
+    var result = await new GameService(store).HandleAsync(command, ct);
 
-    await SendOkAsync(ct);
+    var minimalResult = result.AsMinimalResult();
+
+    await SendResultAsync(minimalResult);
   }
 }

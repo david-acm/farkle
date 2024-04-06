@@ -4,7 +4,8 @@ using static Eventuous.ExpectedState;
 
 namespace Farkle.WebApi.Application;
 
-public class GameService : CommandService<Game, GameState, GameId>
+public class GameService
+  : CommandService<Game, GameState, GameId>
 {
   public GameService(IAggregateStore store) : base(store)
   {
@@ -21,7 +22,7 @@ public class GameService : CommandService<Game, GameState, GameId>
     On<Command.RollDice>()
       .InState(Existing)
       .GetId(cmd => new GameId(cmd.GameId))
-      .Act((game, cmd) => game.RollDiceV2(cmd));
+      .Execute((game, cmd) => game.RollDiceV2(cmd));
 
     On<Command.KeepDice>()
       .InState(Existing)
@@ -32,5 +33,30 @@ public class GameService : CommandService<Game, GameState, GameId>
       .InState(Existing)
       .GetId(cmd => new GameId(cmd.GameId))
       .Execute((game, cmd) => game.PassTurn(cmd));
+  }
+
+  // TODO: Generalize this method
+  public async Task<Result<GameState>> HandleAsync<TCommand>(TCommand command, CancellationToken cancellationToken) where TCommand : class
+  {
+    var result = await base.Handle(command, cancellationToken);
+
+    var errorEvents = result.Changes?
+      .Where(c => c.Event is IErrorEvent)
+      .Select(e => e.Event.GetType().Name)
+      .ToList() ?? [];
+    if (!errorEvents.Any())
+    {
+      return result;
+    }
+
+    var message = string.Concat(errorEvents);
+
+    var errorResult = new ErrorResult<GameState>(
+      $"Error handling command {typeof(TCommand).Name}", 
+      new DomainException(message))
+      {};
+    
+    return errorResult;
+
   }
 }

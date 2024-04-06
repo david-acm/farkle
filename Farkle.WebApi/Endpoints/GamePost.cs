@@ -25,19 +25,10 @@ public class GamePost(
   public override async Task HandleAsync(V1.StartGameHttp req, CancellationToken ct)
   {
     logger.LogInformation("ℹ️ In game post fast endpoint");
-    var result = await new GameService(store).Handle(new Command.StartGame(req.Id), ct);
+    var result = await new GameService(store).HandleAsync(new Command.StartGame(req.Id), ct);
 
-    if (result is ErrorResult<GameState> error)
-    {
-      var responseAction = error.Exception switch
-      {
-        DomainException e => (Func<Task>)(() => SendResultAsync(Conflict(e.Message))),
-        _                 => () => SendResultAsync(StatusCode(500))
-      };
-      await responseAction();
-      return;
-    }
+    var minimalResult = result.AsMinimalResult();
 
-    await SendOkAsync(ct);
+    await SendResultAsync(minimalResult);
   }
 }

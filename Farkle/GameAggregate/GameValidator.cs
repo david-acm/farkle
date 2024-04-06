@@ -39,6 +39,7 @@ public static class GameValidator
       return;
     }
 
+    // TODO: Don't use exceptions t control the logic flow here
     throw new PreconditionsFailedException(valid.FailedValidationEvent.ToString()!, valid.FailedValidationEvent);
   }
 

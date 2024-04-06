@@ -1,16 +1,17 @@
 ﻿using Eventuous;
-using Farkle.WebApi.Application;
 using FastEndpoints;
 using Greedy.GameAggregate;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Logging;
+using GameService=Farkle.WebApi.Application.GameService;
+using IResult=Microsoft.AspNetCore.Http.IResult;
+using ProblemDetails=FastEndpoints.ProblemDetails;
 
 namespace Farkle.WebApi.Endpoints;
 
 public class GameRollPost(
   ILogger<GameRollPost> logger,
-  IAggregateStore store) 
+  IAggregateStore store)
   : Endpoint<V1.RollDiceHttp,
     Results<Ok<IResult>,
       ProblemDetails>>
@@ -23,12 +24,14 @@ public class GameRollPost(
 
   public override async Task HandleAsync(V1.RollDiceHttp req, CancellationToken ct)
   {
-    logger.LogInformation("ℹ️ In game post fast endpoint");
+    logger.LogInformation("ℹ️ In game roll post fast endpoint");
     var command = new Command.RollDice(req.GameId, req.PlayerId);
 
-    var result = await new GameService(store).Handle(command, ct);
+    Eventuous.Result<GameState> result = await new GameService(store).HandleAsync(command, ct);
 
-    // TODO: react
-      await SendResultAsync(TypedResults.Ok(result));
+    var minimalResult = result.AsMinimalResult();
+
+    await SendResultAsync(minimalResult);
   }
 }
+
