@@ -1,4 +1,5 @@
 using Farkle.GameAggregate;
+using Farkle.Tests.Framework;
 using FluentAssertions;
 using static Farkle.GameAggregate.Command;
 using static Farkle.GameAggregate.GameEvents.V1;
@@ -12,11 +13,11 @@ public class StartShould
   public void ChangeStateToStarted()
   {
     // Arrange
+    var gameId = 1;
     var game = new Game();
 
     // Act
-    var gameId = 1;
-    game.Start(new Command.StartGame(gameId));
+    game.Start(new StartGame(gameId));
 
     // Assert
     game.State.GameStage.Should().Be(Rolling);
@@ -30,10 +31,10 @@ public class StartShould
     var game = new Game();
 
     // Act
-    game.Start(new Command.StartGame(1));
+    game.Start(new StartGame(1));
 
     // Assert
-    game.Changes.Should().Contain(e => e is GameEvents.V1.GameStarted);
+    game.Changes.Should().Contain(e => e is GameStarted);
   }
 
   [Fact]
@@ -41,12 +42,12 @@ public class StartShould
   {
     // Arrange
     var game = new Game();
+    game.Start(new StartGame(1));
 
     // Act
-    game.Start(new Command.StartGame(1));
-    var secondStart = () => game.Start(new Command.StartGame(1));
+    game.Start(new StartGame(1));
 
     // Assert
-    secondStart.Should().Throw<PreconditionsFailedException>();
+    game.Changes.Should().ContainSingleEvent<GameStarted>();
   }
 }

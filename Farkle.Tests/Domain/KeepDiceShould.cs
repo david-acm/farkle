@@ -32,11 +32,11 @@ public class KeepDiceShould : GameWithThreePlayersTest
     // Arrange
     Game.RollDiceV2(new Command.RollDice(1, 1));
 
-    var action = () => keepAction(Game);
+    // Act
+    keepAction(Game);
 
-    //Act
-    action.Should().Throw<PreconditionsFailedException>();
-    Changes.Should().ContainSingleEvent<GameEvents.V1.PlayedOutOfTurn>();
+    // Assert
+    Changes.Should().ContainSingleEvent<PlayedOutOfTurn>();
   }
 
   [Fact]
@@ -44,10 +44,11 @@ public class KeepDiceShould : GameWithThreePlayersTest
   {
     // Arrange
     Game.RollDiceV2(new Command.RollDice(1, 1));
-    var action = () => Game.KeepDice(new Command.KeepDice(1, 1, new[] { DiceValue.Four }));
+    
+    // Act
+    Game.KeepDice(new Command.KeepDice(1, 1, new[] { DiceValue.Four }));
 
-    //Act
-    action.Should().Throw<PreconditionsFailedException>();
+    // Assert
     Changes.Should().ContainSingleEvent<DiceNotAllowedToBeKept>();
   }
 
@@ -67,11 +68,10 @@ public class KeepDiceShould : GameWithThreePlayersTest
     });
     Game.RollDiceV2(new Command.RollDice(1, 1));
 
-    var action = ()
-      => Game.KeepDice(new Command.KeepDice(1, 1, new[] { DiceValue.Four, DiceValue.Four, DiceValue.Four }));
+    // Act
+    Game.KeepDice(new Command.KeepDice(1, 1, new[] { DiceValue.Four, DiceValue.Four, DiceValue.Four }));
 
-    //Act
-    action.Should().NotThrow<PreconditionsFailedException>();
+    // Assert
     Changes.Should().NotContainAnyEvent<DiceNotAllowedToBeKept>();
   }
 
@@ -113,14 +113,14 @@ public class KeepDiceShould : GameWithThreePlayersTest
       5,
       6
     });
-    var action = () => Game.KeepDice(new Command.KeepDice(1, 1,
+    Game.RollDiceV2(new Command.RollDice(1, 1));
+    
+    // Act
+    Game.KeepDice(new Command.KeepDice(1, 1,
       new[] { DiceValue.One, DiceValue.Two, DiceValue.Three, DiceValue.Four, DiceValue.Five, DiceValue.Six }));
 
-    //Act
-    Game.RollDiceV2(new Command.RollDice(1, 1));
 
     // Assert
-    action.Should().NotThrow<PreconditionsFailedException>();
     Changes.Should().NotContainAnyEvent<DiceNotAllowedToBeKept>();
   }
 
@@ -136,10 +136,11 @@ public class KeepDiceShould : GameWithThreePlayersTest
 
     var last           = State.TableCenter!;
     var diceToKeep     = diceValues.Where(d => !last.Contains(d));
-    var keepDiceAction = () => Game.KeepDice(new Command.KeepDice(1, 1, diceToKeep));
+    
+    // Act
+    Game.KeepDice(new Command.KeepDice(1, 1, diceToKeep));
 
-    //Act
-    keepDiceAction.Should().Throw<PreconditionsFailedException>();
+    // Assert
     Changes.Should().ContainSingleEvent<DiceNotAllowedToBeKept>();
   }
 

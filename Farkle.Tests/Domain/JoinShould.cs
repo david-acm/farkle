@@ -12,15 +12,15 @@ public class JoinShould
   {
     // Arrange
     var game = new Game();
+    game.Start(new StartGame(1));
+    var player1 = new JoinPlayer(1, 1, "David");
 
     // Act
-    game.Start(new Command.StartGame(1));
-    var player1 = new Command.JoinPlayer(1, 1, "David");
     game.JoinPlayer(player1);
-    game.JoinPlayer(new Command.JoinPlayer(1, 2, "Cristian"));
+    game.JoinPlayer(new JoinPlayer(1, 2, "Cristian"));
 
     // Assert
-    game.Changes.Where(p => p is GameEvents.V1.PlayerJoined).Should().HaveCount(2);
+    game.Changes.Where(p => p is PlayerJoined).Should().HaveCount(2);
     game.State.Players.Should().Contain(new Player(1, "David"));
   }
 }

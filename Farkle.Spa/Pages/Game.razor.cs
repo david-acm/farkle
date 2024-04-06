@@ -47,7 +47,7 @@ public partial class Game
   }
 
   // TODO: Remove nullable
-  private void DieDropped(MudItemDropInfo<Components.DragabbleDice.DropItem> obj)
+  private void DieDropped(MudItemDropInfo<DragabbleDice.DropItem> obj)
   {
     Logger.LogInformation($"Die {obj!.Item!.Value} dropped with index: {obj.Item.Index}");
   }

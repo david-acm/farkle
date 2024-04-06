@@ -27,7 +27,7 @@ public class GameRollPost(
     logger.LogInformation("ℹ️ In game roll post fast endpoint");
     var command = new Command.RollDice(req.GameId, req.PlayerId);
 
-    Eventuous.Result<GameState> result = await new GameService(store).HandleAsync(command, ct);
+    Result<GameState> result = await new GameService(store).HandleAsync(command, ct);
 
     var minimalResult = result.AsMinimalResult();
 

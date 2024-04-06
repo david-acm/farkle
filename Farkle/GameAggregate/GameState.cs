@@ -9,13 +9,13 @@ public record GameState : State<GameState>
 {
   public GameState()
   {
-    On<GameEvents.V1.GameStarted>(HandleGameStarted);
-    On<GameEvents.V1.PlayerJoined>(HandlePlayerJoined);
-    On<GameEvents.V1.DiceRolled>(HandleDiceRolled);
-    On<GameEvents.V2.DiceRolled>(HandleDiceRolledV2);
-    On<GameEvents.V1.TurnPassed>(HandleTurnPassed);
-    On<GameEvents.V1.DiceKept>(HandleDiceKept);
-    On<GameEvents.V2.DiceKept>(HandleDiceKeptV2);
+    On<V1.GameStarted>(HandleGameStarted);
+    On<V1.PlayerJoined>(HandlePlayerJoined);
+    On<V1.DiceRolled>(HandleDiceRolled);
+    On<V2.DiceRolled>(HandleDiceRolledV2);
+    On<V1.TurnPassed>(HandleTurnPassed);
+    On<V1.DiceKept>(HandleDiceKept);
+    On<V2.DiceKept>(HandleDiceKeptV2);
   }
 
   // TODO: Remove nullable
@@ -32,7 +32,7 @@ public record GameState : State<GameState>
 
   internal int PlayerInTurn => Players[0].Id;
 
-  public Score GameScoreFor(Command.PlayerId playerId)
+  public Score GameScoreFor(PlayerId playerId)
   {
     return new Score(ScoreTable[playerId]);
   }
@@ -42,7 +42,7 @@ public record GameState : State<GameState>
     return Players.Single(p => p.Id == id);
   }
 
-  private static GameState HandleDiceKept(GameState state, GameEvents.V1.DiceKept e)
+  private static GameState HandleDiceKept(GameState state, V1.DiceKept e)
   {
     return state with
     {
@@ -53,7 +53,7 @@ public record GameState : State<GameState>
     };
   }
 
-  private static GameState HandleDiceKeptV2(GameState state, GameEvents.V2.DiceKept e)
+  private static GameState HandleDiceKeptV2(GameState state, V2.DiceKept e)
   {
     return state with
     {
@@ -64,7 +64,7 @@ public record GameState : State<GameState>
     };
   }
 
-  private static GameState HandleTurnPassed(GameState state, GameEvents.V1.TurnPassed e)
+  private static GameState HandleTurnPassed(GameState state, V1.TurnPassed e)
   {
     return state with
     {
@@ -78,7 +78,7 @@ public record GameState : State<GameState>
     };
   }
 
-  private static GameState HandleDiceRolled(GameState state, GameEvents.V1.DiceRolled e)
+  private static GameState HandleDiceRolled(GameState state, V1.DiceRolled e)
   {
     return state with
     {
@@ -88,7 +88,7 @@ public record GameState : State<GameState>
     };
   }
 
-  private static GameState HandleDiceRolledV2(GameState state, GameEvents.V2.DiceRolled e)
+  private static GameState HandleDiceRolledV2(GameState state, V2.DiceRolled e)
   {
     return state with
     {
@@ -98,7 +98,7 @@ public record GameState : State<GameState>
     };
   }
 
-  private static GameState HandlePlayerJoined(GameState state, GameEvents.V1.PlayerJoined playerJoined)
+  private static GameState HandlePlayerJoined(GameState state, V1.PlayerJoined playerJoined)
   {
     return state with
     {
@@ -107,7 +107,7 @@ public record GameState : State<GameState>
     };
   }
 
-  private static GameState HandleGameStarted(GameState gameState, GameEvents.V1.GameStarted e)
+  private static GameState HandleGameStarted(GameState gameState, V1.GameStarted e)
   {
     return gameState with { Id = e.Id, GameStage = GameStage.Rolling };
   }

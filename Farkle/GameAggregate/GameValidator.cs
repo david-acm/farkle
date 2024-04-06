@@ -5,28 +5,28 @@ namespace Farkle.GameAggregate;
 
 public static class GameValidator
 {
-  public static void EnsurePreconditions(Game game, object @event)
+  public static ValidationResult ValidatePreconditions(Game game, object @event)
   {
     var state = game.State;
     var valid = @event switch
     {
-      GameEvents.V1.GameStarted e => Validate(
+      V1.GameStarted e => Validate(
         state.GameStage == GameStage.None,
         new GameAlreadyStarted(e.Id)),
-      GameEvents.V1.PlayerJoined => Validate(
+      V1.PlayerJoined => Validate(
         state.GameStage == GameStage.Rolling,
         new GameHasNotStarted(state.GameStage)),
-      GameEvents.V1.DiceRolled e =>
+      V1.DiceRolled e =>
         new PlayerIsInTurn(state, e.PlayerId).And(new SingleRoll(state, e.PlayerId)).IsSatisfied(),
-      GameEvents.V2.DiceRolled e =>
+      V2.DiceRolled e =>
         new PlayerIsInTurn(state, e.PlayerId).And(new SingleRoll(state, e.PlayerId)).IsSatisfied(),
-      GameEvents.V1.TurnPassed e =>
+      V1.TurnPassed e =>
         new PlayerIsInTurn(state, e.PlayerId).And(new PlayerCanPass(game, e.PlayerId)).IsSatisfied(),
-      GameEvents.V1.DiceKept e =>
+      V1.DiceKept e =>
         new PlayerIsInTurn(state, e.PlayerId).And(new PlayerHasThoseDice(GetDice(e), state))
           .And(new CanKeepDice(GetDice(e)))
           .IsSatisfied(),
-      GameEvents.V2.DiceKept e =>
+      V2.DiceKept e =>
         new PlayerIsInTurn(state, e.PlayerId).And(new PlayerHasThoseDice(GetDice(e), state))
           .And(new CanKeepDice(GetDice(e)))
           .IsSatisfied(),
@@ -34,22 +34,16 @@ public static class GameValidator
       _ => Validate(false, $"No validation performed for event {@event}")
     };
 
-    if (valid)
-    {
-      return;
-    }
-
-    // TODO: Don't use exceptions t control the logic flow here
-    throw new PreconditionsFailedException(valid.FailedValidationEvent.ToString()!, valid.FailedValidationEvent);
+    return valid;
   }
 
-  private static Dice GetDice(GameEvents.V2.DiceKept e)
+  private static Dice GetDice(V2.DiceKept e)
   {
     return Dice.FromValues(e.Dice.ToList());
   }
 
 
-  private static Dice GetDice(GameEvents.V1.DiceKept e)
+  private static Dice GetDice(V1.DiceKept e)
   {
     return Dice.FromValues(e.Dice.ToList());
   }
@@ -74,7 +68,7 @@ public class SingleRoll : Validator
   public override ValidationResult IsSatisfied()
   {
     return new ValidationResult(_state.GameStage == GameStage.Rolling,
-      new GameEvents.V1.RolledTwice(_playerId));
+      new V1.RolledTwice(_playerId));
   }
 }
 
@@ -230,7 +224,7 @@ public class PlayerIsInTurn : Validator
   public override ValidationResult IsSatisfied()
   {
     return new ValidationResult(_state.PlayerInTurn == _playerId,
-      new GameEvents.V1.PlayedOutOfTurn(_playerId, _state.PlayerInTurn));
+      new V1.PlayedOutOfTurn(_playerId, _state.PlayerInTurn));
   }
 }
 
@@ -248,13 +242,13 @@ public class PlayerCanPass : Validator
   public override ValidationResult IsSatisfied()
   {
     return new ValidationResult(
-      _game.Current.LastEventsWhere(typeof(GameEvents.V2.DiceRolled))
+      _game.Current.LastEventsWhere(typeof(V2.DiceRolled))
       ||
-      _game.Current.LastEventsWhere(typeof(GameEvents.V1.DiceRolled))
+      _game.Current.LastEventsWhere(typeof(V1.DiceRolled))
       ||
-      _game.Current.LastEventsWhere(typeof(GameEvents.V2.DiceKept)) ||
-      _game.Current.LastEventsWhere(typeof(GameEvents.V1.DiceKept)),
-      new GameEvents.V1.PassedWithoutRolling(_playerId));
+      _game.Current.LastEventsWhere(typeof(V2.DiceKept)) ||
+      _game.Current.LastEventsWhere(typeof(V1.DiceKept)),
+      new V1.PassedWithoutRolling(_playerId));
   }
 }
 
