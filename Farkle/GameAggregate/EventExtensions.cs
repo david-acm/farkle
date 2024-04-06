@@ -1,4 +1,4 @@
-namespace Greedy.GameAggregate;
+namespace Farkle.GameAggregate;
 
 public static class EventExtensions
 {

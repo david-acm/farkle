@@ -4,7 +4,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
-    <RootNamespace>Greedy.SpaTests</RootNamespace>
+    <RootNamespace>Farkle.SpaTests</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>

@@ -1,4 +1,4 @@
-namespace Greedy.Spa.Services;
+namespace Farkle.Spa.Services;
 
 public record CommandResponse(State State, bool Success);
 

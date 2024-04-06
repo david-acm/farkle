@@ -3,7 +3,7 @@ using Farkle.WebApi.Application;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 
-namespace Greedy.WebTests;
+namespace Farkle.WebTests;
 
 public class GameApiWebAppFactory : WebApplicationFactory<GameService>
 {

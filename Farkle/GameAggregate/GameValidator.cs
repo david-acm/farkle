@@ -1,7 +1,7 @@
 using Eventuous;
-using static Greedy.GameAggregate.GameEvents;
+using static Farkle.GameAggregate.GameEvents;
 
-namespace Greedy.GameAggregate;
+namespace Farkle.GameAggregate;
 
 public static class GameValidator
 {
@@ -10,23 +10,23 @@ public static class GameValidator
     var state = game.State;
     var valid = @event switch
     {
-      V1.GameStarted e => Validate(
+      GameEvents.V1.GameStarted e => Validate(
         state.GameStage == GameStage.None,
         new GameAlreadyStarted(e.Id)),
-      V1.PlayerJoined => Validate(
+      GameEvents.V1.PlayerJoined => Validate(
         state.GameStage == GameStage.Rolling,
         new GameHasNotStarted(state.GameStage)),
-      V1.DiceRolled e =>
+      GameEvents.V1.DiceRolled e =>
         new PlayerIsInTurn(state, e.PlayerId).And(new SingleRoll(state, e.PlayerId)).IsSatisfied(),
-      V2.DiceRolled e =>
+      GameEvents.V2.DiceRolled e =>
         new PlayerIsInTurn(state, e.PlayerId).And(new SingleRoll(state, e.PlayerId)).IsSatisfied(),
-      V1.TurnPassed e =>
+      GameEvents.V1.TurnPassed e =>
         new PlayerIsInTurn(state, e.PlayerId).And(new PlayerCanPass(game, e.PlayerId)).IsSatisfied(),
-      V1.DiceKept e =>
+      GameEvents.V1.DiceKept e =>
         new PlayerIsInTurn(state, e.PlayerId).And(new PlayerHasThoseDice(GetDice(e), state))
           .And(new CanKeepDice(GetDice(e)))
           .IsSatisfied(),
-      V2.DiceKept e =>
+      GameEvents.V2.DiceKept e =>
         new PlayerIsInTurn(state, e.PlayerId).And(new PlayerHasThoseDice(GetDice(e), state))
           .And(new CanKeepDice(GetDice(e)))
           .IsSatisfied(),
@@ -43,13 +43,13 @@ public static class GameValidator
     throw new PreconditionsFailedException(valid.FailedValidationEvent.ToString()!, valid.FailedValidationEvent);
   }
 
-  private static Dice GetDice(V2.DiceKept e)
+  private static Dice GetDice(GameEvents.V2.DiceKept e)
   {
     return Dice.FromValues(e.Dice.ToList());
   }
 
 
-  private static Dice GetDice(V1.DiceKept e)
+  private static Dice GetDice(GameEvents.V1.DiceKept e)
   {
     return Dice.FromValues(e.Dice.ToList());
   }
@@ -74,7 +74,7 @@ public class SingleRoll : Validator
   public override ValidationResult IsSatisfied()
   {
     return new ValidationResult(_state.GameStage == GameStage.Rolling,
-      new V1.RolledTwice(_playerId));
+      new GameEvents.V1.RolledTwice(_playerId));
   }
 }
 
@@ -230,7 +230,7 @@ public class PlayerIsInTurn : Validator
   public override ValidationResult IsSatisfied()
   {
     return new ValidationResult(_state.PlayerInTurn == _playerId,
-      new V1.PlayedOutOfTurn(_playerId, _state.PlayerInTurn));
+      new GameEvents.V1.PlayedOutOfTurn(_playerId, _state.PlayerInTurn));
   }
 }
 
@@ -248,13 +248,13 @@ public class PlayerCanPass : Validator
   public override ValidationResult IsSatisfied()
   {
     return new ValidationResult(
-      _game.Current.LastEventsWhere(typeof(V2.DiceRolled))
+      _game.Current.LastEventsWhere(typeof(GameEvents.V2.DiceRolled))
       ||
-      _game.Current.LastEventsWhere(typeof(V1.DiceRolled))
+      _game.Current.LastEventsWhere(typeof(GameEvents.V1.DiceRolled))
       ||
-      _game.Current.LastEventsWhere(typeof(V2.DiceKept)) ||
-      _game.Current.LastEventsWhere(typeof(V1.DiceKept)),
-      new V1.PassedWithoutRolling(_playerId));
+      _game.Current.LastEventsWhere(typeof(GameEvents.V2.DiceKept)) ||
+      _game.Current.LastEventsWhere(typeof(GameEvents.V1.DiceKept)),
+      new GameEvents.V1.PassedWithoutRolling(_playerId));
   }
 }
 

@@ -1,7 +1,7 @@
+using Farkle.GameAggregate;
 using FluentAssertions;
-using Greedy.GameAggregate;
 
-namespace Greedy.Tests.Domain;
+namespace Farkle.Tests.Domain;
 
 public class ConstructorShould
 {

@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
 
-namespace Greedy.Spa.Components;
+namespace Farkle.Spa.Components;
 
 public partial class DragabbleDice
 {

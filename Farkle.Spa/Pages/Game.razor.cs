@@ -1,9 +1,10 @@
-using Greedy.Spa.Components;
-using Greedy.Spa.Services;
+using Farkle.Spa.Components;
+using Farkle.Spa.Services;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
+using DragabbleDice=Farkle.Spa.Components.DragabbleDice;
 
-namespace Greedy.Spa.Pages;
+namespace Farkle.Spa.Pages;
 
 public partial class Game
 {
@@ -46,7 +47,7 @@ public partial class Game
   }
 
   // TODO: Remove nullable
-  private void DieDropped(MudItemDropInfo<DragabbleDice.DropItem> obj)
+  private void DieDropped(MudItemDropInfo<Components.DragabbleDice.DropItem> obj)
   {
     Logger.LogInformation($"Die {obj!.Item!.Value} dropped with index: {obj.Item.Index}");
   }

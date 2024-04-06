@@ -5,7 +5,7 @@ using System.Net.Http.Headers;
 using System.Text.Json;
 using RichardSzalay.MockHttp;
 
-namespace Greedy.SpaTests.GameServiceTests;
+namespace Farkle.SpaTests.GameServiceTests;
 
 public static class MockHttpClientBUnitHelpers
 {

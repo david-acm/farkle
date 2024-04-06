@@ -2,7 +2,7 @@
 using Eventuous;
 using Eventuous.EventStore;
 using Farkle.WebApi.Application;
-using Greedy.GameAggregate;
+using Farkle.GameAggregate;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;

@@ -1,8 +1,8 @@
 using System.Net.Http.Json;
 using System.Text.Json;
-using Greedy.Spa.Components;
+using Farkle.Spa.Components;
 
-namespace Greedy.Spa.Services;
+namespace Farkle.Spa.Services;
 
 public class GameService : IGameService
 {

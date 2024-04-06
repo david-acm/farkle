@@ -1,9 +1,9 @@
 using System.Net.Http;
 using System.Threading.Tasks;
-using Greedy.Spa.Services;
+using Farkle.Spa.Services;
 using RichardSzalay.MockHttp;
 
-namespace Greedy.SpaTests.GameServiceTests;
+namespace Farkle.SpaTests.GameServiceTests;
 
 public class StartGameShould
 {

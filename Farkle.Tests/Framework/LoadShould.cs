@@ -1,7 +1,7 @@
+using Farkle.GameAggregate;
 using FluentAssertions;
-using Greedy.GameAggregate;
 
-namespace Greedy.Tests.Framework;
+namespace Farkle.Tests.Framework;
 
 public class LoadShould
 {

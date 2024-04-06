@@ -1,6 +1,6 @@
-using Greedy.Spa.Components;
+using Farkle.Spa.Components;
 
-namespace Greedy.Spa.Services;
+namespace Farkle.Spa.Services;
 
 public interface IGameService
 {

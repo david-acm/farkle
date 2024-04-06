@@ -1,8 +1,8 @@
 using System;
-using Greedy.Spa.Components;
+using Farkle.Spa.Components;
 using Xunit.Abstractions;
 
-namespace Greedy.SpaTests.RotationCalculator;
+namespace Farkle.SpaTests.RotationCalculator;
 
 public class CalculateForShould
 {

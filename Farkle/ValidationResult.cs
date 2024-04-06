@@ -1,4 +1,4 @@
-namespace Greedy;
+namespace Farkle;
 
 public record ValidationResult(bool IsValid, object FailedValidationEvent)
 {

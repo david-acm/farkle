@@ -1,6 +1,6 @@
 using Eventuous;
 
-namespace Greedy;
+namespace Farkle;
 
 public class PreconditionsFailedException : DomainException
 {

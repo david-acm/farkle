@@ -1,4 +1,4 @@
-namespace Greedy;
+namespace Farkle;
 
 public abstract class Validator
 {

@@ -1,10 +1,10 @@
+using Farkle.GameAggregate;
 using FluentAssertions;
-using Greedy.GameAggregate;
-using Greedy.Tests.Framework;
+using Farkle.Tests.Framework;
 using Xunit.Abstractions;
-using static Greedy.GameAggregate.GameEvents.V1;
+using static Farkle.GameAggregate.GameEvents.V1;
 
-namespace Greedy.Tests.Domain;
+namespace Farkle.Tests.Domain;
 
 public class KeepDiceShould : GameWithThreePlayersTest
 {
@@ -36,7 +36,7 @@ public class KeepDiceShould : GameWithThreePlayersTest
 
     //Act
     action.Should().Throw<PreconditionsFailedException>();
-    Changes.Should().ContainSingleEvent<PlayedOutOfTurn>();
+    Changes.Should().ContainSingleEvent<GameEvents.V1.PlayedOutOfTurn>();
   }
 
   [Fact]

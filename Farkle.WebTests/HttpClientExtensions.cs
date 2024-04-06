@@ -1,7 +1,7 @@
 using System.Net.Http.Json;
 using FluentAssertions;
 
-namespace Greedy.WebTests;
+namespace Farkle.WebTests;
 
 public static class HttpClientExtensions
 {

@@ -1,12 +1,13 @@
 using System.Text.Json;
 using System.Threading.Tasks;
-using Greedy.Spa.Components;
-using Greedy.Spa.Services;
+using Farkle.Spa.Components;
+using Farkle.Spa.Services;
 using RichardSzalay.MockHttp;
-using static Greedy.SpaTests.GameServiceTests.MockHttpClientBUnitHelpers;
-using Die = Greedy.Spa.Services.Die;
+using static Farkle.SpaTests.GameServiceTests.MockHttpClientBUnitHelpers;
+using Die = Farkle.Spa.Services.Die;
+using Services_Die=Farkle.Spa.Services.Die;
 
-namespace Greedy.SpaTests.GameServiceTests;
+namespace Farkle.SpaTests.GameServiceTests;
 
 public class RollDiceShould
 {
@@ -18,7 +19,7 @@ public class RollDiceShould
     mock.When("/diceRolls")
       .RespondJson(
         new CommandResponse(
-          new State(new[] { new Die("1", 1) }),
+          new State(new[] { new Services_Die("1", 1) }),
           true));
 
     var sut = new GameService(mock.ToHttpClient());

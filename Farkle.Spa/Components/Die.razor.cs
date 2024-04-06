@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 
-namespace Greedy.Spa.Components;
+namespace Farkle.Spa.Components;
 
 public partial class Die
 {

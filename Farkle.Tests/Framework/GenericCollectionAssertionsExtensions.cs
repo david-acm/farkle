@@ -1,7 +1,7 @@
 using FluentAssertions;
 using FluentAssertions.Collections;
 
-namespace Greedy.Tests.Framework;
+namespace Farkle.Tests.Framework;
 
 public static class GenericCollectionAssertionsExtensions
 {

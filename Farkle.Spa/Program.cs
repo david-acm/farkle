@@ -1,6 +1,6 @@
-using Greedy.Spa;
-using Greedy.Spa.Components;
-using Greedy.Spa.Services;
+using Farkle.Spa;
+using Farkle.Spa.Components;
+using Farkle.Spa.Services;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using MudBlazor.Services;

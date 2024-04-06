@@ -1,4 +1,4 @@
-namespace Greedy.Spa.Components;
+namespace Farkle.Spa.Components;
 
 public class RotationCalculator : IRotationCalculator
 {

@@ -1,10 +1,10 @@
+using Farkle.GameAggregate;
 using FluentAssertions;
-using Greedy.GameAggregate;
-using static Greedy.GameAggregate.Command;
-using static Greedy.GameAggregate.GameEvents.V1;
-using static Greedy.GameAggregate.GameStage;
+using static Farkle.GameAggregate.Command;
+using static Farkle.GameAggregate.GameEvents.V1;
+using static Farkle.GameAggregate.GameStage;
 
-namespace Greedy.Tests.Domain;
+namespace Farkle.Tests.Domain;
 
 public class StartShould
 {
@@ -16,7 +16,7 @@ public class StartShould
 
     // Act
     var gameId = 1;
-    game.Start(new StartGame(gameId));
+    game.Start(new Command.StartGame(gameId));
 
     // Assert
     game.State.GameStage.Should().Be(Rolling);
@@ -30,10 +30,10 @@ public class StartShould
     var game = new Game();
 
     // Act
-    game.Start(new StartGame(1));
+    game.Start(new Command.StartGame(1));
 
     // Assert
-    game.Changes.Should().Contain(e => e is GameStarted);
+    game.Changes.Should().Contain(e => e is GameEvents.V1.GameStarted);
   }
 
   [Fact]
@@ -43,8 +43,8 @@ public class StartShould
     var game = new Game();
 
     // Act
-    game.Start(new StartGame(1));
-    var secondStart = () => game.Start(new StartGame(1));
+    game.Start(new Command.StartGame(1));
+    var secondStart = () => game.Start(new Command.StartGame(1));
 
     // Assert
     secondStart.Should().Throw<PreconditionsFailedException>();

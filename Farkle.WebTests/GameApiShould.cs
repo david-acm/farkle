@@ -1,4 +1,4 @@
-namespace Greedy.WebTests;
+namespace Farkle.WebTests;
 
 public class GameApiShould : IClassFixture<GameApiWebAppFactory>
 {

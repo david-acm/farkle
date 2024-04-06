@@ -1,6 +1,6 @@
 using Ardalis.SmartEnum;
 
-namespace Greedy.Spa.Components;
+namespace Farkle.Spa.Components;
 
 public sealed class DiceValue : SmartEnum<DiceValue, int>
 {

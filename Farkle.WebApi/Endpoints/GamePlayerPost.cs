@@ -1,7 +1,7 @@
 ﻿using Eventuous;
 using Farkle.WebApi.Application;
 using FastEndpoints;
-using Greedy.GameAggregate;
+using Farkle.GameAggregate;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Result=Ardalis.Result.Result;
