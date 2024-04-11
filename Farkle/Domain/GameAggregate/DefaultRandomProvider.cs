@@ -1,6 +1,6 @@
 namespace Farkle.Domain.GameAggregate;
 
-public class DefaultRandomProvider : IRandom
+internal class DefaultRandomProvider : IRandom
 {
   public int Next(int minValue, int maxValue)
   {

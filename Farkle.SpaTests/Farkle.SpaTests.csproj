@@ -40,7 +40,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Farkle.Spa\Farkle.Spa.csproj"/>
-    <ProjectReference Include="..\Farkle.WebApi\Farkle.WebApi.csproj"/>
+    <ProjectReference Include="..\Farkle\Farkle.csproj" />
   </ItemGroup>
 
 </Project>

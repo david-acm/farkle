@@ -1,10 +1,10 @@
 using Eventuous.AspNetCore.Web;
 using Farkle.Domain.GameAggregate;
 
-namespace Farkle.WebApi;
+namespace Farkle;
 
 [AggregateCommands<Game>]
-public static class V1
+internal static class HttpRequests
 {
   [HttpCommand(Route = "games")]
   public record StartGameHttp(int Id);

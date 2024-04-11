@@ -1,16 +1,16 @@
 ﻿using Eventuous;
+using Farkle.Application;
 using Farkle.Domain.GameAggregate;
-using Farkle.WebApi.Application;
 using FastEndpoints;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Result=Ardalis.Result.Result;
 
-namespace Farkle.WebApi.Endpoints;
+namespace Farkle.Endpoints;
 
-public class GamePlayerPost(
+internal class GamePlayerPost(
   ILogger<GamePost> logger,
-  IAggregateStore store) : Endpoint<V1.JoinPlayerHttp, Result>
+  IAggregateStore store) : Endpoint<HttpRequests.JoinPlayerHttp, Result>
 {
   public override void Configure()
   {
@@ -18,7 +18,7 @@ public class GamePlayerPost(
     Post("/api/games/{gameId}/players/{playerId}");
   }
 
-  public override async Task HandleAsync(V1.JoinPlayerHttp req, CancellationToken ct)
+  public override async Task HandleAsync(HttpRequests.JoinPlayerHttp req, CancellationToken ct)
   {
     logger.LogInformation("ℹ️ In game post fast endpoint");
     var command = new Command.JoinPlayer(req.GameId, req.PlayerId, req.PlayerName);

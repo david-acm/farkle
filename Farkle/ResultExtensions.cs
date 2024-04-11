@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Eventuous.AspNetCore.Web;
 using ProblemDetails=Microsoft.AspNetCore.Mvc.ProblemDetails;
 
-namespace Farkle.WebApi;
+namespace Farkle;
 
 
 // TODO: Clean and refactor

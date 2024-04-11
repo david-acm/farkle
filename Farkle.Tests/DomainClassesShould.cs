@@ -11,8 +11,7 @@ public class DomainClassesShould
 
   private static readonly Architecture _architecture =
     new ArchLoader()
-      .LoadAssemblies(typeof(Farkle.Domain.AssemblyInfo).Assembly)
-      .LoadAssemblies(typeof(Farkle.WebApi.AssemblyInfo).Assembly)
+      .LoadAssemblies(typeof(AssemblyInfo).Assembly)
       .Build();
 
 
@@ -24,12 +23,14 @@ public class DomainClassesShould
       .ResideInNamespace("Farkle.Domain.*", useRegularExpressions: true)
       .As("Domain Types");
 
-    var dataTypes = Types()
+    var infraTypes = Types()
       .That()
-      .ResideInNamespace("Farkle.WebApo.*", useRegularExpressions: true)
+      // .ResideInNamespace("Farkle.Endpoints.*", useRegularExpressions: true)
+      // .Or()
+      .ResideInAssembly("Farkle.Domain.*", useRegularExpressions: true)
       .As("Infrastructure Types");
 
-    var rule = domainTypes.Should().NotDependOnAny(dataTypes);
+    var rule = domainTypes.Should().NotDependOnAny(infraTypes);
 
     rule.Check(_architecture);
   }

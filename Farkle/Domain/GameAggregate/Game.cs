@@ -1,10 +1,11 @@
 ﻿using System.Collections.Immutable;
 using Eventuous;
-using static Farkle.Domain.GameAggregate.GameEvents;
+using V1 = Farkle.Domain.GameAggregate.GameEvents.V1;
+using V2 = Farkle.Domain.GameAggregate.GameEvents.V2;
 
 namespace Farkle.Domain.GameAggregate;
 
-public class Game : Aggregate<GameState>
+internal class Game : Aggregate<GameState>
 {
   private readonly IRandom _randomProvider;
 
@@ -19,12 +20,12 @@ public class Game : Aggregate<GameState>
 
   public void Start(Command.StartGame startGame)
   {
-    Apply(new V1.GameStarted(startGame));
+    Apply(new GameEvents.V1.GameStarted(startGame));
   }
 
   public void JoinPlayer(Command.JoinPlayer joinPlayer)
   {
-    Apply(new V1.PlayerJoined(joinPlayer.Id, joinPlayer.Name));
+    Apply(new GameEvents.V1.PlayerJoined(joinPlayer.Id, joinPlayer.Name));
   }
 
   public void RollDiceV1(Command.RollDice rollDice)
@@ -33,7 +34,7 @@ public class Game : Aggregate<GameState>
       _randomProvider,
       GetNumberOfDiceToTrow());
 
-    Apply(new V1.DiceRolled(
+    Apply(new GameEvents.V1.DiceRolled(
       rollDice.PlayerId,
       roll.DiceValues.ToPrimitiveArray(),
       GetScoreAfterRoll(roll)));
@@ -54,7 +55,7 @@ public class Game : Aggregate<GameState>
 
   public void PassTurn(Command.PassTurn passTurn)
   {
-    Apply(new V1.TurnPassed(
+    Apply(new GameEvents.V1.TurnPassed(
       passTurn.PlayerId,
       GetPlayerOrder(passTurn.PlayerId),
       GetScore(passTurn.PlayerId)));
@@ -150,9 +151,9 @@ public class Game : Aggregate<GameState>
   }
 }
 
-public record Player(int Id, string Name);
+internal record Player(int Id, string Name);
 
-public enum GameStage
+internal enum GameStage
 {
   None,
   Rolling,

@@ -1,6 +1,6 @@
 using Eventuous;
 
-namespace Farkle.WebApi.Application;
+namespace Farkle.Application;
 
 public static class CommandHandlerBuilderExtensions
 {

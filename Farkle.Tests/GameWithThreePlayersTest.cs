@@ -8,7 +8,7 @@ namespace Farkle.Tests;
 public class GameWithThreePlayersTest
 {
   private readonly   IRandom              _randomProvider;
-  protected readonly Game                 Game;
+  internal readonly Game                 Game;
   protected readonly ITestOutputHelper    Output;
   private            List<int>.Enumerator _enumerator;
 
@@ -39,7 +39,7 @@ public class GameWithThreePlayersTest
     Game.Load(game.Changes.ToList());
   }
 
-  protected GameState                   State   => Game.State;
+  internal GameState                   State   => Game.State;
   protected IReadOnlyCollection<object> Changes => Game.Changes;
   protected IReadOnlyCollection<object> Current => Game.Current.ToList().AsReadOnly();
 

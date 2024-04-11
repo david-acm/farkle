@@ -1,32 +1,33 @@
 using Eventuous;
-using static Farkle.Domain.GameAggregate.GameEvents;
+using static Farkle.Domain.GameAggregate.GameEvents.V1;
+using static Farkle.Domain.GameAggregate.GameEvents.V2;
 
 namespace Farkle.Domain.GameAggregate;
 
-public static class GameValidator
+internal static class GameValidator
 {
   public static ValidationResult ValidatePreconditions(Game game, object @event)
   {
     var state = game.State;
     var valid = @event switch
     {
-      V1.GameStarted e => Validate(
+      GameStarted e => Validate(
         state.GameStage == GameStage.None,
         new GameAlreadyStarted(e.Id)),
-      V1.PlayerJoined => Validate(
+      PlayerJoined => Validate(
         state.GameStage == GameStage.Rolling,
         new GameHasNotStarted(state.GameStage)),
-      V1.DiceRolled e =>
+      GameEvents.V1.DiceRolled e =>
         new PlayerIsInTurn(state, e.PlayerId).And(new SingleRoll(state, e.PlayerId)).IsSatisfied(),
-      V2.DiceRolled e =>
+      GameEvents.V2.DiceRolled e =>
         new PlayerIsInTurn(state, e.PlayerId).And(new SingleRoll(state, e.PlayerId)).IsSatisfied(),
-      V1.TurnPassed e =>
+      TurnPassed e =>
         new PlayerIsInTurn(state, e.PlayerId).And(new PlayerCanPass(game, e.PlayerId)).IsSatisfied(),
-      V1.DiceKept e =>
+      GameEvents.V1.DiceKept e =>
         new PlayerIsInTurn(state, e.PlayerId).And(new PlayerHasThoseDice(GetDice(e), state))
           .And(new CanKeepDice(GetDice(e)))
           .IsSatisfied(),
-      V2.DiceKept e =>
+      GameEvents.V2.DiceKept e =>
         new PlayerIsInTurn(state, e.PlayerId).And(new PlayerHasThoseDice(GetDice(e), state))
           .And(new CanKeepDice(GetDice(e)))
           .IsSatisfied(),
@@ -37,13 +38,13 @@ public static class GameValidator
     return valid;
   }
 
-  private static Dice GetDice(V2.DiceKept e)
+  private static Dice GetDice(GameEvents.V2.DiceKept e)
   {
     return Dice.FromValues(e.Dice.ToList());
   }
 
 
-  private static Dice GetDice(V1.DiceKept e)
+  private static Dice GetDice(GameEvents.V1.DiceKept e)
   {
     return Dice.FromValues(e.Dice.ToList());
   }
@@ -54,7 +55,7 @@ public static class GameValidator
   }
 }
 
-public class SingleRoll : Validator
+internal class SingleRoll : Validator
 {
   private readonly int       _playerId;
   private readonly GameState _state;
@@ -68,11 +69,11 @@ public class SingleRoll : Validator
   public override ValidationResult IsSatisfied()
   {
     return new ValidationResult(_state.GameStage == GameStage.Rolling,
-      new V1.RolledTwice(_playerId));
+      new RolledTwice(_playerId));
   }
 }
 
-public class PlayerHasThoseDice : Validator
+internal class PlayerHasThoseDice : Validator
 {
   private readonly Dice      _dice;
   private readonly GameState _state;
@@ -95,7 +96,7 @@ public class PlayerHasThoseDice : Validator
   }
 }
 
-public class DiceAreStair : Validator
+internal class DiceAreStair : Validator
 {
   private readonly IEnumerable<DiceValue> _dice;
 
@@ -125,9 +126,9 @@ internal record GameAlreadyStarted(int Id);
 internal record GameHasNotStarted(GameStage GameStage);
 
 [EventType("V1.DiceNotAllowedToBeKept")]
-public record DiceNotAllowedToBeKept(string Reason, IEnumerable<int> Dice);
+internal record DiceNotAllowedToBeKept(string Reason, IEnumerable<int> Dice);
 
-public class DiceAreOnesOrFives : Validator
+internal class DiceAreOnesOrFives : Validator
 {
   private readonly IEnumerable<DiceValue> _dice;
 
@@ -143,7 +144,7 @@ public class DiceAreOnesOrFives : Validator
   }
 }
 
-public class CanKeepDice : Validator
+internal class CanKeepDice : Validator
 {
   private readonly IEnumerable<DiceValue> _dice;
 
@@ -164,7 +165,7 @@ public class CanKeepDice : Validator
   }
 }
 
-public class DiceAreTrips : Validator
+internal class DiceAreTrips : Validator
 {
   private readonly IEnumerable<DiceValue> _dice;
 
@@ -189,7 +190,7 @@ public class DiceAreTrips : Validator
   }
 }
 
-public class DiceAreStraight : Validator
+internal class DiceAreStraight : Validator
 {
   private readonly IEnumerable<DiceValue> _dice;
 
@@ -210,7 +211,7 @@ public class DiceAreStraight : Validator
   }
 }
 
-public class PlayerIsInTurn : Validator
+internal class PlayerIsInTurn : Validator
 {
   private readonly int       _playerId;
   private readonly GameState _state;
@@ -224,11 +225,11 @@ public class PlayerIsInTurn : Validator
   public override ValidationResult IsSatisfied()
   {
     return new ValidationResult(_state.PlayerInTurn == _playerId,
-      new V1.PlayedOutOfTurn(_playerId, _state.PlayerInTurn));
+      new PlayedOutOfTurn(_playerId, _state.PlayerInTurn));
   }
 }
 
-public class PlayerCanPass : Validator
+internal class PlayerCanPass : Validator
 {
   private readonly Game _game;
   private readonly int  _playerId;
@@ -242,17 +243,17 @@ public class PlayerCanPass : Validator
   public override ValidationResult IsSatisfied()
   {
     return new ValidationResult(
-      _game.Current.LastEventsWhere(typeof(V2.DiceRolled))
+      _game.Current.LastEventsWhere(typeof(GameEvents.V2.DiceRolled))
       ||
-      _game.Current.LastEventsWhere(typeof(V1.DiceRolled))
+      _game.Current.LastEventsWhere(typeof(GameEvents.V1.DiceRolled))
       ||
-      _game.Current.LastEventsWhere(typeof(V2.DiceKept)) ||
-      _game.Current.LastEventsWhere(typeof(V1.DiceKept)),
-      new V1.PassedWithoutRolling(_playerId));
+      _game.Current.LastEventsWhere(typeof(GameEvents.V2.DiceKept)) ||
+      _game.Current.LastEventsWhere(typeof(GameEvents.V1.DiceKept)),
+      new PassedWithoutRolling(_playerId));
   }
 }
 
-public static class EnumerableExtensions
+internal static class EnumerableExtensions
 {
   public static bool LastEventsWhere<T>(
     this IEnumerable<T> events,

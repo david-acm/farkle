@@ -1,13 +1,15 @@
 using System.Collections.Immutable;
 using Ardalis.SmartEnum;
 using Eventuous;
+using Farkle.Application;
 
 namespace Farkle.Domain.GameAggregate;
 
-public record Dice(IEnumerable<DiceValue> DiceValues)
+internal record Dice(IEnumerable<DiceValue> DiceValues)
 {
   public static Dice FromNewRoll(IRandom randomizer, int diceToRoll)
   {
+    var g    = new GameService(default!);
     var dice = new List<DiceValue>();
     for (var i = 1; i <= diceToRoll; i++)
     {
@@ -30,55 +32,55 @@ public record Dice(IEnumerable<DiceValue> DiceValues)
   }
 }
 
-public interface IRandom
+internal interface IRandom
 {
   int Next(int minValue, int maxValue);
 }
 
-public static class GameEvents
+internal static class GameEvents
 {
-  public static class V1
+  internal static class V1
   {
     [EventType("V1.GameStarted")]
-    public record GameStarted(int Id);
+    internal record GameStarted(int Id);
 
     [EventType("V1.PlayerJoined")]
-    public record PlayerJoined(int Id, string Name);
+    internal record PlayerJoined(int Id, string Name);
 
     [EventType("V1.DiceRolled")]
-    public record DiceRolled(int PlayerId, int[] Dice, Score TurnScore);
+    internal record DiceRolled(int PlayerId, int[] Dice, Score TurnScore);
 
     [EventType("V1.DiceKept")]
-    public record DiceKept(int PlayerId, int[] Dice, int[] TableCenter, int NewTurnScore);
+    internal record DiceKept(int PlayerId, int[] Dice, int[] TableCenter, int NewTurnScore);
 
     [EventType("V1.TurnPassed")]
-    public record TurnPassed(int PlayerId, ImmutableArray<Player> PlayerOrder, int GameScore);
+    internal record TurnPassed(int PlayerId, ImmutableArray<Player> PlayerOrder, int GameScore);
 
     [EventType("V1.PlayedOutOfTurn")]
-    public record PlayedOutOfTurn(int TriedToPlay, int ExpectedPlayer) : IErrorEvent;
+    internal record PlayedOutOfTurn(int TriedToPlay, int ExpectedPlayer) : IErrorEvent;
 
     [EventType("V1.RolledTwice")]
-    public record RolledTwice(int Player) : IErrorEvent;
+    internal record RolledTwice(int Player) : IErrorEvent;
 
     [EventType("V1.PassedWithoutRolling")]
-    public record PassedWithoutRolling(int PlayerId) : IErrorEvent;
+    internal record PassedWithoutRolling(int PlayerId) : IErrorEvent;
   }
 
-  public static class V2
+  internal static class V2
   {
     [EventType("V2.DiceRolled")]
-    public record DiceRolled(int PlayerId, int[] Dice, Score TurnScore, GameStage Stage);
+    internal record DiceRolled(int PlayerId, int[] Dice, Score TurnScore, GameStage Stage);
 
     [EventType("V2.DiceKept")]
-    public record DiceKept(int PlayerId, int[] Dice, int[] TableCenter, int NewTurnScore, GameStage Stage);
+    internal record DiceKept(int PlayerId, int[] Dice, int[] TableCenter, int NewTurnScore, GameStage Stage);
   }
 }
 
-public interface IErrorEvent
+internal interface IErrorEvent
 {
 }
 
-public sealed class DiceValue : SmartEnum<DiceValue, int>
+internal sealed class DiceValue : SmartEnum<DiceValue, int>
 {
   public static readonly DiceValue One = new("⚀", 1);
 

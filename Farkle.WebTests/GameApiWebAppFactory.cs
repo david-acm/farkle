@@ -1,5 +1,5 @@
 using DotNet.Testcontainers.Builders;
-using Farkle.WebApi.Application;
+using Farkle.Application;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 

@@ -2,9 +2,9 @@ using Eventuous;
 using Farkle.Domain.GameAggregate;
 using static Eventuous.ExpectedState;
 
-namespace Farkle.WebApi.Application;
+namespace Farkle.Application;
 
-public class GameService
+internal class GameService
   : CommandService<Game, GameState, GameId>
 {
   public GameService(IAggregateStore store) : base(store)

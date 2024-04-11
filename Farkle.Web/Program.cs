@@ -1,5 +1,5 @@
 using System.Reflection;
-using Farkle.WebApi;
+using Farkle;
 using FastEndpoints;
 using FastEndpoints.Security;
 using FastEndpoints.Swagger;
@@ -16,6 +16,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Host.UseSerilog((_, config) =>
   config.ReadFrom.Configuration(builder.Configuration));
+
+await builder.AddAzureAppConfigurationAsync(logger);
 
 var services = builder.Services;
 services.AddEndpointsApiExplorer();

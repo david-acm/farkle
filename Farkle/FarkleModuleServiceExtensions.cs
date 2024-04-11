@@ -1,15 +1,15 @@
 ﻿using System.Reflection;
 using Eventuous;
 using Eventuous.EventStore;
+using Farkle.Application;
 using Farkle.Domain.GameAggregate;
-using Farkle.WebApi.Application;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using ILogger=Serilog.ILogger;
 
-namespace Farkle.WebApi;
+namespace Farkle;
 
 public static class FarkleModuleServiceExtensions
 {
@@ -51,28 +51,28 @@ public static class FarkleModuleServiceExtensions
 
     app.MapAggregateCommands<Game>()
       // .MapDiscoveredCommands<Game>()
-      .MapCommand<V1.StartGameHttp, Command.StartGame>(
+      .MapCommand<HttpRequests.StartGameHttp, Command.StartGame>(
         (cmd, ctx)
           => new Command.StartGame(
             cmd.Id))
-      .MapCommand<V1.JoinPlayerHttp, Command.JoinPlayer>(
+      .MapCommand<HttpRequests.JoinPlayerHttp, Command.JoinPlayer>(
         (cmd, ctx)
           => new Command.JoinPlayer(
             cmd.GameId,
             cmd.PlayerId,
             cmd.PlayerName))
-      .MapCommand<V1.RollDiceHttp, Command.RollDice>(
+      .MapCommand<HttpRequests.RollDiceHttp, Command.RollDice>(
         (cmd, ctx)
           => new Command.RollDice(
             cmd.GameId,
             cmd.PlayerId))
-      .MapCommand<V1.KeepDiceHttp, Command.KeepDice>(
+      .MapCommand<HttpRequests.KeepDiceHttp, Command.KeepDice>(
         (cmd, ctx)
           => new Command.KeepDice(
             cmd.GameId,
             cmd.PlayerId,
             cmd.DiceValues.ToDiceValues()))
-      .MapCommand<V1.PassTurnHttp, Command.PassTurn>(
+      .MapCommand<HttpRequests.PassTurnHttp, Command.PassTurn>(
         (cmd, ctx)
           => new Command.PassTurn(
             cmd.GameId,

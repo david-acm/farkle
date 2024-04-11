@@ -1,6 +1,6 @@
 namespace Farkle.Domain;
 
-public abstract class Validator
+internal abstract class Validator
 {
   public abstract ValidationResult IsSatisfied();
 
@@ -10,7 +10,7 @@ public abstract class Validator
   }
 }
 
-public class AndValidator : Validator
+internal class AndValidator : Validator
 {
   private readonly Validator _left;
   private readonly Validator _right;

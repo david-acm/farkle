@@ -1,6 +1,6 @@
 namespace Farkle.Domain.GameAggregate;
 
-public static class EventExtensions
+internal static class EventExtensions
 {
   public static int[] ToPrimitiveArray(this IEnumerable<DiceValue> values)
   {

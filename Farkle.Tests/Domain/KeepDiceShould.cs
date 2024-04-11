@@ -28,7 +28,7 @@ public class KeepDiceShould : GameWithThreePlayersTest
 
   [Theory]
   [MemberData(nameof(KeepCommands))]
-  public void OnlyAllowToKeepByThePlayerInTurn(Action<Game> keepAction)
+  internal void OnlyAllowToKeepByThePlayerInTurn(Action<Game> keepAction)
   {
     // Arrange
     Game.RollDiceV2(new Command.RollDice(1, 1));
@@ -200,7 +200,7 @@ public class KeepDiceShould : GameWithThreePlayersTest
 
   [Theory]
   [MemberData(nameof(TricksAndScore))]
-  public void AddTurnScoreToPlayer(
+  internal void AddTurnScoreToPlayer(
     string      reason,
     int[]       rolledDice,
     DiceValue[] diceToKeep,

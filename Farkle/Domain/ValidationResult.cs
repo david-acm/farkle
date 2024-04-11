@@ -1,6 +1,6 @@
 namespace Farkle.Domain;
 
-public record ValidationResult(bool IsValid, object FailedValidationEvent)
+internal record ValidationResult(bool IsValid, object FailedValidationEvent)
 {
   public static implicit operator bool(ValidationResult result)
   {

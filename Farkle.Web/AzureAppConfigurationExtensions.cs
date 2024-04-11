@@ -18,8 +18,8 @@ public static class AzureAppConfigurationExtensions
     webApplicationBuilder.Configuration.AddAzureAppConfiguration(options =>
     {
       options.Connect(new Uri(appConfigEndpoint), new DefaultAzureCredential());
-      options.Select("greedy:*", "local");
-      options.TrimKeyPrefix("greedy:");
+      options.Select("farkle:*", "local");
+      options.TrimKeyPrefix("farkle:");
       options.ConfigureRefresh(refresh =>
       {
         refresh.SetCacheExpiration(TimeSpan.FromDays(1));
