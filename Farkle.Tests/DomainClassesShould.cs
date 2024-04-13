@@ -1,7 +1,6 @@
 ﻿using ArchUnitNET.Domain;
 using ArchUnitNET.Loader;
 using ArchUnitNET.xUnit;
-using Farkle.Domain;
 using static ArchUnitNET.Fluent.ArchRuleDefinition;
 
 namespace Farkle.Tests;

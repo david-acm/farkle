@@ -1,4 +1,3 @@
-using Farkle.Domain;
 using Farkle.Domain.GameAggregate;
 using FluentAssertions;
 using Farkle.Tests.Framework;

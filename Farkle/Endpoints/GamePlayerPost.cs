@@ -2,7 +2,6 @@
 using Farkle.Application;
 using Farkle.Domain.GameAggregate;
 using FastEndpoints;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Result=Ardalis.Result.Result;
 

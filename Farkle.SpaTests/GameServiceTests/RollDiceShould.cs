@@ -1,10 +1,7 @@
-using System.Text.Json;
-using System.Threading.Tasks;
 using Farkle.Spa.Components;
 using Farkle.Spa.Services;
 using RichardSzalay.MockHttp;
 using static Farkle.SpaTests.GameServiceTests.MockHttpClientBUnitHelpers;
-using Die = Farkle.Spa.Services.Die;
 using Services_Die=Farkle.Spa.Services.Die;
 
 namespace Farkle.SpaTests.GameServiceTests;

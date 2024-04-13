@@ -4,7 +4,6 @@ using FastEndpoints;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Logging;
 using Application_GameService=Farkle.Application.GameService;
-using GameService=Farkle.Application.GameService;
 using IResult=Microsoft.AspNetCore.Http.IResult;
 using ProblemDetails=FastEndpoints.ProblemDetails;
 

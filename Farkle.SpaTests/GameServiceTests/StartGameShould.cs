@@ -1,5 +1,3 @@
-using System.Net.Http;
-using System.Threading.Tasks;
 using Farkle.Spa.Services;
 using RichardSzalay.MockHttp;
 

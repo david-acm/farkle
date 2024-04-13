@@ -4,7 +4,6 @@ using Farkle.Domain.GameAggregate;
 using FastEndpoints;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Logging;
-using static Microsoft.AspNetCore.Http.TypedResults;
 using Result=Ardalis.Result.Result;
 
 namespace Farkle.Endpoints;

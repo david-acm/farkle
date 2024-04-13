@@ -1,6 +1,5 @@
 using Eventuous;
 using static Farkle.Domain.GameAggregate.GameEvents.V1;
-using static Farkle.Domain.GameAggregate.GameEvents.V2;
 
 namespace Farkle.Domain.GameAggregate;
 

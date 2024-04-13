@@ -1,4 +1,3 @@
-using System;
 using Farkle.Spa.Components;
 using Xunit.Abstractions;
 
