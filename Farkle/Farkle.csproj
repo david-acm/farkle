@@ -11,7 +11,7 @@
   <ItemGroup>
     <PackageReference Include="Ardalis.Result" Version="8.0.0" />
     <PackageReference Include="Ardalis.Result.AspNetCore" Version="8.0.0" />
-    <PackageReference Include="Azure.Identity" Version="1.10.4" />
+    <PackageReference Include="Azure.Identity" Version="1.11.0" />
     <PackageReference Include="Azure.Messaging.EventGrid" Version="4.21.0" />
     <PackageReference Include="Azure.Messaging.ServiceBus" Version="7.17.1" />
     <PackageReference Include="EventStore.Client.Grpc" Version="23.1.0" />

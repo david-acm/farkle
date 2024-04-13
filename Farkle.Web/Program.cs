@@ -17,7 +17,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseSerilog((_, config) =>
   config.ReadFrom.Configuration(builder.Configuration));
 
-await builder.AddAzureAppConfigurationAsync(logger);
+// await builder.AddAzureAppConfigurationAsync(logger);
 
 var services = builder.Services;
 services.AddEndpointsApiExplorer();
@@ -42,7 +42,7 @@ const string myAllowSpecificOrigins = "MyAllowSpecificOrigins";
 builder.Services.AddCors(options =>
 {
   options.AddPolicy(myAllowSpecificOrigins,
-    policy => { policy.WithOrigins("http://localhost:5186").AllowAnyHeader().AllowAnyMethod(); });
+    policy => { policy.WithOrigins("http://localhost:8000").AllowAnyHeader().AllowAnyMethod(); });
 });
 
 var app = builder.Build();

@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace Farkle.WebTests;
 
-public class GameApiWebAppFactory : WebApplicationFactory<GameService>
+public class GameApiWebAppFactory : WebApplicationFactory<Program>
 {
   private static Dictionary<string, string> Variables => new()
   {
