@@ -8,16 +8,15 @@ namespace Farkle.Spa.Pages;
 
 public partial class Game
 {
-  private readonly string _playerName = "David";
   private          int    _gameId;
   private          int    _playerId;
-
+  
   // TODO: Review if this is a good approach for the nullable services below
   [Inject] public IGameService  GameService { get; set; } = null!;
   [Inject] public ILogger<Game> Logger      { get; set; } = null!;
-
+  
   public string? Values { get; set; } = "1 2 3 4 5 6";
-
+  
   private List<DiceValue> DiceValues =>
     Values?.Split(' ')
       ?.Where(d => int.TryParse(d, out var v))
@@ -26,26 +25,35 @@ public partial class Game
         var parsed = DiceValue.TryFromValue(int.Parse(v), out var value);
         return parsed ? value : DiceValue.One;
       })
-      ?.ToList() ?? new List<DiceValue>();
-
+      ?.ToList() ??
+    new List<DiceValue>();
+  
+  
   private async Task RollAsync()
   {
     var dice = await GameService.RollDiceAsync(_gameId, _playerId);
     Values = string.Empty;
     Values = string.Concat(dice.Select(d => $"{d.Value} "));
-
+    
     Values = Values.Trim();
   }
-
-  protected override async Task OnInitializedAsync()
+  
+  protected override Task OnInitializedAsync()
   {
     var random = new Random();
     _gameId = random.Next(0, 999);
-    await GameService.StartGameAsync(_gameId);
+    // await GameService.StartGameAsync(_gameId);
     _playerId = random.Next(0, 100);
-    await GameService.JoinPlayerAsync(_gameId, _playerId, _playerName);
+    // await GameService.JoinPlayerAsync(_gameId, _playerId, _playerName);
+    return Task.CompletedTask;
   }
-
+  
+  public void GameStarted(int gameId)
+  {
+    _gameId = gameId;
+    Logger.LogInformation($"Game started with id: {gameId}");
+  }
+  
   // TODO: Remove nullable
   private void DieDropped(MudItemDropInfo<DragabbleDice.DropItem> obj)
   {

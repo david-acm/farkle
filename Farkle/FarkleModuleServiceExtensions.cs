@@ -2,6 +2,7 @@
 using Eventuous;
 using Eventuous.EventStore;
 using Farkle.Application;
+using Farkle.Contracts;
 using Farkle.Domain.GameAggregate;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
@@ -21,6 +22,7 @@ public static class FarkleModuleServiceExtensions
     
     services.AddCommandService<GameService, Game>();
     services.AddAggregateStore<EsdbEventStore>();
+    services.AddSingleton<IGameService, GameService>();
     
     // TODO: Use Guard clause instead
     // TODO: Use configuration instead. Check the best way to configure the cors url
@@ -35,10 +37,9 @@ public static class FarkleModuleServiceExtensions
 
   public static WebApplication SetUpFarkleModule(this WebApplication app)
   {
-    app.UseBlazorFrameworkFiles();
-    app.UseStaticFiles();
-    app.MapFallbackToFile("index.html");
-    app.UseAuthorization();
+    // app.UseBlazorFrameworkFiles();
+    // app.UseStaticFiles();
+    // app.MapFallbackToFile("index.html");
 
     TypeMap.RegisterKnownEventTypes();
 
@@ -51,22 +52,22 @@ public static class FarkleModuleServiceExtensions
 
     app.MapAggregateCommands<Game>()
       // .MapDiscoveredCommands<Game>()
-      .MapCommand<HttpRequests.StartGameHttp, Command.StartGame>(
+      .MapCommand<HttpRequests.StartGameRequest, Command.StartGame>(
         (cmd, ctx)
           => new Command.StartGame(
             cmd.Id))
-      .MapCommand<HttpRequests.JoinPlayerHttp, Command.JoinPlayer>(
+      .MapCommand<HttpRequests.JoinPlayerRequest, Command.JoinPlayer>(
         (cmd, ctx)
           => new Command.JoinPlayer(
             cmd.GameId,
             cmd.PlayerId,
             cmd.PlayerName))
-      .MapCommand<HttpRequests.RollDiceHttp, Command.RollDice>(
+      .MapCommand<HttpRequests.RollDiceRequest, Command.RollDice>(
         (cmd, ctx)
           => new Command.RollDice(
             cmd.GameId,
             cmd.PlayerId))
-      .MapCommand<HttpRequests.KeepDiceHttp, Command.KeepDice>(
+      .MapCommand<HttpRequests.KeepDiceRequest, Command.KeepDice>(
         (cmd, ctx)
           => new Command.KeepDice(
             cmd.GameId,

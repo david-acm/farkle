@@ -8,10 +8,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Ardalis.SmartEnum" Version="7.0.0"/>
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="7.0.11"/>
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="7.0.11" PrivateAssets="all"/>
-    <PackageReference Include="MudBlazor" Version="6.11.0"/>
+    <PackageReference Include="Ardalis.SmartEnum" Version="8.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.4" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.4" PrivateAssets="all" />
+    <PackageReference Include="MudBlazor" Version="6.19.1" />
   </ItemGroup>
 
   <ItemGroup>
@@ -29,5 +29,9 @@
     <Compile Update="Services\CommandResponse.cs">
       <DependentUpon>GameService.cs</DependentUpon>
     </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Farkle.Contracts\Farkle.Contracts.csproj" />
   </ItemGroup>
 </Project>

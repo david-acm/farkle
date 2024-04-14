@@ -1,11 +1,14 @@
 using Eventuous;
 using Farkle.Domain.GameAggregate;
+using Microsoft.AspNetCore.Http;
+using Farkle.SharedKernel;
 using static Eventuous.ExpectedState;
 
 namespace Farkle.Application;
 
 internal class GameService
-  : CommandService<Game, GameState, GameId>
+  : CommandService<Game, GameState, GameId>,
+    IGameService
 {
   public GameService(IAggregateStore store) : base(store)
   {
@@ -36,27 +39,37 @@ internal class GameService
   }
 
   // TODO: Generalize this method
-  public async Task<Result<GameState>> HandleAsync<TCommand>(TCommand command, CancellationToken cancellationToken) where TCommand : class
+  public async Task<IResult> HandleAsync<TCommand, TResponse>(TCommand command, CancellationToken cancellationToken)
+    where TResponse : class
+    where TCommand : class
   {
     var result = await base.Handle(command, cancellationToken);
-
+    
+    // TODO: Refactor this. Check if event is and
     var errorEvents = result.Changes?
       .Where(c => c.Event is IErrorEvent)
       .Select(e => e.Event.GetType().Name)
       .ToList() ?? [];
     if (!errorEvents.Any())
     {
-      return result;
+      return result.ToMinimalApiResult<GameState, TResponse>();
     }
 
     var message = string.Concat(errorEvents);
 
     var errorResult = new ErrorResult<GameState>(
-      $"Error handling command {typeof(TCommand).Name}", 
+      $"Error handling command {command.GetType().Name}", 
       new DomainException(message))
       {};
     
-    return errorResult;
+    return errorResult.ToMinimalApiResult<GameState, TResponse>();
 
   }
+}
+
+internal interface IGameService
+{
+  Task<IResult> HandleAsync<TCommand, TResponse>(TCommand command, CancellationToken cancellationToken)
+    where TResponse : class
+    where TCommand : class;
 }

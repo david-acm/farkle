@@ -1,28 +1,18 @@
 ﻿using Eventuous;
 using FastEndpoints;
+using Mapster;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Eventuous.AspNetCore.Web;
 using ProblemDetails=Microsoft.AspNetCore.Mvc.ProblemDetails;
 
-namespace Farkle;
-
+namespace Farkle.SharedKernel;
 
 // TODO: Clean and refactor
-internal static class ResultExtensions
+public static class ResultExtensions
 {
-  public static IResult AsMinimalResult<TState>(this Result<TState> resultOf)
-    where TState : State<TState>, new()
-    => resultOf switch
-    {
-      ErrorResult<TState> errorResult => errorResult.ToMinimalApiResult(),
-      OkResult<TState> result         => new Result(result.State,   result.Success,   result.Changes).AsResult(),
-      _                               => new Result(resultOf.State, resultOf.Success, resultOf.Changes).AsResult()
-    };
-  
   public static async Task SendResponseAsync<TState, TResponse>(
-    this IEndpoint ep, Result<TState> result,
-    Func<Result<TState>, TResponse> mapper)
+    this IEndpoint                            ep, Eventuous.Result<TState> result,
+    Func<Eventuous.Result<TState>, TResponse> mapper)
     where TState : State<TState>, new()
   {
     var response = ep.HttpContext.Response;
@@ -31,17 +21,17 @@ internal static class ResultExtensions
       await response.SendOkAsync(mapper(result));
       return;
     }
-
+    
     switch (errorResult.Exception)
     {
       case OptimisticConcurrencyException:
         await response.SendAsync(mapper(result));
         break;
-
+      
       case AggregateNotFoundException:
         await response.SendNotFoundAsync();
         break;
-
+      
       case DomainException e:
         await response.SendAsync(new ProblemDetails()
         {
@@ -50,18 +40,18 @@ internal static class ResultExtensions
         break;
     }
   }
-
-  internal static IResult ToMinimalApiResult<TState>(this Result<TState> result)
+  
+  public static IResult ToMinimalApiResult<TState, TResponse>(this Eventuous.Result<TState> result)
     where TState : State<TState>, new()
   {
     return result switch
     {
-      ErrorResult<TState> errorResult => AsErrorResult(errorResult),
-      OkResult<TState>                => Results.Ok(result),
+      ErrorResult<TState> errorResult => ToMinimalApiErrorResult(errorResult),
+      OkResult<TState> okResult       => Results.Ok(okResult.State.Adapt<TResponse>()),
       _                               => Results.StatusCode(500)
     };
-
-    IResult AsErrorResult(ErrorResult<TState> errorResult)
+    
+    IResult ToMinimalApiErrorResult(ErrorResult<TState> errorResult)
     {
       return errorResult.Exception switch
       {
@@ -70,35 +60,36 @@ internal static class ResultExtensions
         DomainException                => UnprocessableEntity(),
         _                              => AsProblem(500)
       };
-
+      
       IResult ConflictEntity() =>
-        CreateResult(new ProblemDetails(), 409);
+        CreateProblemResult(new ProblemDetails(), 409);
       
       IResult NotFoundEntity() =>
-        CreateResult(new ProblemDetails(), 404);
-
-      IResult UnprocessableEntity() =>
-        CreateResult(new ValidationProblemDetails(AsErrors(errorResult)), 400);
-
-      IResult AsProblem(int statusCode) => CreateResult(new ProblemDetails(), statusCode);
+        CreateProblemResult(new ProblemDetails(), 404);
       
-      IResult CreateResult<T>(T details, int statusCode) where T : ProblemDetails
+      IResult UnprocessableEntity() =>
+        CreateProblemResult(new ValidationProblemDetails(AsErrors(errorResult)), 400);
+      
+      IResult AsProblem(int statusCode) => CreateProblemResult(new ProblemDetails(), statusCode);
+      
+      IResult CreateProblemResult<T>(T details, int statusCode) where T : ProblemDetails
       {
         details.Status = statusCode;
         details.Title  = errorResult.ErrorMessage;
         details.Detail = errorResult.Exception?.Message;
         details.Type   = errorResult.Exception?.GetType().Name;
-
+        
         return Results.Problem(details);
       }
     }
-
+    
     Dictionary<string, string[]> AsErrors(ErrorResult<TState> errorResult)
     {
-
+      
       return new Dictionary<string, string[]>()
       {
-        {"Domain", [errorResult.ErrorMessage ?? string.Empty]
+        {
+          "Domain", [errorResult.ErrorMessage ?? string.Empty]
         }
       };
     }

@@ -3,6 +3,7 @@
 <PageTitle>Play Farkle.Domain!</PageTitle>
 
 <MudText Typo="Typo.h3">Be Welcome</MudText>
+<GameTitle GameId="_gameId"></GameTitle>
 <MudGrid Spacing="1">
   <MudItem sm="12">
     <MudText Class="mt-6"
@@ -13,6 +14,8 @@
 </MudGrid>
 <MudPaper Class="pa-8">
   <MudCardActions>
+    <StartGameButton
+      OnGameStarted="GameStarted"></StartGameButton>
     <MudTextField @bind-Value="Values"
                   Immediate="true"
                   Label="Standard"

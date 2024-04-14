@@ -1,22 +1,26 @@
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Farkle.Spa.Components;
+using static Farkle.Contracts.HttpResponses;
 
 namespace Farkle.Spa.Services;
 
 public class GameService : IGameService
 {
-  private readonly HttpClient _gameClient;
-
-  public GameService(HttpClient gameClient)
+  private readonly HttpClient           _gameClient;
+  private readonly ILogger<GameService> _logger;
+  
+  public GameService(HttpClient gameClient, ILogger<GameService> logger)
   {
-    _gameClient = gameClient;
+    _gameClient  = gameClient;
+    _logger = logger;
   }
 
   public async Task<IList<DiceValue>> RollDiceAsync(int gameId, int playerId)
   {
     var result =
-      await _gameClient.PostAsJsonAsync("http://localhost:5276/diceRolls",
+      await _gameClient.PostAsJsonAsync("http://localhost:8000/diceRolls",
         new { GameId = gameId, PlayerId = playerId });
 
     var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
@@ -30,12 +34,23 @@ public class GameService : IGameService
 
   public async Task JoinPlayerAsync(int gameId, int playerId, string playerName)
   {
-    await _gameClient.PostAsJsonAsync("http://localhost:5276/players",
+    await _gameClient.PostAsJsonAsync("http://localhost:8000/players",
       new { GameId = gameId, PlayerId = playerId, PlayerName = playerName });
   }
 
-  public async Task StartGameAsync(int gameId)
+  public async Task<int> StartGameAsync(int gameId)
   {
-    await _gameClient.PostAsJsonAsync("http://localhost:5276/games", new { Id = gameId });
+    // TODO: remove hardcoded value
+    var result = await _gameClient.PostAsJsonAsync("http://localhost:8000/api/games", new { Id = gameId });
+    
+    var asString = await result.Content.ReadAsStringAsync();
+    var response     = JsonSerializer.Deserialize<StartGameResponse>(asString, new JsonSerializerOptions()
+    {
+      PropertyNameCaseInsensitive = true
+    });
+    _logger.LogInformation($"Received game started response string: {asString}");
+    _logger.LogInformation($"Received game started response with id: {response!.Id}");
+    
+    return response!.Id;
   }
 }
