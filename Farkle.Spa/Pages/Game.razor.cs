@@ -1,16 +1,17 @@
+using System.Collections.ObjectModel;
 using Farkle.Spa.Components;
 using Farkle.Spa.Services;
 using Microsoft.AspNetCore.Components;
-using MudBlazor;
 using static Farkle.Spa.Components.DragabbleDice;
 
 namespace Farkle.Spa.Pages;
 
 public partial class Game
 {
-  private int                   _gameId;
-  private int                   _playerId = 1;
-  private Dictionary<int, int> _score = new();
+  private int          _gameId;
+  private int          _playerId     = 1;
+  private int          _score        = new();
+  private string _errorMessage = string.Empty;
   
   // TODO: Review if this is a good approach for the nullable services below
   [Inject] public IGameService GameService { get; set; } = null!;
@@ -19,20 +20,39 @@ public partial class Game
   
   [Parameter] public int PlayerId { get; set; }
   
-  public  List<DraggableDie> DiceInPLay { get; set; } = [new DraggableDie() { Index = 1, Value = DiceValue.One, Identifier = "Rolled"}];
-
-  private IEnumerable<int>   KeptDice   => DiceInPLay.Where(d => d.Identifier == "Kept").Select(d => d.Value!.Value);
+  public List<DraggableDie> DiceInPlay { get; set; } =
+  [
+    new DraggableDie()
+    {
+      Index = 1, Value = DiceValue.One, Identifier = "Rolled"
+    }
+  ];
+  
+  public void ToggleOpen()
+  {
+    Error = !Error;
+  }
+  
+  public List<DraggableDie> KeptDice   => DiceInPlay.Any() ? DiceInPlay.Where(d => d.Identifier == "Kept").ToList() : new();
+  public  bool               Error      { get; set; }
   
   private async Task RollAsync()
   {
+    
     var dice = await GameService.RollDiceAsync(_gameId, _playerId);
-    Logger.LogInformation("Set aside dice being updated in game from roll: {setAsideDice}", dice.Select(d => d.Value));
-    DiceInPLay = dice.Select((d, i) => new DraggableDie
+    if (!dice.IsSuccess)
     {
-      Index      = i,
-      Value      = DiceValue.FromValue(d),
-      Identifier = "Rolled"
-    }).ToList();
+      Error         = true;
+      _errorMessage = string.Join(", ", dice.Errors.ToList());
+      return;
+    }
+    
+    Logger.LogInformation("Set aside dice being updated in game from roll: {setAsideDice}", dice.Value.Select(d => d.Value));
+    DiceInPlay = dice.Value.Select((d, i) => new DraggableDie
+      {
+        Index = i, Value = DiceValue.FromValue(d), Identifier = "Rolled"
+      })
+      .ToList();
   }
   
   protected override Task OnInitializedAsync()
@@ -50,7 +70,7 @@ public partial class Game
   private async Task DiceKeptAsync()
   {
     Logger.LogInformation("Sending request to keep dice: {dice}", KeptDice);
-    var score = await GameService.KeepDiceAsync(_gameId, _playerId, KeptDice);
-    _score = new Dictionary<int, int>(score);
+    _score = await GameService.KeepDiceAsync(_gameId, _playerId, KeptDice.Select(d => d.Value!.Value));
+    KeptDice.ForEach(k => DiceInPlay.Remove(k));
   }
 }

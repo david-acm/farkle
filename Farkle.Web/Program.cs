@@ -1,5 +1,6 @@
 using System.Reflection;
 using Farkle;
+using Farkle.Spa;
 using FastEndpoints;
 using FastEndpoints.Security;
 using FastEndpoints.Swagger;
@@ -55,17 +56,7 @@ app.UseAuthentication()
   .UseFastEndpoints()
   .UseRouting()
   .UseSwaggerGen();
-//
-// app.UseBlazorFrameworkFiles();
-// app.UseStaticFiles();
-// app.MapFallbackToFile("index.html");
-// app.UseRouting();
-// app.UseAuthorization();
-// app.UseFastEndpoints(c =>
-// {
-//   c.Endpoints.ShortNames                    = true;
-//   c.Serializer.Options.PropertyNamingPolicy = null;
-// });
+// app.MapRazorComponents<App>();
 
 app.Run();
 

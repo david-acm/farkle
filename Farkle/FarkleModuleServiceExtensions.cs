@@ -23,6 +23,7 @@ public static class FarkleModuleServiceExtensions
     services.AddCommandService<GameService, Game>();
     services.AddAggregateStore<EsdbEventStore>();
     services.AddSingleton<IGameService, GameService>();
+    // services.AddRazorComponents();
     
     // TODO: Use Guard clause instead
     // TODO: Use configuration instead. Check the best way to configure the cors url

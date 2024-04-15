@@ -34,23 +34,24 @@ public partial class DragabbleDice
   
   protected override void OnParametersSet()
   {
-    foreach (var die in DiceInPlay)
-    {
-      Logger.LogInformation("Dragabble dice parameters set");
-      var dieItem = _items.FirstOrDefault(i => i.Index == die.Index);
-      if (dieItem is null)
-      {
-        _items.Add(new DraggableDie
-        {
-          Value      = die.Value,
-          Identifier = die.Identifier,
-          Index = die.Index
-        });
-        continue;
-      }
-      if(dieItem.Value != die.Value)
-        dieItem.Value = die.Value;
-    }
+    _items = DiceInPlay.ToList();
+    // foreach (var die in DiceInPlay)
+    // {
+    //   Logger.LogInformation("Dragabble dice parameters set");
+    //   var dieItem = _items.FirstOrDefault(i => i.Index == die.Index);
+    //   if (dieItem is null)
+    //   {
+    //     // _items.Add(new DraggableDie
+    //     // {
+    //     //   Value      = die.Value,
+    //     //   Identifier = die.Identifier,
+    //     //   Index = die.Index
+    //     // });
+    //     continue;
+    //   }
+    //   if(dieItem.Value != die.Value)
+    //     dieItem.Value = die.Value;
+    // }
 
     base.OnParametersSet();
   }

@@ -6,7 +6,7 @@ public static class HttpResponses
   
   public record PlayerScore(int PlayerId, int Score);
   
-  public record KeepDiceResponse(int Id, List<PlayerScore> Score);
+  public record KeepDiceResponse(int Id, int TurnScore);
   
   public record RollDiceResponse(int Id, int[] Dice);
   

@@ -27,6 +27,6 @@ public class RollDiceShould
     var dice = await sut.RollDiceAsync(1, 1);
 
     // Then
-    dice.Should().Contain(DiceValue.One);
+    dice.Value.Should().Contain(DiceValue.One);
   }
 }

@@ -14,10 +14,11 @@
 </MudGrid>
 <MudPaper Class="pa-8">
   <MudCardActions>
-    <Score GameScore="_score"></Score>
+    <TurnScore Value="_score"></TurnScore>
     <KeepButton OnKeep="@DiceKeptAsync"></KeepButton>
     <StartGameButton
-      OnGameStarted="GameStarted"></StartGameButton>
+      OnGameStarted="GameStarted">
+    </StartGameButton>
     @* <MudTextField @bind-Value="DiceValues" *@
     @*               Immediate="true" *@
     @*               Label="Standard" *@
@@ -31,9 +32,19 @@
       Roll
     </MudButton>
   </MudCardActions>
-
 </MudPaper>
 
+<MudPopover
+  Open="@Error"
+  AnchorOrigin="Origin.BottomCenter"
+  TransformOrigin="Origin.TopCenter"
+  Class="px-4 pt-4">
+  <div class="d-flex flex-column">
+    <MudText>@_errorMessage</MudText>
+    <MudButton OnClick="@ToggleOpen" Class="ml-auto mr-n3 mb-1" Color="Color.Error">Close</MudButton>
+  </div>
+</MudPopover>
+
 <DragabbleDice
-  @bind-DiceInPlay="DiceInPLay">
+  @bind-DiceInPlay="DiceInPlay">
 </DragabbleDice>

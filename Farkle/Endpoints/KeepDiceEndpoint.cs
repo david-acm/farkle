@@ -26,7 +26,7 @@ internal class KeepDiceEndpoint(
     // TODO: Inject game service or use mediatr
     var result = await service
       .HandleAsync<Command.KeepDice, KeepDiceResponse>(command, ct,
-        (s) => new KeepDiceResponse(s.Id ?? 0, s.ScoreTable.Select(s => new PlayerScore(s.Key, s.Value)).ToList()));
+        (s) => new KeepDiceResponse(s.Id ?? 0, s.TurnScore));
     
     await SendResultAsync(result);
   }

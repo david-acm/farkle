@@ -22,20 +22,20 @@
     var playerId = 1;
     var gameId   = 1;
     var game = Render<Game>(@<Game PlayerId=@playerId/>);
-    var score  = game.FindComponent<Score>();
+    var score  = game.FindComponent<TurnScore>();
     var cut    = game.FindComponent<KeepButton>();
     var button = cut.Find("button");
     var expectedScore = 200;
     game.Instance.GameStarted(gameId);
     Mock.Get(_gameService)
       .Setup(s => s.KeepDiceAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<IEnumerable<int>>()))
-      .ReturnsAsync(new Dictionary<int, int>() { {playerId, expectedScore}});
+      .ReturnsAsync(expectedScore);
     
     // When
     button.Click();
     
     // Then
     Mock.Get(_gameService).Verify(s => s.KeepDiceAsync(gameId, playerId, It.IsAny<IEnumerable<int>>()));
-    score.Instance.ForPlayer(playerId).Should().Be(expectedScore);
+    score.Instance.Value.Should().Be(expectedScore);
   }
 }
