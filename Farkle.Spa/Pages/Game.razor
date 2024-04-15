@@ -5,25 +5,28 @@
 <MudText Typo="Typo.h3">Be Welcome</MudText>
 <GameTitle GameId="_gameId"></GameTitle>
 <MudGrid Spacing="1">
-  <MudItem sm="12">
+  <MudItem xs="12" sm="6" md="4">
     <MudText Class="mt-6"
              Typo="Typo.h5">
-      Roll the dice and don't get Farkle.Domain!
+      Roll the dice and don't Farkle!
     </MudText>
   </MudItem>
-</MudGrid>
-<MudPaper Class="pa-8">
-  <MudCardActions>
+  <MudItem xs="12" sm="6" md="4">
     <TurnScore Value="_score"></TurnScore>
-    <KeepButton OnKeep="@DiceKeptAsync"></KeepButton>
+  </MudItem>
+</MudGrid>
+
+
+<MudGrid Spacing="1">
+  <MudItem xs="12" sm="6" md="4">
     <StartGameButton
       OnGameStarted="GameStarted">
     </StartGameButton>
-    @* <MudTextField @bind-Value="DiceValues" *@
-    @*               Immediate="true" *@
-    @*               Label="Standard" *@
-    @*               Variant="Variant.Text"> *@
-    @* </MudTextField> *@
+  </MudItem>
+  <MudItem xs="12" sm="6" md="4">
+    <KeepButton OnKeep="@DiceKeptAsync"></KeepButton>
+  </MudItem>
+  <MudItem xs="12" sm="6" md="4">
     <MudButton Class="mt-4"
                Color="Color.Primary"
                @onclick="RollAsync"
@@ -31,8 +34,8 @@
                Variant="Variant.Filled">
       Roll
     </MudButton>
-  </MudCardActions>
-</MudPaper>
+  </MudItem>
+</MudGrid>
 
 <MudPopover
   Open="@Error"
