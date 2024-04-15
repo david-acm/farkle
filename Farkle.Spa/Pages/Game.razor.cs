@@ -2,49 +2,42 @@ using Farkle.Spa.Components;
 using Farkle.Spa.Services;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
-using DragabbleDice=Farkle.Spa.Components.DragabbleDice;
+using static Farkle.Spa.Components.DragabbleDice;
 
 namespace Farkle.Spa.Pages;
 
 public partial class Game
 {
-  private          int    _gameId;
-  private          int    _playerId;
+  private int                   _gameId;
+  private int                   _playerId = 1;
+  private Dictionary<int, int> _score = new();
   
   // TODO: Review if this is a good approach for the nullable services below
-  [Inject] public IGameService  GameService { get; set; } = null!;
-  [Inject] public ILogger<Game> Logger      { get; set; } = null!;
+  [Inject] public IGameService GameService { get; set; } = null!;
   
-  public string? Values { get; set; } = "1 2 3 4 5 6";
+  [Inject] public ILogger<Game> Logger { get; set; } = null!;
   
-  private List<DiceValue> DiceValues =>
-    Values?.Split(' ')
-      ?.Where(d => int.TryParse(d, out var v))
-      ?.Select(v =>
-      {
-        var parsed = DiceValue.TryFromValue(int.Parse(v), out var value);
-        return parsed ? value : DiceValue.One;
-      })
-      ?.ToList() ??
-    new List<DiceValue>();
+  [Parameter] public int PlayerId { get; set; }
   
+  public  List<DraggableDie> DiceInPLay { get; set; } = [new DraggableDie() { Index = 1, Value = DiceValue.One, Identifier = "Rolled"}];
+
+  private IEnumerable<int>   KeptDice   => DiceInPLay.Where(d => d.Identifier == "Kept").Select(d => d.Value!.Value);
   
   private async Task RollAsync()
   {
     var dice = await GameService.RollDiceAsync(_gameId, _playerId);
-    Values = string.Empty;
-    Values = string.Concat(dice.Select(d => $"{d.Value} "));
-    
-    Values = Values.Trim();
+    Logger.LogInformation("Set aside dice being updated in game from roll: {setAsideDice}", dice.Select(d => d.Value));
+    DiceInPLay = dice.Select((d, i) => new DraggableDie
+    {
+      Index      = i,
+      Value      = DiceValue.FromValue(d),
+      Identifier = "Rolled"
+    }).ToList();
   }
   
   protected override Task OnInitializedAsync()
   {
     var random = new Random();
-    _gameId = random.Next(0, 999);
-    // await GameService.StartGameAsync(_gameId);
-    _playerId = random.Next(0, 100);
-    // await GameService.JoinPlayerAsync(_gameId, _playerId, _playerName);
     return Task.CompletedTask;
   }
   
@@ -54,9 +47,10 @@ public partial class Game
     Logger.LogInformation($"Game started with id: {gameId}");
   }
   
-  // TODO: Remove nullable
-  private void DieDropped(MudItemDropInfo<DragabbleDice.DropItem> obj)
+  private async Task DiceKeptAsync()
   {
-    Logger.LogInformation($"Die {obj!.Item!.Value} dropped with index: {obj.Item.Index}");
+    Logger.LogInformation("Sending request to keep dice: {dice}", KeptDice);
+    var score = await GameService.KeepDiceAsync(_gameId, _playerId, KeptDice);
+    _score = new Dictionary<int, int>(score);
   }
 }

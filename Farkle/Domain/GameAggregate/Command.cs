@@ -2,7 +2,7 @@ namespace Farkle.Domain.GameAggregate;
 
 internal static class Command
 {
-  internal record KeepDice(GameId GameId, PlayerId PlayerId, IEnumerable<DiceValue> DiceValues);
+  internal record KeepDice(GameId GameId, PlayerId PlayerId, IEnumerable<DieValue> DiceValues);
 
   internal record StartGame(GameId GameId)
   {

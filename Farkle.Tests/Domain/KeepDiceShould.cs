@@ -17,11 +17,11 @@ public class KeepDiceShould : GameWithThreePlayersTest
   {
     yield return new[]
     {
-      (Action<Game>)(g => g.KeepDice(new Command.KeepDice(1, 2, new[] { DiceValue.Five, DiceValue.One })))
+      (Action<Game>)(g => g.KeepDice(new Command.KeepDice(1, 2, new[] { DieValue.Five, DieValue.One })))
     };
     yield return new[]
     {
-      (Action<Game>)(g => g.KeepDiceV2(new Command.KeepDice(1, 2, new[] { DiceValue.Five, DiceValue.One })))
+      (Action<Game>)(g => g.KeepDiceV2(new Command.KeepDice(1, 2, new[] { DieValue.Five, DieValue.One })))
     };
   }
 
@@ -46,7 +46,7 @@ public class KeepDiceShould : GameWithThreePlayersTest
     Game.RollDiceV2(new Command.RollDice(1, 1));
     
     // Act
-    Game.KeepDice(new Command.KeepDice(1, 1, new[] { DiceValue.Four }));
+    Game.KeepDice(new Command.KeepDice(1, 1, new[] { DieValue.Four }));
 
     // Assert
     Changes.Should().ContainSingleEvent<DiceNotAllowedToBeKept>();
@@ -69,7 +69,7 @@ public class KeepDiceShould : GameWithThreePlayersTest
     Game.RollDiceV2(new Command.RollDice(1, 1));
 
     // Act
-    Game.KeepDice(new Command.KeepDice(1, 1, new[] { DiceValue.Four, DiceValue.Four, DiceValue.Four }));
+    Game.KeepDice(new Command.KeepDice(1, 1, new[] { DieValue.Four, DieValue.Four, DieValue.Four }));
 
     // Assert
     Changes.Should().NotContainAnyEvent<DiceNotAllowedToBeKept>();
@@ -93,7 +93,7 @@ public class KeepDiceShould : GameWithThreePlayersTest
 
     //Act
     Game.KeepDice(new Command.KeepDice(1, 1,
-        new[] { DiceValue.Four, DiceValue.Four, DiceValue.Four, DiceValue.Four }));
+        new[] { DieValue.Four, DieValue.Four, DieValue.Four, DieValue.Four }));
 
     Changes.Should().NotContainAnyEvent<DiceNotAllowedToBeKept>();
   }
@@ -115,7 +115,7 @@ public class KeepDiceShould : GameWithThreePlayersTest
     
     // Act
     Game.KeepDice(new Command.KeepDice(1, 1,
-      new[] { DiceValue.One, DiceValue.Two, DiceValue.Three, DiceValue.Four, DiceValue.Five, DiceValue.Six }));
+      new[] { DieValue.One, DieValue.Two, DieValue.Three, DieValue.Four, DieValue.Five, DieValue.Six }));
 
 
     // Assert
@@ -129,7 +129,7 @@ public class KeepDiceShould : GameWithThreePlayersTest
     Game.RollDiceV2(new Command.RollDice(1, 1));
     var diceValues = new[]
     {
-      DiceValue.One, DiceValue.Two, DiceValue.Three, DiceValue.Four, DiceValue.Five, DiceValue.Six
+      DieValue.One, DieValue.Two, DieValue.Three, DieValue.Four, DieValue.Five, DieValue.Six
     };
 
     var last           = State.TableCenter!;
@@ -157,11 +157,11 @@ public class KeepDiceShould : GameWithThreePlayersTest
     };
     SetupDiceToRoll(values);
     Game.RollDiceV2(new Command.RollDice(1, 1));
-    var diceValues = new[] { DiceValue.One };
+    var diceValues = new[] { DieValue.One };
 
     var tableCenter = State.TableCenter!;
 
-    var diceToKeep = diceValues.First(d => tableCenter.Contains(d) && d == DiceValue.One);
+    var diceToKeep = diceValues.First(d => tableCenter.Contains(d) && d == DieValue.One);
 
     Game.KeepDice(new Command.KeepDice(1, 1, new[] { diceToKeep }));
 
@@ -187,7 +187,7 @@ public class KeepDiceShould : GameWithThreePlayersTest
       5,
       6
     });
-    var diceToKeep = new[] { DiceValue.One, DiceValue.Five };
+    var diceToKeep = new[] { DieValue.One, DieValue.Five };
 
     // Act
     Game.RollDiceV2(new Command.RollDice(1, 1));
@@ -202,7 +202,7 @@ public class KeepDiceShould : GameWithThreePlayersTest
   internal void AddTurnScoreToPlayer(
     string      reason,
     int[]       rolledDice,
-    DiceValue[] diceToKeep,
+    DieValue[] diceToKeep,
     int         expectedScore)
   {
     // Arrange
@@ -232,7 +232,7 @@ public class KeepDiceShould : GameWithThreePlayersTest
       6
     });
     Game.RollDiceV2(new Command.RollDice(1, 1));
-    Game.KeepDice(new Command.KeepDice(1, 1, new[] { DiceValue.One }));
+    Game.KeepDice(new Command.KeepDice(1, 1, new[] { DieValue.One }));
 
     SetupDiceToRoll(new List<int>
     {
@@ -264,7 +264,7 @@ public class KeepDiceShould : GameWithThreePlayersTest
       6
     });
     Game.RollDiceV2(new Command.RollDice(1, 1));
-    Game.KeepDice(new Command.KeepDice(1, 1, new[] { DiceValue.One }));
+    Game.KeepDice(new Command.KeepDice(1, 1, new[] { DieValue.One }));
 
     SetupDiceToRoll(new List<int>
     {
@@ -275,7 +275,7 @@ public class KeepDiceShould : GameWithThreePlayersTest
       4
     });
     Game.RollDiceV2(new Command.RollDice(1, 1));
-    Game.KeepDice(new Command.KeepDice(1, 1, new[] { DiceValue.One }));
+    Game.KeepDice(new Command.KeepDice(1, 1, new[] { DieValue.One }));
 
     // Assert
     State.TurnScore.Should().Be(new Score(200));
@@ -295,11 +295,11 @@ public class KeepDiceShould : GameWithThreePlayersTest
       4
     });
     Game.RollDiceV2(new Command.RollDice(1, 1));
-    Game.KeepDice(new Command.KeepDice(1, 1, new[] { DiceValue.One, DiceValue.One, DiceValue.One }));
+    Game.KeepDice(new Command.KeepDice(1, 1, new[] { DieValue.One, DieValue.One, DieValue.One }));
 
     SetupDiceToRoll(new List<int> { 4, 4, 4 });
     Game.RollDiceV2(new Command.RollDice(1, 1));
-    Game.KeepDice(new Command.KeepDice(1, 1, new[] { DiceValue.Four, DiceValue.Four, DiceValue.Four }));
+    Game.KeepDice(new Command.KeepDice(1, 1, new[] { DieValue.Four, DieValue.Four, DieValue.Four }));
 
     // Assert
     State.TableCenter.Should().HaveCount(6);
@@ -307,21 +307,21 @@ public class KeepDiceShould : GameWithThreePlayersTest
 
   public static IEnumerable<object[]> TricksAndScore()
   {
-    yield return new object[] { "1 should add 100", new[] { 1, 2, 2, 3, 4, 4 }, new[] { DiceValue.One }, 100 };
+    yield return new object[] { "1 should add 100", new[] { 1, 2, 2, 3, 4, 4 }, new[] { DieValue.One }, 100 };
     yield return new object[]
     {
-      "1 and 5 should add 150", new[] { 1, 1, 2, 3, 4, 5 }, new[] { DiceValue.One, DiceValue.Five, DiceValue.One },
+      "1 and 5 should add 150", new[] { 1, 1, 2, 3, 4, 5 }, new[] { DieValue.One, DieValue.Five, DieValue.One },
       250
     };
     yield return new object[]
     {
       "2, 2, 2 should add 200", new[] { 3, 3, 3, 3, 4, 4 },
-      new[] { DiceValue.Three, DiceValue.Three, DiceValue.Three }, 300
+      new[] { DieValue.Three, DieValue.Three, DieValue.Three }, 300
     };
     yield return new object[]
     {
       "4, 4, 4, 4 should add 1000", new[] { 3, 3, 4, 4, 4, 4 },
-      new[] { DiceValue.Four, DiceValue.Four, DiceValue.Four, DiceValue.Four }, 1000
+      new[] { DieValue.Four, DieValue.Four, DieValue.Four, DieValue.Four }, 1000
     };
   }
 }

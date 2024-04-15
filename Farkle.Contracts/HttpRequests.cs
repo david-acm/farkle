@@ -13,7 +13,7 @@ public static class HttpRequests
   public record RollDiceRequest(int GameId, int PlayerId);
 
   // [HttpCommand(Route = "diceKeeps")]
-  public record KeepDiceRequest(int GameId, int PlayerId, int[] DiceValues);
+  public record KeepDiceRequest(int GameId, int PlayerId, IEnumerable<int> DiceValues);
 
   // [HttpCommand(Route = "turnPasses")]
   public record PassTurnHttp(int GameId, int PlayerId);

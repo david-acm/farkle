@@ -39,7 +39,7 @@ internal class GameService
   }
 
   // TODO: Generalize this method
-  public async Task<IResult> HandleAsync<TCommand, TResponse>(TCommand command, CancellationToken cancellationToken)
+  public async Task<IResult> HandleAsync<TCommand, TResponse>(TCommand command, CancellationToken cancellationToken, Func<GameState,TResponse>? mapper = null)
     where TResponse : class
     where TCommand : class
   {
@@ -52,7 +52,7 @@ internal class GameService
       .ToList() ?? [];
     if (!errorEvents.Any())
     {
-      return result.ToMinimalApiResult<GameState, TResponse>();
+      return result.ToMinimalApiResult<GameState, TResponse>(mapper);
     }
 
     var message = string.Concat(errorEvents);
@@ -63,13 +63,12 @@ internal class GameService
       {};
     
     return errorResult.ToMinimalApiResult<GameState, TResponse>();
-
   }
 }
 
 internal interface IGameService
 {
-  Task<IResult> HandleAsync<TCommand, TResponse>(TCommand command, CancellationToken cancellationToken)
+  Task<IResult> HandleAsync<TCommand, TResponse>(TCommand command, CancellationToken cancellationToken, Func<GameState,TResponse>? mapper = null)
     where TResponse : class
     where TCommand : class;
 }

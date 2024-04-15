@@ -3,7 +3,7 @@ using FluentAssertions;
 using Farkle.Tests.Framework;
 using Xunit.Abstractions;
 using static Farkle.Domain.GameAggregate.Command;
-using static Farkle.Domain.GameAggregate.DiceValue;
+using static Farkle.Domain.GameAggregate.DieValue;
 using static Farkle.Domain.GameAggregate.GameEvents.V1;
 
 namespace Farkle.Tests.Domain;

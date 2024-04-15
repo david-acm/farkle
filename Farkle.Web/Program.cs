@@ -50,24 +50,22 @@ var app = builder.Build();
 // app.UseHttpsRedirection();
 app.SetUpFarkleModule();
 
-// app.UseAuthentication()
-//   .UseAuthorization()
-//   .UseFastEndpoints()
-//   .UseRouting()
-//   .UseSwaggerGen();
-
-app.UseBlazorFrameworkFiles();
-app.UseStaticFiles();
-app.MapFallbackToFile("index.html");
-app.UseRouting();
-app.UseAuthorization();
-app.UseFastEndpoints(c =>
-{
-  c.Endpoints.ShortNames                    = true;
-  c.Serializer.Options.PropertyNamingPolicy = null;
-});
-// app.MapRazorComponents<App>()
-//   .AddAdditionalAssemblies(typeof(Farkle.Spa.Pages.Game).Assembly);
+app.UseAuthentication()
+  .UseAuthorization()
+  .UseFastEndpoints()
+  .UseRouting()
+  .UseSwaggerGen();
+//
+// app.UseBlazorFrameworkFiles();
+// app.UseStaticFiles();
+// app.MapFallbackToFile("index.html");
+// app.UseRouting();
+// app.UseAuthorization();
+// app.UseFastEndpoints(c =>
+// {
+//   c.Endpoints.ShortNames                    = true;
+//   c.Serializer.Options.PropertyNamingPolicy = null;
+// });
 
 app.Run();
 

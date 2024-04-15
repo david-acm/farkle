@@ -5,15 +5,15 @@ using Farkle.Application;
 
 namespace Farkle.Domain.GameAggregate;
 
-internal record Dice(IEnumerable<DiceValue> DiceValues)
+internal record Dice(IEnumerable<DieValue> DiceValues)
 {
   public static Dice FromNewRoll(IRandom randomizer, int diceToRoll)
   {
     var g    = new GameService(default!);
-    var dice = new List<DiceValue>();
+    var dice = new List<DieValue>();
     for (var i = 1; i <= diceToRoll; i++)
     {
-      dice.Add(DiceValue.FromValue(randomizer.Next(1,
+      dice.Add(DieValue.FromValue(randomizer.Next(1,
         6)));
     }
 
@@ -80,21 +80,21 @@ internal interface IErrorEvent
 {
 }
 
-internal sealed class DiceValue : SmartEnum<DiceValue, int>
+internal sealed class DieValue : SmartEnum<DieValue, int>
 {
-  public static readonly DiceValue One = new("⚀", 1);
+  public static readonly DieValue One = new("⚀", 1);
 
-  public static readonly DiceValue Two = new("⚁", 2);
+  public static readonly DieValue Two = new("⚁", 2);
 
-  public static readonly DiceValue Three = new("⚂", 3);
+  public static readonly DieValue Three = new("⚂", 3);
 
-  public static readonly DiceValue Four = new("⚃", 4);
+  public static readonly DieValue Four = new("⚃", 4);
 
-  public static readonly DiceValue Five = new("⚄", 5);
+  public static readonly DieValue Five = new("⚄", 5);
 
-  public static readonly DiceValue Six = new("⚅", 6);
+  public static readonly DieValue Six = new("⚅", 6);
 
-  private DiceValue(string name, int value) : base(name,
+  private DieValue(string name, int value) : base(name,
     value)
   {
   }

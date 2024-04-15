@@ -97,7 +97,7 @@ internal class PlayerHasThoseDice : Validator
 
 internal class DiceAreStair : Validator
 {
-  private readonly IEnumerable<DiceValue> _dice;
+  private readonly IEnumerable<DieValue> _dice;
 
   public DiceAreStair(Dice dice)
   {
@@ -107,12 +107,12 @@ internal class DiceAreStair : Validator
   public override ValidationResult IsSatisfied()
   {
     return new ValidationResult(_dice.Count() == 6              &&
-                                _dice.Contains(DiceValue.One)   &&
-                                _dice.Contains(DiceValue.Two)   &&
-                                _dice.Contains(DiceValue.Three) &&
-                                _dice.Contains(DiceValue.Four)  &&
-                                _dice.Contains(DiceValue.Five)  &&
-                                _dice.Contains(DiceValue.Six),
+                                _dice.Contains(DieValue.One)   &&
+                                _dice.Contains(DieValue.Two)   &&
+                                _dice.Contains(DieValue.Three) &&
+                                _dice.Contains(DieValue.Four)  &&
+                                _dice.Contains(DieValue.Five)  &&
+                                _dice.Contains(DieValue.Six),
       new DiceNotAllowedToBeKept("Dice are not a stair", _dice.ToPrimitiveArray())
     );
   }
@@ -129,7 +129,7 @@ internal record DiceNotAllowedToBeKept(string Reason, IEnumerable<int> Dice);
 
 internal class DiceAreOnesOrFives : Validator
 {
-  private readonly IEnumerable<DiceValue> _dice;
+  private readonly IEnumerable<DieValue> _dice;
 
   public DiceAreOnesOrFives(Dice dice)
   {
@@ -138,14 +138,14 @@ internal class DiceAreOnesOrFives : Validator
 
   public override ValidationResult IsSatisfied()
   {
-    return new ValidationResult(_dice.All(d => d == DiceValue.One || d == DiceValue.Five),
+    return new ValidationResult(_dice.All(d => d == DieValue.One || d == DieValue.Five),
       new DiceNotAllowedToBeKept("Dice are not ones or fives", _dice.ToPrimitiveArray()));
   }
 }
 
 internal class CanKeepDice : Validator
 {
-  private readonly IEnumerable<DiceValue> _dice;
+  private readonly IEnumerable<DieValue> _dice;
 
   public CanKeepDice(Dice dice)
   {
@@ -154,7 +154,7 @@ internal class CanKeepDice : Validator
 
   public override ValidationResult IsSatisfied()
   {
-    var diceContainOnesOrFives          = _dice.Any(d => d == DiceValue.One || d == DiceValue.Five);
+    var diceContainOnesOrFives          = _dice.Any(d => d == DieValue.One || d == DieValue.Five);
     var thereAreThreeOrMoreRepeatedDice = _dice.GroupBy(d => d).MaxBy(d => d.Count())?.Count() >= 3;
 
     return new ValidationResult(
@@ -166,7 +166,7 @@ internal class CanKeepDice : Validator
 
 internal class DiceAreTrips : Validator
 {
-  private readonly IEnumerable<DiceValue> _dice;
+  private readonly IEnumerable<DieValue> _dice;
 
   public DiceAreTrips(Dice dice)
   {
@@ -178,12 +178,12 @@ internal class DiceAreTrips : Validator
     return new ValidationResult(AreThree(_dice) && AllDiceHaveTheSameValue(_dice), $"The dice {_dice} are not trips.");
   }
 
-  private static bool AreThree(IEnumerable<DiceValue> destination)
+  private static bool AreThree(IEnumerable<DieValue> destination)
   {
     return destination.Count() == 3;
   }
 
-  private static bool AllDiceHaveTheSameValue(IEnumerable<DiceValue> destination)
+  private static bool AllDiceHaveTheSameValue(IEnumerable<DieValue> destination)
   {
     return destination.GroupBy(v => v).Count() == 1;
   }
@@ -191,7 +191,7 @@ internal class DiceAreTrips : Validator
 
 internal class DiceAreStraight : Validator
 {
-  private readonly IEnumerable<DiceValue> _dice;
+  private readonly IEnumerable<DieValue> _dice;
 
   public DiceAreStraight(Dice dice)
   {
@@ -204,7 +204,7 @@ internal class DiceAreStraight : Validator
       "Dice are not a straight");
   }
 
-  private static bool AllDiceHaveTheSameValue(IEnumerable<DiceValue> destination)
+  private static bool AllDiceHaveTheSameValue(IEnumerable<DieValue> destination)
   {
     return destination.GroupBy(v => v).Count() == 1;
   }

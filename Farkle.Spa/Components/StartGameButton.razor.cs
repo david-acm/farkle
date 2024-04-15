@@ -15,6 +15,7 @@ public partial class StartGameButton : ComponentBase
     var random = new Random();
     var gameId = random.Next(0, 999);
     var id = await GameService.StartGameAsync(gameId);
+    await GameService.JoinPlayerAsync(gameId, 1, "David");
     
     await OnGameStarted.InvokeAsync(id);
   }

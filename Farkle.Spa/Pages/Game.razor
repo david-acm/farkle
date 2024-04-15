@@ -14,13 +14,15 @@
 </MudGrid>
 <MudPaper Class="pa-8">
   <MudCardActions>
+    <Score GameScore="_score"></Score>
+    <KeepButton OnKeep="@DiceKeptAsync"></KeepButton>
     <StartGameButton
       OnGameStarted="GameStarted"></StartGameButton>
-    <MudTextField @bind-Value="Values"
-                  Immediate="true"
-                  Label="Standard"
-                  Variant="Variant.Text">
-    </MudTextField>
+    @* <MudTextField @bind-Value="DiceValues" *@
+    @*               Immediate="true" *@
+    @*               Label="Standard" *@
+    @*               Variant="Variant.Text"> *@
+    @* </MudTextField> *@
     <MudButton Class="mt-4"
                Color="Color.Primary"
                @onclick="RollAsync"
@@ -32,6 +34,6 @@
 
 </MudPaper>
 
-<DragabbleDice DiceValues="DiceValues"
-               OnDropCallback="@DieDropped">
+<DragabbleDice
+  @bind-DiceInPlay="DiceInPLay">
 </DragabbleDice>

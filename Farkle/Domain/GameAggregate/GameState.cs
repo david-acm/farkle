@@ -24,8 +24,8 @@ internal record GameState : State<GameState>
   public Score     TurnScore { get; private init; } = new(0);
 
   public ImmutableArray<Player>    Players     { get; private init; } = ImmutableArray<Player>.Empty;
-  public ImmutableArray<DiceValue> TableCenter { get; private init; } = ImmutableArray<DiceValue>.Empty;
-  public ImmutableArray<DiceValue> DiceKept    { get; private init; } = ImmutableArray<DiceValue>.Empty;
+  public ImmutableArray<DieValue> TableCenter { get; private init; } = ImmutableArray<DieValue>.Empty;
+  public ImmutableArray<DieValue> DiceKept    { get; private init; } = ImmutableArray<DieValue>.Empty;
 
   public ImmutableDictionary<int, int> ScoreTable { get; private init; } =
     ImmutableDictionary<int, int>.Empty;
@@ -48,7 +48,7 @@ internal record GameState : State<GameState>
     {
       DiceKept = state.DiceKept.AddRange(Dice.FromValues(e.Dice).DiceValues),
       TurnScore = e.NewTurnScore,
-      TableCenter = ImmutableArray<DiceValue>.Empty.AddRange(e.TableCenter.ToDiceValues()),
+      TableCenter = ImmutableArray<DieValue>.Empty.AddRange(e.TableCenter.ToDiceValues()),
       GameStage = GameStage.Rolling
     };
   }
@@ -59,7 +59,7 @@ internal record GameState : State<GameState>
     {
       DiceKept = state.DiceKept.AddRange(Dice.FromValues(e.Dice).DiceValues),
       TurnScore = e.NewTurnScore,
-      TableCenter = ImmutableArray<DiceValue>.Empty.AddRange(e.TableCenter.ToDiceValues()),
+      TableCenter = ImmutableArray<DieValue>.Empty.AddRange(e.TableCenter.ToDiceValues()),
       GameStage = e.Stage
     };
   }
@@ -83,7 +83,7 @@ internal record GameState : State<GameState>
     return state with
     {
       TurnScore = e.TurnScore,
-      TableCenter = ImmutableArray<DiceValue>.Empty.AddRange(e.Dice.ToDiceValues()),
+      TableCenter = ImmutableArray<DieValue>.Empty.AddRange(e.Dice.ToDiceValues()),
       GameStage = GameStage.Keeping
     };
   }
@@ -93,7 +93,7 @@ internal record GameState : State<GameState>
     return state with
     {
       TurnScore = e.TurnScore,
-      TableCenter = ImmutableArray<DiceValue>.Empty.AddRange(e.Dice.ToDiceValues()),
+      TableCenter = ImmutableArray<DieValue>.Empty.AddRange(e.Dice.ToDiceValues()),
       GameStage = e.Stage
     };
   }

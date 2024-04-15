@@ -1,5 +1,6 @@
 ﻿using Farkle.Application;
 using Farkle.Domain.GameAggregate;
+using Mapster;
 using Microsoft.Extensions.Logging;
 using static Farkle.Contracts.HttpRequests;
 using static Farkle.Contracts.HttpResponses;
@@ -24,8 +25,14 @@ internal class RollDiceEndpoint(
     var command = new Command.RollDice(req.GameId, req.PlayerId);
     
     var result = await service
-      .HandleAsync<Command.RollDice, RollDiceResponse>(command, ct);
+      .HandleAsync<Command.RollDice, RollDiceResponse>(command, ct, 
+        (s) => new RollDiceResponse(s.Id!.Id, s.TableCenter.Select(d => d.Value).ToArray()));
     
     await SendResultAsync(result);
+  }
+  private static int[] ToArrayAsync(GameState s)
+  {
+    
+    return s.TableCenter.Select(s => s.Value).ToArray();
   }
 }

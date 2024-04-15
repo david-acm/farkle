@@ -2,12 +2,12 @@
                   ItemDropped="ItemUpdatedAsync"
                   Items="_items"
                   ItemsSelector="@((item, dropzone) => item.Identifier == dropzone)"
-                  T="DropItem">
+                  T="DraggableDie">
   <ChildContent>
 
     <MudDropZone Class="d-flex flex-grow-1 flex-row flex-wrap justify-center mud-background-gray pa-6 rounded"
-                 Identifier="Rolled"
-                 T="DropItem">
+                 Identifier="Rolled" 
+                 T="DraggableDie">
       <MudText Class="mb-4"
                Typo="Typo.h6">
         Rolled
@@ -16,7 +16,7 @@
 
     <MudDropZone Class="d-flex flex-grow-1 flex-row flex-wrap justify-center mud-background-gray pa-6 rounded"
                  Identifier="Kept"
-                 T="DropItem">
+                 T="DraggableDie">
       <MudText Class="mb-4"
                Typo="Typo.h6">
         Keep
@@ -28,7 +28,7 @@
   <ItemRenderer>
     <MudItem Class="align-center d-flex ma-8 ma-8">
       <Die DiceValue="context.Value"
-           IsDragging="@true"
+           IsDragging="@false"
            Size="50">
       </Die>
     </MudItem>

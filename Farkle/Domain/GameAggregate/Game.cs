@@ -118,7 +118,7 @@ internal class Game : Aggregate<GameState>
     return 6 - State.DiceKept.Length;
   }
 
-  private static int GetNewTurnScore(IEnumerable<DiceValue> diceKept, int currentScore)
+  private static int GetNewTurnScore(IEnumerable<DieValue> diceKept, int currentScore)
   {
     var dice = new Dice(diceKept);
     var tricks = new Dictionary<Validator, int>
@@ -130,8 +130,8 @@ internal class Game : Aggregate<GameState>
         new DiceAreTrips(dice), dice.DiceValues.First().Value * 100
       },
       {
-        new DiceAreOnesOrFives(dice), (dice.DiceValues.Count(d => d == DiceValue.One)  * 100) +
-                                      (dice.DiceValues.Count(d => d == DiceValue.Five) * 50)
+        new DiceAreOnesOrFives(dice), (dice.DiceValues.Count(d => d == DieValue.One)  * 100) +
+                                      (dice.DiceValues.Count(d => d == DieValue.Five) * 50)
       },
       {
         new DiceAreStair(dice), 1500

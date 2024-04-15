@@ -1,0 +1,41 @@
+<h3>ClickOnKeepShould</h3>
+@using Farkle.Spa.Services
+@using Moq
+@inherits TestContext
+
+@code {
+  private readonly IGameService _gameService;
+  
+  // TODO: Remove this initialization duplication between gametests
+  public ClickOnKeepShould()
+  {
+    JSInterop.Mode = JSRuntimeMode.Loose;
+    _gameService   = Mock.Of<IGameService>();
+    Services.AddScoped<IGameService>(_ => _gameService);
+    Services.AddScoped<IRotationCalculator>(_ => Mock.Of<IRotationCalculator>());
+  }
+  
+  [Fact]
+  public void CallUpdateScore()
+  {
+    // Given
+    var playerId = 1;
+    var gameId   = 1;
+    var game = Render<Game>(@<Game PlayerId=@playerId/>);
+    var score  = game.FindComponent<Score>();
+    var cut    = game.FindComponent<KeepButton>();
+    var button = cut.Find("button");
+    var expectedScore = 200;
+    game.Instance.GameStarted(gameId);
+    Mock.Get(_gameService)
+      .Setup(s => s.KeepDiceAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<IEnumerable<int>>()))
+      .ReturnsAsync(new Dictionary<int, int>() { {playerId, expectedScore}});
+    
+    // When
+    button.Click();
+    
+    // Then
+    Mock.Get(_gameService).Verify(s => s.KeepDiceAsync(gameId, playerId, It.IsAny<IEnumerable<int>>()));
+    score.Instance.ForPlayer(playerId).Should().Be(expectedScore);
+  }
+}

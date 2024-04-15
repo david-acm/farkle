@@ -12,7 +12,7 @@
     Services.AddScoped<IRotationCalculator>(
       _ => Mock.Of<IRotationCalculator>());
     var cut = Render(
-      @<DragabbleDice DiceValues="new List<DiceValue> { One }"></DragabbleDice>);
+      @<DragabbleDice SetAside="new List<DiceValue> { One }"></DragabbleDice>);
 
     var container = cut.Find(".mud-drop-container");
     container.Children.Should().HaveCount(2);

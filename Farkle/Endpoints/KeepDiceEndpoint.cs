@@ -1,8 +1,8 @@
 ﻿using Farkle.Application;
-using Farkle.Contracts;
 using Farkle.Domain.GameAggregate;
 using Microsoft.Extensions.Logging;
 using static Farkle.Contracts.HttpRequests;
+using static Farkle.Contracts.HttpResponses;
 
 namespace Farkle.Endpoints;
 
@@ -10,7 +10,7 @@ namespace Farkle.Endpoints;
 internal class KeepDiceEndpoint(
   ILogger<RollDiceEndpoint> logger,
   IGameService              service)
-  : TypedEndpoint<RollDiceRequest, HttpResponses.KeepDiceResponse>
+  : TypedEndpoint<KeepDiceRequest, KeepDiceResponse>
 {
   public override void Configure()
   {
@@ -18,14 +18,15 @@ internal class KeepDiceEndpoint(
     Post("/api/games/{gameId}/players/{playerId}/keeps");
   }
   
-  public override async Task HandleAsync(RollDiceRequest req, CancellationToken ct)
+  public override async Task HandleAsync(KeepDiceRequest req, CancellationToken ct)
   {
     logger.LogInformation("ℹ️ Game {gameId} Keeping dice for {PlayerId}", req.GameId, req.PlayerId);
-    var command = new Command.RollDice(req.GameId, req.PlayerId);
+    var command = new Command.KeepDice(req.GameId, req.PlayerId, req.DiceValues.Select(d => DieValue.FromValue(d)));
     
     // TODO: Inject game service or use mediatr
     var result = await service
-      .HandleAsync<Command.RollDice, HttpResponses.KeepDiceResponse>(command, ct);
+      .HandleAsync<Command.KeepDice, KeepDiceResponse>(command, ct,
+        (s) => new KeepDiceResponse(s.Id ?? 0, s.ScoreTable.Select(s => new PlayerScore(s.Key, s.Value)).ToList()));
     
     await SendResultAsync(result);
   }

@@ -37,9 +37,9 @@ public static class FarkleModuleServiceExtensions
 
   public static WebApplication SetUpFarkleModule(this WebApplication app)
   {
-    // app.UseBlazorFrameworkFiles();
-    // app.UseStaticFiles();
-    // app.MapFallbackToFile("index.html");
+    app.UseBlazorFrameworkFiles();
+    app.UseStaticFiles();
+    app.MapFallbackToFile("index.html");
 
     TypeMap.RegisterKnownEventTypes();
 

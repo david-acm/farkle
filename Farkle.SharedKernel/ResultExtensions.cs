@@ -41,13 +41,15 @@ public static class ResultExtensions
     }
   }
   
-  public static IResult ToMinimalApiResult<TState, TResponse>(this Eventuous.Result<TState> result)
+  public static IResult ToMinimalApiResult<TState, TResponse>(this Eventuous.Result<TState> result, Func<TState, TResponse>? mapper = null)
     where TState : State<TState>, new()
   {
+    mapper ??= (TState state) => state.Adapt<TResponse>(); 
+    
     return result switch
     {
       ErrorResult<TState> errorResult => ToMinimalApiErrorResult(errorResult),
-      OkResult<TState> okResult       => Results.Ok(okResult.State.Adapt<TResponse>()),
+      OkResult<TState> okResult       => Results.Ok(mapper(okResult.State!)),
       _                               => Results.StatusCode(500)
     };
     
