@@ -1,4 +1,5 @@
 using Castle.Core.Logging;
+using Farkle.Contracts;
 using Farkle.Spa.Services;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -13,11 +14,9 @@ public class JoinPlayerShould
   {
     // Given
     var mock = MockHttpClientBUnitHelpers.GetMockHttpClient();
-    mock.Expect(HttpMethod.Post, "/players")
+    mock.Expect(HttpMethod.Post, "/api/games/1/players/1")
       .RespondJson(
-        new CommandResponse(
-          new State(new[] { new Die("1", 1) }),
-          true));
+        new HttpResponses.JoinPlayerResponse(1));
 
     var sut = new GameService(mock.ToHttpClient(), Mock.Of<ILogger<GameService>>());
 

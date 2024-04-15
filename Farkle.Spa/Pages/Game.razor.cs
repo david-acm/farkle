@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using Farkle.Spa.Components;
 using Farkle.Spa.Services;
 using Microsoft.AspNetCore.Components;

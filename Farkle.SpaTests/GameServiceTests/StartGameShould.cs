@@ -2,6 +2,7 @@ using Farkle.Spa.Services;
 using Microsoft.Extensions.Logging;
 using Moq;
 using RichardSzalay.MockHttp;
+using static Farkle.Contracts.HttpResponses;
 
 namespace Farkle.SpaTests.GameServiceTests;
 
@@ -12,11 +13,8 @@ public class StartGameShould
   {
     // Given
     var mock = MockHttpClientBUnitHelpers.GetMockHttpClient();
-    mock.Expect(HttpMethod.Post, "/games")
-      .RespondJson(
-        new CommandResponse(
-          new State(new[] { new Die("1", 1) }),
-          true));
+    mock.Expect(HttpMethod.Post, "/api/games")
+      .RespondJson(new StartGameResponse(1));
 
     var sut = new GameService(mock.ToHttpClient(), Mock.Of<ILogger<GameService>>());
 

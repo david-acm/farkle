@@ -1,8 +1,10 @@
+using Ardalis.Result;
 using Farkle.Spa.Components;
 using Farkle.Spa.Services;
 using Microsoft.Extensions.Logging;
 using Moq;
 using RichardSzalay.MockHttp;
+using static Farkle.Contracts.HttpResponses;
 using static Farkle.SpaTests.GameServiceTests.MockHttpClientBUnitHelpers;
 using Services_Die=Farkle.Spa.Services.Die;
 
@@ -15,11 +17,9 @@ public class RollDiceShould
   {
     // Given
     var mock = GetMockHttpClient();
-    mock.When("/diceRolls")
+    mock.When("http://localhost:8000/api/games/1/players/1/rolls")
       .RespondJson(
-        new CommandResponse(
-          new State(new[] { new Services_Die("1", 1) }),
-          true));
+        new RollDiceResponse(1, [1]));
 
     var sut = new GameService(mock.ToHttpClient(), Mock.Of<ILogger<GameService>>());
 

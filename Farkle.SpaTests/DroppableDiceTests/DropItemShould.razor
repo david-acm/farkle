@@ -1,4 +1,5 @@
 @inherits TestContext
+@using FluentAssertions.Common
 @using static Spa.Components.DiceValue
 @using Moq
 
@@ -11,8 +12,9 @@
     JSInterop.Mode = JSRuntimeMode.Loose;
     Services.AddScoped<IRotationCalculator>(
       _ => Mock.Of<IRotationCalculator>());
+    var die = new DragabbleDice.DraggableDie() { Index = 1, Value = One, Identifier = "Rolled" };
     var cut = Render(
-      @<DragabbleDice SetAside="new List<DiceValue> { One }"></DragabbleDice>);
+      @<DragabbleDice DiceInPlay="new List<DragabbleDice.DraggableDie> { die } "></DragabbleDice>);
 
     var container = cut.Find(".mud-drop-container");
     container.Children.Should().HaveCount(2);

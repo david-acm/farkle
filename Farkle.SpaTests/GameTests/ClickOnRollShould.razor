@@ -1,9 +1,14 @@
 @using Farkle.Spa.Services
 @using Moq
+@using MudBlazor.Services
 @using Die = Farkle.Spa.Components.Die
 @inherits TestContext
 
 @code {
+  public ClickOnRollShould()
+  {
+    Services.AddMudServices();
+  }
 
   [Fact]
   public void UpdateDiceWithReceivedValues()

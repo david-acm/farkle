@@ -2,6 +2,7 @@
 @using AutoFixture.Xunit2
 @using Farkle.Spa.Services
 @using Moq
+@using MudBlazor.Services
 @inherits TestContext
 
 @code {
@@ -12,6 +13,7 @@
     _gameService = Mock.Of<IGameService>();
     Services.AddScoped<IGameService>(_ => _gameService);
     Services.AddScoped<IRotationCalculator>(_ => Mock.Of<IRotationCalculator>());
+    Services.AddMudServices();
   }
   
   [Theory]
