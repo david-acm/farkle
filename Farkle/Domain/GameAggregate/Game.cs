@@ -127,7 +127,7 @@ internal class Game : Aggregate<GameState>
         new DiceAreStraight(dice), 1000
       },
       {
-        new DiceAreTrips(dice), dice.DiceValues.FirstOrDefault()?.Value ?? 0 * 100
+        new DiceAreTrips(dice), (dice.DiceValues.FirstOrDefault()?.Value ?? 0) * 100
       },
       {
         new DiceAreOnesOrFives(dice), (dice.DiceValues.Count(d => d == DieValue.One)  * 100) +

@@ -1,6 +1,5 @@
 ﻿using Farkle.Application;
 using Farkle.Domain.GameAggregate;
-using Mapster;
 using Microsoft.Extensions.Logging;
 using static Farkle.Contracts.HttpRequests;
 using static Farkle.Contracts.HttpResponses;

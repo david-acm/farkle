@@ -1,8 +1,8 @@
 ﻿@page "/"
 
-<PageTitle>Play Farkle.Domain!</PageTitle>
+<PageTitle>Play Farkle!</PageTitle>
 
-<MudText Typo="Typo.h3">Be Welcome</MudText>
+<MudText Typo="Typo.h3">Welcome!</MudText>
 <GameTitle GameId="_gameId"></GameTitle>
 <MudGrid Spacing="1">
   <MudItem xs="12" sm="6" md="4">
@@ -17,23 +17,15 @@
 </MudGrid>
 
 
-<MudGrid Spacing="1">
+<MudGrid Spacing="1" Class="mt-8">
   <MudItem xs="12" sm="6" md="4">
-    <StartGameButton
-      OnGameStarted="GameStarted">
-    </StartGameButton>
+    <StartGameButton OnGameStarted="GameStarted" />
   </MudItem>
   <MudItem xs="12" sm="6" md="4">
-    <KeepButton OnKeep="@DiceKeptAsync"></KeepButton>
+    <KeepButton OnKeep="@DiceKeptAsync" />
   </MudItem>
   <MudItem xs="12" sm="6" md="4">
-    <MudButton Class="mt-4"
-               Color="Color.Primary"
-               @onclick="RollAsync"
-               StartIcon="@Icons.Material.Filled.PlayArrow"
-               Variant="Variant.Filled">
-      Roll
-    </MudButton>
+    <RollDiceButton OnRoll="@RollAsync" />
   </MudItem>
 </MudGrid>
 
@@ -48,6 +40,9 @@
   </div>
 </MudPopover>
 
-<DragabbleDice
-  @bind-DiceInPlay="DiceInPlay">
-</DragabbleDice>
+<MudContainer Class="mt-8">
+  <DragabbleDice
+    @bind-DiceInPlay="DiceInPlay">
+  </DragabbleDice>
+  
+</MudContainer>
