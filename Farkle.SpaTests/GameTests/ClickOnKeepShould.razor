@@ -1,7 +1,12 @@
 <h3>ClickOnKeepShould</h3>
+@using BlazorState
+@using Farkle.Contracts
+@using Farkle.Spa
+@using Farkle.Spa.Features
 @using Farkle.Spa.Services
 @using Moq
 @using MudBlazor.Services
+@using TurnScore = Farkle.Spa.Components.TurnScore
 @inherits TestContext
 
 @code {
@@ -15,26 +20,33 @@
     Services.AddScoped<IGameService>(_ => _gameService);
     Services.AddScoped<IRotationCalculator>(_ => Mock.Of<IRotationCalculator>());
     Services.AddMudServices();
+    
+    var assembly = typeof(Program).Assembly;
+    Services.AddBlazorState(o => o.Assemblies = [assembly]);
   }
   
   [Fact]
-  public void CallUpdateScore()
+  public async Task CallUpdateScore()
   {
     // Given
     var playerId = 1;
-    var gameId   = 1;
-    var game = Render<Game>(@<Game PlayerId=@playerId/>);
-    var score  = game.FindComponent<TurnScore>();
-    var cut    = game.FindComponent<KeepButton>();
-    var button = cut.Find("button");
+    var gameId   = new GameId(10);
+    Mock.Get(_gameService)
+      .Setup(s => s.StartGameAsync(It.IsAny<int>()))
+      .ReturnsAsync(gameId);
+    
+    var game = Render<Game>(@<Game PlayerId=@playerId ParameterGameId="gameId"/>);
+    var score         = game.FindComponent<TurnScore>();
+    await game.FindComponent<StartGameButton>().Find("button").ClickAsync(default!);
+    var cut           = game.FindComponent<KeepButton>();
+    var button        = cut.Find("button");
     var expectedScore = 200;
-    game.Instance.GameStarted(gameId);
     Mock.Get(_gameService)
       .Setup(s => s.KeepDiceAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<IEnumerable<int>>()))
-      .ReturnsAsync(expectedScore);
+      .ReturnsAsync(new HttpResponses.KeepDiceResponse(gameId, expectedScore));
     
     // When
-    button.Click();
+    await button.ClickAsync(new MouseEventArgs());
     
     // Then
     Mock.Get(_gameService).Verify(s => s.KeepDiceAsync(gameId, playerId, It.IsAny<IEnumerable<int>>()));

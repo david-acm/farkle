@@ -1,10 +1,10 @@
 @inherits TestContext
-@using FluentAssertions.Common
+@using BlazorState
+@using Farkle.Spa
 @using static Spa.Components.DiceValue
 @using Moq
 
 @code {
-
   [Fact]
   public async Task AssignIdentifierOfDropZone()
   {
@@ -12,9 +12,10 @@
     JSInterop.Mode = JSRuntimeMode.Loose;
     Services.AddScoped<IRotationCalculator>(
       _ => Mock.Of<IRotationCalculator>());
-    var die = new DragabbleDice.DraggableDie() { Index = 1, Value = One, Identifier = "Rolled" };
+    Services.AddBlazorState(o => o.Assemblies = [typeof(Program).Assembly]);
+    var die = new DragabbleDice.DraggableDie(index: 1, value: One, identifier: "Rolled");
     var cut = Render(
-      @<DragabbleDice DiceInPlay="new List<DragabbleDice.DraggableDie> { die } "></DragabbleDice>);
+      @<DragabbleDice></DragabbleDice>);
 
     var container = cut.Find(".mud-drop-container");
     container.Children.Should().HaveCount(2);

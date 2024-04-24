@@ -23,11 +23,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		docker-compose.yml = docker-compose.yml
 	EndProjectSection
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Users Module", "Users Module", "{934DC8F6-A414-4DA8-B35F-B413890CD161}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Farkle.Contracts", "Farkle.Contracts\Farkle.Contracts.csproj", "{7345894B-C903-4DC4-9DB0-687F24329E13}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Farkle.SharedKernel", "Farkle.SharedKernel\Farkle.SharedKernel.csproj", "{94EC0B39-2202-407A-9D30-138B1B400E78}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "UI", "UI", "{C26BBE8D-BFB0-4EC3-895A-3E69C688EFA1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

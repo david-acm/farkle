@@ -7,7 +7,6 @@ using ProblemDetails=Microsoft.AspNetCore.Mvc.ProblemDetails;
 
 namespace Farkle.SharedKernel;
 
-// TODO: Clean and refactor
 public static class ResultExtensions
 {
   public static async Task SendResponseAsync<TState, TResponse>(

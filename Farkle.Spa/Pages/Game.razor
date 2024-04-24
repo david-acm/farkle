@@ -1,9 +1,10 @@
-﻿@page "/"
+﻿@page "/{ParameterGameId:int}"
+@inherits BlazorState.BlazorStateComponent
 
 <PageTitle>Play Farkle!</PageTitle>
 
 <MudText Typo="Typo.h3">Welcome!</MudText>
-<GameTitle GameId="_gameId"></GameTitle>
+<GameTitle></GameTitle>
 <MudGrid Spacing="1">
   <MudItem xs="12" sm="6" md="4">
     <MudText Class="mt-6"
@@ -12,37 +13,26 @@
     </MudText>
   </MudItem>
   <MudItem xs="12" sm="6" md="4">
-    <TurnScore Value="_score"></TurnScore>
+    <TurnScore></TurnScore>
   </MudItem>
 </MudGrid>
 
 
 <MudGrid Spacing="1" Class="mt-8">
   <MudItem xs="12" sm="6" md="4">
-    <StartGameButton OnGameStarted="GameStarted" />
+    <StartGameButton />
   </MudItem>
   <MudItem xs="12" sm="6" md="4">
-    <KeepButton OnKeep="@DiceKeptAsync" />
+    <KeepButton />
   </MudItem>
   <MudItem xs="12" sm="6" md="4">
-    <RollDiceButton OnRoll="@RollAsync" />
+    <RollDiceButton />
   </MudItem>
 </MudGrid>
 
-<MudPopover
-  Open="@Error"
-  AnchorOrigin="Origin.BottomCenter"
-  TransformOrigin="Origin.TopCenter"
-  Class="px-4 pt-4">
-  <div class="d-flex flex-column">
-    <MudText>@_errorMessage</MudText>
-    <MudButton OnClick="@ToggleOpen" Class="ml-auto mr-n3 mb-1" Color="Color.Error">Close</MudButton>
-  </div>
-</MudPopover>
 
 <MudContainer Class="mt-8">
-  <DragabbleDice
-    @bind-DiceInPlay="DiceInPlay">
+  <DragabbleDice>
   </DragabbleDice>
   
 </MudContainer>

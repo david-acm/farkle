@@ -1,12 +1,13 @@
+@using Farkle.Spa.Features
+@inherits BlazorState.BlazorStateComponent
 
-
-<MudButton Class="mt-4"
-           Color="Color.Primary"
-           @onclick="KeepAsync"
-           StartIcon="@Icons.Material.Filled.PlayArrow"
-           Variant="Variant.Filled">
+<AppButton OnClick="KeepAsync">
   Set Dice Aside
-</MudButton>
+</AppButton>
+
 @code {
-  
+  private void KeepAsync()
+  {
+    Mediator.Send(new GameState.KeepDice.Action());
+  }
 }

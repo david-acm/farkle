@@ -1,67 +1,36 @@
+using Ardalis.GuardClauses;
+using BlazorState;
+using Farkle.Spa.Features;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
 
 namespace Farkle.Spa.Components;
 
-public partial class DragabbleDice
+public partial class DragabbleDice : BlazorStateComponent
 {
   [Inject]
   public ILogger<DragabbleDice> Logger { get; set; } = null!;
   
-  [Parameter]
-  public List<DraggableDie> DiceInPlay { get; set; } = new();
+  private GameState GameState => GetState<GameState>();
   
-  [Parameter] 
-  public EventCallback<List<DraggableDie>> DiceInPlayChanged { get; set; }
-  
-  private List<DraggableDie> _items = new();
+  private List<DraggableDie> Items => GameState.DiceInPlay;
   
   private async Task ItemUpdatedAsync(MudItemDropInfo<DraggableDie> dropItem)
   {
-    // TODO: Remove nullable and hardcoded string
+    var item = Guard.Against.Null(dropItem.Item);
+    
     var identifier = dropItem.DropzoneIdentifier;
-    dropItem!.Item!.Identifier = identifier;
-    Logger.LogInformation("droped item with identifier: {identifier}", identifier);
-    await DiceInPlayChanged.InvokeAsync(_items);
+    dropItem.Item.Identifier = identifier;
+    await Mediator.Send(new GameState.SetDiceAside.Action(item));
+    
+    Logger.LogInformation("Dropped item with identifier: {identifier}", identifier);
     await Task.CompletedTask;
   }
   
-  protected override void OnInitialized()
+  public class DraggableDie(int index, DiceValue value, string identifier)
   {
-    _items = DiceInPlay.ToList();
-    base.OnInitialized();
-  }
-  
-  protected override void OnParametersSet()
-  {
-    _items = DiceInPlay.ToList();
-    // foreach (var die in DiceInPlay)
-    // {
-    //   Logger.LogInformation("Dragabble dice parameters set");
-    //   var dieItem = _items.FirstOrDefault(i => i.Index == die.Index);
-    //   if (dieItem is null)
-    //   {
-    //     // _items.Add(new DraggableDie
-    //     // {
-    //     //   Value      = die.Value,
-    //     //   Identifier = die.Identifier,
-    //     //   Index = die.Index
-    //     // });
-    //     continue;
-    //   }
-    //   if(dieItem.Value != die.Value)
-    //     dieItem.Value = die.Value;
-    // }
-
-    base.OnParametersSet();
-  }
-  
-  public class DraggableDie
-  {
-    public int Index { get; set; }
-    
-    // TODO: remove nullable
-    public DiceValue? Value      { get; set; }
-    public string?    Identifier { get; set; }
+    public int       Index      { get; init; } = index;
+    public DiceValue Value      { get; init; } = value;
+    public string    Identifier { get; set; } = identifier;
   }
 }

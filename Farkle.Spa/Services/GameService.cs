@@ -52,7 +52,7 @@ public class GameService : IGameService
         PlayerName = playerName
       });
   }
-  public async Task<int> KeepDiceAsync(int gameId, int playerId, IEnumerable<int> diceToKeep)
+  public async Task<KeepDiceResponse> KeepDiceAsync(int gameId, int playerId, IEnumerable<int> diceToKeep)
   {
     var result = await _gameClient.PostAsJsonAsync($"http://localhost:8000/api/games/{gameId}/players/{playerId}/keeps",
       new
@@ -69,7 +69,8 @@ public class GameService : IGameService
     _logger.LogInformation("String content received from keepdice endpoint: {stringContent}", stringContent);
     var response = JsonSerializer.Deserialize<KeepDiceResponse>(stringContent, options);
     
-    return response!.TurnScore;
+    // TODO: Change this for a Result
+    return response!;
   }
   
   public async Task<int> StartGameAsync(int gameId)

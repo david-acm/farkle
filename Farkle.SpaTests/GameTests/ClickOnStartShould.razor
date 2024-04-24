@@ -1,5 +1,7 @@
 <h3>ClickOnStartShould</h3>
 @using AutoFixture.Xunit2
+@using BlazorState
+@using Farkle.Spa
 @using Farkle.Spa.Services
 @using Moq
 @using MudBlazor.Services
@@ -8,12 +10,15 @@
 @code {
   private readonly IGameService _gameService;
   
+  // TODO: Refactor common inicialization logic
   public ClickOnStartShould()
   {
     _gameService = Mock.Of<IGameService>();
     Services.AddScoped<IGameService>(_ => _gameService);
     Services.AddScoped<IRotationCalculator>(_ => Mock.Of<IRotationCalculator>());
     Services.AddMudServices();
+    
+    Services.AddBlazorState(o => o.Assemblies = [typeof(Program).Assembly]);
   }
   
   [Theory]

@@ -1,10 +1,11 @@
-﻿using Microsoft.AspNetCore.Components;
+﻿using BlazorState;
+using Farkle.Spa.Features;
 
 namespace Farkle.Spa.Components;
 
-public partial class TurnScore : ComponentBase
+public partial class TurnScore : BlazorStateComponent
 {
-  [Parameter]
-  public int Value { get; set; } = 0;
+  private GameState GameState => GetState<GameState>();
+  
+  public int Value => GameState.TurnScore.Value;
 }
-

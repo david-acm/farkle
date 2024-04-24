@@ -1,22 +1,9 @@
-﻿using Microsoft.AspNetCore.Components;
+﻿using BlazorState;
+using Farkle.Spa.Features;
 
 namespace Farkle.Spa.Components;
 
-public partial class GameTitle : ComponentBase
+public partial class GameTitle : BlazorStateComponent
 {
-  private            int _gameId;
-  [Parameter] public int GameId { get; set; }
-  
-  protected override void OnInitialized()
-  {
-    _gameId = GameId;
-    base.OnInitialized();
-  }
-  
-  protected override void OnParametersSet()
-  {
-    _gameId = GameId;
-    base.OnParametersSet();
-  }
-  
+  public int GameId => GetState<GameState>().GameId;
 }

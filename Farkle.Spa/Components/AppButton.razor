@@ -1,0 +1,19 @@
+<MudContainer>
+  
+  <MudButton Class="mt-4"
+             @onclick="OnClick"
+             Color="Color.Primary"
+             StartIcon="@Icons.Material.Filled.PlayArrow"
+             Variant="Variant.Filled">
+    @ChildContent
+  </MudButton>
+</MudContainer>
+
+@code {
+  
+  [Parameter]
+  public RenderFragment? ChildContent { get; set; }
+  
+  [Parameter]
+  public EventCallback<MouseEventArgs> OnClick { get; set; }
+}

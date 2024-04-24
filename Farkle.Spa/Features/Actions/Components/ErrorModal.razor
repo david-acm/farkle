@@ -1,0 +1,22 @@
+@using Farkle.Spa.Features
+@inherits BlazorState.BlazorStateComponent
+
+<MudPopover
+  Open="@GameState.ShowError"
+  AnchorOrigin="Origin.BottomCenter"
+  TransformOrigin="Origin.TopCenter"
+  Class="px-4 pt-4">
+  <div class="d-flex flex-column">
+    <MudText>@GameState.LastErrorMessage</MudText>
+    <MudButton OnClick="ToggleOpen" Class="ml-auto mr-n3 mb-1" Color="Color.Error">Close</MudButton>
+  </div>
+</MudPopover>
+
+@code {
+  // TODO: Move this to a base class
+  GameState                      GameState => GetState<GameState>();
+  private async Task ToggleOpen()
+  {
+    await Mediator.Send(new GameState.ToggleErrorModal.Action(false));
+  }
+}

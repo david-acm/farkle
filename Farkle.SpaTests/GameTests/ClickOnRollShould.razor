@@ -1,3 +1,5 @@
+@using BlazorState
+@using Farkle.Spa
 @using Farkle.Spa.Services
 @using Moq
 @using MudBlazor.Services
@@ -5,33 +7,37 @@
 @inherits TestContext
 
 @code {
+  private readonly IGameService _gameService;
   public ClickOnRollShould()
   {
     Services.AddMudServices();
+    Services.AddBlazorState(o => o.Assemblies = [typeof(Program).Assembly]);
+    _gameService = Mock.Of<IGameService>();
+    Services.AddScoped<IGameService>(_ => _gameService);
+    Services.AddScoped<IRotationCalculator>(_ => Mock.Of<IRotationCalculator>());
   }
 
   [Fact]
-  public void UpdateDiceWithReceivedValues()
+  public async Task UpdateDiceWithReceivedValues()
   {
     // Given
     JSInterop.Mode = JSRuntimeMode.Loose;
-    var gameService = Mock.Of<IGameService>();
-    Services.AddScoped<IGameService>(_ => gameService);
-    Mock.Get(gameService)
+    var expectedDieValue = DiceValue.Five;
+    Mock.Get(_gameService)
       .Setup(g => g.RollDiceAsync(It.IsAny<int>(), It.IsAny<int>()))
       .ReturnsAsync(new List<DiceValue>()
       {
-        DiceValue.One
+        expectedDieValue
       });
-    Services.AddScoped<IRotationCalculator>(_ => Mock.Of<IRotationCalculator>());
     var cut = Render(@<Game></Game>);
-    var button = cut.Find("button.mud-button");
+    var button = cut.FindComponent<RollDiceButton>().Find("button");
 
     // When
-    button.Click();
+    await cut.InvokeAsync(() => button.Click());
 
     // Then
-    cut.FindComponent<Die>().Instance.DiceValue.Should().Be(DiceValue.One);
+    Mock.Get(_gameService).Verify(s => s.RollDiceAsync(It.IsAny<int>(), It.IsAny<int>()), Times.Once);
+    cut.FindComponent<Die>().Instance.DiceValue.Should().Be(expectedDieValue);
   }
 
 }

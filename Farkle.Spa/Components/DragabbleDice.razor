@@ -1,6 +1,8 @@
+@inherits BlazorState.BlazorStateComponent
+
 <MudDropContainer Class="d-flex flex-column flex-grow-1 flex-wrap"
                   ItemDropped="ItemUpdatedAsync"
-                  Items="_items"
+                  Items="Items"
                   ItemsSelector="@((item, dropzone) => item.Identifier == dropzone)"
                   T="DraggableDie">
   <ChildContent>
