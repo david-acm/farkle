@@ -1,8 +1,8 @@
 @inherits TestContext
 @using BlazorState
-@using Farkle.Spa
-@using static Spa.Components.DiceValue
 @using Moq
+@using WebApp.Client.Pages.Game.Components
+@using WebApp.Client.Services
 
 @code {
   [Fact]
@@ -13,7 +13,7 @@
     Services.AddScoped<IRotationCalculator>(
       _ => Mock.Of<IRotationCalculator>());
     Services.AddBlazorState(o => o.Assemblies = [typeof(Program).Assembly]);
-    var die = new DragabbleDice.DraggableDie(index: 1, value: One, identifier: "Rolled");
+    var die = new DraggableDie(index: 1, value: DieValue.One, identifier: "Rolled");
     var cut = Render(
       @<DragabbleDice></DragabbleDice>);
 
@@ -23,7 +23,7 @@
     var firstDropZone = container.Children[0];
     firstDropZone.OuterHtml.Should().Contain("Rolled");
     var secondDropZone = container.Children[1];
-    secondDropZone.OuterHtml.Should().Contain("Kept");
+    secondDropZone.OuterHtml.Should().Contain("SetAside");
 
     firstDropZone.Children.Should().HaveCount(2);
     secondDropZone.Children.Should().HaveCount(1);

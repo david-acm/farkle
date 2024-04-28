@@ -1,0 +1,18 @@
+@using GameState = WebApp.Client.Features.GameState
+@inherits BlazorState.BlazorStateComponent
+
+<MudButton Class="mt-4"
+           Color="Color.Primary"
+           OnClick="RollDiceAsync"
+           StartIcon="@Icons.Material.Filled.PlayArrow"
+           Variant="Variant.Filled">
+  Roll
+</MudButton>
+
+@code {
+  
+  private void RollDiceAsync(MouseEventArgs obj)
+  {
+    Mediator.Send(new GameState.RollDice.Action());
+  }
+}

@@ -1,4 +1,6 @@
 @using AngleSharp.Diffing.Core
+@using WebApp.Client.Services
+@using WebApp.Client.Pages.Game.Components
 @inherits TestContext
 
 @code {
@@ -9,7 +11,7 @@
     // Arrange
     var context = new TestContext();
     context.Services.AddScoped<IRotationCalculator, RotationCalculator>();
-    var cut = context.Render(@<Die DiceValue="DiceValue.Four"></Die>);
+    var cut = context.Render(@<Die DieValue="DieValue.Four"></Die>);
     var die = cut.Find(".die-container");
 
     // Act
@@ -32,7 +34,7 @@
     // Arrange
     var context = new TestContext();
     context.Services.AddScoped<IRotationCalculator, RotationCalculator>();
-    var cut = context.Render(@<Die DiceValue="DiceValue.Four"></Die>);
+    var cut = context.Render(@<Die DieValue="DieValue.Four"></Die>);
     var die = cut.Find(".die-container");
 
     // Act

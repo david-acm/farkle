@@ -1,8 +1,7 @@
-using Castle.Core.Logging;
-using Farkle.Spa.Services;
 using Microsoft.Extensions.Logging;
 using Moq;
 using RichardSzalay.MockHttp;
+using WebApp.Client.Services;
 using static Farkle.Contracts.HttpResponses;
 
 namespace Farkle.SpaTests.GameServiceTests;

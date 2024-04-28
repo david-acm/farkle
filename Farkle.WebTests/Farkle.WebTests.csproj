@@ -27,7 +27,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Farkle.Web\Farkle.Web.csproj" />
     <ProjectReference Include="..\Farkle\Farkle.csproj" />
   </ItemGroup>
 

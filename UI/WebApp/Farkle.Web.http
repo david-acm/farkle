@@ -1,0 +1,29 @@
+@WebApp_HostAddress = https://localhost:8001/api
+@gameId = 1
+@playerId = 1
+
+POST {{WebApp_HostAddress}}/games
+Content-Type: application/json
+
+{
+  "id": {{gameId}}
+}
+
+###
+
+POST {{WebApp_HostAddress}}/games/{{gameId}}/players/{{playerId}}
+Content-Type: application/json
+
+{
+  "playerName": "David",
+  "id": {{gameId}}
+}
+
+###
+
+POST {{WebApp_HostAddress}}/games/{{gameId}}/players/{{playerId}}/rolls
+Content-Type: application/json
+
+{
+
+}

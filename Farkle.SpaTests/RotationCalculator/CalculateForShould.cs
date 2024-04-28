@@ -1,4 +1,4 @@
-using Farkle.Spa.Components;
+using WebApp.Client.Pages.Game.Components;
 using Xunit.Abstractions;
 
 namespace Farkle.SpaTests.RotationCalculator;
@@ -26,10 +26,10 @@ public class CalculateForShould
     int zExpected)
   {
     // Arrange
-    var sut = new Spa.Components.RotationCalculator();
+    var sut = new WebApp.Client.Services.RotationCalculator();
 
     // Act
-    var (x, y, z) = sut.CalculateFor(DiceValue.FromValue(value));
+    var (x, y, z) = sut.CalculateFor(DieValue.FromValue(value));
 
     // Assert
     (

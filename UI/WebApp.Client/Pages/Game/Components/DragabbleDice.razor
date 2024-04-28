@@ -1,0 +1,38 @@
+@inherits BlazorState.BlazorStateComponent
+
+<MudDropContainer Class="d-flex flex-column flex-grow-1 flex-wrap"
+                  ItemDropped="ItemUpdatedAsync"
+                  Items="InternalDice()"
+                  ItemsSelector="@((item, dropzone) => item.Identifier == dropzone)"
+                  T="DraggableDie">
+  <ChildContent>
+
+    <MudDropZone Class="d-flex flex-grow-1 flex-row flex-wrap justify-center mud-background-gray pa-6 rounded"
+                 Identifier="Rolled" 
+                 T="DraggableDie">
+      <MudText Class="mb-4"
+               Typo="Typo.h6">
+        Rolled
+      </MudText>
+    </MudDropZone>
+
+    <MudDropZone Class="d-flex flex-grow-1 flex-row flex-wrap justify-center mud-background-gray pa-6 rounded"
+                 Identifier="SetAside"
+                 T="DraggableDie">
+      <MudText Class="mb-4"
+               Typo="Typo.h6">
+        Keep
+      </MudText>
+    </MudDropZone>
+
+  </ChildContent>
+
+  <ItemRenderer>
+    <MudItem Class="align-center d-flex ma-8 ma-8">
+      <Die DieValue="context.Value"
+           IsDragging="context.IsDragging"
+           Size="50">
+      </Die>
+    </MudItem>
+  </ItemRenderer>
+</MudDropContainer>

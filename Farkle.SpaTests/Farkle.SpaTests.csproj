@@ -39,8 +39,8 @@
 
 
   <ItemGroup>
-    <ProjectReference Include="..\Farkle.Spa\Farkle.Spa.csproj"/>
     <ProjectReference Include="..\Farkle\Farkle.csproj" />
+    <ProjectReference Include="..\UI\WebApp.Client\WebApp.Client.csproj" />
   </ItemGroup>
 
 </Project>

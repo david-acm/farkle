@@ -2,10 +2,10 @@
   farkle.web:
     depends_on: 
     - esdb
-    image: farkle.web
+    image: webapp
     build:
       context: .
-      dockerfile: Farkle.Web/Dockerfile
+      dockerfile: UI/WebApp/Dockerfile
     ports:
       - 8001:443
       - 8000:80

@@ -1,6 +1,8 @@
 @using System.Text.RegularExpressions
 @using AutoFixture.Xunit2
 @using Moq
+@using WebApp.Client.Pages.Game.Components
+@using WebApp.Client.Services
 @inherits TestContext
 
 These tests are written entirely in razor and C# syntax.
@@ -16,12 +18,12 @@ Learn more at https://bunit.dev/docs/getting-started/writing-tests.html#creating
     // Arrange
     var mock = Mock.Of<IRotationCalculator>();
     Mock.Get(mock)
-      .Setup(c => c.CalculateFor(It.IsAny<DiceValue>(), false))
+      .Setup(c => c.CalculateFor(It.IsAny<DieValue>(), false))
       .Returns((xExpected, yExpected, zExpected));
     Services.AddScoped<IRotationCalculator>(_ => mock);
 
     // Act
-    var cut = RenderComponent<Die>(c => c.Add(d => d.DiceValue, DiceValue.None));
+    var cut = RenderComponent<Die>(c => c.Add(d => d.DieValue, DieValue.None));
 
     cut.WaitForAssertion(() => cut.RenderCount.Should().Be(2),
       TimeSpan.FromMilliseconds(400));
@@ -36,13 +38,13 @@ Learn more at https://bunit.dev/docs/getting-started/writing-tests.html#creating
     // Arrange
     var mock = Mock.Of<IRotationCalculator>();
     Mock.Get(mock)
-      .Setup(c => c.CalculateFor(It.IsAny<DiceValue>(), false))
+      .Setup(c => c.CalculateFor(It.IsAny<DieValue>(), true))
       .Returns((xExpected, yExpected, zExpected));
     Services.AddScoped<IRotationCalculator>(_ => mock);
 
     // Act
     var cut = RenderComponent<Die>(c => c
-      .Add(d => d.DiceValue,  DiceValue.None)
+      .Add(d => d.DieValue,  DieValue.None)
       .Add(d => d.IsDragging, true));
 
     // Assert

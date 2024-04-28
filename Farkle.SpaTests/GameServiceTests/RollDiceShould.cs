@@ -1,12 +1,10 @@
-using Ardalis.Result;
-using Farkle.Spa.Components;
-using Farkle.Spa.Services;
 using Microsoft.Extensions.Logging;
 using Moq;
 using RichardSzalay.MockHttp;
+using WebApp.Client.Pages.Game.Components;
+using WebApp.Client.Services;
 using static Farkle.Contracts.HttpResponses;
 using static Farkle.SpaTests.GameServiceTests.MockHttpClientBUnitHelpers;
-using Services_Die=Farkle.Spa.Services.Die;
 
 namespace Farkle.SpaTests.GameServiceTests;
 
@@ -27,6 +25,6 @@ public class RollDiceShould
     var dice = await sut.RollDiceAsync(1, 1);
 
     // Then
-    dice.Value.Should().Contain(DiceValue.One);
+    dice.Value.Should().Contain(DieValue.One);
   }
 }

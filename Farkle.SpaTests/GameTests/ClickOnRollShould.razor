@@ -1,9 +1,10 @@
 @using BlazorState
-@using Farkle.Spa
-@using Farkle.Spa.Services
 @using Moq
 @using MudBlazor.Services
-@using Die = Farkle.Spa.Components.Die
+@using WebApp.Client.Pages.Game.Components
+@using WebApp.Client.Pages.Game
+@using WebApp.Client.Services
+@using Die = WebApp.Client.Pages.Game.Components.Die
 @inherits TestContext
 
 @code {
@@ -22,10 +23,10 @@
   {
     // Given
     JSInterop.Mode = JSRuntimeMode.Loose;
-    var expectedDieValue = DiceValue.Five;
+    var expectedDieValue = DieValue.Five;
     Mock.Get(_gameService)
       .Setup(g => g.RollDiceAsync(It.IsAny<int>(), It.IsAny<int>()))
-      .ReturnsAsync(new List<DiceValue>()
+      .ReturnsAsync(new List<DieValue>()
       {
         expectedDieValue
       });
@@ -37,7 +38,7 @@
 
     // Then
     Mock.Get(_gameService).Verify(s => s.RollDiceAsync(It.IsAny<int>(), It.IsAny<int>()), Times.Once);
-    cut.FindComponent<Die>().Instance.DiceValue.Should().Be(expectedDieValue);
+    cut.FindComponent<Die>().Instance.DieValue.Should().Be(expectedDieValue);
   }
 
 }
