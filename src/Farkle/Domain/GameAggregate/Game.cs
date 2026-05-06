@@ -65,14 +65,14 @@ internal class Game : Aggregate<GameState>
   {
     Apply(new V1.DiceKept(keepDice.PlayerId, keepDice.DiceValues.ToPrimitiveArray(),
       GetTableCenterDice(keepDice),
-      GetNewTurnScore(keepDice.DiceValues, State.TurnScore)));
+      GetNewTurnScore(keepDice.DiceValues, State.TurnScore, State)));
   }
 
   public void KeepDiceV2(Command.KeepDice keepDice)
   {
     Apply(new V2.DiceKept(keepDice.PlayerId, keepDice.DiceValues.ToPrimitiveArray(),
       GetTableCenterDice(keepDice),
-      GetNewTurnScore(keepDice.DiceValues, State.TurnScore),
+      GetNewTurnScore(keepDice.DiceValues, State.TurnScore, State),
       GameStage.Rolling));
   }
 
@@ -115,10 +115,11 @@ internal class Game : Aggregate<GameState>
 
   private int GetNumberOfDiceToTrow()
   {
-    return 6 - State.DiceKept.Length;
+    var kept = State.DiceKept.Length % 6;
+    return 6 - kept;
   }
 
-  private static int GetNewTurnScore(IEnumerable<DieValue> diceKept, int currentScore)
+  private static int GetNewTurnScore(IEnumerable<DieValue> diceKept, int currentScore, GameState state)
   {
     var dice = new Dice(diceKept);
     var tricks = new Dictionary<Validator, int>
@@ -139,6 +140,12 @@ internal class Game : Aggregate<GameState>
     };
 
     var turnScore = tricks.FirstOrDefault(v => v.Key.IsSatisfied()).Value;
+    
+    var isStraight = new DiceAreStraight(dice).IsSatisfied().IsValid;
+    if (isStraight && state.StraightsKeptThisTurn > 0)
+    {
+        return new Score((currentScore + turnScore) * 2);
+    }
 
     return new Score(currentScore + turnScore);
   }

@@ -305,6 +305,50 @@ public class KeepDiceShould : GameWithThreePlayersTest
     State.TableCenter.Should().HaveCount(6);
   }
 
+  [Fact]
+  public void DoubleTurnScoreOnConsecutiveStraights()
+  {
+    // Arrange: First roll gives a straight and a 1 and 5
+    SetupDiceToRoll(new List<int>
+    {
+      4, 4, 4, 4, 1, 5
+    });
+    Game.RollDiceV2(new Command.RollDice(1, 1));
+    
+    // Act: Keep the straight
+    Game.KeepDice(new Command.KeepDice(1, 1,
+        new[] { DieValue.Four, DieValue.Four, DieValue.Four, DieValue.Four }));
+
+    // Keep the 1 and 5 to clear the table center (so we get 6 new dice)
+    Game.KeepDice(new Command.KeepDice(1, 1,
+        new[] { DieValue.One, DieValue.Five }));
+
+    // Score should be 1000 + 150 = 1150
+    State.TurnScore.Should().Be(new Score(1150));
+
+    // Second roll gives another straight (and maybe 2 other dice)
+    SetupDiceToRoll(new List<int>
+    {
+      3, 3, 3, 3, 2, 2
+    });
+    Game.RollDiceV2(new Command.RollDice(1, 1));
+
+    Changes.Should().NotContainAnyEvent<IErrorEvent>();
+    Changes.Should().NotContainAnyEvent<DiceNotAllowedToBeKept>();
+
+    // Keep the second straight
+    Game.KeepDice(new Command.KeepDice(1, 1,
+        new[] { DieValue.Three, DieValue.Three, DieValue.Three, DieValue.Three }));
+
+    Changes.Should().NotContainAnyEvent<IErrorEvent>();
+    Changes.Should().NotContainAnyEvent<DiceNotAllowedToBeKept>();
+
+    // Assert: The score before this keep was 1150.
+    // The straight gives 1000. Total = 2150.
+    // Because it's consecutive straight, it doubles: 2150 * 2 = 4300.
+    State.TurnScore.Should().Be(new Score(4300));
+  }
+
   public static IEnumerable<object[]> TricksAndScore()
   {
     yield return new object[] { "1 should add 100", new[] { 1, 2, 2, 3, 4, 4 }, new[] { DieValue.One }, 100 };

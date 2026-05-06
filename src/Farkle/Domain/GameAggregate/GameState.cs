@@ -26,6 +26,7 @@ internal record GameState : State<GameState>
   public ImmutableArray<Player>    Players     { get; private init; } = ImmutableArray<Player>.Empty;
   public ImmutableArray<DieValue> TableCenter { get; private init; } = ImmutableArray<DieValue>.Empty;
   public ImmutableArray<DieValue> DiceKept    { get; private init; } = ImmutableArray<DieValue>.Empty;
+  public int StraightsKeptThisTurn { get; private init; } = 0;
 
   public ImmutableDictionary<int, int> ScoreTable { get; private init; } =
     ImmutableDictionary<int, int>.Empty;
@@ -49,7 +50,8 @@ internal record GameState : State<GameState>
       DiceKept = state.DiceKept.AddRange(Dice.FromValues(e.Dice).DiceValues),
       TurnScore = e.NewTurnScore,
       TableCenter = ImmutableArray<DieValue>.Empty.AddRange(e.TableCenter.ToDiceValues()),
-      GameStage = GameStage.Rolling
+      GameStage = GameStage.Rolling,
+      StraightsKeptThisTurn = new DiceAreStraight(Dice.FromValues(e.Dice)).IsSatisfied().IsValid ? state.StraightsKeptThisTurn + 1 : state.StraightsKeptThisTurn
     };
   }
 
@@ -60,7 +62,8 @@ internal record GameState : State<GameState>
       DiceKept = state.DiceKept.AddRange(Dice.FromValues(e.Dice).DiceValues),
       TurnScore = e.NewTurnScore,
       TableCenter = ImmutableArray<DieValue>.Empty.AddRange(e.TableCenter.ToDiceValues()),
-      GameStage = e.Stage
+      GameStage = e.Stage,
+      StraightsKeptThisTurn = new DiceAreStraight(Dice.FromValues(e.Dice)).IsSatisfied().IsValid ? state.StraightsKeptThisTurn + 1 : state.StraightsKeptThisTurn
     };
   }
 
@@ -74,7 +77,8 @@ internal record GameState : State<GameState>
         e.GameScore),
       TableCenter = state.TableCenter.AddRange(state.DiceKept),
       GameStage = GameStage.Rolling,
-      DiceKept = state.TableCenter.Clear()
+      DiceKept = state.TableCenter.Clear(),
+      StraightsKeptThisTurn = 0
     };
   }
 
