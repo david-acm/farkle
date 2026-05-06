@@ -6,6 +6,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>93421bc4-e479-40e2-80fe-1138d1aa7207</UserSecretsId>
   </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Farkle.WebTests" />
+  </ItemGroup>
   
   <ItemGroup>
     <PackageReference Include="serilog.aspnetcore" Version="8.0.3" />

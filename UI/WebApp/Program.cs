@@ -32,8 +32,10 @@ services.AddDbContext<AppDbContext>(o =>
     o.UseNpgsql(builder.Configuration.GetConnectionString("Identity")));
 
 services
-    .AddIdentity<AppUser, IdentityRole>()
+    .AddIdentityCore<AppUser>()
+    .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<AppDbContext>()
+    .AddSignInManager()
     .AddDefaultTokenProviders();
 
 services
@@ -83,12 +85,15 @@ app.UseStaticFiles();
 app.SetUpFarkleModule();
 
 app.UseAuthentication()
-  .UseAuthorization()
-  .UseRouting()
-  .UseAntiforgery();
+  .UseAuthorization();
 
-app.UseFastEndpoints()
+app.UseFastEndpoints(c =>
+  {
+    c.Endpoints.Configurator = ep => ep.Options(b => b.RequireAuthorization());
+  })
    .UseSwaggerGen();
+
+app.UseAntiforgery();
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()
