@@ -3,6 +3,9 @@ using Farkle;
 using FastEndpoints;
 using FastEndpoints.Security;
 using FastEndpoints.Swagger;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using WebApp.Auth;
 using WebApp.Client.Pages;
 using WebApp.Components;
 using MudBlazor.Services;
@@ -24,17 +27,29 @@ builder.Host.UseSerilog((_, config) =>
 var services = builder.Services;
 services.AddEndpointsApiExplorer();
 services.AddSwaggerGen();
+
+services.AddDbContext<AppDbContext>(o =>
+    o.UseNpgsql(builder.Configuration.GetConnectionString("Identity")));
+
+services
+    .AddIdentity<AppUser, IdentityRole>()
+    .AddEntityFrameworkStores<AppDbContext>()
+    .AddDefaultTokenProviders();
+
 services
   .AddAuthenticationJwtBearer(s =>
   {
-    // TODO: Load from config
     s.SigningKey = builder.Configuration["Auth:JwtSecret"];
   })
   .AddAuthorization()
   .SwaggerDocument()
-  .AddFastEndpoints(o => 
+  .AddFastEndpoints(o =>
   {
-      o.Assemblies = new[] { typeof(Farkle.Endpoints.StartGame).Assembly };
+      o.Assemblies = new[]
+      {
+          typeof(Farkle.Endpoints.StartGame).Assembly,
+          typeof(RegisterEndpoint).Assembly
+      };
       o.DisableAutoDiscovery = true;
   });
 
@@ -79,6 +94,12 @@ app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()
     .AddInteractiveWebAssemblyRenderMode()
     .AddAdditionalAssemblies(typeof(Counter).Assembly);
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    db.Database.Migrate();
+}
 
 app.Run();
 

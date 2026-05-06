@@ -14,7 +14,6 @@ internal class KeepDiceEndpoint(
 {
   public override void Configure()
   {
-    AllowAnonymous();
     Post("/api/games/{gameId}/players/{playerId}/keeps");
   }
   

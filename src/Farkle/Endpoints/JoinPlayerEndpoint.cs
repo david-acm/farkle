@@ -13,7 +13,6 @@ internal class JoinPlayerEndpoint(
 {
   public override void Configure()
   {
-    AllowAnonymous();
     Post("/api/games/{gameId}/players/{playerId}");
   }
   

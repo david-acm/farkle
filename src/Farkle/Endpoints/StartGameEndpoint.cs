@@ -20,7 +20,6 @@ public static class StartGame
     
     public override void Configure()
     {
-      AllowAnonymous();
       Post("/api/games");
       // Description(d => d.Accepts<StartGameRequest>("application/json"), clearDefaults: true);
     }

@@ -1,7 +1,8 @@
 ﻿services:
   farkle.web:
-    depends_on: 
+    depends_on:
     - esdb
+    - postgres
     image: webapp
     build:
       context: .
@@ -16,6 +17,7 @@
       ASPNETCORE_Kestrel__Certificates__Default__Path: /https/aspnetapp.pfx
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings:Esdb: esdb://admin:changeit@esdb:2113?tls=false
+      ConnectionStrings:Identity: Host=postgres;Port=5432;Database=farkle_identity;Username=farkle;Password=farkle_dev_password
     volumes:
       - ${HOME}/.aspnet/https:/https/
     networks:
@@ -33,6 +35,19 @@
     container_name: setup
     volumes:
       - ./certs:/certs
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: farkle
+      POSTGRES_PASSWORD: farkle_dev_password
+      POSTGRES_DB: farkle_identity
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - my-network
 
   esdb:
     depends_on:
@@ -63,6 +78,7 @@
 volumes:
   eventstore-volume-data:
   eventstore-volume-logs:
+  postgres-data:
 
 networks:
   my-network:

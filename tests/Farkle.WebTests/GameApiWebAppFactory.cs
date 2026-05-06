@@ -2,7 +2,9 @@ using DotNet.Testcontainers.Builders;
 using EventStore.Client;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using WebApp.Auth;
 
 namespace Farkle.WebTests;
 
@@ -48,6 +50,12 @@ public class GameApiWebAppFactory : WebApplicationFactory<Program>
       s.Remove(esClient);
       var esdbTestConnectionString = $"esdb://admin:changeit@localhost:{esdbPort}?tls=false";
       s.AddEventStoreClient(esdbTestConnectionString);
+
+      var dbContextDescriptor = s.SingleOrDefault(d => d.ServiceType == typeof(DbContextOptions<AppDbContext>));
+      if (dbContextDescriptor != null) s.Remove(dbContextDescriptor);
+
+      s.AddDbContext<AppDbContext>(o =>
+          o.UseSqlite($"DataSource=farkle_test_{Guid.NewGuid():N}.db"));
     });
     
   }
