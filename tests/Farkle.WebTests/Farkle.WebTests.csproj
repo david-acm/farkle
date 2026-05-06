@@ -4,17 +4,18 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <PreserveCompilationContext>true</PreserveCompilationContext>
 
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
-    <RootNamespace>Farkle.Tests</RootNamespace>
+    <RootNamespace>Farkle.WebTests</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="FluentAssertions" Version="6.12.0"/>
-    <PackageReference Include="TngTech.ArchUnitNET.xUnit" Version="0.10.6" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.5.0"/>
-    <PackageReference Include="Moq" Version="4.20.69"/>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="7.0.12"/>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.7.1"/>
+    <PackageReference Include="Testcontainers" Version="3.5.0"/>
     <PackageReference Include="xunit" Version="2.4.2"/>
     <PackageReference Include="xunit.runner.visualstudio" Version="2.4.5">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -27,8 +28,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Farkle\Farkle.csproj" />
+    <ProjectReference Include="..\..\src\Farkle\Farkle.csproj" />
+    <ProjectReference Include="..\..\UI\WebApp\WebApp.csproj" />
   </ItemGroup>
-
 
 </Project>

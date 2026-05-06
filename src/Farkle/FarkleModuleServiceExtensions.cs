@@ -40,7 +40,7 @@ public static class FarkleModuleServiceExtensions
   {
     TypeMap.RegisterKnownEventTypes();
 
-    app.MapCommands();
+    // app.MapCommands(); // Commented out to prevent duplicate routes with FastEndpoints
 
     return app;
   }

@@ -32,7 +32,11 @@ services
   })
   .AddAuthorization()
   .SwaggerDocument()
-  .AddFastEndpoints();
+  .AddFastEndpoints(o => 
+  {
+      o.Assemblies = new[] { typeof(Farkle.Endpoints.StartGame).Assembly };
+      o.DisableAutoDiscovery = true;
+  });
 
 // Add module services
 services.AddFarkleModuleServices(builder.Configuration, logger, new List<Assembly>());
@@ -59,8 +63,6 @@ else
     app.UseHsts();
 }
 
-// app.UseHttpsRedirection();
-
 app.UseStaticFiles();
 
 app.SetUpFarkleModule();
@@ -68,9 +70,10 @@ app.SetUpFarkleModule();
 app.UseAuthentication()
   .UseAuthorization()
   .UseRouting()
-  .UseAntiforgery()
-  .UseFastEndpoints()
-  .UseSwaggerGen();
+  .UseAntiforgery();
+
+app.UseFastEndpoints()
+   .UseSwaggerGen();
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()
@@ -78,3 +81,5 @@ app.MapRazorComponents<App>()
     .AddAdditionalAssemblies(typeof(Counter).Assembly);
 
 app.Run();
+
+public partial class Program { }

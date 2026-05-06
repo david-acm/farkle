@@ -3,7 +3,6 @@ using EventStore.Client;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.VisualStudio.TestPlatform.TestHost;
 
 namespace Farkle.WebTests;
 
@@ -32,7 +31,7 @@ public class GameApiWebAppFactory : WebApplicationFactory<Program>
     ushort esdbPort = 5113;
     Environment.SetEnvironmentVariable("PATH", path + ":/usr/local/bin");
     new ContainerBuilder()
-      .WithImage("ghcr.io/eventstore/eventstore:21.10.0-alpha-arm64v8")
+      .WithImage("eventstore/eventstore:23.10.0-bookworm-slim")
       .WithPortBinding(4113)
       .WithPortBinding(esdbPort)
       .WithEnvironment(Variables)

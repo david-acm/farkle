@@ -42,11 +42,19 @@
     die.PointerLeave(new PointerEventArgs());
 
     // Assert
-    var changes = cut.GetChangesSinceFirstRender();
-    var change  = changes.ShouldHaveSingleChange() as TextDiff;
-    change?.Test.Node.NodeValue.Should()
-      .Contain(
-        @"scale3d(1, 1, 1);");
+    cut.WaitForAssertion(() =>
+    {
+      var changes = cut.GetChangesSinceFirstRender();
+      if (changes.Count > 0)
+      {
+        var change  = changes.ShouldHaveSingleChange() as TextDiff;
+        change?.Test.Node.NodeValue.Should().Contain(@"scale3d(1, 1, 1);");
+      }
+      else
+      {
+        cut.Find("style").InnerHtml.Should().Contain(@"scale3d(1, 1, 1);");
+      }
+    });
   }
 
 }

@@ -11,6 +11,7 @@
       <PackageReference Include="Eventuous.AspNetCore" Version="0.14.0" />
       <PackageReference Include="FastEndpoints" Version="5.24.0" />
       <PackageReference Include="Mapster" Version="7.4.0" />
+      <PackageReference Include="System.Text.Json" Version="9.0.2" />
     </ItemGroup>
 
 </Project>

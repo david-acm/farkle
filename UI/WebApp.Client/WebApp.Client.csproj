@@ -12,10 +12,12 @@
     <PackageReference Include="Ardalis.GuardClauses" Version="4.5.0" />
     <PackageReference Include="Ardalis.Result" Version="8.0.0" />
     <PackageReference Include="Ardalis.SmartEnum" Version="8.0.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.*" />
-  	<PackageReference Include="MudBlazor" Version="6.*" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.13" />
+  	<PackageReference Include="MudBlazor" Version="8.2.0" />
     <PackageReference Include="Blazor-State" Version="10.0.0" />
     <PackageReference Include="Serilog" Version="3.1.1" />
+    <PackageReference Include="System.Text.Json" Version="8.0.5" />
+    <PackageReference Include="System.Private.Uri" Version="4.3.2" />
   </ItemGroup>
 
   <ItemGroup>
@@ -23,7 +25,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Farkle.Contracts\Farkle.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Farkle.Contracts\Farkle.Contracts.csproj" />
   </ItemGroup>
 
 </Project>
