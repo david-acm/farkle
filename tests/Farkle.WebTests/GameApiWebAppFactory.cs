@@ -31,13 +31,27 @@ public class GameApiWebAppFactory : WebApplicationFactory<Program>
     // TODO: Change path to be read from the dotnet user secrets instead of it being hardcoded here
     var path     = Environment.GetEnvironmentVariable("PATH");
     ushort esdbPort = 5113;
+    ushort pgPort = 5433;
     Environment.SetEnvironmentVariable("PATH", path + ":/usr/local/bin");
+
     new ContainerBuilder()
       .WithImage("eventstore/eventstore:23.10.0-bookworm-slim")
       .WithPortBinding(4113)
       .WithPortBinding(esdbPort)
       .WithEnvironment(Variables)
       .WithWaitStrategy(Wait.ForUnixContainer().UntilHttpRequestIsSucceeded(r => r.ForPort(esdbPort)))
+      .WithAutoRemove(false).Build()
+      .StartAsync()
+      .GetAwaiter()
+      .GetResult();
+
+    new ContainerBuilder()
+      .WithImage("postgres:16-alpine")
+      .WithPortBinding(pgPort, 5432)
+      .WithEnvironment("POSTGRES_USER", "farkle_test")
+      .WithEnvironment("POSTGRES_PASSWORD", "farkle_test")
+      .WithEnvironment("POSTGRES_DB", "farkle_test")
+      .WithWaitStrategy(Wait.ForUnixContainer().UntilCommandIsCompleted("pg_isready", "-U", "farkle_test"))
       .WithAutoRemove(false).Build()
       .StartAsync()
       .GetAwaiter()
@@ -54,9 +68,9 @@ public class GameApiWebAppFactory : WebApplicationFactory<Program>
       var dbContextDescriptor = s.SingleOrDefault(d => d.ServiceType == typeof(DbContextOptions<AppDbContext>));
       if (dbContextDescriptor != null) s.Remove(dbContextDescriptor);
 
-      s.AddDbContext<AppDbContext>(o =>
-          o.UseSqlite($"DataSource=farkle_test_{Guid.NewGuid():N}.db"));
+      var pgConnectionString = $"Host=localhost;Port={pgPort};Database=farkle_test;Username=farkle_test;Password=farkle_test";
+      s.AddDbContext<AppDbContext>(o => o.UseNpgsql(pgConnectionString));
     });
-    
+
   }
 }
