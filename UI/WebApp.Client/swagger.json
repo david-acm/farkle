@@ -1,136 +1,322 @@
 {
+  "x-generator": "NSwag v14.2.0.0 (NJsonSchema v11.1.0.0 (Newtonsoft.Json v13.0.0.0))",
   "openapi": "3.0.0",
   "info": {
-    "title": "Farkle API",
+    "title": "NSwag.AspNetCore.Launcher",
     "version": "1.0.0"
   },
+  "servers": [
+    {
+      "url": "/api"
+    }
+  ],
   "paths": {
-    "/api/games": {
+    "/games/{gameId}/players/{playerId}": {
       "post": {
-        "operationId": "StartGame",
-        "tags": ["Games"],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/StartGameRequest" }
+        "tags": [
+          "Api"
+        ],
+        "operationId": "FarkleEndpointsJoinPlayerEndpoint",
+        "parameters": [
+          {
+            "name": "gameId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "playerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
             }
           }
+        ],
+        "requestBody": {
+          "x-name": "JoinPlayerRequest",
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FarkleContractsHttpRequests_JoinPlayerRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
         },
         "responses": {
           "200": {
-            "description": "Game started",
+            "description": "Success",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/StartGameResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/ArdalisResultResultOfJoinPlayerResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FastEndpointsProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "JWTBearerAuth": []
+          }
+        ]
+      }
+    },
+    "/games/{gameId}/players/{playerId}/keeps": {
+      "post": {
+        "tags": [
+          "Api"
+        ],
+        "operationId": "FarkleEndpointsKeepDiceEndpoint",
+        "parameters": [
+          {
+            "name": "gameId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "playerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "x-name": "KeepDiceRequest",
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FarkleContractsHttpRequests_KeepDiceRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArdalisResultResultOfKeepDiceResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FastEndpointsProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "JWTBearerAuth": []
+          }
+        ]
+      }
+    },
+    "/games/{gameId}/players/{playerId}/rolls": {
+      "post": {
+        "tags": [
+          "Api"
+        ],
+        "operationId": "FarkleEndpointsRollDiceEndpoint",
+        "parameters": [
+          {
+            "name": "gameId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "playerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArdalisResultResultOfRollDiceResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FastEndpointsProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "JWTBearerAuth": []
+          }
+        ]
+      }
+    },
+    "/games": {
+      "post": {
+        "tags": [
+          "Api"
+        ],
+        "operationId": "FarkleEndpointsStartGame+StartGameEndpoint",
+        "requestBody": {
+          "x-name": "StartGameRequest",
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FarkleContractsHttpRequests_StartGameRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArdalisResultResultOfStartGameResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FastEndpointsProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "JWTBearerAuth": []
+          }
+        ]
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "tags": [
+          "Api"
+        ],
+        "operationId": "WebAppAuthLoginEndpoint",
+        "requestBody": {
+          "x-name": "LoginRequest",
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebAppAuthLoginRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAppAuthLoginResponse"
+                }
               }
             }
           }
         }
       }
     },
-    "/api/games/{gameId}/players/{playerId}": {
+    "/auth/register": {
       "post": {
-        "operationId": "JoinPlayer",
-        "tags": ["Games"],
-        "parameters": [
-          {
-            "name": "gameId",
-            "in": "path",
-            "required": true,
-            "schema": { "type": "integer" }
-          },
-          {
-            "name": "playerId",
-            "in": "path",
-            "required": true,
-            "schema": { "type": "integer" }
-          }
+        "tags": [
+          "Api"
         ],
+        "operationId": "WebAppAuthRegisterEndpoint",
         "requestBody": {
-          "required": true,
+          "x-name": "RegisterRequest",
+          "description": "",
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/JoinPlayerBody" }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Player joined",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/JoinPlayerResponse" }
+              "schema": {
+                "$ref": "#/components/schemas/WebAppAuthRegisterRequest"
               }
             }
-          }
-        }
-      }
-    },
-    "/api/games/{gameId}/players/{playerId}/rolls": {
-      "post": {
-        "operationId": "RollDice",
-        "tags": ["Games"],
-        "parameters": [
-          {
-            "name": "gameId",
-            "in": "path",
-            "required": true,
-            "schema": { "type": "integer" }
           },
-          {
-            "name": "playerId",
-            "in": "path",
-            "required": true,
-            "schema": { "type": "integer" }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Dice rolled",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/RollDiceResponse" }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/games/{gameId}/players/{playerId}/keeps": {
-      "post": {
-        "operationId": "KeepDice",
-        "tags": ["Games"],
-        "parameters": [
-          {
-            "name": "gameId",
-            "in": "path",
-            "required": true,
-            "schema": { "type": "integer" }
-          },
-          {
-            "name": "playerId",
-            "in": "path",
-            "required": true,
-            "schema": { "type": "integer" }
-          }
-        ],
-        "requestBody": {
           "required": true,
-          "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/KeepDiceBody" }
-            }
-          }
+          "x-position": 1
         },
         "responses": {
-          "200": {
-            "description": "Dice kept",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/KeepDiceResponse" }
-              }
-            }
+          "204": {
+            "description": "No Content"
           }
         }
       }
@@ -138,55 +324,425 @@
   },
   "components": {
     "schemas": {
-      "StartGameRequest": {
+      "ArdalisResultResultOfJoinPlayerResponse": {
         "type": "object",
+        "additionalProperties": false,
         "properties": {
-          "id": { "type": "integer" }
-        }
-      },
-      "StartGameResponse": {
-        "type": "object",
-        "properties": {
-          "id": { "type": "integer" }
-        }
-      },
-      "JoinPlayerBody": {
-        "type": "object",
-        "properties": {
-          "playerName": { "type": "string" }
-        }
-      },
-      "JoinPlayerResponse": {
-        "type": "object",
-        "properties": {
-          "id": { "type": "integer" }
-        }
-      },
-      "RollDiceResponse": {
-        "type": "object",
-        "properties": {
-          "id": { "type": "integer" },
-          "dice": {
+          "value": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/FarkleContractsHttpResponses_JoinPlayerResponse"
+              }
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/ArdalisResultResultStatus"
+          },
+          "isSuccess": {
+            "type": "boolean"
+          },
+          "successMessage": {
+            "type": "string",
+            "nullable": true
+          },
+          "correlationId": {
+            "type": "string",
+            "nullable": true
+          },
+          "errors": {
             "type": "array",
-            "items": { "type": "integer" }
+            "nullable": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "validationErrors": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/ArdalisResultValidationError"
+            }
           }
         }
       },
-      "KeepDiceBody": {
+      "FarkleContractsHttpResponses_JoinPlayerResponse": {
         "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ArdalisResultResultStatus": {
+        "type": "integer",
+        "description": "",
+        "x-enumNames": [
+          "Ok",
+          "Error",
+          "Forbidden",
+          "Unauthorized",
+          "Invalid",
+          "NotFound",
+          "Conflict",
+          "CriticalError",
+          "Unavailable"
+        ],
+        "enum": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ]
+      },
+      "ArdalisResultValidationError": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "identifier": {
+            "type": "string",
+            "nullable": true
+          },
+          "errorMessage": {
+            "type": "string",
+            "nullable": true
+          },
+          "errorCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "severity": {
+            "$ref": "#/components/schemas/ArdalisResultValidationSeverity"
+          }
+        }
+      },
+      "ArdalisResultValidationSeverity": {
+        "type": "integer",
+        "description": "",
+        "x-enumNames": [
+          "Error",
+          "Warning",
+          "Info"
+        ],
+        "enum": [
+          0,
+          1,
+          2
+        ]
+      },
+      "FastEndpointsProblemDetails": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "type": "string",
+            "default": "https://www.rfc-editor.org/rfc/rfc7231#section-6.5.1"
+          },
+          "title": {
+            "type": "string",
+            "default": "One or more validation errors occurred."
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "default": 400
+          },
+          "instance": {
+            "type": "string",
+            "default": "/api/route"
+          },
+          "traceId": {
+            "type": "string",
+            "default": "0HMPNHL0JHL76:00000001"
+          },
+          "detail": {
+            "type": "string",
+            "nullable": true
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FastEndpointsProblemDetails_Error"
+            }
+          }
+        }
+      },
+      "FastEndpointsProblemDetails_Error": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "default": "Error or field name"
+          },
+          "reason": {
+            "type": "string",
+            "default": "Error reason"
+          },
+          "code": {
+            "type": "string",
+            "nullable": true
+          },
+          "severity": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "FarkleContractsHttpRequests_JoinPlayerRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "playerName": {
+            "type": "string"
+          }
+        }
+      },
+      "ArdalisResultResultOfKeepDiceResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "value": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/FarkleContractsHttpResponses_KeepDiceResponse"
+              }
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/ArdalisResultResultStatus"
+          },
+          "isSuccess": {
+            "type": "boolean"
+          },
+          "successMessage": {
+            "type": "string",
+            "nullable": true
+          },
+          "correlationId": {
+            "type": "string",
+            "nullable": true
+          },
+          "errors": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "validationErrors": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/ArdalisResultValidationError"
+            }
+          }
+        }
+      },
+      "FarkleContractsHttpResponses_KeepDiceResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "turnScore": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "FarkleContractsHttpRequests_KeepDiceRequest": {
+        "type": "object",
+        "additionalProperties": false,
         "properties": {
           "diceValues": {
             "type": "array",
-            "items": { "type": "integer" }
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
           }
         }
       },
-      "KeepDiceResponse": {
+      "ArdalisResultResultOfRollDiceResponse": {
         "type": "object",
+        "additionalProperties": false,
         "properties": {
-          "id": { "type": "integer" },
-          "turnScore": { "type": "integer" }
+          "value": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/FarkleContractsHttpResponses_RollDiceResponse"
+              }
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/ArdalisResultResultStatus"
+          },
+          "isSuccess": {
+            "type": "boolean"
+          },
+          "successMessage": {
+            "type": "string",
+            "nullable": true
+          },
+          "correlationId": {
+            "type": "string",
+            "nullable": true
+          },
+          "errors": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "validationErrors": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/ArdalisResultValidationError"
+            }
+          }
         }
+      },
+      "FarkleContractsHttpResponses_RollDiceResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "dice": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        }
+      },
+      "FarkleContractsHttpRequests_RollDiceRequest": {
+        "type": "object",
+        "additionalProperties": false
+      },
+      "ArdalisResultResultOfStartGameResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "value": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/FarkleContractsHttpResponses_StartGameResponse"
+              }
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/ArdalisResultResultStatus"
+          },
+          "isSuccess": {
+            "type": "boolean"
+          },
+          "successMessage": {
+            "type": "string",
+            "nullable": true
+          },
+          "correlationId": {
+            "type": "string",
+            "nullable": true
+          },
+          "errors": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "validationErrors": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/ArdalisResultValidationError"
+            }
+          }
+        }
+      },
+      "FarkleContractsHttpResponses_StartGameResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "FarkleContractsHttpRequests_StartGameRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "WebAppAuthLoginResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "WebAppAuthLoginRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          }
+        }
+      },
+      "WebAppAuthRegisterRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "JWTBearerAuth": {
+        "type": "http",
+        "description": "Enter a JWT token to authorize the requests...",
+        "scheme": "Bearer",
+        "bearerFormat": "JWT"
       }
     }
   }

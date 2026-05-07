@@ -8,41 +8,41 @@ using System.IO;
 using System.Threading.Tasks;
 using System.Threading;
 using System;
-using WebApp.Client.Services.Generated.Api.Games.Item.Players.Item.Keeps;
-using WebApp.Client.Services.Generated.Api.Games.Item.Players.Item.Rolls;
+using WebApp.Client.Services.Generated.Games.Item.Players.Item.Keeps;
+using WebApp.Client.Services.Generated.Games.Item.Players.Item.Rolls;
 using WebApp.Client.Services.Generated.Models;
-namespace WebApp.Client.Services.Generated.Api.Games.Item.Players.Item
+namespace WebApp.Client.Services.Generated.Games.Item.Players.Item
 {
     /// <summary>
-    /// Builds and executes requests for operations under \api\games\{gameId}\players\{playerId}
+    /// Builds and executes requests for operations under \games\{gameId}\players\{playerId}
     /// </summary>
     [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
     public partial class WithPlayerItemRequestBuilder : BaseRequestBuilder
     {
         /// <summary>The keeps property</summary>
-        public global::WebApp.Client.Services.Generated.Api.Games.Item.Players.Item.Keeps.KeepsRequestBuilder Keeps
+        public global::WebApp.Client.Services.Generated.Games.Item.Players.Item.Keeps.KeepsRequestBuilder Keeps
         {
-            get => new global::WebApp.Client.Services.Generated.Api.Games.Item.Players.Item.Keeps.KeepsRequestBuilder(PathParameters, RequestAdapter);
+            get => new global::WebApp.Client.Services.Generated.Games.Item.Players.Item.Keeps.KeepsRequestBuilder(PathParameters, RequestAdapter);
         }
         /// <summary>The rolls property</summary>
-        public global::WebApp.Client.Services.Generated.Api.Games.Item.Players.Item.Rolls.RollsRequestBuilder Rolls
+        public global::WebApp.Client.Services.Generated.Games.Item.Players.Item.Rolls.RollsRequestBuilder Rolls
         {
-            get => new global::WebApp.Client.Services.Generated.Api.Games.Item.Players.Item.Rolls.RollsRequestBuilder(PathParameters, RequestAdapter);
+            get => new global::WebApp.Client.Services.Generated.Games.Item.Players.Item.Rolls.RollsRequestBuilder(PathParameters, RequestAdapter);
         }
         /// <summary>
-        /// Instantiates a new <see cref="global::WebApp.Client.Services.Generated.Api.Games.Item.Players.Item.WithPlayerItemRequestBuilder"/> and sets the default values.
+        /// Instantiates a new <see cref="global::WebApp.Client.Services.Generated.Games.Item.Players.Item.WithPlayerItemRequestBuilder"/> and sets the default values.
         /// </summary>
         /// <param name="pathParameters">Path parameters for the request</param>
         /// <param name="requestAdapter">The request adapter to use to execute the requests.</param>
-        public WithPlayerItemRequestBuilder(Dictionary<string, object> pathParameters, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/api/games/{gameId}/players/{playerId}", pathParameters)
+        public WithPlayerItemRequestBuilder(Dictionary<string, object> pathParameters, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/games/{gameId}/players/{playerId}", pathParameters)
         {
         }
         /// <summary>
-        /// Instantiates a new <see cref="global::WebApp.Client.Services.Generated.Api.Games.Item.Players.Item.WithPlayerItemRequestBuilder"/> and sets the default values.
+        /// Instantiates a new <see cref="global::WebApp.Client.Services.Generated.Games.Item.Players.Item.WithPlayerItemRequestBuilder"/> and sets the default values.
         /// </summary>
         /// <param name="rawUrl">The raw URL to use for the request builder.</param>
         /// <param name="requestAdapter">The request adapter to use to execute the requests.</param>
-        public WithPlayerItemRequestBuilder(string rawUrl, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/api/games/{gameId}/players/{playerId}", rawUrl)
+        public WithPlayerItemRequestBuilder(string rawUrl, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/games/{gameId}/players/{playerId}", rawUrl)
         {
         }
         /// <returns>A <see cref="global::WebApp.Client.Services.Generated.Models.JoinPlayerResponse"/></returns>
@@ -84,11 +84,11 @@ namespace WebApp.Client.Services.Generated.Api.Games.Item.Players.Item
         /// <summary>
         /// Returns a request builder with the provided arbitrary URL. Using this method means any other path or query parameters are ignored.
         /// </summary>
-        /// <returns>A <see cref="global::WebApp.Client.Services.Generated.Api.Games.Item.Players.Item.WithPlayerItemRequestBuilder"/></returns>
+        /// <returns>A <see cref="global::WebApp.Client.Services.Generated.Games.Item.Players.Item.WithPlayerItemRequestBuilder"/></returns>
         /// <param name="rawUrl">The raw URL to use for the request builder.</param>
-        public global::WebApp.Client.Services.Generated.Api.Games.Item.Players.Item.WithPlayerItemRequestBuilder WithUrl(string rawUrl)
+        public global::WebApp.Client.Services.Generated.Games.Item.Players.Item.WithPlayerItemRequestBuilder WithUrl(string rawUrl)
         {
-            return new global::WebApp.Client.Services.Generated.Api.Games.Item.Players.Item.WithPlayerItemRequestBuilder(rawUrl, RequestAdapter);
+            return new global::WebApp.Client.Services.Generated.Games.Item.Players.Item.WithPlayerItemRequestBuilder(rawUrl, RequestAdapter);
         }
         /// <summary>
         /// Configuration for the request such as headers, query parameters, and middleware options.

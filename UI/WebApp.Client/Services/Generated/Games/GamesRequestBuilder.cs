@@ -8,55 +8,55 @@ using System.IO;
 using System.Threading.Tasks;
 using System.Threading;
 using System;
-using WebApp.Client.Services.Generated.Api.Games.Item;
+using WebApp.Client.Services.Generated.Games.Item;
 using WebApp.Client.Services.Generated.Models;
-namespace WebApp.Client.Services.Generated.Api.Games
+namespace WebApp.Client.Services.Generated.Games
 {
     /// <summary>
-    /// Builds and executes requests for operations under \api\games
+    /// Builds and executes requests for operations under \games
     /// </summary>
     [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
     public partial class GamesRequestBuilder : BaseRequestBuilder
     {
-        /// <summary>Gets an item from the WebApp.Client.Services.Generated.api.games.item collection</summary>
+        /// <summary>Gets an item from the WebApp.Client.Services.Generated.games.item collection</summary>
         /// <param name="position">Unique identifier of the item</param>
-        /// <returns>A <see cref="global::WebApp.Client.Services.Generated.Api.Games.Item.WithGameItemRequestBuilder"/></returns>
-        public global::WebApp.Client.Services.Generated.Api.Games.Item.WithGameItemRequestBuilder this[int position]
+        /// <returns>A <see cref="global::WebApp.Client.Services.Generated.Games.Item.WithGameItemRequestBuilder"/></returns>
+        public global::WebApp.Client.Services.Generated.Games.Item.WithGameItemRequestBuilder this[int position]
         {
             get
             {
                 var urlTplParams = new Dictionary<string, object>(PathParameters);
                 urlTplParams.Add("gameId", position);
-                return new global::WebApp.Client.Services.Generated.Api.Games.Item.WithGameItemRequestBuilder(urlTplParams, RequestAdapter);
+                return new global::WebApp.Client.Services.Generated.Games.Item.WithGameItemRequestBuilder(urlTplParams, RequestAdapter);
             }
         }
-        /// <summary>Gets an item from the WebApp.Client.Services.Generated.api.games.item collection</summary>
+        /// <summary>Gets an item from the WebApp.Client.Services.Generated.games.item collection</summary>
         /// <param name="position">Unique identifier of the item</param>
-        /// <returns>A <see cref="global::WebApp.Client.Services.Generated.Api.Games.Item.WithGameItemRequestBuilder"/></returns>
+        /// <returns>A <see cref="global::WebApp.Client.Services.Generated.Games.Item.WithGameItemRequestBuilder"/></returns>
         [Obsolete("This indexer is deprecated and will be removed in the next major version. Use the one with the typed parameter instead.")]
-        public global::WebApp.Client.Services.Generated.Api.Games.Item.WithGameItemRequestBuilder this[string position]
+        public global::WebApp.Client.Services.Generated.Games.Item.WithGameItemRequestBuilder this[string position]
         {
             get
             {
                 var urlTplParams = new Dictionary<string, object>(PathParameters);
                 if (!string.IsNullOrWhiteSpace(position)) urlTplParams.Add("gameId", position);
-                return new global::WebApp.Client.Services.Generated.Api.Games.Item.WithGameItemRequestBuilder(urlTplParams, RequestAdapter);
+                return new global::WebApp.Client.Services.Generated.Games.Item.WithGameItemRequestBuilder(urlTplParams, RequestAdapter);
             }
         }
         /// <summary>
-        /// Instantiates a new <see cref="global::WebApp.Client.Services.Generated.Api.Games.GamesRequestBuilder"/> and sets the default values.
+        /// Instantiates a new <see cref="global::WebApp.Client.Services.Generated.Games.GamesRequestBuilder"/> and sets the default values.
         /// </summary>
         /// <param name="pathParameters">Path parameters for the request</param>
         /// <param name="requestAdapter">The request adapter to use to execute the requests.</param>
-        public GamesRequestBuilder(Dictionary<string, object> pathParameters, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/api/games", pathParameters)
+        public GamesRequestBuilder(Dictionary<string, object> pathParameters, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/games", pathParameters)
         {
         }
         /// <summary>
-        /// Instantiates a new <see cref="global::WebApp.Client.Services.Generated.Api.Games.GamesRequestBuilder"/> and sets the default values.
+        /// Instantiates a new <see cref="global::WebApp.Client.Services.Generated.Games.GamesRequestBuilder"/> and sets the default values.
         /// </summary>
         /// <param name="rawUrl">The raw URL to use for the request builder.</param>
         /// <param name="requestAdapter">The request adapter to use to execute the requests.</param>
-        public GamesRequestBuilder(string rawUrl, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/api/games", rawUrl)
+        public GamesRequestBuilder(string rawUrl, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/games", rawUrl)
         {
         }
         /// <returns>A <see cref="global::WebApp.Client.Services.Generated.Models.StartGameResponse"/></returns>
@@ -98,11 +98,11 @@ namespace WebApp.Client.Services.Generated.Api.Games
         /// <summary>
         /// Returns a request builder with the provided arbitrary URL. Using this method means any other path or query parameters are ignored.
         /// </summary>
-        /// <returns>A <see cref="global::WebApp.Client.Services.Generated.Api.Games.GamesRequestBuilder"/></returns>
+        /// <returns>A <see cref="global::WebApp.Client.Services.Generated.Games.GamesRequestBuilder"/></returns>
         /// <param name="rawUrl">The raw URL to use for the request builder.</param>
-        public global::WebApp.Client.Services.Generated.Api.Games.GamesRequestBuilder WithUrl(string rawUrl)
+        public global::WebApp.Client.Services.Generated.Games.GamesRequestBuilder WithUrl(string rawUrl)
         {
-            return new global::WebApp.Client.Services.Generated.Api.Games.GamesRequestBuilder(rawUrl, RequestAdapter);
+            return new global::WebApp.Client.Services.Generated.Games.GamesRequestBuilder(rawUrl, RequestAdapter);
         }
         /// <summary>
         /// Configuration for the request such as headers, query parameters, and middleware options.

@@ -10,6 +10,7 @@ using WebApp.Client.Pages;
 using WebApp.Components;
 using MudBlazor.Services;
 using Serilog;
+using WebApp;
 using WebApp.Client;
 
 var logger = Log.Logger = new LoggerConfiguration()
@@ -44,7 +45,7 @@ services
     s.SigningKey = builder.Configuration["Auth:JwtSecret"];
   })
   .AddAuthorization()
-  .SwaggerDocument()
+  .SwaggerDocument(o => o.DocumentSettings = s => s.DocumentProcessors.Add(new ApiPrefixDocumentProcessor()))
   .AddFastEndpoints(o =>
   {
       o.Assemblies = new[]
@@ -82,7 +83,8 @@ else
 
 app.UseStaticFiles();
 
-app.SetUpFarkleModule();
+if (!app.Environment.IsEnvironment("NSwag"))
+    app.SetUpFarkleModule();
 
 app.UseAuthentication()
   .UseAuthorization();
@@ -100,8 +102,9 @@ app.MapRazorComponents<App>()
     .AddInteractiveWebAssemblyRenderMode()
     .AddAdditionalAssemblies(typeof(Counter).Assembly);
 
-using (var scope = app.Services.CreateScope())
+if (!app.Environment.IsEnvironment("NSwag"))
 {
+    using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.Migrate();
 }

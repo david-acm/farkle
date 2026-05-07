@@ -9,28 +9,28 @@ using System.Threading.Tasks;
 using System.Threading;
 using System;
 using WebApp.Client.Services.Generated.Models;
-namespace WebApp.Client.Services.Generated.Api.Games.Item.Players.Item.Rolls
+namespace WebApp.Client.Services.Generated.Games.Item.Players.Item.Rolls
 {
     /// <summary>
-    /// Builds and executes requests for operations under \api\games\{gameId}\players\{playerId}\rolls
+    /// Builds and executes requests for operations under \games\{gameId}\players\{playerId}\rolls
     /// </summary>
     [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
     public partial class RollsRequestBuilder : BaseRequestBuilder
     {
         /// <summary>
-        /// Instantiates a new <see cref="global::WebApp.Client.Services.Generated.Api.Games.Item.Players.Item.Rolls.RollsRequestBuilder"/> and sets the default values.
+        /// Instantiates a new <see cref="global::WebApp.Client.Services.Generated.Games.Item.Players.Item.Rolls.RollsRequestBuilder"/> and sets the default values.
         /// </summary>
         /// <param name="pathParameters">Path parameters for the request</param>
         /// <param name="requestAdapter">The request adapter to use to execute the requests.</param>
-        public RollsRequestBuilder(Dictionary<string, object> pathParameters, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/api/games/{gameId}/players/{playerId}/rolls", pathParameters)
+        public RollsRequestBuilder(Dictionary<string, object> pathParameters, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/games/{gameId}/players/{playerId}/rolls", pathParameters)
         {
         }
         /// <summary>
-        /// Instantiates a new <see cref="global::WebApp.Client.Services.Generated.Api.Games.Item.Players.Item.Rolls.RollsRequestBuilder"/> and sets the default values.
+        /// Instantiates a new <see cref="global::WebApp.Client.Services.Generated.Games.Item.Players.Item.Rolls.RollsRequestBuilder"/> and sets the default values.
         /// </summary>
         /// <param name="rawUrl">The raw URL to use for the request builder.</param>
         /// <param name="requestAdapter">The request adapter to use to execute the requests.</param>
-        public RollsRequestBuilder(string rawUrl, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/api/games/{gameId}/players/{playerId}/rolls", rawUrl)
+        public RollsRequestBuilder(string rawUrl, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/games/{gameId}/players/{playerId}/rolls", rawUrl)
         {
         }
         /// <returns>A <see cref="global::WebApp.Client.Services.Generated.Models.RollDiceResponse"/></returns>
@@ -67,11 +67,11 @@ namespace WebApp.Client.Services.Generated.Api.Games.Item.Players.Item.Rolls
         /// <summary>
         /// Returns a request builder with the provided arbitrary URL. Using this method means any other path or query parameters are ignored.
         /// </summary>
-        /// <returns>A <see cref="global::WebApp.Client.Services.Generated.Api.Games.Item.Players.Item.Rolls.RollsRequestBuilder"/></returns>
+        /// <returns>A <see cref="global::WebApp.Client.Services.Generated.Games.Item.Players.Item.Rolls.RollsRequestBuilder"/></returns>
         /// <param name="rawUrl">The raw URL to use for the request builder.</param>
-        public global::WebApp.Client.Services.Generated.Api.Games.Item.Players.Item.Rolls.RollsRequestBuilder WithUrl(string rawUrl)
+        public global::WebApp.Client.Services.Generated.Games.Item.Players.Item.Rolls.RollsRequestBuilder WithUrl(string rawUrl)
         {
-            return new global::WebApp.Client.Services.Generated.Api.Games.Item.Players.Item.Rolls.RollsRequestBuilder(rawUrl, RequestAdapter);
+            return new global::WebApp.Client.Services.Generated.Games.Item.Players.Item.Rolls.RollsRequestBuilder(rawUrl, RequestAdapter);
         }
         /// <summary>
         /// Configuration for the request such as headers, query parameters, and middleware options.

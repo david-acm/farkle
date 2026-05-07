@@ -35,4 +35,16 @@
     </Content>
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="NSwag.MSBuild" Version="14.2.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <Target Name="GenerateSwaggerJson" AfterTargets="Build">
+    <Exec Command="$(NSwagExe_Net80) run nswag.json /variables:Configuration=$(Configuration)"
+          EnvironmentVariables="ASPNETCORE_ENVIRONMENT=NSwag" />
+  </Target>
+
 </Project>

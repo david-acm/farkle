@@ -10,7 +10,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using System;
-using WebApp.Client.Services.Generated.Api;
+using WebApp.Client.Services.Generated.Games;
 namespace WebApp.Client.Services.Generated
 {
     /// <summary>
@@ -19,10 +19,10 @@ namespace WebApp.Client.Services.Generated
     [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
     public partial class FarkleApiClient : BaseRequestBuilder
     {
-        /// <summary>The api property</summary>
-        public global::WebApp.Client.Services.Generated.Api.ApiRequestBuilder Api
+        /// <summary>The games property</summary>
+        public global::WebApp.Client.Services.Generated.Games.GamesRequestBuilder Games
         {
-            get => new global::WebApp.Client.Services.Generated.Api.ApiRequestBuilder(PathParameters, RequestAdapter);
+            get => new global::WebApp.Client.Services.Generated.Games.GamesRequestBuilder(PathParameters, RequestAdapter);
         }
         /// <summary>
         /// Instantiates a new <see cref="global::WebApp.Client.Services.Generated.FarkleApiClient"/> and sets the default values.
@@ -37,6 +37,11 @@ namespace WebApp.Client.Services.Generated
             ApiClientBuilder.RegisterDefaultDeserializer<JsonParseNodeFactory>();
             ApiClientBuilder.RegisterDefaultDeserializer<TextParseNodeFactory>();
             ApiClientBuilder.RegisterDefaultDeserializer<FormParseNodeFactory>();
+            if (string.IsNullOrEmpty(RequestAdapter.BaseUrl))
+            {
+                RequestAdapter.BaseUrl = "/api";
+            }
+            PathParameters.TryAdd("baseurl", RequestAdapter.BaseUrl);
         }
     }
 }
