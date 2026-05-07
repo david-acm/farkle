@@ -45,33 +45,33 @@ namespace WebApp.Client.Services.Generated.Games.Item.Players.Item
         public WithPlayerItemRequestBuilder(string rawUrl, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/games/{gameId}/players/{playerId}", rawUrl)
         {
         }
-        /// <returns>A <see cref="global::WebApp.Client.Services.Generated.Models.JoinPlayerResponse"/></returns>
+        /// <returns>A <see cref="global::WebApp.Client.Services.Generated.Models.FarkleContractsHttpResponses_JoinPlayerResponse"/></returns>
         /// <param name="body">The request body</param>
         /// <param name="cancellationToken">Cancellation token to use when cancelling requests</param>
         /// <param name="requestConfiguration">Configuration for the request such as headers, query parameters, and middleware options.</param>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
-        public async Task<global::WebApp.Client.Services.Generated.Models.JoinPlayerResponse?> PostAsync(global::WebApp.Client.Services.Generated.Models.JoinPlayerBody body, Action<RequestConfiguration<DefaultQueryParameters>>? requestConfiguration = default, CancellationToken cancellationToken = default)
+        public async Task<global::WebApp.Client.Services.Generated.Models.FarkleContractsHttpResponses_JoinPlayerResponse?> PostAsync(global::WebApp.Client.Services.Generated.Models.FarkleContractsHttpRequests_JoinPlayerRequest body, Action<RequestConfiguration<DefaultQueryParameters>>? requestConfiguration = default, CancellationToken cancellationToken = default)
         {
 #nullable restore
 #else
-        public async Task<global::WebApp.Client.Services.Generated.Models.JoinPlayerResponse> PostAsync(global::WebApp.Client.Services.Generated.Models.JoinPlayerBody body, Action<RequestConfiguration<DefaultQueryParameters>> requestConfiguration = default, CancellationToken cancellationToken = default)
+        public async Task<global::WebApp.Client.Services.Generated.Models.FarkleContractsHttpResponses_JoinPlayerResponse> PostAsync(global::WebApp.Client.Services.Generated.Models.FarkleContractsHttpRequests_JoinPlayerRequest body, Action<RequestConfiguration<DefaultQueryParameters>> requestConfiguration = default, CancellationToken cancellationToken = default)
         {
 #endif
             if(ReferenceEquals(body, null)) throw new ArgumentNullException(nameof(body));
             var requestInfo = ToPostRequestInformation(body, requestConfiguration);
-            return await RequestAdapter.SendAsync<global::WebApp.Client.Services.Generated.Models.JoinPlayerResponse>(requestInfo, global::WebApp.Client.Services.Generated.Models.JoinPlayerResponse.CreateFromDiscriminatorValue, default, cancellationToken).ConfigureAwait(false);
+            return await RequestAdapter.SendAsync<global::WebApp.Client.Services.Generated.Models.FarkleContractsHttpResponses_JoinPlayerResponse>(requestInfo, global::WebApp.Client.Services.Generated.Models.FarkleContractsHttpResponses_JoinPlayerResponse.CreateFromDiscriminatorValue, default, cancellationToken).ConfigureAwait(false);
         }
         /// <returns>A <see cref="RequestInformation"/></returns>
         /// <param name="body">The request body</param>
         /// <param name="requestConfiguration">Configuration for the request such as headers, query parameters, and middleware options.</param>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
-        public RequestInformation ToPostRequestInformation(global::WebApp.Client.Services.Generated.Models.JoinPlayerBody body, Action<RequestConfiguration<DefaultQueryParameters>>? requestConfiguration = default)
+        public RequestInformation ToPostRequestInformation(global::WebApp.Client.Services.Generated.Models.FarkleContractsHttpRequests_JoinPlayerRequest body, Action<RequestConfiguration<DefaultQueryParameters>>? requestConfiguration = default)
         {
 #nullable restore
 #else
-        public RequestInformation ToPostRequestInformation(global::WebApp.Client.Services.Generated.Models.JoinPlayerBody body, Action<RequestConfiguration<DefaultQueryParameters>> requestConfiguration = default)
+        public RequestInformation ToPostRequestInformation(global::WebApp.Client.Services.Generated.Models.FarkleContractsHttpRequests_JoinPlayerRequest body, Action<RequestConfiguration<DefaultQueryParameters>> requestConfiguration = default)
         {
 #endif
             if(ReferenceEquals(body, null)) throw new ArgumentNullException(nameof(body));

@@ -9,35 +9,28 @@ namespace WebApp.Client.Services.Generated.Models
 {
     [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
     #pragma warning disable CS1591
-    public partial class JoinPlayerBody : IAdditionalDataHolder, IParsable
+    public partial class FarkleContractsHttpResponses_RollDiceResponse : IParsable
     #pragma warning restore CS1591
     {
-        /// <summary>Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.</summary>
-        public IDictionary<string, object> AdditionalData { get; set; }
-        /// <summary>The playerName property</summary>
+        /// <summary>The diceValues property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
-        public string? PlayerName { get; set; }
+        public List<int?>? DiceValues { get; set; }
 #nullable restore
 #else
-        public string PlayerName { get; set; }
+        public List<int?> DiceValues { get; set; }
 #endif
-        /// <summary>
-        /// Instantiates a new <see cref="global::WebApp.Client.Services.Generated.Models.JoinPlayerBody"/> and sets the default values.
-        /// </summary>
-        public JoinPlayerBody()
-        {
-            AdditionalData = new Dictionary<string, object>();
-        }
+        /// <summary>The id property</summary>
+        public int? Id { get; set; }
         /// <summary>
         /// Creates a new instance of the appropriate class based on discriminator value
         /// </summary>
-        /// <returns>A <see cref="global::WebApp.Client.Services.Generated.Models.JoinPlayerBody"/></returns>
+        /// <returns>A <see cref="global::WebApp.Client.Services.Generated.Models.FarkleContractsHttpResponses_RollDiceResponse"/></returns>
         /// <param name="parseNode">The parse node to use to read the discriminator value and create the object</param>
-        public static global::WebApp.Client.Services.Generated.Models.JoinPlayerBody CreateFromDiscriminatorValue(IParseNode parseNode)
+        public static global::WebApp.Client.Services.Generated.Models.FarkleContractsHttpResponses_RollDiceResponse CreateFromDiscriminatorValue(IParseNode parseNode)
         {
             if(ReferenceEquals(parseNode, null)) throw new ArgumentNullException(nameof(parseNode));
-            return new global::WebApp.Client.Services.Generated.Models.JoinPlayerBody();
+            return new global::WebApp.Client.Services.Generated.Models.FarkleContractsHttpResponses_RollDiceResponse();
         }
         /// <summary>
         /// The deserialization information for the current model
@@ -47,7 +40,8 @@ namespace WebApp.Client.Services.Generated.Models
         {
             return new Dictionary<string, Action<IParseNode>>
             {
-                { "playerName", n => { PlayerName = n.GetStringValue(); } },
+                { "diceValues", n => { DiceValues = n.GetCollectionOfPrimitiveValues<int?>()?.AsList(); } },
+                { "id", n => { Id = n.GetIntValue(); } },
             };
         }
         /// <summary>
@@ -57,8 +51,8 @@ namespace WebApp.Client.Services.Generated.Models
         public virtual void Serialize(ISerializationWriter writer)
         {
             if(ReferenceEquals(writer, null)) throw new ArgumentNullException(nameof(writer));
-            writer.WriteStringValue("playerName", PlayerName);
-            writer.WriteAdditionalData(AdditionalData);
+            writer.WriteCollectionOfPrimitiveValues<int?>("diceValues", DiceValues);
+            writer.WriteIntValue("id", Id);
         }
     }
 }

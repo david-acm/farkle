@@ -56,17 +56,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ArdalisResultResultOfJoinPlayerResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FastEndpointsProblemDetails"
+                  "$ref": "#/components/schemas/FarkleContractsHttpResponses_JoinPlayerResponse"
                 }
               }
             }
@@ -127,17 +117,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ArdalisResultResultOfKeepDiceResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FastEndpointsProblemDetails"
+                  "$ref": "#/components/schemas/FarkleContractsHttpResponses_KeepDiceResponse"
                 }
               }
             }
@@ -185,17 +165,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ArdalisResultResultOfRollDiceResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FastEndpointsProblemDetails"
+                  "$ref": "#/components/schemas/FarkleContractsHttpResponses_RollDiceResponse"
                 }
               }
             }
@@ -236,17 +206,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ArdalisResultResultOfStartGameResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FastEndpointsProblemDetails"
+                  "$ref": "#/components/schemas/FarkleContractsHttpResponses_StartGameResponse"
                 }
               }
             }
@@ -324,48 +284,6 @@
   },
   "components": {
     "schemas": {
-      "ArdalisResultResultOfJoinPlayerResponse": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "value": {
-            "nullable": true,
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/FarkleContractsHttpResponses_JoinPlayerResponse"
-              }
-            ]
-          },
-          "status": {
-            "$ref": "#/components/schemas/ArdalisResultResultStatus"
-          },
-          "isSuccess": {
-            "type": "boolean"
-          },
-          "successMessage": {
-            "type": "string",
-            "nullable": true
-          },
-          "correlationId": {
-            "type": "string",
-            "nullable": true
-          },
-          "errors": {
-            "type": "array",
-            "nullable": true,
-            "items": {
-              "type": "string"
-            }
-          },
-          "validationErrors": {
-            "type": "array",
-            "nullable": true,
-            "items": {
-              "$ref": "#/components/schemas/ArdalisResultValidationError"
-            }
-          }
-        }
-      },
       "FarkleContractsHttpResponses_JoinPlayerResponse": {
         "type": "object",
         "additionalProperties": false,
@@ -376,174 +294,12 @@
           }
         }
       },
-      "ArdalisResultResultStatus": {
-        "type": "integer",
-        "description": "",
-        "x-enumNames": [
-          "Ok",
-          "Error",
-          "Forbidden",
-          "Unauthorized",
-          "Invalid",
-          "NotFound",
-          "Conflict",
-          "CriticalError",
-          "Unavailable"
-        ],
-        "enum": [
-          0,
-          1,
-          2,
-          3,
-          4,
-          5,
-          6,
-          7,
-          8
-        ]
-      },
-      "ArdalisResultValidationError": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "identifier": {
-            "type": "string",
-            "nullable": true
-          },
-          "errorMessage": {
-            "type": "string",
-            "nullable": true
-          },
-          "errorCode": {
-            "type": "string",
-            "nullable": true
-          },
-          "severity": {
-            "$ref": "#/components/schemas/ArdalisResultValidationSeverity"
-          }
-        }
-      },
-      "ArdalisResultValidationSeverity": {
-        "type": "integer",
-        "description": "",
-        "x-enumNames": [
-          "Error",
-          "Warning",
-          "Info"
-        ],
-        "enum": [
-          0,
-          1,
-          2
-        ]
-      },
-      "FastEndpointsProblemDetails": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "type": {
-            "type": "string",
-            "default": "https://www.rfc-editor.org/rfc/rfc7231#section-6.5.1"
-          },
-          "title": {
-            "type": "string",
-            "default": "One or more validation errors occurred."
-          },
-          "status": {
-            "type": "integer",
-            "format": "int32",
-            "default": 400
-          },
-          "instance": {
-            "type": "string",
-            "default": "/api/route"
-          },
-          "traceId": {
-            "type": "string",
-            "default": "0HMPNHL0JHL76:00000001"
-          },
-          "detail": {
-            "type": "string",
-            "nullable": true
-          },
-          "errors": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/FastEndpointsProblemDetails_Error"
-            }
-          }
-        }
-      },
-      "FastEndpointsProblemDetails_Error": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "name": {
-            "type": "string",
-            "default": "Error or field name"
-          },
-          "reason": {
-            "type": "string",
-            "default": "Error reason"
-          },
-          "code": {
-            "type": "string",
-            "nullable": true
-          },
-          "severity": {
-            "type": "string",
-            "nullable": true
-          }
-        }
-      },
       "FarkleContractsHttpRequests_JoinPlayerRequest": {
         "type": "object",
         "additionalProperties": false,
         "properties": {
           "playerName": {
             "type": "string"
-          }
-        }
-      },
-      "ArdalisResultResultOfKeepDiceResponse": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "value": {
-            "nullable": true,
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/FarkleContractsHttpResponses_KeepDiceResponse"
-              }
-            ]
-          },
-          "status": {
-            "$ref": "#/components/schemas/ArdalisResultResultStatus"
-          },
-          "isSuccess": {
-            "type": "boolean"
-          },
-          "successMessage": {
-            "type": "string",
-            "nullable": true
-          },
-          "correlationId": {
-            "type": "string",
-            "nullable": true
-          },
-          "errors": {
-            "type": "array",
-            "nullable": true,
-            "items": {
-              "type": "string"
-            }
-          },
-          "validationErrors": {
-            "type": "array",
-            "nullable": true,
-            "items": {
-              "$ref": "#/components/schemas/ArdalisResultValidationError"
-            }
           }
         }
       },
@@ -574,48 +330,6 @@
           }
         }
       },
-      "ArdalisResultResultOfRollDiceResponse": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "value": {
-            "nullable": true,
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/FarkleContractsHttpResponses_RollDiceResponse"
-              }
-            ]
-          },
-          "status": {
-            "$ref": "#/components/schemas/ArdalisResultResultStatus"
-          },
-          "isSuccess": {
-            "type": "boolean"
-          },
-          "successMessage": {
-            "type": "string",
-            "nullable": true
-          },
-          "correlationId": {
-            "type": "string",
-            "nullable": true
-          },
-          "errors": {
-            "type": "array",
-            "nullable": true,
-            "items": {
-              "type": "string"
-            }
-          },
-          "validationErrors": {
-            "type": "array",
-            "nullable": true,
-            "items": {
-              "$ref": "#/components/schemas/ArdalisResultValidationError"
-            }
-          }
-        }
-      },
       "FarkleContractsHttpResponses_RollDiceResponse": {
         "type": "object",
         "additionalProperties": false,
@@ -624,7 +338,7 @@
             "type": "integer",
             "format": "int32"
           },
-          "dice": {
+          "diceValues": {
             "type": "array",
             "items": {
               "type": "integer",
@@ -636,48 +350,6 @@
       "FarkleContractsHttpRequests_RollDiceRequest": {
         "type": "object",
         "additionalProperties": false
-      },
-      "ArdalisResultResultOfStartGameResponse": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "value": {
-            "nullable": true,
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/FarkleContractsHttpResponses_StartGameResponse"
-              }
-            ]
-          },
-          "status": {
-            "$ref": "#/components/schemas/ArdalisResultResultStatus"
-          },
-          "isSuccess": {
-            "type": "boolean"
-          },
-          "successMessage": {
-            "type": "string",
-            "nullable": true
-          },
-          "correlationId": {
-            "type": "string",
-            "nullable": true
-          },
-          "errors": {
-            "type": "array",
-            "nullable": true,
-            "items": {
-              "type": "string"
-            }
-          },
-          "validationErrors": {
-            "type": "array",
-            "nullable": true,
-            "items": {
-              "$ref": "#/components/schemas/ArdalisResultValidationError"
-            }
-          }
-        }
       },
       "FarkleContractsHttpResponses_StartGameResponse": {
         "type": "object",

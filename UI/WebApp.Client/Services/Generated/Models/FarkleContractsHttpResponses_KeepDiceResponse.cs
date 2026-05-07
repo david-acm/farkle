@@ -9,29 +9,22 @@ namespace WebApp.Client.Services.Generated.Models
 {
     [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
     #pragma warning disable CS1591
-    public partial class StartGameResponse : IAdditionalDataHolder, IParsable
+    public partial class FarkleContractsHttpResponses_KeepDiceResponse : IParsable
     #pragma warning restore CS1591
     {
-        /// <summary>Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.</summary>
-        public IDictionary<string, object> AdditionalData { get; set; }
         /// <summary>The id property</summary>
         public int? Id { get; set; }
-        /// <summary>
-        /// Instantiates a new <see cref="global::WebApp.Client.Services.Generated.Models.StartGameResponse"/> and sets the default values.
-        /// </summary>
-        public StartGameResponse()
-        {
-            AdditionalData = new Dictionary<string, object>();
-        }
+        /// <summary>The turnScore property</summary>
+        public int? TurnScore { get; set; }
         /// <summary>
         /// Creates a new instance of the appropriate class based on discriminator value
         /// </summary>
-        /// <returns>A <see cref="global::WebApp.Client.Services.Generated.Models.StartGameResponse"/></returns>
+        /// <returns>A <see cref="global::WebApp.Client.Services.Generated.Models.FarkleContractsHttpResponses_KeepDiceResponse"/></returns>
         /// <param name="parseNode">The parse node to use to read the discriminator value and create the object</param>
-        public static global::WebApp.Client.Services.Generated.Models.StartGameResponse CreateFromDiscriminatorValue(IParseNode parseNode)
+        public static global::WebApp.Client.Services.Generated.Models.FarkleContractsHttpResponses_KeepDiceResponse CreateFromDiscriminatorValue(IParseNode parseNode)
         {
             if(ReferenceEquals(parseNode, null)) throw new ArgumentNullException(nameof(parseNode));
-            return new global::WebApp.Client.Services.Generated.Models.StartGameResponse();
+            return new global::WebApp.Client.Services.Generated.Models.FarkleContractsHttpResponses_KeepDiceResponse();
         }
         /// <summary>
         /// The deserialization information for the current model
@@ -42,6 +35,7 @@ namespace WebApp.Client.Services.Generated.Models
             return new Dictionary<string, Action<IParseNode>>
             {
                 { "id", n => { Id = n.GetIntValue(); } },
+                { "turnScore", n => { TurnScore = n.GetIntValue(); } },
             };
         }
         /// <summary>
@@ -52,7 +46,7 @@ namespace WebApp.Client.Services.Generated.Models
         {
             if(ReferenceEquals(writer, null)) throw new ArgumentNullException(nameof(writer));
             writer.WriteIntValue("id", Id);
-            writer.WriteAdditionalData(AdditionalData);
+            writer.WriteIntValue("turnScore", TurnScore);
         }
     }
 }

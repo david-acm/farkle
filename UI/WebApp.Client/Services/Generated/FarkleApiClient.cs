@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using System;
+using WebApp.Client.Services.Generated.Auth;
 using WebApp.Client.Services.Generated.Games;
 namespace WebApp.Client.Services.Generated
 {
@@ -19,6 +20,11 @@ namespace WebApp.Client.Services.Generated
     [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
     public partial class FarkleApiClient : BaseRequestBuilder
     {
+        /// <summary>The auth property</summary>
+        public global::WebApp.Client.Services.Generated.Auth.AuthRequestBuilder Auth
+        {
+            get => new global::WebApp.Client.Services.Generated.Auth.AuthRequestBuilder(PathParameters, RequestAdapter);
+        }
         /// <summary>The games property</summary>
         public global::WebApp.Client.Services.Generated.Games.GamesRequestBuilder Games
         {

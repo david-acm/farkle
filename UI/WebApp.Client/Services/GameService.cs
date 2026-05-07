@@ -20,27 +20,27 @@ public class GameService : IGameService
   public async Task<Result<IList<DieValue>>> RollDiceAsync(int gameId, int playerId)
   {
     var response = await _client.Games[gameId].Players[playerId].Rolls.PostAsync();
-    var dice     = response?.Dice?.Select(v => DieValue.FromValue(v ?? 0)).ToList() ?? new List<DieValue>();
+    var dice     = response?.DiceValues?.Select(v => DieValue.FromValue(v ?? 0)).ToList() ?? new List<DieValue>();
     return dice;
   }
 
   public async Task JoinPlayerAsync(int gameId, int playerId, string playerName)
   {
     await _client.Games[gameId].Players[playerId].PostAsync(
-      new KiotaModels.JoinPlayerBody { PlayerName = playerName });
+      new KiotaModels.FarkleContractsHttpRequests_JoinPlayerRequest { PlayerName = playerName });
   }
 
   public async Task<KeepDiceResponse> KeepDiceAsync(int gameId, int playerId, IEnumerable<int> diceToKeep)
   {
     var response = await _client.Games[gameId].Players[playerId].Keeps.PostAsync(
-      new KiotaModels.KeepDiceBody { DiceValues = diceToKeep.Select(v => (int?)v).ToList() });
+      new KiotaModels.FarkleContractsHttpRequests_KeepDiceRequest { DiceValues = diceToKeep.Select(v => (int?)v).ToList() });
     _logger.LogInformation("KeepDice response: {TurnScore}", response?.TurnScore);
     return new KeepDiceResponse(response?.Id ?? 0, response?.TurnScore ?? 0);
   }
 
   public async Task<int> StartGameAsync(int gameId)
   {
-    var response = await _client.Games.PostAsync(new KiotaModels.StartGameRequest { Id = gameId });
+    var response = await _client.Games.PostAsync(new KiotaModels.FarkleContractsHttpRequests_StartGameRequest { Id = gameId });
     _logger.LogInformation("Started game with id: {Id}", response?.Id);
     return response?.Id ?? 0;
   }
