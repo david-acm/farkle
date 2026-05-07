@@ -18,6 +18,12 @@
     <PackageReference Include="Serilog" Version="3.1.1" />
     <PackageReference Include="System.Text.Json" Version="8.0.5" />
     <PackageReference Include="System.Private.Uri" Version="4.3.2" />
+    <PackageReference Include="Microsoft.Kiota.Abstractions" Version="1.15.1" />
+    <PackageReference Include="Microsoft.Kiota.Http.HttpClientLibrary" Version="1.15.1" />
+    <PackageReference Include="Microsoft.Kiota.Serialization.Json" Version="1.15.1" />
+    <PackageReference Include="Microsoft.Kiota.Serialization.Text" Version="1.15.1" />
+    <PackageReference Include="Microsoft.Kiota.Serialization.Form" Version="1.15.1" />
+    <PackageReference Include="Microsoft.Kiota.Serialization.Multipart" Version="1.15.1" />
   </ItemGroup>
 
   <ItemGroup>

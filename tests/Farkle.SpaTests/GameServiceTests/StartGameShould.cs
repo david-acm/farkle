@@ -3,6 +3,7 @@ using Moq;
 using RichardSzalay.MockHttp;
 using WebApp.Client.Services;
 using static Farkle.Contracts.HttpResponses;
+using static Farkle.SpaTests.GameServiceTests.MockHttpClientBUnitHelpers;
 
 namespace Farkle.SpaTests.GameServiceTests;
 
@@ -12,11 +13,11 @@ public class StartGameShould
   public async Task CallApiAsync()
   {
     // Given
-    var mock = MockHttpClientBUnitHelpers.GetMockHttpClient();
-    mock.Expect(HttpMethod.Post, "/api/games")
+    var mock = GetMockHttpClient();
+    mock.Expect(HttpMethod.Post, "http://localhost/api/games")
       .RespondJson(new StartGameResponse(1));
 
-    var sut = new GameService(mock.ToHttpClient(), Mock.Of<ILogger<GameService>>());
+    var sut = new GameService(mock.ToFarkleApiClient(), Mock.Of<ILogger<GameService>>());
 
     // When
     await sut.StartGameAsync(1);

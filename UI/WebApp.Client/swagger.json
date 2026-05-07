@@ -1,0 +1,193 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Farkle API",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/games": {
+      "post": {
+        "operationId": "StartGame",
+        "tags": ["Games"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/StartGameRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Game started",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/StartGameResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/games/{gameId}/players/{playerId}": {
+      "post": {
+        "operationId": "JoinPlayer",
+        "tags": ["Games"],
+        "parameters": [
+          {
+            "name": "gameId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" }
+          },
+          {
+            "name": "playerId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/JoinPlayerBody" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Player joined",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/JoinPlayerResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/games/{gameId}/players/{playerId}/rolls": {
+      "post": {
+        "operationId": "RollDice",
+        "tags": ["Games"],
+        "parameters": [
+          {
+            "name": "gameId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" }
+          },
+          {
+            "name": "playerId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Dice rolled",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/RollDiceResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/games/{gameId}/players/{playerId}/keeps": {
+      "post": {
+        "operationId": "KeepDice",
+        "tags": ["Games"],
+        "parameters": [
+          {
+            "name": "gameId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" }
+          },
+          {
+            "name": "playerId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/KeepDiceBody" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Dice kept",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/KeepDiceResponse" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "StartGameRequest": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" }
+        }
+      },
+      "StartGameResponse": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" }
+        }
+      },
+      "JoinPlayerBody": {
+        "type": "object",
+        "properties": {
+          "playerName": { "type": "string" }
+        }
+      },
+      "JoinPlayerResponse": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" }
+        }
+      },
+      "RollDiceResponse": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "dice": {
+            "type": "array",
+            "items": { "type": "integer" }
+          }
+        }
+      },
+      "KeepDiceBody": {
+        "type": "object",
+        "properties": {
+          "diceValues": {
+            "type": "array",
+            "items": { "type": "integer" }
+          }
+        }
+      },
+      "KeepDiceResponse": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "turnScore": { "type": "integer" }
+        }
+      }
+    }
+  }
+}

@@ -28,6 +28,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.Kiota.Abstractions" Version="1.15.1" />
+    <PackageReference Include="Microsoft.Kiota.Http.HttpClientLibrary" Version="1.15.1" />
+    <PackageReference Include="Microsoft.Kiota.Serialization.Json" Version="1.15.1" />
+    <PackageReference Include="Microsoft.Kiota.Serialization.Text" Version="1.15.1" />
+    <PackageReference Include="Microsoft.Kiota.Serialization.Form" Version="1.15.1" />
+    <PackageReference Include="Microsoft.Kiota.Serialization.Multipart" Version="1.15.1" />
     <PackageReference Include="Moq" Version="4.20.69"/>
     <PackageReference Include="RichardSzalay.MockHttp" Version="7.0.0"/>
     <PackageReference Include="xunit" Version="2.5.0"/>
