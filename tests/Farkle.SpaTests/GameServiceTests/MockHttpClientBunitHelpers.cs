@@ -10,7 +10,7 @@ namespace Farkle.SpaTests.GameServiceTests;
 
 public static class MockHttpClientBUnitHelpers
 {
-  private static readonly JsonSerializerOptions CamelCaseOptions =
+  private static readonly JsonSerializerOptions _camelCaseOptions =
     new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 
   public static MockHttpMessageHandler AddMockHttpClient(this TestServiceProvider services)
@@ -42,7 +42,7 @@ public static class MockHttpClientBUnitHelpers
     request.Respond(req =>
     {
       var response = new HttpResponseMessage(HttpStatusCode.OK);
-      response.Content                     = new StringContent(JsonSerializer.Serialize(content, CamelCaseOptions));
+      response.Content                     = new StringContent(JsonSerializer.Serialize(content, _camelCaseOptions));
       response.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
       return response;
     });
@@ -54,7 +54,7 @@ public static class MockHttpClientBUnitHelpers
     request.Respond(req =>
     {
       var response = new HttpResponseMessage(HttpStatusCode.OK);
-      response.Content                     = new StringContent(JsonSerializer.Serialize(contentProvider(), CamelCaseOptions));
+      response.Content                     = new StringContent(JsonSerializer.Serialize(contentProvider(), _camelCaseOptions));
       response.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
       return response;
     });
