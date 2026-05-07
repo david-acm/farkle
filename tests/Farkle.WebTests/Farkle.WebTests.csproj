@@ -30,7 +30,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Farkle\Farkle.csproj" />
-    <ProjectReference Include="..\..\UI\WebApp\WebApp.csproj" />
+    <ProjectReference Include="..\..\src\WebApp\WebApp.csproj" />
   </ItemGroup>
 
 </Project>

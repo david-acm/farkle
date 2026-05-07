@@ -23,13 +23,13 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Farkle.Contracts", "src\Far
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Farkle.SharedKernel", "src\Farkle.SharedKernel\Farkle.SharedKernel.csproj", "{94EC0B39-2202-407A-9D30-138B1B400E78}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebApp.Client", "UI\WebApp.Client\WebApp.Client.csproj", "{B07A9D66-A5FE-46AF-8E33-DB9DCC1BD7D0}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebApp.Client", "src\WebApp.Client\WebApp.Client.csproj", "{B07A9D66-A5FE-46AF-8E33-DB9DCC1BD7D0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebApp", "UI\WebApp\WebApp.csproj", "{082F8608-EA93-4850-B34D-5EB2F8C78213}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebApp", "src\WebApp\WebApp.csproj", "{082F8608-EA93-4850-B34D-5EB2F8C78213}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "UI", "UI", "{1E06AA88-E6D5-4C7E-840A-D435B52646C8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebApp.Client", "UI\WebApp.Client\WebApp.Client.csproj", "{4EE0A69A-04D5-42B9-8A69-23EC0321F2CE}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebApp.Client", "src\WebApp.Client\WebApp.Client.csproj", "{4EE0A69A-04D5-42B9-8A69-23EC0321F2CE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

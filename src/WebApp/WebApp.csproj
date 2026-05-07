@@ -13,7 +13,7 @@
   
   <ItemGroup>
     <PackageReference Include="serilog.aspnetcore" Version="8.0.3" />
-    <ProjectReference Include="..\..\src\Farkle\Farkle.csproj" />
+    <ProjectReference Include="..\Farkle\Farkle.csproj" />
     <ProjectReference Include="..\WebApp.Client\WebApp.Client.csproj" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="8.0.13" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="7.2.0" />
@@ -29,7 +29,7 @@
   </ItemGroup>
   
   <ItemGroup>
-    <Content Include="..\..\.dockerignore">
+    <Content Include="..\..\dockerignore">
       <Link>.dockerignore</Link>
       <DependentUpon>Dockerfile</DependentUpon>
     </Content>
