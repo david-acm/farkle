@@ -27,7 +27,7 @@ public static class FarkleModuleServiceExtensions
     
     // TODO: Use Guard clause instead
     // TODO: Use configuration instead. Check the best way to configure the cors url
-    var esdbConnString = configuration.GetConnectionString("Esdb") ?? string.Empty;
+    var esdbConnString = configuration.GetConnectionString("Esdb") ?? "esdb://localhost:2113?tls=false";
     services.AddEventStoreClient(esdbConnString);
     logger.Information($"Using esdb connection string: {esdbConnString}");
     
