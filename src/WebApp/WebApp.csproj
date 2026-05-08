@@ -13,7 +13,7 @@
   
   <ItemGroup>
     <PackageReference Include="serilog.aspnetcore" Version="8.0.3" />
-    <ProjectReference Include="..\..\src\Farkle\Farkle.csproj" />
+    <ProjectReference Include="..\Farkle\Farkle.csproj" />
     <ProjectReference Include="..\WebApp.Client\WebApp.Client.csproj" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="8.0.13" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="7.2.0" />
@@ -29,10 +29,22 @@
   </ItemGroup>
   
   <ItemGroup>
-    <Content Include="..\..\.dockerignore">
+    <Content Include="..\..\dockerignore">
       <Link>.dockerignore</Link>
       <DependentUpon>Dockerfile</DependentUpon>
     </Content>
   </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NSwag.MSBuild" Version="14.2.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <Target Name="GenerateSwaggerJson" AfterTargets="Build">
+    <Exec Command="$(NSwagExe_Net80) run nswag.json /variables:Configuration=$(Configuration)"
+          EnvironmentVariables="ASPNETCORE_ENVIRONMENT=NSwag" />
+  </Target>
 
 </Project>

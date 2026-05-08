@@ -6,7 +6,7 @@
     image: webapp
     build:
       context: .
-      dockerfile: UI/WebApp/Dockerfile
+      dockerfile: src/WebApp/Dockerfile
     ports:
       - 8001:443
       - 8000:80

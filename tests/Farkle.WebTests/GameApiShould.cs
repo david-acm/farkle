@@ -18,10 +18,10 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
   {
     _factory = factory;
     _client = factory.CreateClient();
-    AuthenticateClient().GetAwaiter().GetResult();
+    AuthenticateClientAsync().GetAwaiter().GetResult();
   }
 
-  private async Task AuthenticateClient()
+  private async Task AuthenticateClientAsync()
   {
     var email = $"test-{Guid.NewGuid():N}@farkle.dev";
     const string password = "Test@123!";
@@ -39,7 +39,7 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
   }
 
   [Fact]
-  public async Task RejectUnauthenticatedRequests()
+  public async Task RejectUnauthenticatedRequestsAsync()
   {
     var savedAuth = _client.DefaultRequestHeaders.Authorization;
     _client.DefaultRequestHeaders.Authorization = null;
