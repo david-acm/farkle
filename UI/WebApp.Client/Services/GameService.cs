@@ -22,7 +22,7 @@ public class GameService : IGameService
   public async Task<Result<IList<DieValue>>> RollDiceAsync(int gameId, int playerId)
   {
     var result =
-      await _gameClient.PostAsJsonAsync($"http://localhost:8000/api/games/{gameId}/players/{playerId}/rolls",
+      await _gameClient.PostAsJsonAsync($"api/games/{gameId}/players/{playerId}/rolls",
         new
         {
           GameId = gameId, PlayerId = playerId
@@ -47,7 +47,7 @@ public class GameService : IGameService
   
   public async Task JoinPlayerAsync(int gameId, int playerId, string playerName)
   {
-    await _gameClient.PostAsJsonAsync($"http://localhost:8000/api/games/{gameId}/players/{playerId}",
+    await _gameClient.PostAsJsonAsync($"api/games/{gameId}/players/{playerId}",
       new
       {
         PlayerName = playerName
@@ -55,7 +55,7 @@ public class GameService : IGameService
   }
   public async Task<HttpResponses.KeepDiceResponse> KeepDiceAsync(int gameId, int playerId, IEnumerable<int> diceToKeep)
   {
-    var result = await _gameClient.PostAsJsonAsync($"http://localhost:8000/api/games/{gameId}/players/{playerId}/keeps",
+    var result = await _gameClient.PostAsJsonAsync($"api/games/{gameId}/players/{playerId}/keeps",
       new
       {
         DiceValues = diceToKeep
@@ -77,7 +77,7 @@ public class GameService : IGameService
   public async Task<int> StartGameAsync(int gameId)
   {
     // TODO: remove hardcoded value
-    var result = await _gameClient.PostAsJsonAsync("http://localhost:8000/api/games", new
+    var result = await _gameClient.PostAsJsonAsync("api/games", new
     {
       Id = gameId
     });
