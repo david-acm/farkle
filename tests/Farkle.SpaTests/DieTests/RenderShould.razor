@@ -3,7 +3,7 @@
 @using Moq
 @using WebApp.Client.Pages.Game.Components
 @using WebApp.Client.Services
-@inherits TestContext
+@inherits BunitContext
 
 These tests are written entirely in razor and C# syntax.
 
@@ -23,7 +23,7 @@ Learn more at https://bunit.dev/docs/getting-started/writing-tests.html#creating
     Services.AddScoped<IRotationCalculator>(_ => mock);
 
     // Act
-    var cut = RenderComponent<Die>(c => c.Add(d => d.DieValue, DieValue.None));
+    var cut = Render<Die>(c => c.Add(d => d.DieValue, DieValue.None));
 
     cut.WaitForAssertion(() => cut.RenderCount.Should().Be(2),
       TimeSpan.FromMilliseconds(400));
@@ -43,7 +43,7 @@ Learn more at https://bunit.dev/docs/getting-started/writing-tests.html#creating
     Services.AddScoped<IRotationCalculator>(_ => mock);
 
     // Act
-    var cut = RenderComponent<Die>(c => c
+    var cut = Render<Die>(c => c
       .Add(d => d.DieValue,  DieValue.None)
       .Add(d => d.IsDragging, true));
 

@@ -33,8 +33,7 @@ public class GameApiWebAppFactory : WebApplicationFactory<Program>
     var path = Environment.GetEnvironmentVariable("PATH");
     Environment.SetEnvironmentVariable("PATH", path + ":/usr/local/bin");
 
-    var esdbContainer = new ContainerBuilder()
-      .WithImage("eventstore/eventstore:23.10.0-bookworm-slim")
+    var esdbContainer = new ContainerBuilder("eventstore/eventstore:23.10.0-bookworm-slim")
       .WithPortBinding(4113, true)
       .WithPortBinding(5113, true)
       .WithEnvironment(Variables)
@@ -44,8 +43,7 @@ public class GameApiWebAppFactory : WebApplicationFactory<Program>
     esdbContainer.StartAsync().GetAwaiter().GetResult();
     var esdbPort = esdbContainer.GetMappedPublicPort(5113);
 
-    var pgContainer = new ContainerBuilder()
-      .WithImage("postgres:16-alpine")
+    var pgContainer = new ContainerBuilder("postgres:16-alpine")
       .WithPortBinding(5432, true)
       .WithEnvironment("POSTGRES_USER", "farkle_test")
       .WithEnvironment("POSTGRES_PASSWORD", "farkle_test")
