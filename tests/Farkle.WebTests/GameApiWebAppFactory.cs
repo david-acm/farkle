@@ -1,4 +1,5 @@
 using DotNet.Testcontainers.Builders;
+using DotNet.Testcontainers.Containers;
 using EventStore.Client;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -29,36 +30,34 @@ public class GameApiWebAppFactory : WebApplicationFactory<Program>
   {
     // TODO: add configuration to decide between local (commented code) and azure database
     // TODO: Change path to be read from the dotnet user secrets instead of it being hardcoded here
-    var path     = Environment.GetEnvironmentVariable("PATH");
-    ushort esdbPort = 5113;
-    ushort pgPort = 5433;
+    var path = Environment.GetEnvironmentVariable("PATH");
     Environment.SetEnvironmentVariable("PATH", path + ":/usr/local/bin");
 
-    new ContainerBuilder()
+    var esdbContainer = new ContainerBuilder()
       .WithImage("eventstore/eventstore:23.10.0-bookworm-slim")
-      .WithPortBinding(4113)
-      .WithPortBinding(esdbPort)
+      .WithPortBinding(4113, true)
+      .WithPortBinding(5113, true)
       .WithEnvironment(Variables)
-      .WithWaitStrategy(Wait.ForUnixContainer().UntilHttpRequestIsSucceeded(r => r.ForPort(esdbPort)))
-      .WithAutoRemove(false).Build()
-      .StartAsync()
-      .GetAwaiter()
-      .GetResult();
+      .WithWaitStrategy(Wait.ForUnixContainer().UntilHttpRequestIsSucceeded(r => r.ForPort(5113)))
+      .WithAutoRemove(false).Build();
 
-    new ContainerBuilder()
+    esdbContainer.StartAsync().GetAwaiter().GetResult();
+    var esdbPort = esdbContainer.GetMappedPublicPort(5113);
+
+    var pgContainer = new ContainerBuilder()
       .WithImage("postgres:16-alpine")
-      .WithPortBinding(pgPort, 5432)
+      .WithPortBinding(5432, true)
       .WithEnvironment("POSTGRES_USER", "farkle_test")
       .WithEnvironment("POSTGRES_PASSWORD", "farkle_test")
       .WithEnvironment("POSTGRES_DB", "farkle_test")
       .WithWaitStrategy(Wait.ForUnixContainer().UntilCommandIsCompleted("pg_isready", "-U", "farkle_test"))
-      .WithAutoRemove(false).Build()
-      .StartAsync()
-      .GetAwaiter()
-      .GetResult();
+      .WithAutoRemove(false).Build();
+
+    pgContainer.StartAsync().GetAwaiter().GetResult();
+    var pgPort = pgContainer.GetMappedPublicPort(5432);
 
     base.ConfigureWebHost(builder);
-    var webBuilder = builder.ConfigureServices(s =>
+    builder.ConfigureServices(s =>
     {
       var esClient = s.First(s => s.ServiceType == typeof(EventStoreClient));
       s.Remove(esClient);
@@ -71,6 +70,5 @@ public class GameApiWebAppFactory : WebApplicationFactory<Program>
       var pgConnectionString = $"Host=localhost;Port={pgPort};Database=farkle_test;Username=farkle_test;Password=farkle_test";
       s.AddDbContext<AppDbContext>(o => o.UseNpgsql(pgConnectionString));
     });
-
   }
 }
