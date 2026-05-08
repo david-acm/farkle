@@ -133,6 +133,54 @@
         ]
       }
     },
+    "/games/{gameId}/players/{playerId}/turns": {
+      "post": {
+        "tags": [
+          "Api"
+        ],
+        "operationId": "FarkleEndpointsPassTurnEndpoint",
+        "parameters": [
+          {
+            "name": "gameId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "playerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FarkleContractsHttpResponses_PassTurnResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "JWTBearerAuth": []
+          }
+        ]
+      }
+    },
     "/games/{gameId}/players/{playerId}/rolls": {
       "post": {
         "tags": [
@@ -329,6 +377,53 @@
             }
           }
         }
+      },
+      "FarkleContractsHttpResponses_PassTurnResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "gameId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "playerId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "newScore": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "winner": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/FarkleContractsHttpResponses_WinnerResponse"
+              }
+            ]
+          }
+        }
+      },
+      "FarkleContractsHttpResponses_WinnerResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "playerId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string"
+          },
+          "score": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "FarkleContractsHttpRequests_PassTurnHttp": {
+        "type": "object",
+        "additionalProperties": false
       },
       "FarkleContractsHttpResponses_RollDiceResponse": {
         "type": "object",
