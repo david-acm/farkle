@@ -23,16 +23,8 @@ internal class AndValidator : Validator
 
   public override ValidationResult IsSatisfied()
   {
-    if (!_left.IsSatisfied())
-    {
-      return _left.IsSatisfied() with { IsValid = _left.IsSatisfied() };
-    }
-
-    if (_right.IsSatisfied())
-    {
-      return new ValidationResult(true, string.Empty);
-    }
-
-    return _right.IsSatisfied() with { IsValid = _right.IsSatisfied() };
+    var left = _left.IsSatisfied();
+    if (!left) return left;
+    return _right.IsSatisfied();
   }
 }
