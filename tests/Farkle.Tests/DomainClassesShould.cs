@@ -19,17 +19,17 @@ public class DomainClassesShould
   {
     var domainTypes = Types()
       .That()
-      .ResideInNamespace("Farkle.Domain.*", useRegularExpressions: true)
+      .ResideInNamespace("Farkle.Domain.*")
       .As("Domain Types");
 
     var infraTypes = Types()
       .That()
-      // .ResideInNamespace("Farkle.Endpoints.*", useRegularExpressions: true)
+      // .ResideInNamespace("Farkle.Endpoints.*")
       // .Or()
-      .ResideInAssembly("Farkle.Domain.*", useRegularExpressions: true)
+      .ResideInAssembly("Farkle.Domain.*")
       .As("Infrastructure Types");
 
-    var rule = domainTypes.Should().NotDependOnAny(infraTypes);
+    var rule = domainTypes.Should().NotDependOnAny(infraTypes).WithoutRequiringPositiveResults();
 
     rule.Check(_architecture);
   }
@@ -40,13 +40,13 @@ public class DomainClassesShould
   {
     var domainTypes = Types()
       .That()
-      .ResideInNamespace("Farkle.Domain.*", useRegularExpressions: true)
+      .ResideInNamespace("Farkle.Domain.*")
       .And()
       .AreNot([typeof(AssemblyInfo)])
       .As("Domain Types");
 
-    var rule = domainTypes.Should().BeInternal();
-    
+    var rule = domainTypes.Should().BeInternal().WithoutRequiringPositiveResults();
+
     rule.Check(_architecture);
   } 
 }

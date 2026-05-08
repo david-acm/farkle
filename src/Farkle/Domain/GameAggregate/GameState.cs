@@ -33,11 +33,11 @@ internal record GameState : State<GameState>
   public ImmutableDictionary<int, int> ScoreTable { get; private init; } =
     ImmutableDictionary<int, int>.Empty;
 
-  internal int PlayerInTurn => Players[0].Id;
+  internal int PlayerInTurn => Players.IsEmpty ? 0 : Players[0].Id;
 
   public Score GameScoreFor(PlayerId playerId)
   {
-    return new Score(ScoreTable[playerId]);
+    return new Score(ScoreTable.GetValueOrDefault(playerId, 0));
   }
 
   public Player GetPlayer(int id)

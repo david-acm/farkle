@@ -1,7 +1,6 @@
-@using AngleSharp.Diffing.Core
 @using WebApp.Client.Services
 @using WebApp.Client.Pages.Game.Components
-@inherits TestContext
+@inherits BunitContext
 
 @code {
 
@@ -9,7 +8,7 @@
   public void ShouldAnimate()
   {
     // Arrange
-    var context = new TestContext();
+    var context = new BunitContext();
     context.Services.AddScoped<IRotationCalculator, RotationCalculator>();
     var cut = context.Render(@<Die DieValue="DieValue.Four"></Die>);
     var die = cut.Find(".die-container");
@@ -19,20 +18,14 @@
 
     // Assert
     cut.WaitForAssertion(() =>
-    {
-      var changes = cut.GetChangesSinceFirstRender();
-      var change  = changes.ShouldHaveSingleChange() as TextDiff;
-      change?.Test.Node.NodeValue.Should()
-        .Contain(
-          @"scale3d(1.4, 1.4, 1.4);");
-    });
+      cut.Find("style").InnerHtml.Should().Contain(@"scale3d(1.4, 1.4, 1.4);"));
   }
 
   [Fact]
   public void ShouldReturnToInitialSize()
   {
     // Arrange
-    var context = new TestContext();
+    var context = new BunitContext();
     context.Services.AddScoped<IRotationCalculator, RotationCalculator>();
     var cut = context.Render(@<Die DieValue="DieValue.Four"></Die>);
     var die = cut.Find(".die-container");
@@ -43,18 +36,7 @@
 
     // Assert
     cut.WaitForAssertion(() =>
-    {
-      var changes = cut.GetChangesSinceFirstRender();
-      if (changes.Count > 0)
-      {
-        var change  = changes.ShouldHaveSingleChange() as TextDiff;
-        change?.Test.Node.NodeValue.Should().Contain(@"scale3d(1, 1, 1);");
-      }
-      else
-      {
-        cut.Find("style").InnerHtml.Should().Contain(@"scale3d(1, 1, 1);");
-      }
-    });
+      cut.Find("style").InnerHtml.Should().Contain(@"scale3d(1, 1, 1);"));
   }
 
 }

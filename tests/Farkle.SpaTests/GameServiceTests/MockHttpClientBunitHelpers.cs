@@ -13,7 +13,7 @@ public static class MockHttpClientBUnitHelpers
   private static readonly JsonSerializerOptions _camelCaseOptions =
     new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 
-  public static MockHttpMessageHandler AddMockHttpClient(this TestServiceProvider services)
+  public static MockHttpMessageHandler AddMockHttpClient(this IServiceCollection services)
   {
     var mockHttpHandler = new MockHttpMessageHandler();
     var httpClient      = mockHttpHandler.ToHttpClient();
