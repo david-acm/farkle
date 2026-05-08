@@ -65,6 +65,10 @@ builder.Services.AddRazorComponents()
     .AddInteractiveWebAssemblyComponents();
 
 builder.Services.AddMudServices();
+builder.Services.AddScoped(_ => new HttpClient
+{
+    BaseAddress = new Uri(builder.Configuration["BackendUrl"] ?? "http://localhost:5157")
+});
 builder.Services.RegisterClientServices();
 
 var app = builder.Build();
