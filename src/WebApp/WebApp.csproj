@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>93421bc4-e479-40e2-80fe-1138d1aa7207</UserSecretsId>
@@ -10,24 +10,23 @@
   <ItemGroup>
     <InternalsVisibleTo Include="Farkle.WebTests" />
   </ItemGroup>
-  
+
   <ItemGroup>
-    <PackageReference Include="serilog.aspnetcore" Version="8.0.3" />
-    <ProjectReference Include="..\Farkle\Farkle.csproj" />
-    <ProjectReference Include="..\WebApp.Client\WebApp.Client.csproj" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="8.0.13" />
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="7.2.0" />
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.3" />
+    <PackageReference Include="serilog.aspnetcore" Version="10.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="10.0.7" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.7" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.7" />
+    <!-- FastEndpoints: pinned to 5.x — migration to 8.x requires API updates tracked separately. -->
     <PackageReference Include="FastEndpoints.Security" Version="5.34.0" />
     <PackageReference Include="FastEndpoints.Swagger" Version="5.34.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.13" />
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.11" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.13">
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.7" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.1" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.7">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
   </ItemGroup>
-  
+
   <ItemGroup>
     <Content Include="..\..\dockerignore">
       <Link>.dockerignore</Link>
@@ -36,15 +35,21 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="NSwag.MSBuild" Version="14.2.0">
+    <PackageReference Include="NSwag.MSBuild" Version="14.7.1">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
   </ItemGroup>
 
-  <Target Name="GenerateSwaggerJson" AfterTargets="Build">
-    <Exec Command="$(NSwagExe_Net80) run nswag.json /variables:Configuration=$(Configuration)"
+  <Target Name="GenerateSwaggerJson" AfterTargets="Build"
+          Condition="'$(GenerateSwagger)' == 'true'">
+    <Exec Command="$(NSwagExe_Net100) run nswag.json /variables:Configuration=$(Configuration)"
           EnvironmentVariables="ASPNETCORE_ENVIRONMENT=NSwag" />
   </Target>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Farkle\Farkle.csproj" />
+    <ProjectReference Include="..\WebApp.Client\WebApp.Client.csproj" />
+  </ItemGroup>
 
 </Project>
