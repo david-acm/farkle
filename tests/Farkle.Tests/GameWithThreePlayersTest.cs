@@ -10,6 +10,7 @@ public class GameWithThreePlayersTest
   private readonly   IRandom              _randomProvider;
   internal readonly Game                 Game;
   protected readonly ITestOutputHelper    Output;
+  internal           IRandom              RandomProvider => _randomProvider;
   private            List<int>.Enumerator _enumerator;
 
   protected GameWithThreePlayersTest(ITestOutputHelper output)

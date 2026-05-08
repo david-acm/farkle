@@ -1,6 +1,7 @@
 using Farkle.Domain.GameAggregate;
 using FluentAssertions;
 using Farkle.Tests.Framework;
+using Moq;
 using Xunit.Abstractions;
 using static Farkle.Domain.GameAggregate.Command;
 using static Farkle.Domain.GameAggregate.DieValue;
@@ -112,6 +113,17 @@ public class RollShould : GameWithThreePlayersTest
       .Satisfy(e =>
         ((V1.PlayedOutOfTurn)e).TriedToPlay    == 2 &&
         ((V1.PlayedOutOfTurn)e).ExpectedPlayer == 1);
+  }
+
+  [Fact]
+  public void RequestDieValuesUpToAndIncludingSix()
+  {
+    // Act
+    Game.RollDiceV2(new RollDice(1, 1));
+
+    // Assert — Random.Next upper bound must be 7 (exclusive) so that 6 is reachable
+    Mock.Get(RandomProvider)
+      .Verify(r => r.Next(1, 7), Times.Exactly(6));
   }
 
   [Fact]
