@@ -15,12 +15,8 @@ public static class ClientServiceExtensions
     services.AddSingleton<IRotationCalculator, RotationCalculator>();
     services.AddScoped<FarkleApiClient>(sp =>
     {
-      var baseAddress = sp.GetRequiredService<HttpClient>().BaseAddress;
-      var httpClient  = new HttpClient(new EmptyBodyJsonHandler(new HttpClientHandler()))
-      {
-        BaseAddress = baseAddress
-      };
-      var adapter = new HttpClientRequestAdapter(new AnonymousAuthenticationProvider(), httpClient: httpClient);
+      var httpClient = sp.GetRequiredService<HttpClient>();
+      var adapter    = new HttpClientRequestAdapter(new AnonymousAuthenticationProvider(), httpClient: httpClient);
       adapter.BaseUrl = httpClient.BaseAddress?.ToString().TrimEnd('/') ?? string.Empty;
       return new FarkleApiClient(adapter);
     });
