@@ -85,7 +85,7 @@ else
     app.UseHsts();
 }
 
-app.UseStaticFiles();
+app.MapStaticAssets();
 
 if (!app.Environment.IsEnvironment("NSwag"))
     app.SetUpFarkleModule();
@@ -104,7 +104,8 @@ app.UseAntiforgery();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()
     .AddInteractiveWebAssemblyRenderMode()
-    .AddAdditionalAssemblies(typeof(Counter).Assembly);
+    .AddAdditionalAssemblies(typeof(Counter).Assembly)
+    .WithStaticAssets();
 
 if (!app.Environment.IsEnvironment("NSwag"))
 {
