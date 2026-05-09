@@ -4,6 +4,7 @@ using EventStore.Client;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using WebApp.Auth;
 
@@ -55,6 +56,11 @@ public class GameApiWebAppFactory : WebApplicationFactory<Program>
     var pgPort = pgContainer.GetMappedPublicPort(5432);
 
     base.ConfigureWebHost(builder);
+    builder.ConfigureAppConfiguration(config =>
+      config.AddInMemoryCollection(new Dictionary<string, string?>
+      {
+        { "Auth:RequireAuthorization", "true" }
+      }));
     builder.ConfigureServices(s =>
     {
       var esClient = s.First(s => s.ServiceType == typeof(EventStoreClient));
