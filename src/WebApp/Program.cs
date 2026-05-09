@@ -112,6 +112,14 @@ if (!app.Environment.IsEnvironment("NSwag"))
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.Migrate();
+
+    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
+    const string seedEmail = "player1@email.com";
+    if (await userManager.FindByEmailAsync(seedEmail) is null)
+    {
+        var seedUser = new AppUser { UserName = seedEmail, Email = seedEmail };
+        await userManager.CreateAsync(seedUser, "Pass@word1");
+    }
 }
 
 app.Run();
