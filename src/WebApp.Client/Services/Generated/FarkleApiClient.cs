@@ -10,8 +10,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using System;
-using WebApp.Client.Services.Generated.Auth;
-using WebApp.Client.Services.Generated.Games;
+using WebApp.Client.Services.Generated.Api;
 namespace WebApp.Client.Services.Generated
 {
     /// <summary>
@@ -20,15 +19,10 @@ namespace WebApp.Client.Services.Generated
     [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
     public partial class FarkleApiClient : BaseRequestBuilder
     {
-        /// <summary>The auth property</summary>
-        public global::WebApp.Client.Services.Generated.Auth.AuthRequestBuilder Auth
+        /// <summary>The api property</summary>
+        public global::WebApp.Client.Services.Generated.Api.ApiRequestBuilder Api
         {
-            get => new global::WebApp.Client.Services.Generated.Auth.AuthRequestBuilder(PathParameters, RequestAdapter);
-        }
-        /// <summary>The games property</summary>
-        public global::WebApp.Client.Services.Generated.Games.GamesRequestBuilder Games
-        {
-            get => new global::WebApp.Client.Services.Generated.Games.GamesRequestBuilder(PathParameters, RequestAdapter);
+            get => new global::WebApp.Client.Services.Generated.Api.ApiRequestBuilder(PathParameters, RequestAdapter);
         }
         /// <summary>
         /// Instantiates a new <see cref="global::WebApp.Client.Services.Generated.FarkleApiClient"/> and sets the default values.
@@ -45,7 +39,7 @@ namespace WebApp.Client.Services.Generated
             ApiClientBuilder.RegisterDefaultDeserializer<FormParseNodeFactory>();
             if (string.IsNullOrEmpty(RequestAdapter.BaseUrl))
             {
-                RequestAdapter.BaseUrl = "/api";
+                RequestAdapter.BaseUrl = "http://localhost:5157";
             }
             PathParameters.TryAdd("baseurl", RequestAdapter.BaseUrl);
         }

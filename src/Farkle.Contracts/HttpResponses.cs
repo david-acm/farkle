@@ -11,4 +11,8 @@ public static class HttpResponses
   public record RollDiceResponse(int Id, int[] DiceValues);
   
   public record StartGameResponse(int Id);
+
+  public record PassTurnResponse(int GameId, int PlayerId, int NewScore, WinnerResponse? Winner);
+
+  public record WinnerResponse(int PlayerId, string Name, int Score);
 }

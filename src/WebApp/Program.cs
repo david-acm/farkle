@@ -10,7 +10,6 @@ using WebApp.Client.Pages;
 using WebApp.Components;
 using MudBlazor.Services;
 using Serilog;
-using WebApp;
 using WebApp.Client;
 
 var logger = Log.Logger = new LoggerConfiguration()
@@ -45,7 +44,7 @@ services
     s.SigningKey = builder.Configuration["Auth:JwtSecret"];
   })
   .AddAuthorization()
-  .SwaggerDocument(o => o.DocumentSettings = s => s.DocumentProcessors.Add(new ApiPrefixDocumentProcessor()))
+  .SwaggerDocument()
   .AddFastEndpoints(o =>
   {
       o.Assemblies = new[]
@@ -86,6 +85,7 @@ else
 }
 
 app.UseStaticFiles();
+app.MapStaticAssets();
 
 if (!app.Environment.IsEnvironment("NSwag"))
     app.SetUpFarkleModule();
@@ -104,13 +104,22 @@ app.UseAntiforgery();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()
     .AddInteractiveWebAssemblyRenderMode()
-    .AddAdditionalAssemblies(typeof(Counter).Assembly);
+    .AddAdditionalAssemblies(typeof(Counter).Assembly)
+    .WithStaticAssets();
 
 if (!app.Environment.IsEnvironment("NSwag"))
 {
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.Migrate();
+
+    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
+    const string seedEmail = "player1@email.com";
+    if (await userManager.FindByEmailAsync(seedEmail) is null)
+    {
+        var seedUser = new AppUser { UserName = seedEmail, Email = seedEmail };
+        await userManager.CreateAsync(seedUser, "Pass@word1");
+    }
 }
 
 app.Run();

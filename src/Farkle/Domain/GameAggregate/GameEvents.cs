@@ -62,6 +62,9 @@ internal static class GameEvents
 
     [EventType("V1.PassedWithoutRolling")]
     internal record PassedWithoutRolling(int PlayerId) : IErrorEvent;
+
+    [EventType("V1.GameWon")]
+    internal record GameWon(int PlayerId, int Score);
   }
 
   internal static class V2
