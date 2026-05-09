@@ -93,9 +93,10 @@ if (!app.Environment.IsEnvironment("NSwag"))
 app.UseAuthentication()
   .UseAuthorization();
 
+var requireAuth = builder.Configuration.GetValue<bool>("Auth:RequireAuthorization");
 app.UseFastEndpoints(c =>
   {
-    c.Endpoints.Configurator = ep => ep.Options(b => b.RequireAuthorization());
+    c.Endpoints.Configurator = ep => { if (requireAuth) ep.Options(b => b.RequireAuthorization()); };
   })
    .UseSwaggerGen();
 

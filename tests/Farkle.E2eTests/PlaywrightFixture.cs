@@ -31,6 +31,22 @@ public class PlaywrightFixture : IAsyncLifetime
         return await context.NewPageAsync();
     }
 
+    /// <summary>
+    /// Creates a browser context that records video into <paramref name="videoDir"/>.
+    /// Caller must close the context after the test to finalise the recording, then
+    /// call <c>page.Video!.PathAsync()</c> to retrieve the generated file path.
+    /// </summary>
+    public async Task<IBrowserContext> NewContextWithVideoAsync(string videoDir)
+    {
+        Directory.CreateDirectory(videoDir);
+        return await _browser.NewContextAsync(new()
+        {
+            BaseURL       = BaseUrl,
+            RecordVideoDir  = videoDir,
+            RecordVideoSize = new RecordVideoSize { Width = 1280, Height = 720 }
+        });
+    }
+
     public async Task DisposeAsync()
     {
         await _browser.DisposeAsync();

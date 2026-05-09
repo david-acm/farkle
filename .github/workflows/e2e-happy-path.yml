@@ -1,0 +1,88 @@
+name: E2E Happy-Path Tests
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      issues: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore tests/Farkle.E2eTests/Farkle.E2eTests.csproj
+
+      - name: Build
+        run: dotnet build tests/Farkle.E2eTests/Farkle.E2eTests.csproj --no-restore
+
+      - name: Install Playwright Chromium
+        run: |
+          dotnet tool install -g Microsoft.Playwright.CLI
+          playwright install chromium --with-deps
+
+      - name: Run happy-path e2e tests
+        run: >
+          dotnet test tests/Farkle.E2eTests/Farkle.E2eTests.csproj
+          --no-build
+          --filter "FullyQualifiedName~GameHappyPath"
+          --logger "trx;LogFileName=e2e-results.trx"
+          --results-directory test-results
+
+      - name: Upload test videos
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-videos-${{ github.run_id }}
+          path: test-results/videos/
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Upload TRX results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-trx-${{ github.run_id }}
+          path: test-results/e2e-results.trx
+          if-no-files-found: warn
+
+      - name: Comment on PR with video links
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const outcome = '${{ job.status }}' === 'success' ? '✅ passed' : '❌ failed';
+            const body = [
+              `## E2E Happy-Path Tests ${outcome}`,
+              '',
+              `**Videos** (download from the run artifacts):`,
+              `- [e2e-videos-${context.runId}](${runUrl}#artifacts)`,
+              '',
+              `| Recording | Description |`,
+              `|-----------|-------------|`,
+              `| \`ShowDiceAfterRolling.webm\` | Roll button clicked, dice appear |`,
+              `| \`CanDragDieToSetAsideZone.webm\` | Die dragged from Rolled → SetAside zone |`,
+              `| \`ScoreIncreasesAfterKeepingAScoringDie.webm\` | Full keep cycle, score updates |`,
+              `| \`TurnScoreDisplayIsVisible.webm\` | Score heading visible after WASM hydration |`,
+              '',
+              `[View full run](${runUrl})`,
+            ].join('\n');
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo:  context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });
