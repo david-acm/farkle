@@ -63,7 +63,6 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents()
     .AddInteractiveWebAssemblyComponents();
 
-builder.Services.AddMudServices();
 builder.Services.AddScoped(_ => new HttpClient
 {
     BaseAddress = new Uri(builder.Configuration["BackendUrl"] ?? "http://localhost:5157")
@@ -93,10 +92,9 @@ if (!app.Environment.IsEnvironment("NSwag"))
 app.UseAuthentication()
   .UseAuthorization();
 
-var requireAuth = builder.Configuration.GetValue<bool>("Auth:RequireAuthorization");
 app.UseFastEndpoints(c =>
   {
-    c.Endpoints.Configurator = ep => { if (requireAuth) ep.Options(b => b.RequireAuthorization()); };
+    c.Endpoints.Configurator = ep => ep.Options(b => b.RequireAuthorization());
   })
    .UseSwaggerGen();
 
