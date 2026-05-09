@@ -10,7 +10,6 @@ using WebApp.Client.Pages;
 using WebApp.Components;
 using MudBlazor.Services;
 using Serilog;
-using WebApp;
 using WebApp.Client;
 
 var logger = Log.Logger = new LoggerConfiguration()
@@ -45,7 +44,7 @@ services
     s.SigningKey = builder.Configuration["Auth:JwtSecret"];
   })
   .AddAuthorization()
-  .SwaggerDocument(o => o.DocumentSettings = s => s.DocumentProcessors.Add(new ApiPrefixDocumentProcessor()))
+  .SwaggerDocument()
   .AddFastEndpoints(o =>
   {
       o.Assemblies = new[]
