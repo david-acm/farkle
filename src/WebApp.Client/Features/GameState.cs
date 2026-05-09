@@ -1,4 +1,4 @@
-﻿using BlazorState;
+using BlazorState;
 using WebApp.Client.Pages.Game.Components;
 
 namespace WebApp.Client.Features;
@@ -24,6 +24,7 @@ public partial class GameState : State<GameState>
   public  string    ErrorMessage     { get; private set; } = string.Empty;
   public  bool      ShowError        { get; private set; }
   public  object    LastErrorMessage { get; private set; } = string.Empty;
+  public  string?   WinnerName       { get; set; }
   
   public override void Initialize()
   {

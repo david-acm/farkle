@@ -1,4 +1,4 @@
-﻿@page "/games/{ParameterGameId:int}"
+@page "/games/{ParameterGameId:int}"
 @inherits BlazorState.BlazorStateComponent
 @rendermode @(new InteractiveWebAssemblyRenderMode(prerender: false))
 
@@ -20,14 +20,17 @@
 
 
 <MudGrid Spacing="1" Class="mt-8">
-  <MudItem xs="12" sm="6" md="4">
+  <MudItem xs="12" sm="6" md="3">
     <StartGameButton />
   </MudItem>
-  <MudItem xs="12" sm="6" md="4">
+  <MudItem xs="12" sm="6" md="3">
+    <RollDiceButton />
+  </MudItem>
+  <MudItem xs="12" sm="6" md="3">
     <KeepButton />
   </MudItem>
-  <MudItem xs="12" sm="6" md="4">
-    <RollDiceButton />
+  <MudItem xs="12" sm="6" md="3">
+    <PassTurnButton />
   </MudItem>
 </MudGrid>
 

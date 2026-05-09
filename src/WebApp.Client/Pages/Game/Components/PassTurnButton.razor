@@ -1,0 +1,13 @@
+@using WebApp.Client.Features
+@inherits BlazorStateComponent
+
+<AppButton OnClick="PassTurnAsync">
+  Pass Turn
+</AppButton>
+
+@code {
+  private void PassTurnAsync()
+  {
+    Mediator.Send(new GameState.PassTurn.Action());
+  }
+}
