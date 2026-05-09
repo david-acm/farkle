@@ -1,516 +1,148 @@
 {
-  "x-generator": "NSwag v14.2.0.0 (NJsonSchema v11.1.0.0 (Newtonsoft.Json v13.0.0.0))",
-  "openapi": "3.0.0",
-  "info": {
-    "title": "NSwag.AspNetCore.Launcher",
-    "version": "1.0.0"
-  },
-  "servers": [
-    {
-      "url": "/api"
+    "x-generator": "NSwag v14.2.0.0 (NJsonSchema v11.1.0.0 (Newtonsoft.Json v13.0.0.0))",
+    "openapi": "3.0.0",
+    "info": {
+        "title": "WebApp",
+        "version": "1.0.0"
+    },
+    "servers": [
+        {
+            "url": "http://localhost:5157"
+        }
+    ],
+    "paths": {
+        "/api/games/{gameId}/players/{playerId}": {
+            "post": {
+                "tags": ["Api"],
+                "operationId": "FarkleEndpointsJoinPlayerEndpoint",
+                "parameters": [
+                    {"name": "gameId", "in": "path", "required": true, "schema": {"type": "integer", "format": "int32"}},
+                    {"name": "playerId", "in": "path", "required": true, "schema": {"type": "integer", "format": "int32"}}
+                ],
+                "requestBody": {
+                    "x-name": "JoinPlayerRequest",
+                    "content": {"application/json": {"schema": {"$ref": "#/components/schemas/FarkleContractsHttpRequests_JoinPlayerRequest"}}},
+                    "required": true, "x-position": 1
+                },
+                "responses": {
+                    "200": {"description": "Success", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/FarkleContractsHttpResponses_JoinPlayerResponse"}}}},
+                    "401": {"description": "Unauthorized"}
+                },
+                "security": [{"JWTBearerAuth": []}]
+            }
+        },
+        "/api/games/{gameId}/players/{playerId}/keeps": {
+            "post": {
+                "tags": ["Api"],
+                "operationId": "FarkleEndpointsKeepDiceEndpoint",
+                "parameters": [
+                    {"name": "gameId", "in": "path", "required": true, "schema": {"type": "integer", "format": "int32"}},
+                    {"name": "playerId", "in": "path", "required": true, "schema": {"type": "integer", "format": "int32"}}
+                ],
+                "requestBody": {
+                    "x-name": "KeepDiceRequest",
+                    "content": {"application/json": {"schema": {"$ref": "#/components/schemas/FarkleContractsHttpRequests_KeepDiceRequest"}}},
+                    "required": true, "x-position": 1
+                },
+                "responses": {
+                    "200": {"description": "Success", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/FarkleContractsHttpResponses_KeepDiceResponse"}}}},
+                    "401": {"description": "Unauthorized"}
+                },
+                "security": [{"JWTBearerAuth": []}]
+            }
+        },
+        "/api/games/{gameId}/players/{playerId}/turns": {
+            "post": {
+                "tags": ["Api"],
+                "operationId": "FarkleEndpointsPassTurnEndpoint",
+                "parameters": [
+                    {"name": "gameId", "in": "path", "required": true, "schema": {"type": "integer", "format": "int32"}},
+                    {"name": "playerId", "in": "path", "required": true, "schema": {"type": "integer", "format": "int32"}}
+                ],
+                "responses": {
+                    "200": {"description": "Success", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/FarkleContractsHttpResponses_PassTurnResponse"}}}},
+                    "401": {"description": "Unauthorized"}
+                },
+                "security": [{"JWTBearerAuth": []}]
+            }
+        },
+        "/api/games/{gameId}/players/{playerId}/rolls": {
+            "post": {
+                "tags": ["Api"],
+                "operationId": "FarkleEndpointsRollDiceEndpoint",
+                "parameters": [
+                    {"name": "gameId", "in": "path", "required": true, "schema": {"type": "integer", "format": "int32"}},
+                    {"name": "playerId", "in": "path", "required": true, "schema": {"type": "integer", "format": "int32"}}
+                ],
+                "responses": {
+                    "200": {"description": "Success", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/FarkleContractsHttpResponses_RollDiceResponse"}}}},
+                    "401": {"description": "Unauthorized"}
+                },
+                "security": [{"JWTBearerAuth": []}]
+            }
+        },
+        "/api/games": {
+            "post": {
+                "tags": ["Api"],
+                "operationId": "FarkleEndpointsStartGame+StartGameEndpoint",
+                "requestBody": {
+                    "x-name": "StartGameRequest",
+                    "content": {"application/json": {"schema": {"$ref": "#/components/schemas/FarkleContractsHttpRequests_StartGameRequest"}}},
+                    "required": true, "x-position": 1
+                },
+                "responses": {
+                    "200": {"description": "Success", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/FarkleContractsHttpResponses_StartGameResponse"}}}},
+                    "401": {"description": "Unauthorized"}
+                },
+                "security": [{"JWTBearerAuth": []}]
+            }
+        },
+        "/api/auth/login": {
+            "post": {
+                "tags": ["Api"],
+                "operationId": "WebAppAuthLoginEndpoint",
+                "requestBody": {
+                    "x-name": "LoginRequest",
+                    "content": {"application/json": {"schema": {"$ref": "#/components/schemas/WebAppAuthLoginRequest"}}},
+                    "required": true, "x-position": 1
+                },
+                "responses": {
+                    "200": {"description": "Success", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/WebAppAuthLoginResponse"}}}}
+                }
+            }
+        },
+        "/api/auth/register": {
+            "post": {
+                "tags": ["Api"],
+                "operationId": "WebAppAuthRegisterEndpoint",
+                "requestBody": {
+                    "x-name": "RegisterRequest",
+                    "content": {"application/json": {"schema": {"$ref": "#/components/schemas/WebAppAuthRegisterRequest"}}},
+                    "required": true, "x-position": 1
+                },
+                "responses": {
+                    "204": {"description": "No Content"}
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "FarkleContractsHttpResponses_JoinPlayerResponse": {"type": "object", "additionalProperties": false, "properties": {"id": {"type": "integer", "format": "int32"}}},
+            "FarkleContractsHttpRequests_JoinPlayerRequest": {"type": "object", "additionalProperties": false, "properties": {"playerName": {"type": "string"}}},
+            "FarkleContractsHttpResponses_KeepDiceResponse": {"type": "object", "additionalProperties": false, "properties": {"id": {"type": "integer", "format": "int32"}, "turnScore": {"type": "integer", "format": "int32"}}},
+            "FarkleContractsHttpRequests_KeepDiceRequest": {"type": "object", "additionalProperties": false, "properties": {"diceValues": {"type": "array", "items": {"type": "integer", "format": "int32"}}}},
+            "FarkleContractsHttpResponses_PassTurnResponse": {"type": "object", "additionalProperties": false, "properties": {"gameId": {"type": "integer", "format": "int32"}, "playerId": {"type": "integer", "format": "int32"}, "newScore": {"type": "integer", "format": "int32"}, "winner": {"nullable": true, "oneOf": [{"$ref": "#/components/schemas/FarkleContractsHttpResponses_WinnerResponse"}]}}},
+            "FarkleContractsHttpResponses_WinnerResponse": {"type": "object", "additionalProperties": false, "properties": {"playerId": {"type": "integer", "format": "int32"}, "name": {"type": "string"}, "score": {"type": "integer", "format": "int32"}}},
+            "FarkleContractsHttpResponses_RollDiceResponse": {"type": "object", "additionalProperties": false, "properties": {"id": {"type": "integer", "format": "int32"}, "diceValues": {"type": "array", "items": {"type": "integer", "format": "int32"}}}},
+            "FarkleContractsHttpResponses_StartGameResponse": {"type": "object", "additionalProperties": false, "properties": {"id": {"type": "integer", "format": "int32"}}},
+            "FarkleContractsHttpRequests_StartGameRequest": {"type": "object", "additionalProperties": false, "properties": {"id": {"type": "integer", "format": "int32"}}},
+            "WebAppAuthLoginResponse": {"type": "object", "additionalProperties": false, "properties": {"token": {"type": "string"}, "expiresAt": {"type": "string", "format": "date-time"}}},
+            "WebAppAuthLoginRequest": {"type": "object", "additionalProperties": false, "properties": {"email": {"type": "string"}, "password": {"type": "string"}}},
+            "WebAppAuthRegisterRequest": {"type": "object", "additionalProperties": false, "properties": {"email": {"type": "string"}, "password": {"type": "string"}}}
+        },
+        "securitySchemes": {
+            "JWTBearerAuth": {"type": "http", "description": "Enter a JWT token to authorize the requests...", "scheme": "Bearer", "bearerFormat": "JWT"}
+        }
     }
-  ],
-  "paths": {
-    "/games/{gameId}/players/{playerId}": {
-      "post": {
-        "tags": [
-          "Api"
-        ],
-        "operationId": "FarkleEndpointsJoinPlayerEndpoint",
-        "parameters": [
-          {
-            "name": "gameId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          },
-          {
-            "name": "playerId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          }
-        ],
-        "requestBody": {
-          "x-name": "JoinPlayerRequest",
-          "description": "",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/FarkleContractsHttpRequests_JoinPlayerRequest"
-              }
-            }
-          },
-          "required": true,
-          "x-position": 1
-        },
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FarkleContractsHttpResponses_JoinPlayerResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized"
-          }
-        },
-        "security": [
-          {
-            "JWTBearerAuth": []
-          }
-        ]
-      }
-    },
-    "/games/{gameId}/players/{playerId}/keeps": {
-      "post": {
-        "tags": [
-          "Api"
-        ],
-        "operationId": "FarkleEndpointsKeepDiceEndpoint",
-        "parameters": [
-          {
-            "name": "gameId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          },
-          {
-            "name": "playerId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          }
-        ],
-        "requestBody": {
-          "x-name": "KeepDiceRequest",
-          "description": "",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/FarkleContractsHttpRequests_KeepDiceRequest"
-              }
-            }
-          },
-          "required": true,
-          "x-position": 1
-        },
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FarkleContractsHttpResponses_KeepDiceResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized"
-          }
-        },
-        "security": [
-          {
-            "JWTBearerAuth": []
-          }
-        ]
-      }
-    },
-    "/games/{gameId}/players/{playerId}/turns": {
-      "post": {
-        "tags": [
-          "Api"
-        ],
-        "operationId": "FarkleEndpointsPassTurnEndpoint",
-        "parameters": [
-          {
-            "name": "gameId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          },
-          {
-            "name": "playerId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FarkleContractsHttpResponses_PassTurnResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized"
-          }
-        },
-        "security": [
-          {
-            "JWTBearerAuth": []
-          }
-        ]
-      }
-    },
-    "/games/{gameId}/players/{playerId}/rolls": {
-      "post": {
-        "tags": [
-          "Api"
-        ],
-        "operationId": "FarkleEndpointsRollDiceEndpoint",
-        "parameters": [
-          {
-            "name": "gameId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          },
-          {
-            "name": "playerId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FarkleContractsHttpResponses_RollDiceResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized"
-          }
-        },
-        "security": [
-          {
-            "JWTBearerAuth": []
-          }
-        ]
-      }
-    },
-    "/games": {
-      "post": {
-        "tags": [
-          "Api"
-        ],
-        "operationId": "FarkleEndpointsStartGame+StartGameEndpoint",
-        "requestBody": {
-          "x-name": "StartGameRequest",
-          "description": "",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/FarkleContractsHttpRequests_StartGameRequest"
-              }
-            }
-          },
-          "required": true,
-          "x-position": 1
-        },
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FarkleContractsHttpResponses_StartGameResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized"
-          }
-        },
-        "security": [
-          {
-            "JWTBearerAuth": []
-          }
-        ]
-      }
-    },
-    "/auth/login": {
-      "post": {
-        "tags": [
-          "Api"
-        ],
-        "operationId": "WebAppAuthLoginEndpoint",
-        "requestBody": {
-          "x-name": "LoginRequest",
-          "description": "",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/WebAppAuthLoginRequest"
-              }
-            }
-          },
-          "required": true,
-          "x-position": 1
-        },
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WebAppAuthLoginResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/auth/register": {
-      "post": {
-        "tags": [
-          "Api"
-        ],
-        "operationId": "WebAppAuthRegisterEndpoint",
-        "requestBody": {
-          "x-name": "RegisterRequest",
-          "description": "",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/WebAppAuthRegisterRequest"
-              }
-            }
-          },
-          "required": true,
-          "x-position": 1
-        },
-        "responses": {
-          "204": {
-            "description": "No Content"
-          }
-        }
-      }
-    }
-  },
-  "components": {
-    "schemas": {
-      "FarkleContractsHttpResponses_JoinPlayerResponse": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "id": {
-            "type": "integer",
-            "format": "int32"
-          }
-        }
-      },
-      "FarkleContractsHttpRequests_JoinPlayerRequest": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "playerName": {
-            "type": "string"
-          }
-        }
-      },
-      "FarkleContractsHttpResponses_KeepDiceResponse": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "id": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "turnScore": {
-            "type": "integer",
-            "format": "int32"
-          }
-        }
-      },
-      "FarkleContractsHttpRequests_KeepDiceRequest": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "diceValues": {
-            "type": "array",
-            "items": {
-              "type": "integer",
-              "format": "int32"
-            }
-          }
-        }
-      },
-      "FarkleContractsHttpResponses_PassTurnResponse": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "gameId": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "playerId": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "newScore": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "winner": {
-            "nullable": true,
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/FarkleContractsHttpResponses_WinnerResponse"
-              }
-            ]
-          }
-        }
-      },
-      "FarkleContractsHttpResponses_WinnerResponse": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "playerId": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "name": {
-            "type": "string"
-          },
-          "score": {
-            "type": "integer",
-            "format": "int32"
-          }
-        }
-      },
-      "FarkleContractsHttpRequests_PassTurnHttp": {
-        "type": "object",
-        "additionalProperties": false
-      },
-      "FarkleContractsHttpResponses_RollDiceResponse": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "id": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "diceValues": {
-            "type": "array",
-            "items": {
-              "type": "integer",
-              "format": "int32"
-            }
-          }
-        }
-      },
-      "FarkleContractsHttpRequests_RollDiceRequest": {
-        "type": "object",
-        "additionalProperties": false
-      },
-      "FarkleContractsHttpResponses_StartGameResponse": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "id": {
-            "type": "integer",
-            "format": "int32"
-          }
-        }
-      },
-      "FarkleContractsHttpRequests_StartGameRequest": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "id": {
-            "type": "integer",
-            "format": "int32"
-          }
-        }
-      },
-      "WebAppAuthLoginResponse": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "token": {
-            "type": "string"
-          },
-          "expiresAt": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
-      },
-      "WebAppAuthLoginRequest": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "email": {
-            "type": "string"
-          },
-          "password": {
-            "type": "string"
-          }
-        }
-      },
-      "WebAppAuthRegisterRequest": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "email": {
-            "type": "string"
-          },
-          "password": {
-            "type": "string"
-          }
-        }
-      }
-    },
-    "securitySchemes": {
-      "JWTBearerAuth": {
-        "type": "http",
-        "description": "Enter a JWT token to authorize the requests...",
-        "scheme": "Bearer",
-        "bearerFormat": "JWT"
-      }
-    }
-  }
 }
