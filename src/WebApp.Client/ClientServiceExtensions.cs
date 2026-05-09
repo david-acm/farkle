@@ -17,7 +17,7 @@ public static class ClientServiceExtensions
     {
       var httpClient = sp.GetRequiredService<HttpClient>();
       var adapter    = new HttpClientRequestAdapter(new AnonymousAuthenticationProvider(), httpClient: httpClient);
-      adapter.BaseUrl = (httpClient.BaseAddress?.ToString().TrimEnd('/') ?? string.Empty) + "/api";
+      adapter.BaseUrl = httpClient.BaseAddress?.ToString().TrimEnd('/') ?? string.Empty;
       return new FarkleApiClient(adapter);
     });
     services.AddScoped<IGameService, GameService>();
