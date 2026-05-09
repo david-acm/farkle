@@ -61,7 +61,7 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
     private async Task NavigateAndWaitForWasmAsync(IPage page)
     {
         await page.GotoAsync($"/games/{GameId}");
-        await page.WaitForSelectorAsync("button:has-text('Roll')", new() { Timeout = WasmTimeoutMs });
+        await page.WaitForSelectorAsync($"h3:has-text('{GameId}')", new() { Timeout = WasmTimeoutMs });
     }
 
     // ── tests ─────────────────────────────────────────────────────────────
