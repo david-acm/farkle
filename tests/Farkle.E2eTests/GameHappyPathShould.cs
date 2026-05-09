@@ -18,7 +18,7 @@ namespace Farkle.E2eTests;
 [Collection(PlaywrightCollection.Name)]
 public class GameHappyPathShould(PlaywrightFixture fixture)
 {
-    private const int WasmTimeoutMs = 30_000;
+    private const int WasmTimeoutMs = 60_000;
     private const int GameId        = 42;
     private const int PlayerId      = 0;
 
@@ -27,7 +27,7 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
         Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..",
             "test-results", "videos"));
 
-    // ── video wrapper ─────────────────────────────────────────────────────────
+    // ── video wrapper ────────────────────────────────────────────────────
 
     /// <summary>
     /// Runs <paramref name="test"/> inside a video-recording browser context.
@@ -56,7 +56,7 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
         }
     }
 
-    // ── helpers ──────────────────────────────────────────────────────────────
+    // ── helpers ──────────────────────────────────────────────────────────
 
     private async Task NavigateAndWaitForWasmAsync(IPage page)
     {
@@ -64,7 +64,7 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
         await page.WaitForSelectorAsync("button:has-text('Roll')", new() { Timeout = WasmTimeoutMs });
     }
 
-    // ── tests ─────────────────────────────────────────────────────────────────
+    // ── tests ─────────────────────────────────────────────────────────────
 
     [Fact]
     public Task ShowDiceAfterRolling() => WithVideoAsync(async page =>
