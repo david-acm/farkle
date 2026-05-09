@@ -63,6 +63,7 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents()
     .AddInteractiveWebAssemblyComponents();
 
+builder.Services.AddMudServices();
 builder.Services.AddScoped(_ => new HttpClient
 {
     BaseAddress = new Uri(builder.Configuration["BackendUrl"] ?? "http://localhost:5157")
@@ -117,7 +118,8 @@ if (!app.Environment.IsEnvironment("NSwag"))
     if (await userManager.FindByEmailAsync(seedEmail) is null)
     {
         var seedUser = new AppUser { UserName = seedEmail, Email = seedEmail };
-        await userManager.CreateAsync(seedUser, "Pass@word1");
+        try { await userManager.CreateAsync(seedUser, "Pass@word1"); }
+        catch (DbUpdateException) { /* concurrent startup seeded it first — ignore */ }
     }
 }
 

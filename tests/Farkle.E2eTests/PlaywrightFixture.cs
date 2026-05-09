@@ -14,7 +14,15 @@ public class PlaywrightFixture : IAsyncLifetime
         _ = Factory.Server; // triggers CreateHost / Kestrel startup
 
         _playwright = await Playwright.CreateAsync();
-        _browser    = await _playwright.Chromium.LaunchAsync(new() { Headless = true });
+
+        var options = new BrowserTypeLaunchOptions { Headless = true };
+        // Allow overriding the browser executable for environments where the
+        // Playwright-managed download is unavailable (e.g. network-restricted CI).
+        var execPath = Environment.GetEnvironmentVariable("PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH");
+        if (!string.IsNullOrEmpty(execPath))
+            options.ExecutablePath = execPath;
+
+        _browser = await _playwright.Chromium.LaunchAsync(options);
     }
 
     public async Task<IPage> NewPageAsync()
