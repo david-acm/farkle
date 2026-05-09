@@ -24,6 +24,7 @@ public partial class Game : BlazorStateComponent
   
   protected override async Task OnParametersSetAsync()
   {
+    StateHasChanged(); // render UI immediately so buttons are visible while API calls complete
     await Mediator.Send(new GameState.StartGame.Action(GameId));
     Logger.LogInformation($"Game started with id: {GameId}");
     await Mediator.Send(new GameState.JoinPlayer.Action(new(PlayerId), new(string.Empty)));

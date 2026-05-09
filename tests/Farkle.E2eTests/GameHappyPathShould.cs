@@ -18,7 +18,7 @@ namespace Farkle.E2eTests;
 [Collection(PlaywrightCollection.Name)]
 public class GameHappyPathShould(PlaywrightFixture fixture)
 {
-    private const int WasmTimeoutMs = 60_000;
+    private const int WasmTimeoutMs = 30_000;
     private const int GameId        = 42;
     private const int PlayerId      = 0;
 
