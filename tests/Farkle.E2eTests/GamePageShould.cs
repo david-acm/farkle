@@ -7,7 +7,7 @@ public class GamePageShould(PlaywrightFixture fixture)
     private const int WasmTimeoutMs = 30_000;
 
     [Fact]
-    public async Task ShowStartGameButton()
+    public async Task ShowStartGameButtonAsync()
     {
         var page = await fixture.NewPageAsync();
         await page.GotoAsync("/games/1");
@@ -19,7 +19,7 @@ public class GamePageShould(PlaywrightFixture fixture)
     }
 
     [Fact]
-    public async Task ShowRollButton()
+    public async Task ShowRollButtonAsync()
     {
         var page = await fixture.NewPageAsync();
         await page.GotoAsync("/games/1");
@@ -33,7 +33,7 @@ public class GamePageShould(PlaywrightFixture fixture)
     }
 
     [Fact]
-    public async Task ShowKeepButton()
+    public async Task ShowKeepButtonAsync()
     {
         var page = await fixture.NewPageAsync();
         await page.GotoAsync("/games/1");

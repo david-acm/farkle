@@ -4,7 +4,7 @@ namespace Farkle.E2eTests;
 public class HomePageShould(PlaywrightFixture fixture)
 {
     [Fact]
-    public async Task ShowHelloWorld()
+    public async Task ShowHelloWorldAsync()
     {
         var page = await fixture.NewPageAsync();
         await page.GotoAsync("/");
@@ -16,7 +16,7 @@ public class HomePageShould(PlaywrightFixture fixture)
     }
 
     [Fact]
-    public async Task ShowNavigationLinks()
+    public async Task ShowNavigationLinksAsync()
     {
         var page = await fixture.NewPageAsync();
         await page.GotoAsync("/");
