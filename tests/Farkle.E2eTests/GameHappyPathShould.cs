@@ -42,6 +42,7 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
         try
         {
             await test(page);
+            await page.WaitForTimeoutAsync(1_500); // hold on final state before recording ends
         }
         finally
         {
