@@ -85,6 +85,7 @@ else
     app.UseHsts();
 }
 
+app.UseStaticFiles();
 app.MapStaticAssets();
 
 if (!app.Environment.IsEnvironment("NSwag"))
