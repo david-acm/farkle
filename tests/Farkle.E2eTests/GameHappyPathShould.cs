@@ -71,10 +71,18 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
     {
         await NavigateAndWaitForWasmAsync(page);
 
-        await page.ClickAsync("button:has-text('Roll')");
+        await page.WaitForSelectorAsync("button:has-text('Start game')", new() { Timeout = WasmTimeoutMs });
+        await page.WaitForSelectorAsync("h3:has-text('42')", new() { Timeout = WasmTimeoutMs });
 
-        var firstDie = await page.WaitForSelectorAsync(".die-container", new() { Timeout = 10_000 });
-        firstDie.Should().NotBeNull();
+        await page.WaitForSelectorAsync(".die-container", new() { Timeout = 10_000 });
+
+        await page.WaitForTimeoutAsync(500);
+        await page.ClickAsync("button:has-text('Roll')");
+        await page.WaitForTimeoutAsync(1_000);
+
+        await page.WaitForSelectorAsync(".die-container", new() { Timeout = 10_000 });
+        var diceCount = await page.Locator(".die-container").CountAsync();
+        diceCount.Should().Be(6);
     });
 
     [Fact]
