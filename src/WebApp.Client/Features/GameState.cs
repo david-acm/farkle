@@ -22,7 +22,7 @@ public partial class GameState : State<GameState>
   
   private List<int> DiceSetAside     { get; set; }         = [];
   public  string    ErrorMessage     { get; private set; } = string.Empty;
-  public  bool      ShowError        { get; private set; };
+  public  bool      ShowError        { get; private set; }
   public  object    LastErrorMessage { get; private set; } = string.Empty;
   public  string?   WinnerName       { get; set; }
   
