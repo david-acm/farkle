@@ -70,7 +70,9 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
 
     private async Task NavigateAndWaitForWasmAsync(IPage page, int gameId)
     {
-        await page.GotoAsync($"/games/{gameId}");
+        // Explicit timeout: GotoAsync defaults to 30 s, which can expire while the
+        // browser waits for the render-blocking fonts.googleapis.com CSS link.
+        await page.GotoAsync($"/games/{gameId}", new() { Timeout = 60_000 });
         // Wait for the game-title heading to display the correct game ID. This element
         // only appears after WASM has loaded and OnParametersSetAsync has run StartGame
         // (which always sets GameId in the store, even on failure). Using a DOM element

@@ -75,6 +75,25 @@ jobs:
           path: test-results/e2e-results.trx
           if-no-files-found: warn
 
+      - name: Extract TRX failures for PR comment
+        if: failure() && github.event_name == 'pull_request'
+        id: trx
+        run: |
+          TRX=test-results/e2e-results.trx
+          if [ -f "$TRX" ]; then
+            NAMES=$(grep -o 'testName="[^"]*"[^>]*outcome="Failed"' "$TRX" \
+              | sed 's/testName="//;s/" .*//' | tr '\n' '|')
+            MSGS=$(grep -A5 'outcome="Failed"' "$TRX" \
+              | grep '<Message>' \
+              | sed 's|.*<Message>||;s|</Message>.*||;s|^ *||' \
+              | head -8 | tr '\n' '~')
+            echo "names=${NAMES}" >> "$GITHUB_OUTPUT"
+            echo "msgs=${MSGS}"   >> "$GITHUB_OUTPUT"
+          else
+            echo "names=(no TRX)" >> "$GITHUB_OUTPUT"
+            echo "msgs="          >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Comment on PR with video links
         if: always() && github.event_name == 'pull_request'
         uses: actions/github-script@v7
@@ -82,6 +101,11 @@ jobs:
           script: |
             const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
             const outcome = '${{ job.status }}' === 'success' ? '✅ passed' : '❌ failed';
+            const names = `${{ steps.trx.outputs.names || '' }}`;
+            const msgs  = `${{ steps.trx.outputs.msgs  || '' }}`;
+            const failSection = names
+              ? `\n**Failed tests:** ${names}\n**Errors:** ${msgs}\n`
+              : '';
             const body = [
               `## E2E Happy-Path Tests ${outcome}`,
               '',
@@ -94,7 +118,7 @@ jobs:
               `| \`CanDragDieToSetAsideZone.webm\` | Die dragged from Rolled → SetAside zone |`,
               `| \`ScoreIncreasesAfterKeepingAScoringDie.webm\` | Full keep cycle, score updates |`,
               `| \`TurnScoreDisplayIsVisible.webm\` | Score heading visible after WASM hydration |`,
-              '',
+              failSection,
               `[View full run](${runUrl})`,
             ].join('\n');
 
