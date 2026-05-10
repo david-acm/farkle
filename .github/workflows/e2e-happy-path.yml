@@ -75,6 +75,15 @@ jobs:
           path: test-results/e2e-results.trx
           if-no-files-found: warn
 
+      - name: Upload failure logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-logs-${{ github.run_id }}
+          path: test-results/logs/
+          if-no-files-found: warn
+          retention-days: 14
+
       - name: Extract TRX failures for PR comment
         if: failure() && github.event_name == 'pull_request'
         id: trx

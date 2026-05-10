@@ -37,9 +37,9 @@ public class PlaywrightFixture : IAsyncLifetime
         var page    = await context.NewPageAsync();
         try
         {
-            // Explicit 60 s timeout: GotoAsync defaults to 30 s which can expire on the
-            // render-blocking fonts.googleapis.com link before the page finishes loading.
-            await page.GotoAsync("/games/999", new() { Timeout = 60_000 });
+            // WaitUntilState.Commit fires on the first server byte — never blocked by
+            // render-blocking CSS (fonts.googleapis.com) unlike the default Load event.
+            await page.GotoAsync("/games/999", new() { WaitUntil = WaitUntilState.Commit });
             // Wait for the game-title heading — confirms WASM downloaded, the .NET runtime
             // started, and StartGame completed. Avoids depending on LoadState.NetworkIdle
             // which never settles when the page has external CDN links (Google Fonts).

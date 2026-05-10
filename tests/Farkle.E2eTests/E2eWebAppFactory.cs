@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using WebApp.Auth;
 
 namespace Farkle.E2eTests;
@@ -16,7 +17,11 @@ public class E2EWebAppFactory : WebApplicationFactory<Program>
 {
     public string ServerAddress { get; private set; } = string.Empty;
 
-    private IHost? _kestrelHost;
+    private IHost?                  _kestrelHost;
+    private readonly InMemoryLoggerProvider _logProvider = new();
+
+    /// <summary>Removes and returns all buffered API log entries since the last drain.</summary>
+    public IReadOnlyList<string> DrainApiLogs() => _logProvider.Drain();
 
     private static Dictionary<string, string> EsdbVariables => new()
     {
@@ -60,6 +65,16 @@ public class E2EWebAppFactory : WebApplicationFactory<Program>
         var pgPort = pgContainer.GetMappedPublicPort(5432);
 
         base.ConfigureWebHost(builder);
+
+        // Capture API logs so they can be written to disk when a test fails.
+        builder.ConfigureLogging(logging =>
+        {
+            logging.AddProvider(_logProvider);
+            // Suppress EF Core query noise; keep application + ASP.NET at Information.
+            logging.AddFilter("Microsoft.EntityFrameworkCore", LogLevel.Warning);
+            logging.AddFilter("Microsoft.AspNetCore",          LogLevel.Information);
+        });
+
         builder.ConfigureServices(s =>
         {
             var esClient = s.First(d => d.ServiceType == typeof(EventStoreClient));
