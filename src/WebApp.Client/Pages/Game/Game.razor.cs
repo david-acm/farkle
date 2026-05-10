@@ -24,9 +24,25 @@ public partial class Game : BlazorStateComponent
   
   protected override async Task OnParametersSetAsync()
   {
-    await Mediator.Send(new GameState.StartGame.Action(GameId));
+    try
+    {
+      await Mediator.Send(new GameState.StartGame.Action(GameId));
+    }
+    catch (Exception ex)
+    {
+      Logger.LogWarning(ex, "StartGame failed for game {GameId}", GameId);
+    }
     Logger.LogInformation($"Game started with id: {GameId}");
-    await Mediator.Send(new GameState.JoinPlayer.Action(new(PlayerId), new(string.Empty)));
+    try
+    {
+      await Mediator.Send(new GameState.JoinPlayer.Action(new(PlayerId), new(string.Empty)));
+    }
+    catch (Exception ex)
+    {
+      // JoinPlayer can fail if the player already exists (e.g. re-navigating to the same game).
+      // This is non-fatal — StartGame already set GameId so the component renders correctly.
+      Logger.LogWarning(ex, "JoinPlayer failed for game {GameId}", GameId);
+    }
     await base.OnParametersSetAsync();
   }
 }

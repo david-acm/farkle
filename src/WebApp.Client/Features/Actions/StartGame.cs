@@ -15,9 +15,17 @@ public partial class GameState
       
       public override async Task Handle(Action action, CancellationToken aCancellationToken)
       {
-        var response = await service.StartGameAsync(action.GameId);
-        
-        State.GameId = new(response);
+        try
+        {
+          var response = await service.StartGameAsync(action.GameId);
+          State.GameId = new(response);
+        }
+        catch
+        {
+          // Game may already exist (re-navigation). Use the requested ID so the
+          // component can still render and subsequent actions work correctly.
+          State.GameId = action.GameId;
+        }
       }
     }
   }
