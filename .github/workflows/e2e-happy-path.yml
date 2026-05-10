@@ -27,6 +27,9 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore tests/Farkle.E2eTests/Farkle.E2eTests.csproj
 
+      - name: Clean
+        run: dotnet clean tests/Farkle.E2eTests/Farkle.E2eTests.csproj
+
       - name: Build
         run: dotnet build tests/Farkle.E2eTests/Farkle.E2eTests.csproj --no-restore
 

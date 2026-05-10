@@ -71,7 +71,10 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
     private async Task NavigateAndWaitForWasmAsync(IPage page, int gameId)
     {
         await page.GotoAsync($"/games/{gameId}");
-        await page.WaitForSelectorAsync($"h3:has-text('{gameId}')", new() { Timeout = WasmTimeoutMs });
+        // Wait for the Roll button rather than the game-ID h3. The button is rendered
+        // by Blazor after WASM hydration completes and is a reliable ready signal that
+        // doesn't depend on BlazorState having reflected the route parameter yet.
+        await page.WaitForSelectorAsync("button:has-text('Roll')", new() { Timeout = WasmTimeoutMs });
     }
 
     // ── tests ─────────────────────────────────────────────────
