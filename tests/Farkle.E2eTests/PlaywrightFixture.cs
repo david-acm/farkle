@@ -39,6 +39,11 @@ public class PlaywrightFixture : IAsyncLifetime
         {
             await page.GotoAsync("/games/999");
             await page.WaitForSelectorAsync("h3:has-text('999')", new() { Timeout = 120_000 });
+            // Click Roll to exercise the EventStore write path — the h3 can appear via the
+            // StartGame fallback without EventStore being ready, so we must go one step further
+            // to confirm the store is warm before tests begin.
+            await page.ClickAsync("button:has-text('Roll')", new() { Timeout = 30_000 });
+            await page.WaitForSelectorAsync(".die-container", new() { Timeout = 30_000 });
         }
         catch
         {

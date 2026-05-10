@@ -23,7 +23,7 @@ namespace Farkle.E2eTests;
 [Collection(PlaywrightCollection.Name)]
 public class GameHappyPathShould(PlaywrightFixture fixture)
 {
-    private const int WasmTimeoutMs = 30_000;
+    private const int WasmTimeoutMs = 60_000;
     private const int PlayerId      = 0;
 
     // Each test gets its own game ID to prevent EventStore state contamination.
@@ -66,7 +66,7 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
         }
     }
 
-    // ── helpers ──────────────────────────────────────────────────
+    // ── helpers ──────────────────────────────────────────────
 
     private async Task NavigateAndWaitForWasmAsync(IPage page, int gameId)
     {
@@ -74,7 +74,7 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
         await page.WaitForSelectorAsync($"h3:has-text('{gameId}')", new() { Timeout = WasmTimeoutMs });
     }
 
-    // ── tests ─────────────────────────────────────────────────────
+    // ── tests ─────────────────────────────────────────────────
 
     [Fact]
     public Task ShowDiceAfterRolling() => WithVideoAsync(async page =>
@@ -102,7 +102,7 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
         await firstDie.WaitForAsync(new() { Timeout = 10_000 });
         await firstDie.DragToAsync(setAsideZone);
 
-        await page.WaitForTimeoutAsync(500);
+        await setAsideZone.Locator(".mud-drop-item").First.WaitForAsync(new() { Timeout = 5_000 });
         var keptCount = await setAsideZone.Locator(".mud-drop-item").CountAsync();
         keptCount.Should().BeGreaterThan(0);
     });

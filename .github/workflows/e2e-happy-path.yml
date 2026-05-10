@@ -46,9 +46,13 @@ jobs:
       - name: Print failure details
         if: failure()
         run: |
+          echo "=== dotnet test output above ==="
           if [ -f test-results/e2e-results.trx ]; then
-            echo "=== TRX failure summary ==="
-            grep -i "message\|ErrorMessage\|output" test-results/e2e-results.trx | head -60 || true
+            echo "=== Full TRX ==="
+            cat test-results/e2e-results.trx
+          else
+            echo "No TRX file found in test-results/"
+            ls -la test-results/ 2>/dev/null || true
           fi
 
       - name: Upload test videos
