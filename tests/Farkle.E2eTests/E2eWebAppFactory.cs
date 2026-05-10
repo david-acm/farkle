@@ -12,7 +12,7 @@ using WebApp.Auth;
 
 namespace Farkle.E2eTests;
 
-public class E2EWebAppFactory : WebApplicationFactory<Program>
+public class E2eWebAppFactory : WebApplicationFactory<Program>
 {
     public string ServerAddress { get; private set; } = string.Empty;
 

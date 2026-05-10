@@ -2,7 +2,7 @@ namespace Farkle.E2eTests;
 
 public class PlaywrightFixture : IAsyncLifetime
 {
-    public E2EWebAppFactory Factory  { get; private set; } = null!;
+    public E2eWebAppFactory Factory  { get; private set; } = null!;
     public string           BaseUrl  => Factory.ServerAddress;
 
     private IPlaywright _playwright = null!;
@@ -10,7 +10,7 @@ public class PlaywrightFixture : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        Factory = new E2EWebAppFactory();
+        Factory = new E2eWebAppFactory();
         _ = Factory.Server; // triggers CreateHost / Kestrel startup
 
         _playwright = await Playwright.CreateAsync();

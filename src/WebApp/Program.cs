@@ -90,19 +90,13 @@ app.MapStaticAssets();
 if (!app.Environment.IsEnvironment("NSwag"))
     app.SetUpFarkleModule();
 
-var requireAuth = builder.Configuration.GetValue<bool>("Auth:RequireAuthorization");
-if (requireAuth)
-{
-  app.UseAuthentication()
-    .UseAuthorization();
-}
+app.UseAuthentication()
+  .UseAuthorization();
 
+var requireAuth = builder.Configuration.GetValue<bool>("Auth:RequireAuthorization");
 app.UseFastEndpoints(c =>
   {
-    c.Endpoints.Configurator = ep => {
-      if (requireAuth) ep.Options(b => b.RequireAuthorization());
-      else ep.AllowAnonymous();
-    };
+    c.Endpoints.Configurator = ep => { if (requireAuth) ep.Options(b => b.RequireAuthorization()); };
   })
    .UseSwaggerGen();
 
