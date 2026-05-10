@@ -14,20 +14,30 @@ namespace Farkle.E2eTests;
 /// Die values aren't exposed as text in the DOM (the component is a 3D CSS cube that
 /// rotates to show the face), so we ask the API for the dice that landed and keep only
 /// scoring ones (1s and 5s) when we need a deterministic assertion.
+///
+/// Each test uses a unique game ID so tests are fully independent of execution order.
+/// Sharing a single game ID caused failures when one test left the game in "Keeping"
+/// stage and a subsequent test tried to Roll, resulting in a validation error and empty
+/// DiceInPlay, which removed .die-container from the DOM.
 /// </summary>
 [Collection(PlaywrightCollection.Name)]
 public class GameHappyPathShould(PlaywrightFixture fixture)
 {
     private const int WasmTimeoutMs = 30_000;
-    private const int GameId        = 42;
     private const int PlayerId      = 0;
+
+    // Each test gets its own game ID to prevent EventStore state contamination.
+    private const int ShowDiceGameId    = 1001;
+    private const int DragDieGameId     = 1002;
+    private const int ScoreGameId       = 1003;
+    private const int TurnScoreGameId   = 1004;
 
     // Resolved at runtime so it works both locally (dotnet test from repo root) and in CI.
     private static string VideoDir =>
         Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..",
             "test-results", "videos"));
 
-    // ── video wrapper ────────────────────────────────────────────────────
+    // ── video wrapper ────────────────────────────────────────────
 
     /// <summary>
     /// Runs <paramref name="test"/> inside a video-recording browser context.
@@ -56,20 +66,20 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
         }
     }
 
-    // ── helpers ──────────────────────────────────────────────────────────
+    // ── helpers ──────────────────────────────────────────────────
 
-    private async Task NavigateAndWaitForWasmAsync(IPage page)
+    private async Task NavigateAndWaitForWasmAsync(IPage page, int gameId)
     {
-        await page.GotoAsync($"/games/{GameId}");
-        await page.WaitForSelectorAsync($"h3:has-text('{GameId}')", new() { Timeout = WasmTimeoutMs });
+        await page.GotoAsync($"/games/{gameId}");
+        await page.WaitForSelectorAsync($"h3:has-text('{gameId}')", new() { Timeout = WasmTimeoutMs });
     }
 
-    // ── tests ─────────────────────────────────────────────────────────────
+    // ── tests ─────────────────────────────────────────────────────
 
     [Fact]
     public Task ShowDiceAfterRolling() => WithVideoAsync(async page =>
     {
-        await NavigateAndWaitForWasmAsync(page);
+        await NavigateAndWaitForWasmAsync(page, ShowDiceGameId);
 
         await page.ClickAsync("button:has-text('Roll')");
 
@@ -80,7 +90,7 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
     [Fact]
     public Task CanDragDieToSetAsideZone() => WithVideoAsync(async page =>
     {
-        await NavigateAndWaitForWasmAsync(page);
+        await NavigateAndWaitForWasmAsync(page, DragDieGameId);
 
         await page.ClickAsync("button:has-text('Roll')");
 
@@ -100,7 +110,7 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
     [Fact]
     public Task ScoreIncreasesAfterKeepingAScoringDie() => WithVideoAsync(async page =>
     {
-        await NavigateAndWaitForWasmAsync(page);
+        await NavigateAndWaitForWasmAsync(page, ScoreGameId);
 
         var scoreLocator = page.Locator("h3:has-text('Current Player Score')");
         var initialScore = await scoreLocator.InnerTextAsync();
@@ -110,7 +120,7 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
 
         // Ask the API whether the roll landed a scoring die (avoids parsing CSS transforms).
         var client    = fixture.Factory.CreateClient();
-        var response  = await client.PostAsync($"/api/games/{GameId}/players/{PlayerId}/rolls", null);
+        var response  = await client.PostAsync($"/api/games/{ScoreGameId}/players/{PlayerId}/rolls", null);
 
         if (!response.IsSuccessStatusCode) return;
 
@@ -134,7 +144,7 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
     [Fact]
     public Task TurnScoreDisplayIsVisible() => WithVideoAsync(async page =>
     {
-        await NavigateAndWaitForWasmAsync(page);
+        await NavigateAndWaitForWasmAsync(page, TurnScoreGameId);
 
         var scoreHeading = await page.WaitForSelectorAsync("h3:has-text('Current Player Score')",
             new() { Timeout = WasmTimeoutMs });
