@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using System.Runtime.CompilerServices;
+using System.Runtime.ExceptionServices;
 using static Farkle.Contracts.HttpResponses;
 
 namespace Farkle.E2eTests;
@@ -37,33 +38,57 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
         Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..",
             "test-results", "videos"));
 
+    private static string LogDir =>
+        Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..",
+            "test-results", "logs"));
+
     // ── video wrapper ────────────────────────────────────────────
 
     /// <summary>
     /// Runs <paramref name="test"/> inside a video-recording browser context.
     /// After the test (pass or fail) the context is closed to finalise the recording,
     /// and the auto-named .webm file is renamed to <c>{testName}.webm</c>.
+    /// On failure, browser console + Web API logs are written to test-results/logs/.
     /// </summary>
     private async Task WithVideoAsync(Func<IPage, Task> test,
         [CallerMemberName] string testName = "")
     {
-        var context = await fixture.NewContextWithVideoAsync(VideoDir);
-        var page    = await context.NewPageAsync();
+        var context     = await fixture.NewContextWithVideoAsync(VideoDir);
+        var page        = await context.NewPageAsync();
+        var consoleLogs = new List<string>();
+
+        page.Console   += (_, msg) => consoleLogs.Add($"[{msg.Type.ToUpper()}] {msg.Text}");
+        page.PageError += (_, err) => consoleLogs.Add($"[PAGE_ERROR] {err}");
+
+        Exception? failure = null;
         try
         {
             await test(page);
             await page.WaitForTimeoutAsync(1_500); // hold on final state before recording ends
+        }
+        catch (Exception ex)
+        {
+            failure = ex;
         }
         finally
         {
             await context.CloseAsync(); // must close to finalise the .webm file
             var rawPath = await page.Video!.PathAsync();
             if (File.Exists(rawPath))
+                File.Move(rawPath, Path.Combine(VideoDir, $"{testName}.webm"), overwrite: true);
+
+            // Always drain API logs to keep per-test isolation; only write to disk on failure.
+            var apiLogs = fixture.Factory.DrainApiLogs();
+            if (failure != null)
             {
-                var destPath = Path.Combine(VideoDir, $"{testName}.webm");
-                File.Move(rawPath, destPath, overwrite: true);
+                Directory.CreateDirectory(LogDir);
+                await File.WriteAllLinesAsync(Path.Combine(LogDir, $"{testName}.browser.log"), consoleLogs);
+                await File.WriteAllLinesAsync(Path.Combine(LogDir, $"{testName}.api.log"), apiLogs);
             }
         }
+
+        if (failure != null)
+            ExceptionDispatchInfo.Capture(failure).Throw();
     }
 
     // ── helpers ──────────────────────────────────────────────
