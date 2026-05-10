@@ -4,6 +4,7 @@ using static Farkle.Contracts.HttpResponses;
 
 namespace Farkle.E2eTests;
 
+// Baseline verification run.
 /// <summary>
 /// Happy-path game flow: navigate → roll → set a scoring die aside → keep → verify score.
 ///
