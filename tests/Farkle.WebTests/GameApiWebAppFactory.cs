@@ -4,6 +4,7 @@ using EventStore.Client;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using WebApp.Auth;
 
@@ -28,13 +29,10 @@ public class GameApiWebAppFactory : WebApplicationFactory<Program>
 
   protected override void ConfigureWebHost(IWebHostBuilder builder)
   {
-    // TODO: add configuration to decide between local (commented code) and azure database
-    // TODO: Change path to be read from the dotnet user secrets instead of it being hardcoded here
     var path = Environment.GetEnvironmentVariable("PATH");
     Environment.SetEnvironmentVariable("PATH", path + ":/usr/local/bin");
 
-    var esdbContainer = new ContainerBuilder()
-      .WithImage("eventstore/eventstore:23.10.0-bookworm-slim")
+    var esdbContainer = new ContainerBuilder("eventstore/eventstore:23.10.0-bookworm-slim")
       .WithPortBinding(4113, true)
       .WithPortBinding(5113, true)
       .WithEnvironment(Variables)
@@ -44,8 +42,7 @@ public class GameApiWebAppFactory : WebApplicationFactory<Program>
     esdbContainer.StartAsync().GetAwaiter().GetResult();
     var esdbPort = esdbContainer.GetMappedPublicPort(5113);
 
-    var pgContainer = new ContainerBuilder()
-      .WithImage("postgres:16-alpine")
+    var pgContainer = new ContainerBuilder("postgres:16-alpine")
       .WithPortBinding(5432, true)
       .WithEnvironment("POSTGRES_USER", "farkle_test")
       .WithEnvironment("POSTGRES_PASSWORD", "farkle_test")
@@ -57,6 +54,13 @@ public class GameApiWebAppFactory : WebApplicationFactory<Program>
     var pgPort = pgContainer.GetMappedPublicPort(5432);
 
     base.ConfigureWebHost(builder);
+
+    builder.ConfigureAppConfiguration(cfg =>
+      cfg.AddInMemoryCollection(new Dictionary<string, string?>
+      {
+        ["Auth:RequireAuthorization"] = "true"
+      }));
+
     builder.ConfigureServices(s =>
     {
       var esClient = s.First(s => s.ServiceType == typeof(EventStoreClient));
