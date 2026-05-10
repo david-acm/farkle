@@ -75,33 +75,6 @@ jobs:
           path: test-results/e2e-results.trx
           if-no-files-found: warn
 
-      - name: Extract failure details from TRX
-        if: always() && github.event_name == 'pull_request'
-        id: trx
-        run: |
-          if [ -f test-results/e2e-results.trx ]; then
-            DETAILS=$(python3 -c "
-import xml.etree.ElementTree as ET
-tree = ET.parse('test-results/e2e-results.trx')
-root = tree.getroot()
-ns = {'t': 'http://microsoft.com/schemas/VisualStudio/TeamTest/2010'}
-lines = []
-for r in root.findall('.//t:UnitTestResult', ns):
-    if r.get('outcome') == 'Failed':
-        name = r.get('testName', '?').split('.')[-1]
-        msg_el = r.find('.//t:Message', ns)
-        msg = (msg_el.text or '(no message)') if msg_el is not None else '(no message)'
-        msg = msg.strip().replace('\n', ' ').replace('\r', '')[:500]
-        lines.append(f'- **{name}**: \`{msg}\`')
-print('\n'.join(lines) if lines else '_(no failures found in TRX)_')
-" 2>/dev/null || echo "_(could not parse TRX)_")
-            echo "details<<EOF" >> "$GITHUB_OUTPUT"
-            echo "$DETAILS" >> "$GITHUB_OUTPUT"
-            echo "EOF" >> "$GITHUB_OUTPUT"
-          else
-            echo "details=_(no TRX file found)_" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Comment on PR with video links
         if: always() && github.event_name == 'pull_request'
         uses: actions/github-script@v7
@@ -109,10 +82,6 @@ print('\n'.join(lines) if lines else '_(no failures found in TRX)_')
           script: |
             const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
             const outcome = '${{ job.status }}' === 'success' ? '✅ passed' : '❌ failed';
-            const failures = `${{ steps.trx.outputs.details }}`;
-            const failureSection = '${{ job.status }}' !== 'success' && failures
-              ? `\n**Failures:**\n${failures}\n`
-              : '';
             const body = [
               `## E2E Happy-Path Tests ${outcome}`,
               '',
@@ -125,7 +94,7 @@ print('\n'.join(lines) if lines else '_(no failures found in TRX)_')
               `| \`CanDragDieToSetAsideZone.webm\` | Die dragged from Rolled → SetAside zone |`,
               `| \`ScoreIncreasesAfterKeepingAScoringDie.webm\` | Full keep cycle, score updates |`,
               `| \`TurnScoreDisplayIsVisible.webm\` | Score heading visible after WASM hydration |`,
-              failureSection,
+              '',
               `[View full run](${runUrl})`,
             ].join('\n');
 
