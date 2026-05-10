@@ -23,6 +23,31 @@ public class PlaywrightFixture : IAsyncLifetime
             options.ExecutablePath = execPath;
 
         _browser = await _playwright.Chromium.LaunchAsync(options);
+
+        // Pre-warm: navigate to a game page once so the browser caches all WASM
+        // binaries before any test runs. Without this, the first test in a filtered
+        // CI run bears the full cold-start cost (~60+ s on a 2-vCPU runner) and
+        // times out. Game 999 is used to avoid conflicting with test game IDs.
+        await PreWarmWasmAsync();
+    }
+
+    private async Task PreWarmWasmAsync()
+    {
+        var context = await _browser.NewContextAsync(new() { BaseURL = BaseUrl });
+        var page    = await context.NewPageAsync();
+        try
+        {
+            await page.GotoAsync("/games/999");
+            await page.WaitForSelectorAsync("h3:has-text('999')", new() { Timeout = 120_000 });
+        }
+        catch
+        {
+            // Non-fatal: if warmup times out the individual tests will report the real failure.
+        }
+        finally
+        {
+            await context.CloseAsync();
+        }
     }
 
     public async Task<IPage> NewPageAsync()

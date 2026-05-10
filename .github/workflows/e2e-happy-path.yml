@@ -43,6 +43,14 @@ jobs:
           --logger "trx;LogFileName=e2e-results.trx"
           --results-directory test-results
 
+      - name: Print failure details
+        if: failure()
+        run: |
+          if [ -f test-results/e2e-results.trx ]; then
+            echo "=== TRX failure summary ==="
+            grep -i "message\|ErrorMessage\|output" test-results/e2e-results.trx | head -60 || true
+          fi
+
       - name: Upload test videos
         if: always()
         uses: actions/upload-artifact@v4
