@@ -38,14 +38,13 @@ public class PlaywrightFixture : IAsyncLifetime
         try
         {
             await page.GotoAsync("/games/999");
-            // NetworkIdle confirms WASM is downloaded, .NET runtime is up, and the
-            // StartGame + JoinPlayer HTTP calls have both completed — guaranteeing
-            // EventStore is warm before any test context loads.
-            await page.WaitForLoadStateAsync(LoadState.NetworkIdle,
-                new() { Timeout = 120_000 });
+            // Wait for the game-title heading — confirms WASM downloaded, the .NET runtime
+            // started, and StartGame completed. Avoids depending on LoadState.NetworkIdle
+            // which never settles when the page has external CDN links (Google Fonts).
+            await page.WaitForSelectorAsync("h3:has-text('999')", new() { Timeout = 120_000 });
             await page.ClickAsync("button:has-text('Roll')", new() { Timeout = 30_000 });
-            await page.WaitForLoadStateAsync(LoadState.NetworkIdle,
-                new() { Timeout = 30_000 });
+            // Give the Roll API call time to complete so EventStore's write path is warm.
+            await page.WaitForTimeoutAsync(3_000);
         }
         catch
         {

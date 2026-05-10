@@ -23,7 +23,7 @@ namespace Farkle.E2eTests;
 [Collection(PlaywrightCollection.Name)]
 public class GameHappyPathShould(PlaywrightFixture fixture)
 {
-    private const int WasmTimeoutMs = 60_000;
+    private const int WasmTimeoutMs = 90_000;
     private const int PlayerId      = 0;
 
     // Each test gets its own game ID to prevent EventStore state contamination.
@@ -71,10 +71,12 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
     private async Task NavigateAndWaitForWasmAsync(IPage page, int gameId)
     {
         await page.GotoAsync($"/games/{gameId}");
-        // NetworkIdle means no network connections for 500 ms — reliable signal that
-        // WASM is fully loaded AND the initial Blazor HTTP calls (StartGame, JoinPlayer)
-        // have completed, so game state is correct before any test action fires.
-        await page.WaitForLoadStateAsync(LoadState.NetworkIdle,
+        // Wait for the game-title heading to display the correct game ID. This element
+        // only appears after WASM has loaded and OnParametersSetAsync has run StartGame
+        // (which always sets GameId in the store, even on failure). Using a DOM element
+        // rather than LoadState.NetworkIdle avoids false timeouts from external CDN
+        // activity (Google Fonts / MudBlazor icons) that keep the network busy.
+        await page.WaitForSelectorAsync($"h3:has-text('{gameId}')",
             new() { Timeout = WasmTimeoutMs });
     }
 
