@@ -33,7 +33,7 @@ public static class MockHttpClientBUnitHelpers
     var httpClient = mock.ToHttpClient();
     httpClient.BaseAddress = new Uri(baseUrl);
     var adapter = new HttpClientRequestAdapter(new AnonymousAuthenticationProvider(), httpClient: httpClient);
-    adapter.BaseUrl = baseUrl.TrimEnd('/') + "/api";
+    adapter.BaseUrl = baseUrl.TrimEnd('/');
     return new FarkleApiClient(adapter);
   }
 
