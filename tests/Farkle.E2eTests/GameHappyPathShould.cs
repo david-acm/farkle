@@ -134,9 +134,21 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
         var setAsideZone = page.Locator("[identifier='SetAside']");
 
         await firstDie.WaitForAsync(new() { Timeout = 10_000 });
-        await firstDie.DragToAsync(setAsideZone);
-        // Blazor WASM needs time to process the drop event and re-render in CI.
-        await page.WaitForTimeoutAsync(1_000);
+
+        // MudBlazor's MudDropZone uses HTML5 drag events (@ondragstart / @ondrop).
+        // Playwright's DragToAsync fires mouse events which don't reliably trigger
+        // the HTML5 drag API in headless Chrome. Dispatch the events directly so
+        // Blazor's event delegation picks them up correctly.
+        await page.EvaluateAsync(@"() => {
+            const source = document.querySelector('.mud-drop-item-draggable');
+            const target = document.querySelector(""[identifier='SetAside']"");
+            const dt = new DataTransfer();
+            source.dispatchEvent(new DragEvent('dragstart', { bubbles: true, cancelable: true, dataTransfer: dt }));
+            target.dispatchEvent(new DragEvent('dragenter', { bubbles: true, cancelable: true, dataTransfer: dt }));
+            target.dispatchEvent(new DragEvent('dragover',  { bubbles: true, cancelable: true, dataTransfer: dt }));
+            target.dispatchEvent(new DragEvent('drop',      { bubbles: true, cancelable: true, dataTransfer: dt }));
+            source.dispatchEvent(new DragEvent('dragend',   { bubbles: true, cancelable: true, dataTransfer: dt }));
+        }");
 
         await setAsideZone.Locator(".mud-drop-item").First.WaitForAsync(new() { Timeout = 10_000 });
         var keptCount = await setAsideZone.Locator(".mud-drop-item").CountAsync();
@@ -166,9 +178,18 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
 
         await page.WaitForSelectorAsync(".die-container", new() { Timeout = 10_000 });
 
-        var rolledZone   = page.Locator(".mud-drop-zone").Nth(0);
-        var setAsideZone = page.Locator(".mud-drop-zone").Nth(1);
-        await rolledZone.Locator(".mud-item").First.DragToAsync(setAsideZone);
+        // Same HTML5-event dispatch approach as CanDragDieToSetAsideZone.
+        await page.EvaluateAsync(@"() => {
+            const rolled    = document.querySelectorAll('.mud-drop-zone')[0];
+            const setAside  = document.querySelectorAll('.mud-drop-zone')[1];
+            const source    = rolled.querySelector('.mud-item');
+            const dt = new DataTransfer();
+            source.dispatchEvent(new DragEvent('dragstart', { bubbles: true, cancelable: true, dataTransfer: dt }));
+            setAside.dispatchEvent(new DragEvent('dragenter', { bubbles: true, cancelable: true, dataTransfer: dt }));
+            setAside.dispatchEvent(new DragEvent('dragover',  { bubbles: true, cancelable: true, dataTransfer: dt }));
+            setAside.dispatchEvent(new DragEvent('drop',      { bubbles: true, cancelable: true, dataTransfer: dt }));
+            source.dispatchEvent(new DragEvent('dragend',     { bubbles: true, cancelable: true, dataTransfer: dt }));
+        }");
 
         await page.ClickAsync("button:has-text('Set Dice Aside')");
         await page.WaitForTimeoutAsync(800);
