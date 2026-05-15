@@ -393,5 +393,49 @@ The app re-seeds `player1@email.com` on startup if missing.
 - **Event versioning**: Don't modify V1 events; create V2 with new schema
 - **E2E test videos**: Ensure videos are uploaded and linked on PR (GitHub Actions workflow)
 - **Architecture tests**: Must pass to ensure domain isolation
-- **Test coverage**: New domain logic requires unit tests; endpoints require integration tests
+- **Test coverage**: New domain logic requires unit tests; endpoints require integration tests; every new feature requires at least one E2E test covering the happy path
+
+---
+
+## Agent Workflow for Features
+
+### PR & CI Loop
+
+Every feature must follow this cycle:
+
+1. **Write E2E tests** covering the happy path before or alongside the implementation.
+2. **Open a PR** targeting `main` once the feature and tests are committed.
+3. **Subscribe to PR activity** using `subscribe_pr_activity` immediately after opening the PR so CI results and review comments arrive automatically — do not poll.
+4. **Wait for the `E2E Happy-Path Tests` CI job**. When the result arrives:
+   - If it passes, the feature is done.
+   - If it fails, diagnose using the logs described below and push a fix.
+
+### Diagnosing E2E Failures
+
+The CI workflow uploads two artifacts per run that contain everything needed to diagnose a failure:
+
+| Artifact | Contents |
+|----------|----------|
+| `e2e-trx-<run_id>` | Full TRX results file with error messages and stack traces |
+| `e2e-logs-<run_id>` | Structured log output captured during the test run |
+| `e2e-videos-<run_id>` | `.webm` screen recordings of each test |
+
+The PR comment posted by the workflow also surfaces failing test names and truncated error messages directly in the thread, so check the PR comment first before downloading artifacts.
+
+To make failures diagnosable, every E2E test must:
+- Use descriptive `Page.GotoAsync` URLs and `Locator` descriptions so Playwright error messages identify the failing element.
+- Emit structured log entries at key steps via the app's `ILogger` (picked up by the `e2e-logs` artifact).
+- Record a `.webm` video using `PlaywrightFixture.NewContextWithVideoAsync` — name the video file after the test method so it maps 1-to-1 to the CI artifact.
+
+### 5-Commit Limit
+
+If the E2E tests are still failing after **5 commits** on the PR branch:
+
+1. **Close the PR** without merging.
+2. **Delete the branch**.
+3. **Open a new issue** (or add a comment to the originating issue) containing:
+   - A summary of the intended implementation.
+   - Each approach attempted and why it failed (copy error messages from the TRX/logs artifacts).
+   - The test(s) that are still failing and the last observed failure reason.
+4. **Stop work** — leave the summary for the next agent session to start fresh with full context.
 
