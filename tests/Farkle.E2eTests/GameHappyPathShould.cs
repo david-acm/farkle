@@ -168,7 +168,7 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
         await page.EvaluateAsync(@"() => {
             const rolled    = document.querySelectorAll('.mud-drop-zone')[0];
             const setAside  = document.querySelectorAll('.mud-drop-zone')[1];
-            const source    = rolled.querySelector('.mud-item');
+            const source    = rolled.querySelector('.mud-drop-item-draggable');
             const dt = new DataTransfer();
             source.dispatchEvent(new DragEvent('dragstart', { bubbles: true, cancelable: true, dataTransfer: dt }));
             setAside.dispatchEvent(new DragEvent('dragenter', { bubbles: true, cancelable: true, dataTransfer: dt }));
@@ -210,7 +210,7 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
         await page.EvaluateAsync(@"() => {
             const rolled   = document.querySelectorAll('.mud-drop-zone')[0];
             const setAside = document.querySelectorAll('.mud-drop-zone')[1];
-            const source   = rolled.querySelector('.mud-item');
+            const source   = rolled.querySelector('.mud-drop-item-draggable');
             const dt = new DataTransfer();
             source.dispatchEvent(new DragEvent('dragstart', { bubbles: true, cancelable: true, dataTransfer: dt }));
             setAside.dispatchEvent(new DragEvent('dragenter', { bubbles: true, cancelable: true, dataTransfer: dt }));

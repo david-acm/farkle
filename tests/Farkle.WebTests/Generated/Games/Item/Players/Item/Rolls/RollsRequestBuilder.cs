@@ -14,8 +14,8 @@ namespace Farkle.WebTests.Generated.Games.Item.Players.Item.Rolls
     [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
     public partial class RollsRequestBuilder : BaseRequestBuilder
     {
-        public RollsRequestBuilder(Dictionary<string, object> pathParameters, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/games/{gameId}/players/{playerId}/rolls", pathParameters) { }
-        public RollsRequestBuilder(string rawUrl, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/games/{gameId}/players/{playerId}/rolls", rawUrl) { }
+        public RollsRequestBuilder(Dictionary<string, object> pathParameters, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/api/games/{gameId}/players/{playerId}/rolls", pathParameters) { }
+        public RollsRequestBuilder(string rawUrl, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/api/games/{gameId}/players/{playerId}/rolls", rawUrl) { }
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
         public async Task<global::Farkle.WebTests.Generated.Models.FarkleContractsHttpResponses_RollDiceResponse?> PostAsync(Action<RequestConfiguration<DefaultQueryParameters>>? requestConfiguration = default, CancellationToken cancellationToken = default)

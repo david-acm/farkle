@@ -26,7 +26,7 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
         _httpClient = wrapped;
         var adapter = new HttpClientRequestAdapter(
             new AnonymousAuthenticationProvider(), httpClient: _httpClient);
-        adapter.BaseUrl = (_httpClient.BaseAddress?.ToString().TrimEnd('/') ?? string.Empty) + "/api";
+        adapter.BaseUrl = _httpClient.BaseAddress?.ToString().TrimEnd('/') ?? string.Empty;
         _client = new FarkleApiClient(adapter);
 
         AuthenticateAsync().GetAwaiter().GetResult();

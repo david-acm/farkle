@@ -24,8 +24,8 @@ namespace Farkle.WebTests.Generated.Games
                 return new global::Farkle.WebTests.Generated.Games.Item.WithGameItemRequestBuilder(urlTplParams, RequestAdapter);
             }
         }
-        public GamesRequestBuilder(Dictionary<string, object> pathParameters, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/games", pathParameters) { }
-        public GamesRequestBuilder(string rawUrl, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/games", rawUrl) { }
+        public GamesRequestBuilder(Dictionary<string, object> pathParameters, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/api/games", pathParameters) { }
+        public GamesRequestBuilder(string rawUrl, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/api/games", rawUrl) { }
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
         public async Task<global::Farkle.WebTests.Generated.Models.FarkleContractsHttpResponses_StartGameResponse?> PostAsync(global::Farkle.WebTests.Generated.Models.FarkleContractsHttpRequests_StartGameRequest body, Action<RequestConfiguration<DefaultQueryParameters>>? requestConfiguration = default, CancellationToken cancellationToken = default)

@@ -45,7 +45,7 @@ namespace Farkle.WebTests.Generated
             ApiClientBuilder.RegisterDefaultDeserializer<FormParseNodeFactory>();
             if (string.IsNullOrEmpty(RequestAdapter.BaseUrl))
             {
-                RequestAdapter.BaseUrl = "/api";
+                RequestAdapter.BaseUrl = "http://localhost:5157";
             }
             PathParameters.TryAdd("baseurl", RequestAdapter.BaseUrl);
         }

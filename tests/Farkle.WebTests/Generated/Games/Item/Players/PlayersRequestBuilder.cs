@@ -21,8 +21,8 @@ namespace Farkle.WebTests.Generated.Games.Item.Players
                 return new global::Farkle.WebTests.Generated.Games.Item.Players.Item.WithPlayerItemRequestBuilder(urlTplParams, RequestAdapter);
             }
         }
-        public PlayersRequestBuilder(Dictionary<string, object> pathParameters, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/games/{gameId}/players", pathParameters) { }
-        public PlayersRequestBuilder(string rawUrl, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/games/{gameId}/players", rawUrl) { }
+        public PlayersRequestBuilder(Dictionary<string, object> pathParameters, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/api/games/{gameId}/players", pathParameters) { }
+        public PlayersRequestBuilder(string rawUrl, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/api/games/{gameId}/players", rawUrl) { }
     }
 }
 #pragma warning restore CS0618
