@@ -1,9 +1,9 @@
 using DotNet.Testcontainers.Builders;
-using DotNet.Testcontainers.Containers;
 using EventStore.Client;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using WebApp.Auth;
 
@@ -28,8 +28,6 @@ public class GameApiWebAppFactory : WebApplicationFactory<Program>
 
   protected override void ConfigureWebHost(IWebHostBuilder builder)
   {
-    // TODO: add configuration to decide between local (commented code) and azure database
-    // TODO: Change path to be read from the dotnet user secrets instead of it being hardcoded here
     var path = Environment.GetEnvironmentVariable("PATH");
     Environment.SetEnvironmentVariable("PATH", path + ":/usr/local/bin");
 
@@ -55,6 +53,13 @@ public class GameApiWebAppFactory : WebApplicationFactory<Program>
     var pgPort = pgContainer.GetMappedPublicPort(5432);
 
     base.ConfigureWebHost(builder);
+
+    builder.ConfigureAppConfiguration(cfg =>
+      cfg.AddInMemoryCollection(new Dictionary<string, string?>
+      {
+        ["Auth:RequireAuthorization"] = "true"
+      }));
+
     builder.ConfigureServices(s =>
     {
       var esClient = s.First(s => s.ServiceType == typeof(EventStoreClient));
