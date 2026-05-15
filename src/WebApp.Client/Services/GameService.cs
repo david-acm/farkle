@@ -44,4 +44,11 @@ public class GameService : IGameService
     _logger.LogInformation("Started game with id: {Id}", response?.Id);
     return response?.Id ?? 0;
   }
+
+  public async Task<PassTurnResponse> PassTurnAsync(int gameId, int playerId)
+  {
+    var response = await _client.Api.Games[gameId].Players[playerId].Turns.PostAsync();
+    _logger.LogInformation("PassTurn response: newScore={NewScore}", response?.NewScore);
+    return new PassTurnResponse(response?.GameId ?? 0, response?.PlayerId ?? 0, response?.NewScore ?? 0, null);
+  }
 }

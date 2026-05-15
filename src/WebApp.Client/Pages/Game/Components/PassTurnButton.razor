@@ -1,0 +1,17 @@
+@using WebApp.Client.Features
+@inherits BlazorState.BlazorStateComponent
+
+<MudButton Class="mt-4"
+           Color="Color.Secondary"
+           OnClick="PassTurnAsync"
+           StartIcon="@Icons.Material.Filled.SkipNext"
+           Variant="Variant.Filled">
+  Pass Turn
+</MudButton>
+
+@code {
+  private void PassTurnAsync()
+  {
+    Mediator.Send(new GameState.PassTurn.Action());
+  }
+}

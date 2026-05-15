@@ -127,6 +127,7 @@ jobs:
               `| \`CanDragDieToSetAsideZone.webm\` | Die dragged from Rolled → SetAside zone |`,
               `| \`ScoreIncreasesAfterKeepingAScoringDie.webm\` | Full keep cycle, score updates |`,
               `| \`TurnScoreDisplayIsVisible.webm\` | Score heading visible after WASM hydration |`,
+              `| \`PassTurnButtonResetsScore.webm\` | Pass Turn resets dice and turn score |`,
               failSection,
               `[View full run](${runUrl})`,
             ].join('\n');

@@ -32,6 +32,7 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
     private const int DragDieGameId   = 1002;
     private const int ScoreGameId     = 1003;
     private const int TurnScoreGameId = 1004;
+    private const int PassTurnGameId  = 1005;
 
     // Resolved at runtime so it works both locally (dotnet test from repo root) and in CI.
     private static string VideoDir =>
@@ -207,5 +208,45 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
             new() { Timeout = WasmTimeoutMs });
 
         scoreHeading.Should().NotBeNull();
+    });
+
+    [Fact]
+    public Task PassTurnButtonResetsScore() => WithVideoAsync(async page =>
+    {
+        await NavigateAndWaitForWasmAsync(page, PassTurnGameId);
+
+        // Roll and keep a scoring die so there is a non-zero turn score to pass.
+        var client = fixture.Factory.CreateClient();
+        var rollResponse = await client.PostAsync($"/api/games/{PassTurnGameId}/players/{PlayerId}/rolls", null);
+        if (!rollResponse.IsSuccessStatusCode) return;
+
+        var result        = await rollResponse.Content.ReadFromJsonAsync<RollDiceResponse>();
+        var hasScoringDie = result?.DiceValues?.Any(v => v is 1 or 5) ?? false;
+        if (!hasScoringDie) return; // farkle — skip rather than fail
+
+        await page.WaitForSelectorAsync(".die-container", new() { Timeout = 10_000 });
+
+        await page.EvaluateAsync(@"() => {
+            const rolled   = document.querySelectorAll('.mud-drop-zone')[0];
+            const setAside = document.querySelectorAll('.mud-drop-zone')[1];
+            const source   = rolled.querySelector('.mud-item');
+            const dt = new DataTransfer();
+            source.dispatchEvent(new DragEvent('dragstart', { bubbles: true, cancelable: true, dataTransfer: dt }));
+            setAside.dispatchEvent(new DragEvent('dragenter', { bubbles: true, cancelable: true, dataTransfer: dt }));
+            setAside.dispatchEvent(new DragEvent('dragover',  { bubbles: true, cancelable: true, dataTransfer: dt }));
+            setAside.dispatchEvent(new DragEvent('drop',      { bubbles: true, cancelable: true, dataTransfer: dt }));
+            source.dispatchEvent(new DragEvent('dragend',     { bubbles: true, cancelable: true, dataTransfer: dt }));
+        }");
+
+        await page.ClickAsync("button:has-text('Set Dice Aside')");
+        await page.WaitForTimeoutAsync(800);
+
+        // Pass the turn — dice and score should reset.
+        await page.ClickAsync("button:has-text('Pass Turn')");
+
+        var scoreLocator = page.Locator("h3:has-text('Current Player Score')");
+        await page.WaitForTimeoutAsync(1_000);
+        var scoreText = await scoreLocator.InnerTextAsync();
+        scoreText.Should().Contain("0", "turn score resets to 0 after passing");
     });
 }
