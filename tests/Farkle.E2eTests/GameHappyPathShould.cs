@@ -135,8 +135,10 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
 
         await firstDie.WaitForAsync(new() { Timeout = 10_000 });
         await firstDie.DragToAsync(setAsideZone);
+        // Blazor WASM needs time to process the drop event and re-render in CI.
+        await page.WaitForTimeoutAsync(1_000);
 
-        await setAsideZone.Locator(".mud-drop-item").First.WaitForAsync(new() { Timeout = 5_000 });
+        await setAsideZone.Locator(".mud-drop-item").First.WaitForAsync(new() { Timeout = 10_000 });
         var keptCount = await setAsideZone.Locator(".mud-drop-item").CountAsync();
         keptCount.Should().BeGreaterThan(0);
     });
