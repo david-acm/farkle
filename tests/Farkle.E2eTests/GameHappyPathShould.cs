@@ -207,21 +207,8 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
         await page.ClickAsync("button:has-text('Roll')");
         await page.WaitForSelectorAsync(".die-container", new() { Timeout = 10_000 });
 
-        await page.EvaluateAsync(@"() => {
-            const rolled   = document.querySelectorAll('.mud-drop-zone')[0];
-            const setAside = document.querySelectorAll('.mud-drop-zone')[1];
-            const source   = rolled.querySelector('.mud-drop-item-draggable');
-            const dt = new DataTransfer();
-            source.dispatchEvent(new DragEvent('dragstart', { bubbles: true, cancelable: true, dataTransfer: dt }));
-            setAside.dispatchEvent(new DragEvent('dragenter', { bubbles: true, cancelable: true, dataTransfer: dt }));
-            setAside.dispatchEvent(new DragEvent('dragover',  { bubbles: true, cancelable: true, dataTransfer: dt }));
-            setAside.dispatchEvent(new DragEvent('drop',      { bubbles: true, cancelable: true, dataTransfer: dt }));
-            source.dispatchEvent(new DragEvent('dragend',     { bubbles: true, cancelable: true, dataTransfer: dt }));
-        }");
-
-        await page.ClickAsync("button:has-text('Set Dice Aside')");
-        await page.WaitForTimeoutAsync(500);
-
+        // Pass immediately after rolling — PlayerCanPass only requires a DiceRolled event,
+        // so no keep step is needed and we avoid the non-scoring die rejection problem.
         await page.ClickAsync("button:has-text('Pass Turn')");
         await page.WaitForTimeoutAsync(1_000);
 
