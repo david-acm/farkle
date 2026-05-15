@@ -15,15 +15,7 @@ public partial class GameState
 
       public override async Task Handle(Action action, CancellationToken aCancellationToken)
       {
-        try
-        {
-          await service.PassTurnAsync(State.GameId, State.PlayerId);
-        }
-        catch
-        {
-          // Pass may fail if game state is unexpected (e.g. non-scoring keep was rejected).
-          // Still reset UI so the player isn't stuck.
-        }
+        await service.PassTurnAsync(State.GameId, State.PlayerId);
 
         // Reset dice and turn score for the next turn.
         State.DiceInPlay.Clear();
