@@ -9,12 +9,10 @@ internal record Dice(IEnumerable<DieValue> DiceValues)
 {
   public static Dice FromNewRoll(IRandom randomizer, int diceToRoll)
   {
-    var g    = new GameService(default!);
     var dice = new List<DieValue>();
     for (var i = 1; i <= diceToRoll; i++)
     {
-      dice.Add(DieValue.FromValue(randomizer.Next(1,
-        6)));
+      dice.Add(DieValue.FromValue(randomizer.Next(1, 7)));
     }
 
     return new Dice(dice);
@@ -64,6 +62,9 @@ internal static class GameEvents
 
     [EventType("V1.PassedWithoutRolling")]
     internal record PassedWithoutRolling(int PlayerId) : IErrorEvent;
+
+    [EventType("V1.GameWon")]
+    internal record GameWon(int PlayerId, int Score);
   }
 
   internal static class V2

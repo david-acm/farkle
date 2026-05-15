@@ -28,10 +28,10 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
     private const int PlayerId      = 0;
 
     // Each test gets its own game ID to prevent EventStore state contamination.
-    private const int ShowDiceGameId    = 1001;
-    private const int DragDieGameId     = 1002;
-    private const int ScoreGameId       = 1003;
-    private const int TurnScoreGameId   = 1004;
+    private const int ShowDiceGameId  = 1001;
+    private const int DragDieGameId   = 1002;
+    private const int ScoreGameId     = 1003;
+    private const int TurnScoreGameId = 1004;
 
     // Resolved at runtime so it works both locally (dotnet test from repo root) and in CI.
     private static string VideoDir =>

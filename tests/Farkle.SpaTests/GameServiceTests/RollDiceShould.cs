@@ -15,11 +15,10 @@ public class RollDiceShould
   {
     // Given
     var mock = GetMockHttpClient();
-    mock.When("http://localhost:8000/api/games/1/players/1/rolls")
-      .RespondJson(
-        new RollDiceResponse(1, [1]));
+    mock.When("http://localhost/api/games/1/players/1/rolls")
+      .RespondJson(new RollDiceResponse(1, [1]));
 
-    var sut = new GameService(mock.ToHttpClient(), Mock.Of<ILogger<GameService>>());
+    var sut = new GameService(mock.ToFarkleApiClient(), Mock.Of<ILogger<GameService>>());
 
     // When
     var dice = await sut.RollDiceAsync(1, 1);

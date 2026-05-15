@@ -16,11 +16,13 @@ internal record GameState : State<GameState>
     On<V1.TurnPassed>(HandleTurnPassed);
     On<V1.DiceKept>(HandleDiceKept);
     On<V2.DiceKept>(HandleDiceKeptV2);
+    On<V1.GameWon>(HandleGameWon);
   }
 
   // TODO: Remove nullable
   public GameId?   Id        { get; private init; }
   public GameStage GameStage { get; private init; }
+  public Player?   Winner    { get; private init; }
   public Score     TurnScore { get; private init; } = new(0);
 
   public ImmutableArray<Player>    Players     { get; private init; } = ImmutableArray<Player>.Empty;
@@ -31,11 +33,11 @@ internal record GameState : State<GameState>
   public ImmutableDictionary<int, int> ScoreTable { get; private init; } =
     ImmutableDictionary<int, int>.Empty;
 
-  internal int PlayerInTurn => Players[0].Id;
+  internal int PlayerInTurn => Players.IsEmpty ? 0 : Players[0].Id;
 
   public Score GameScoreFor(PlayerId playerId)
   {
-    return new Score(ScoreTable[playerId]);
+    return new Score(ScoreTable.GetValueOrDefault(playerId, 0));
   }
 
   public Player GetPlayer(int id)
@@ -114,6 +116,15 @@ internal record GameState : State<GameState>
   private static GameState HandleGameStarted(GameState gameState, GameEvents.V1.GameStarted e)
   {
     return gameState with { Id = e.Id, GameStage = GameStage.Rolling };
+  }
+
+  private static GameState HandleGameWon(GameState state, GameEvents.V1.GameWon e)
+  {
+    return state with
+    {
+      GameStage = GameStage.Finished,
+      Winner = state.Players.Single(p => p.Id == e.PlayerId)
+    };
   }
 }
 

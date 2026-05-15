@@ -55,10 +55,14 @@ internal class Game : Aggregate<GameState>
 
   public void PassTurn(Command.PassTurn passTurn)
   {
+    var newScore = GetScore(passTurn.PlayerId);
     Apply(new GameEvents.V1.TurnPassed(
       passTurn.PlayerId,
       GetPlayerOrder(passTurn.PlayerId),
-      GetScore(passTurn.PlayerId)));
+      newScore));
+
+    if (newScore >= 10_000)
+      base.Apply(new GameEvents.V1.GameWon(passTurn.PlayerId, newScore));
   }
 
   public void KeepDice(Command.KeepDice keepDice)
@@ -164,5 +168,6 @@ internal enum GameStage
 {
   None,
   Rolling,
-  Keeping
+  Keeping,
+  Finished
 }
