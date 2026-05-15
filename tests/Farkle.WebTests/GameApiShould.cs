@@ -1,4 +1,5 @@
 using System.Net.Http.Headers;
+using System.Text;
 using Farkle.WebTests.Generated;
 using Farkle.WebTests.Generated.Models;
 using Microsoft.Kiota.Abstractions;
@@ -14,7 +15,15 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
 
     public GameApiShould(GameApiWebAppFactory factory)
     {
-        _httpClient = factory.CreateClient();
+        // FastEndpoints requires Content-Type: application/json even on bodyless POSTs.
+        // Wrap the factory client's handler to inject an empty JSON body when none is present,
+        // mirroring the EmptyBodyJsonHandler used by the WASM client in production.
+        var inner   = factory.Server.CreateHandler();
+        var wrapped = new HttpClient(new EmptyBodyJsonHandler(inner))
+        {
+            BaseAddress = factory.Server.BaseAddress
+        };
+        _httpClient = wrapped;
         var adapter = new HttpClientRequestAdapter(
             new AnonymousAuthenticationProvider(), httpClient: _httpClient);
         adapter.BaseUrl = (_httpClient.BaseAddress?.ToString().TrimEnd('/') ?? string.Empty) + "/api";
@@ -81,4 +90,17 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
             {
                 DiceValues = dice.Select(v => (int?)v).ToList()
             });
+}
+
+// FastEndpoints rejects POST requests with no Content-Type / body with 415.
+// This handler injects an empty JSON body on bodyless POSTs so the Kiota client
+// behaves the same way as the WASM production client (EmptyBodyJsonHandler).
+file sealed class EmptyBodyJsonHandler(HttpMessageHandler inner) : DelegatingHandler(inner)
+{
+    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+    {
+        if (request.Method == HttpMethod.Post && request.Content == null)
+            request.Content = new StringContent("{}", Encoding.UTF8, "application/json");
+        return base.SendAsync(request, ct);
+    }
 }
