@@ -5,9 +5,10 @@ namespace WebApp.Client.Features;
 
 public partial class GameState : State<GameState>
 {
-  public GameId    GameId    { get; private set; } = new GameId(0);
-  public PlayerId  PlayerId  { get; private set; } = new PlayerId(0);
-  public TurnScore TurnScore { get; private set; } = new(0);
+  public GameId     GameId     { get; private set; } = new GameId(0);
+  public PlayerId   PlayerId   { get; private set; } = new PlayerId(0);
+  public PlayerName PlayerName { get; private set; } = new(string.Empty);
+  public TurnScore  TurnScore  { get; private set; } = new(0);
   public bool      Error     { get; private set; }
   
   public List<DraggableDie> DiceInPlay { get; private set; } =
@@ -29,6 +30,7 @@ public partial class GameState : State<GameState>
   {
     GameId       = new GameId(0);
     PlayerId     = new PlayerId(0);
+    PlayerName   = new PlayerName(string.Empty);
     DiceSetAside = [];
   }
 }

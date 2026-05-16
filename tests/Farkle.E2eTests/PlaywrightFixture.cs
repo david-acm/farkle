@@ -44,6 +44,9 @@ public class PlaywrightFixture : IAsyncLifetime
             // started, and StartGame completed. Avoids depending on LoadState.NetworkIdle
             // which never settles when the page has external CDN links (Google Fonts).
             await page.WaitForSelectorAsync("h3:has-text('999')", new() { Timeout = 120_000 });
+            await page.FillAsync("[placeholder='Your name']", "Warm-up");
+            await page.ClickAsync("button:has-text('Join Game')");
+            await page.WaitForSelectorAsync("button:has-text('Roll')", new() { Timeout = 10_000 });
             await page.ClickAsync("button:has-text('Roll')", new() { Timeout = 30_000 });
             // Give the Roll API call time to complete so EventStore's write path is warm.
             await page.WaitForTimeoutAsync(3_000);
