@@ -14,8 +14,8 @@ namespace Farkle.WebTests.Generated.Auth.Login
     [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
     public partial class LoginRequestBuilder : BaseRequestBuilder
     {
-        public LoginRequestBuilder(Dictionary<string, object> pathParameters, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/auth/login", pathParameters) { }
-        public LoginRequestBuilder(string rawUrl, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/auth/login", rawUrl) { }
+        public LoginRequestBuilder(Dictionary<string, object> pathParameters, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/api/auth/login", pathParameters) { }
+        public LoginRequestBuilder(string rawUrl, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/api/auth/login", rawUrl) { }
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
         public async Task<global::Farkle.WebTests.Generated.Models.WebAppAuthLoginResponse?> PostAsync(global::Farkle.WebTests.Generated.Models.WebAppAuthLoginRequest body, Action<RequestConfiguration<DefaultQueryParameters>>? requestConfiguration = default, CancellationToken cancellationToken = default)

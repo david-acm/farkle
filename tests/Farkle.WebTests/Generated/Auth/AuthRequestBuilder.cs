@@ -21,8 +21,8 @@ namespace Farkle.WebTests.Generated.Auth
         {
             get => new global::Farkle.WebTests.Generated.Auth.Register.RegisterRequestBuilder(PathParameters, RequestAdapter);
         }
-        public AuthRequestBuilder(Dictionary<string, object> pathParameters, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/auth", pathParameters) { }
-        public AuthRequestBuilder(string rawUrl, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/auth", rawUrl) { }
+        public AuthRequestBuilder(Dictionary<string, object> pathParameters, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/api/auth", pathParameters) { }
+        public AuthRequestBuilder(string rawUrl, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/api/auth", rawUrl) { }
     }
 }
 #pragma warning restore CS0618

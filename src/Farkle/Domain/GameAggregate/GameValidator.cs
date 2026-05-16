@@ -125,7 +125,7 @@ internal record GameAlreadyStarted(int Id);
 internal record GameHasNotStarted(GameStage GameStage);
 
 [EventType("V1.DiceNotAllowedToBeKept")]
-internal record DiceNotAllowedToBeKept(string Reason, IEnumerable<int> Dice);
+internal record DiceNotAllowedToBeKept(string Reason, IEnumerable<int> Dice) : IErrorEvent;
 
 internal class DiceAreOnesOrFives : Validator
 {

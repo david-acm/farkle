@@ -20,6 +20,12 @@ public partial class DragabbleDice : BlazorStateComponent
   
   private List<DraggableDie> InternalDice()
   {
+    if (Dice.Count == 0)
+    {
+      _internalDice.Clear();
+      return _internalDice;
+    }
+
     var diceToAdd = Dice.Count - _internalDice.Count;
     Logger.LogInformation("Current dice count: {currentCount}. Dice received: {receivedCount}", _internalDice.Count, Dice.Count);
     for (int i = 0; i < diceToAdd; i++)

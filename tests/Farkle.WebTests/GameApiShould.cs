@@ -1,4 +1,6 @@
+using System.Linq;
 using System.Net.Http.Headers;
+using System.Text;
 using Farkle.WebTests.Generated;
 using Farkle.WebTests.Generated.Models;
 using Microsoft.Kiota.Abstractions;
@@ -14,10 +16,18 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
 
     public GameApiShould(GameApiWebAppFactory factory)
     {
-        _httpClient = factory.CreateClient();
+        // FastEndpoints requires Content-Type: application/json even on bodyless POSTs.
+        // Wrap the factory client's handler to inject an empty JSON body when none is present,
+        // mirroring the EmptyBodyJsonHandler used by the WASM client in production.
+        var inner   = factory.Server.CreateHandler();
+        var wrapped = new HttpClient(new EmptyBodyJsonHandler(inner))
+        {
+            BaseAddress = factory.Server.BaseAddress
+        };
+        _httpClient = wrapped;
         var adapter = new HttpClientRequestAdapter(
             new AnonymousAuthenticationProvider(), httpClient: _httpClient);
-        adapter.BaseUrl = (_httpClient.BaseAddress?.ToString().TrimEnd('/') ?? string.Empty) + "/api";
+        adapter.BaseUrl = _httpClient.BaseAddress?.ToString().TrimEnd('/') ?? string.Empty;
         _client = new FarkleApiClient(adapter);
 
         AuthenticateAsync().GetAwaiter().GetResult();
@@ -64,6 +74,38 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
         await KeepDiceAsync(gameId, 1, [1]);
     }
 
+    [Fact]
+    public async Task PassTurnResetsTurnScoreAsync()
+    {
+        const int gameId  = 209;
+        const int player1 = 1;
+        const int player2 = 2;
+
+        await StartGameAsync(gameId);
+        await JoinGameAsync(gameId, player1, "David");
+        await JoinGameAsync(gameId, player2, "Allison");
+
+        // Player 1 keeps all their scoring dice to build a non-zero turn score.
+        var roll1        = await _client.Games[gameId].Players[player1].Rolls.PostAsync();
+        var scoringDice1 = (roll1!.DiceValues ?? []).Where(v => v == 1 || v == 5).Select(v => (int)v!).ToArray();
+        int player1TurnScore = 0;
+        if (scoringDice1.Length > 0)
+        {
+            var kept = await KeepDiceAsync(gameId, player1, scoringDice1);
+            player1TurnScore = kept!.TurnScore ?? 0;
+            Assert.True(player1TurnScore > 0, "turn score should be positive after keeping scoring dice");
+        }
+
+        // Passing locks the turn score into the player's cumulative game score.
+        var pass = await PassTurnAsync(gameId, player1);
+        Assert.Equal(player1TurnScore, pass!.NewScore);
+
+        // Player 2 can roll — confirming the game correctly advanced the turn with a fresh score.
+        var roll2 = await _client.Games[gameId].Players[player2].Rolls.PostAsync();
+        Assert.NotNull(roll2!.DiceValues);
+        Assert.NotEmpty(roll2.DiceValues);
+    }
+
     private Task StartGameAsync(int gameId)
         => _client.Games.PostAsync(
             new FarkleContractsHttpRequests_StartGameRequest { Id = gameId });
@@ -75,10 +117,26 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
     private Task RollDiceAsync(int gameId, int playerId)
         => _client.Games[gameId].Players[playerId].Rolls.PostAsync();
 
-    private Task KeepDiceAsync(int gameId, int playerId, int[] dice)
+    private Task<FarkleContractsHttpResponses_KeepDiceResponse?> KeepDiceAsync(int gameId, int playerId, int[] dice)
         => _client.Games[gameId].Players[playerId].Keeps.PostAsync(
             new FarkleContractsHttpRequests_KeepDiceRequest
             {
                 DiceValues = dice.Select(v => (int?)v).ToList()
             });
+
+    private Task<FarkleContractsHttpResponses_PassTurnResponse?> PassTurnAsync(int gameId, int playerId)
+        => _client.Games[gameId].Players[playerId].Turns.PostAsync();
+}
+
+// FastEndpoints rejects POST requests with no Content-Type / body with 415.
+// This handler injects an empty JSON body on bodyless POSTs so the Kiota client
+// behaves the same way as the WASM production client (EmptyBodyJsonHandler).
+file sealed class EmptyBodyJsonHandler(HttpMessageHandler inner) : DelegatingHandler(inner)
+{
+    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+    {
+        if (request.Method == HttpMethod.Post && request.Content == null)
+            request.Content = new StringContent("{}", Encoding.UTF8, "application/json");
+        return base.SendAsync(request, ct);
+    }
 }

@@ -14,8 +14,8 @@ namespace Farkle.WebTests.Generated.Games.Item.Players.Item.Turns
     [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
     public partial class TurnsRequestBuilder : BaseRequestBuilder
     {
-        public TurnsRequestBuilder(Dictionary<string, object> pathParameters, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/games/{gameId}/players/{playerId}/turns", pathParameters) { }
-        public TurnsRequestBuilder(string rawUrl, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/games/{gameId}/players/{playerId}/turns", rawUrl) { }
+        public TurnsRequestBuilder(Dictionary<string, object> pathParameters, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/api/games/{gameId}/players/{playerId}/turns", pathParameters) { }
+        public TurnsRequestBuilder(string rawUrl, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/api/games/{gameId}/players/{playerId}/turns", rawUrl) { }
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
         public async Task<global::Farkle.WebTests.Generated.Models.FarkleContractsHttpResponses_PassTurnResponse?> PostAsync(Action<RequestConfiguration<DefaultQueryParameters>>? requestConfiguration = default, CancellationToken cancellationToken = default)

@@ -14,8 +14,8 @@ namespace Farkle.WebTests.Generated.Games.Item.Players.Item.Keeps
     [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
     public partial class KeepsRequestBuilder : BaseRequestBuilder
     {
-        public KeepsRequestBuilder(Dictionary<string, object> pathParameters, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/games/{gameId}/players/{playerId}/keeps", pathParameters) { }
-        public KeepsRequestBuilder(string rawUrl, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/games/{gameId}/players/{playerId}/keeps", rawUrl) { }
+        public KeepsRequestBuilder(Dictionary<string, object> pathParameters, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/api/games/{gameId}/players/{playerId}/keeps", pathParameters) { }
+        public KeepsRequestBuilder(string rawUrl, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/api/games/{gameId}/players/{playerId}/keeps", rawUrl) { }
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
         public async Task<global::Farkle.WebTests.Generated.Models.FarkleContractsHttpResponses_KeepDiceResponse?> PostAsync(global::Farkle.WebTests.Generated.Models.FarkleContractsHttpRequests_KeepDiceRequest body, Action<RequestConfiguration<DefaultQueryParameters>>? requestConfiguration = default, CancellationToken cancellationToken = default)
