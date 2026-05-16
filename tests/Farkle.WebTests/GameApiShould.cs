@@ -106,6 +106,63 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
         Assert.NotEmpty(roll2.DiceValues);
     }
 
+    [Fact]
+    public async Task RejectRollFromPlayerNotInTurnAsync()
+    {
+        const int gameId  = 301;
+        const int player1 = 1;
+        const int player2 = 2;
+
+        await StartGameAsync(gameId);
+        await JoinGameAsync(gameId, player1, "David");
+        await JoinGameAsync(gameId, player2, "Allison");
+
+        // Player 1 goes first; player 2 rolling out of turn must be rejected.
+        var ex = await Assert.ThrowsAsync<ApiException>(
+            () => RollDiceAsync(gameId, player2));
+
+        Assert.Equal(400, ex.ResponseStatusCode);
+    }
+
+    [Fact]
+    public async Task RejectDoubleRollWithoutKeepingAsync()
+    {
+        const int gameId  = 302;
+        const int player1 = 1;
+        const int player2 = 2;
+
+        await StartGameAsync(gameId);
+        await JoinGameAsync(gameId, player1, "David");
+        await JoinGameAsync(gameId, player2, "Allison");
+
+        // First roll always succeeds.
+        await RollDiceAsync(gameId, player1);
+
+        // A second roll before keeping any dice must be rejected.
+        var ex = await Assert.ThrowsAsync<ApiException>(
+            () => RollDiceAsync(gameId, player1));
+
+        Assert.Equal(400, ex.ResponseStatusCode);
+    }
+
+    [Fact]
+    public async Task RejectPassWithoutRollingAsync()
+    {
+        const int gameId  = 303;
+        const int player1 = 1;
+        const int player2 = 2;
+
+        await StartGameAsync(gameId);
+        await JoinGameAsync(gameId, player1, "David");
+        await JoinGameAsync(gameId, player2, "Allison");
+
+        // Attempting to pass before rolling must be rejected.
+        var ex = await Assert.ThrowsAsync<ApiException>(
+            () => PassTurnAsync(gameId, player1));
+
+        Assert.Equal(400, ex.ResponseStatusCode);
+    }
+
     private Task StartGameAsync(int gameId)
         => _client.Games.PostAsync(
             new FarkleContractsHttpRequests_StartGameRequest { Id = gameId });
