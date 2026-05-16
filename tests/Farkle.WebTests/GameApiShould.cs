@@ -98,7 +98,8 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
 
         // Passing locks the turn score into the player's cumulative game score.
         var pass = await PassTurnAsync(gameId, player1);
-        Assert.Equal(player1TurnScore, pass!.NewScore);
+        Assert.NotNull(pass);
+        Assert.Equal(player1TurnScore, pass.NewScore);
 
         // Player 2 can roll — confirming the game correctly advanced the turn with a fresh score.
         var roll2 = await _client.Games[gameId].Players[player2].Rolls.PostAsync();

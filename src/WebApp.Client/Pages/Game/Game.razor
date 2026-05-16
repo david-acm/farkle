@@ -1,4 +1,4 @@
-﻿@page "/games/{ParameterGameId:int}"
+@page "/games/{ParameterGameId:int}"
 @inherits BlazorState.BlazorStateComponent
 @rendermode @(new InteractiveWebAssemblyRenderMode(prerender: false))
 
@@ -6,37 +6,59 @@
 
 <MudText Typo="Typo.h3">Welcome!</MudText>
 <GameTitle></GameTitle>
-<MudGrid Spacing="1">
-  <MudItem xs="12" sm="6" md="4">
-    <MudText Class="mt-6"
-             Typo="Typo.h5">
-      Roll the dice and don't Farkle!
-    </MudText>
-  </MudItem>
-  <MudItem xs="12" sm="6" md="4">
-    <TurnScore></TurnScore>
-  </MudItem>
-</MudGrid>
 
+@if (!HasJoined)
+{
+  <MudCard Class="mt-4" Style="max-width: 400px">
+    <MudCardContent>
+      <MudText Typo="Typo.h6" Class="mb-2">Enter your name to join</MudText>
+      <MudTextField @bind-Value="_playerName"
+                    Label="Your name"
+                    Placeholder="Your name"
+                    Variant="Variant.Outlined"
+                    Immediate="true" />
+    </MudCardContent>
+    <MudCardActions>
+      <MudButton Variant="Variant.Filled"
+                 Color="Color.Primary"
+                 Disabled="@(string.IsNullOrWhiteSpace(_playerName))"
+                 OnClick="JoinAsync">Join Game</MudButton>
+    </MudCardActions>
+  </MudCard>
+}
+else
+{
+  <MudGrid Spacing="1">
+    <MudItem xs="12" sm="6" md="4">
+      <MudText Class="mt-6" Typo="Typo.h5">
+        Roll the dice and don't Farkle!
+      </MudText>
+      <MudText Typo="Typo.subtitle1">
+        Playing as: <strong>@GameState.PlayerName.Value</strong>
+      </MudText>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="4">
+      <TurnScore></TurnScore>
+    </MudItem>
+  </MudGrid>
 
-<MudGrid Spacing="1" Class="mt-8">
-  <MudItem xs="12" sm="6" md="4">
-    <StartGameButton />
-  </MudItem>
-  <MudItem xs="12" sm="6" md="4">
-    <KeepButton />
-  </MudItem>
-  <MudItem xs="12" sm="6" md="4">
-    <RollDiceButton />
-  </MudItem>
-  <MudItem xs="12" sm="6" md="4">
-    <PassTurnButton />
-  </MudItem>
-</MudGrid>
+  <MudGrid Spacing="1" Class="mt-8">
+    <MudItem xs="12" sm="6" md="4">
+      <StartGameButton />
+    </MudItem>
+    <MudItem xs="12" sm="6" md="4">
+      <KeepButton />
+    </MudItem>
+    <MudItem xs="12" sm="6" md="4">
+      <RollDiceButton />
+    </MudItem>
+    <MudItem xs="12" sm="6" md="4">
+      <PassTurnButton />
+    </MudItem>
+  </MudGrid>
 
-
-<MudContainer Class="mt-8">
-  <DragabbleDice>
-  </DragabbleDice>
-  
-</MudContainer>
+  <MudContainer Class="mt-8">
+    <DragabbleDice>
+    </DragabbleDice>
+  </MudContainer>
+}
