@@ -28,7 +28,8 @@ internal class PassTurnEndpoint(
           req.PlayerId,
           s.GameScoreFor(req.PlayerId),
           s.Winner == null ? null : new WinnerResponse(s.Winner.Id, s.Winner.Name, s.GameScoreFor(s.Winner.Id)),
-          s.PlayerInTurn));
+          s.PlayerInTurn,
+          s.Players.Select(p => new PlayerScore(p.Id, p.Name, s.GameScoreFor(p.Id))).ToArray()));
 
     await SendResultAsync(result);
   }

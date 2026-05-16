@@ -4,7 +4,7 @@ public static class HttpResponses
 {
   public record JoinPlayerResponse(int Id);
   
-  public record PlayerScore(int PlayerId, int Score);
+  public record PlayerScore(int PlayerId, string Name, int Score);
   
   public record KeepDiceResponse(int Id, int TurnScore);
   
@@ -12,7 +12,7 @@ public static class HttpResponses
   
   public record StartGameResponse(int Id);
 
-  public record PassTurnResponse(int GameId, int PlayerId, int NewScore, WinnerResponse? Winner, int CurrentPlayerId = 0);
+  public record PassTurnResponse(int GameId, int PlayerId, int NewScore, WinnerResponse? Winner, int CurrentPlayerId = 0, IReadOnlyList<PlayerScore>? Scoreboard = null);
 
   public record WinnerResponse(int PlayerId, string Name, int Score);
 }

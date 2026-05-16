@@ -12,12 +12,22 @@ namespace Farkle.WebTests.Generated.Models
     public partial class FarkleContractsHttpRequests_StartGameRequest : IParsable
     #pragma warning restore CS1591
     {
+        /// <summary>The id property</summary>
         public int? Id { get; set; }
+        /// <summary>
+        /// Creates a new instance of the appropriate class based on discriminator value
+        /// </summary>
+        /// <returns>A <see cref="global::Farkle.WebTests.Generated.Models.FarkleContractsHttpRequests_StartGameRequest"/></returns>
+        /// <param name="parseNode">The parse node to use to read the discriminator value and create the object</param>
         public static global::Farkle.WebTests.Generated.Models.FarkleContractsHttpRequests_StartGameRequest CreateFromDiscriminatorValue(IParseNode parseNode)
         {
             if(ReferenceEquals(parseNode, null)) throw new ArgumentNullException(nameof(parseNode));
             return new global::Farkle.WebTests.Generated.Models.FarkleContractsHttpRequests_StartGameRequest();
         }
+        /// <summary>
+        /// The deserialization information for the current model
+        /// </summary>
+        /// <returns>A IDictionary&lt;string, Action&lt;IParseNode&gt;&gt;</returns>
         public virtual IDictionary<string, Action<IParseNode>> GetFieldDeserializers()
         {
             return new Dictionary<string, Action<IParseNode>>
@@ -25,6 +35,10 @@ namespace Farkle.WebTests.Generated.Models
                 { "id", n => { Id = n.GetIntValue(); } },
             };
         }
+        /// <summary>
+        /// Serializes information the current object
+        /// </summary>
+        /// <param name="writer">Serialization writer to use to serialize this model</param>
         public virtual void Serialize(ISerializationWriter writer)
         {
             if(ReferenceEquals(writer, null)) throw new ArgumentNullException(nameof(writer));

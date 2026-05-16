@@ -12,9 +12,15 @@ using WebApp.Client.Services.Generated.Api.Games.Item;
 using WebApp.Client.Services.Generated.Models;
 namespace WebApp.Client.Services.Generated.Api.Games
 {
+    /// <summary>
+    /// Builds and executes requests for operations under \api\games
+    /// </summary>
     [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
     public partial class GamesRequestBuilder : BaseRequestBuilder
     {
+        /// <summary>Gets an item from the WebApp.Client.Services.Generated.api.games.item collection</summary>
+        /// <param name="position">Unique identifier of the item</param>
+        /// <returns>A <see cref="global::WebApp.Client.Services.Generated.Api.Games.Item.WithGameItemRequestBuilder"/></returns>
         public global::WebApp.Client.Services.Generated.Api.Games.Item.WithGameItemRequestBuilder this[int position]
         {
             get
@@ -24,6 +30,9 @@ namespace WebApp.Client.Services.Generated.Api.Games
                 return new global::WebApp.Client.Services.Generated.Api.Games.Item.WithGameItemRequestBuilder(urlTplParams, RequestAdapter);
             }
         }
+        /// <summary>Gets an item from the WebApp.Client.Services.Generated.api.games.item collection</summary>
+        /// <param name="position">Unique identifier of the item</param>
+        /// <returns>A <see cref="global::WebApp.Client.Services.Generated.Api.Games.Item.WithGameItemRequestBuilder"/></returns>
         [Obsolete("This indexer is deprecated and will be removed in the next major version. Use the one with the typed parameter instead.")]
         public global::WebApp.Client.Services.Generated.Api.Games.Item.WithGameItemRequestBuilder this[string position]
         {
@@ -34,8 +43,26 @@ namespace WebApp.Client.Services.Generated.Api.Games
                 return new global::WebApp.Client.Services.Generated.Api.Games.Item.WithGameItemRequestBuilder(urlTplParams, RequestAdapter);
             }
         }
-        public GamesRequestBuilder(Dictionary<string, object> pathParameters, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/api/games", pathParameters) { }
-        public GamesRequestBuilder(string rawUrl, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/api/games", rawUrl) { }
+        /// <summary>
+        /// Instantiates a new <see cref="global::WebApp.Client.Services.Generated.Api.Games.GamesRequestBuilder"/> and sets the default values.
+        /// </summary>
+        /// <param name="pathParameters">Path parameters for the request</param>
+        /// <param name="requestAdapter">The request adapter to use to execute the requests.</param>
+        public GamesRequestBuilder(Dictionary<string, object> pathParameters, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/api/games", pathParameters)
+        {
+        }
+        /// <summary>
+        /// Instantiates a new <see cref="global::WebApp.Client.Services.Generated.Api.Games.GamesRequestBuilder"/> and sets the default values.
+        /// </summary>
+        /// <param name="rawUrl">The raw URL to use for the request builder.</param>
+        /// <param name="requestAdapter">The request adapter to use to execute the requests.</param>
+        public GamesRequestBuilder(string rawUrl, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/api/games", rawUrl)
+        {
+        }
+        /// <returns>A <see cref="global::WebApp.Client.Services.Generated.Models.FarkleContractsHttpResponses_StartGameResponse"/></returns>
+        /// <param name="body">The request body</param>
+        /// <param name="cancellationToken">Cancellation token to use when cancelling requests</param>
+        /// <param name="requestConfiguration">Configuration for the request such as headers, query parameters, and middleware options.</param>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
         public async Task<global::WebApp.Client.Services.Generated.Models.FarkleContractsHttpResponses_StartGameResponse?> PostAsync(global::WebApp.Client.Services.Generated.Models.FarkleContractsHttpRequests_StartGameRequest body, Action<RequestConfiguration<DefaultQueryParameters>>? requestConfiguration = default, CancellationToken cancellationToken = default)
@@ -49,6 +76,9 @@ namespace WebApp.Client.Services.Generated.Api.Games
             var requestInfo = ToPostRequestInformation(body, requestConfiguration);
             return await RequestAdapter.SendAsync<global::WebApp.Client.Services.Generated.Models.FarkleContractsHttpResponses_StartGameResponse>(requestInfo, global::WebApp.Client.Services.Generated.Models.FarkleContractsHttpResponses_StartGameResponse.CreateFromDiscriminatorValue, default, cancellationToken).ConfigureAwait(false);
         }
+        /// <returns>A <see cref="RequestInformation"/></returns>
+        /// <param name="body">The request body</param>
+        /// <param name="requestConfiguration">Configuration for the request such as headers, query parameters, and middleware options.</param>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
         public RequestInformation ToPostRequestInformation(global::WebApp.Client.Services.Generated.Models.FarkleContractsHttpRequests_StartGameRequest body, Action<RequestConfiguration<DefaultQueryParameters>>? requestConfiguration = default)
@@ -65,13 +95,23 @@ namespace WebApp.Client.Services.Generated.Api.Games
             requestInfo.SetContentFromParsable(RequestAdapter, "application/json", body);
             return requestInfo;
         }
+        /// <summary>
+        /// Returns a request builder with the provided arbitrary URL. Using this method means any other path or query parameters are ignored.
+        /// </summary>
+        /// <returns>A <see cref="global::WebApp.Client.Services.Generated.Api.Games.GamesRequestBuilder"/></returns>
+        /// <param name="rawUrl">The raw URL to use for the request builder.</param>
         public global::WebApp.Client.Services.Generated.Api.Games.GamesRequestBuilder WithUrl(string rawUrl)
         {
             return new global::WebApp.Client.Services.Generated.Api.Games.GamesRequestBuilder(rawUrl, RequestAdapter);
         }
-        [Obsolete("This class is deprecated.")]
+        /// <summary>
+        /// Configuration for the request such as headers, query parameters, and middleware options.
+        /// </summary>
+        [Obsolete("This class is deprecated. Please use the generic RequestConfiguration class generated by the generator.")]
         [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
-        public partial class GamesRequestBuilderPostRequestConfiguration : RequestConfiguration<DefaultQueryParameters> { }
+        public partial class GamesRequestBuilderPostRequestConfiguration : RequestConfiguration<DefaultQueryParameters>
+        {
+        }
     }
 }
 #pragma warning restore CS0618

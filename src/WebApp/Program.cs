@@ -85,7 +85,8 @@ else
 }
 
 app.UseStaticFiles();
-app.MapStaticAssets();
+if (!app.Environment.IsEnvironment("NSwag"))
+    app.MapStaticAssets();
 
 if (!app.Environment.IsEnvironment("NSwag"))
     app.SetUpFarkleModule();

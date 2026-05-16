@@ -38,10 +38,10 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
         var email    = $"test-{Guid.NewGuid():N}@farkle.dev";
         const string password = "Test@123!";
 
-        await _client.Auth.Register.PostAsync(
+        await _client.Api.Auth.Register.PostAsync(
             new WebAppAuthRegisterRequest { Email = email, Password = password });
 
-        var login = await _client.Auth.Login.PostAsync(
+        var login = await _client.Api.Auth.Login.PostAsync(
             new WebAppAuthLoginRequest { Email = email, Password = password });
 
         _httpClient.DefaultRequestHeaders.Authorization =
@@ -55,7 +55,7 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
         _httpClient.DefaultRequestHeaders.Authorization = null;
 
         var ex = await Assert.ThrowsAsync<ApiException>(
-            () => _client.Games.PostAsync(
+            () => _client.Api.Games.PostAsync(
                 new FarkleContractsHttpRequests_StartGameRequest { Id = 999 }));
 
         _httpClient.DefaultRequestHeaders.Authorization = savedAuth;
@@ -86,7 +86,7 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
         await JoinGameAsync(gameId, player2, "Allison");
 
         // Player 1 keeps all their scoring dice to build a non-zero turn score.
-        var roll1        = await _client.Games[gameId].Players[player1].Rolls.PostAsync();
+        var roll1        = await _client.Api.Games[gameId].Players[player1].Rolls.PostAsync();
         var scoringDice1 = (roll1!.DiceValues ?? []).Where(v => v == 1 || v == 5).Select(v => (int)v!).ToArray();
         int player1TurnScore = 0;
         if (scoringDice1.Length > 0)
@@ -102,9 +102,38 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
         Assert.Equal(player1TurnScore, pass.NewScore);
 
         // Player 2 can roll — confirming the game correctly advanced the turn with a fresh score.
-        var roll2 = await _client.Games[gameId].Players[player2].Rolls.PostAsync();
+        var roll2 = await _client.Api.Games[gameId].Players[player2].Rolls.PostAsync();
         Assert.NotNull(roll2!.DiceValues);
         Assert.NotEmpty(roll2.DiceValues);
+    }
+
+    [Fact]
+    public async Task PassTurnIncludesScoreboardAsync()
+    {
+        const int gameId  = 304;
+        const int player1 = 1;
+        const int player2 = 2;
+
+        await StartGameAsync(gameId);
+        await JoinGameAsync(gameId, player1, "David");
+        await JoinGameAsync(gameId, player2, "Allison");
+
+        var roll1        = await _client.Api.Games[gameId].Players[player1].Rolls.PostAsync();
+        var scoringDice1 = (roll1!.DiceValues ?? []).Where(v => v == 1 || v == 5).Select(v => (int)v!).ToArray();
+        if (scoringDice1.Length > 0)
+            await KeepDiceAsync(gameId, player1, scoringDice1);
+
+        var pass = await PassTurnAsync(gameId, player1);
+
+        Assert.NotNull(pass?.Scoreboard);
+        Assert.Equal(2, pass!.Scoreboard!.Count);
+
+        var names = pass.Scoreboard.Select(p => p.Name).ToHashSet();
+        Assert.Contains("David", names);
+        Assert.Contains("Allison", names);
+
+        var david = pass.Scoreboard.First(p => p.Name == "David");
+        Assert.Equal(pass.NewScore, david.Score);
     }
 
     [Fact]
@@ -165,25 +194,25 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
     }
 
     private Task StartGameAsync(int gameId)
-        => _client.Games.PostAsync(
+        => _client.Api.Games.PostAsync(
             new FarkleContractsHttpRequests_StartGameRequest { Id = gameId });
 
     private Task JoinGameAsync(int gameId, int playerId, string playerName)
-        => _client.Games[gameId].Players[playerId].PostAsync(
+        => _client.Api.Games[gameId].Players[playerId].PostAsync(
             new FarkleContractsHttpRequests_JoinPlayerRequest { PlayerName = playerName });
 
     private Task RollDiceAsync(int gameId, int playerId)
-        => _client.Games[gameId].Players[playerId].Rolls.PostAsync();
+        => _client.Api.Games[gameId].Players[playerId].Rolls.PostAsync();
 
     private Task<FarkleContractsHttpResponses_KeepDiceResponse?> KeepDiceAsync(int gameId, int playerId, int[] dice)
-        => _client.Games[gameId].Players[playerId].Keeps.PostAsync(
+        => _client.Api.Games[gameId].Players[playerId].Keeps.PostAsync(
             new FarkleContractsHttpRequests_KeepDiceRequest
             {
                 DiceValues = dice.Select(v => (int?)v).ToList()
             });
 
     private Task<FarkleContractsHttpResponses_PassTurnResponse?> PassTurnAsync(int gameId, int playerId)
-        => _client.Games[gameId].Players[playerId].Turns.PostAsync();
+        => _client.Api.Games[gameId].Players[playerId].Turns.PostAsync();
 }
 
 // FastEndpoints rejects POST requests with no Content-Type / body with 415.

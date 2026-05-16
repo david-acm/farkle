@@ -11,6 +11,9 @@ public partial class GameState : State<GameState>
   public TurnScore  TurnScore       { get; private set; } = new(0);
   public int        CurrentPlayerId { get; internal set; } = 0;
   public bool       IsMyTurn        => CurrentPlayerId == PlayerId.Value;
+  public IReadOnlyList<PlayerStanding> Scoreboard  { get; internal set; } = [];
+  public string?    WinnerName      { get; internal set; }
+  public bool       IsGameOver      => WinnerName is not null;
   public bool      Error     { get; private set; }
   
   public List<DraggableDie> DiceInPlay { get; private set; } =
@@ -34,9 +37,13 @@ public partial class GameState : State<GameState>
     PlayerId        = new PlayerId(0);
     PlayerName      = new PlayerName(string.Empty);
     CurrentPlayerId = 0;
+    Scoreboard      = [];
+    WinnerName      = null;
     DiceSetAside    = [];
   }
 }
+
+public record PlayerStanding(int PlayerId, string Name, int Score);
 
 public record TurnScore(int Value);
 

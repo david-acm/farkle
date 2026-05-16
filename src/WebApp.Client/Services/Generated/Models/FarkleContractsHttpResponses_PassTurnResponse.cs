@@ -20,6 +20,14 @@ namespace WebApp.Client.Services.Generated.Models
         public int? NewScore { get; set; }
         /// <summary>The playerId property</summary>
         public int? PlayerId { get; set; }
+        /// <summary>The scoreboard property</summary>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
+#nullable enable
+        public List<global::WebApp.Client.Services.Generated.Models.FarkleContractsHttpResponses_PlayerScore>? Scoreboard { get; set; }
+#nullable restore
+#else
+        public List<global::WebApp.Client.Services.Generated.Models.FarkleContractsHttpResponses_PlayerScore> Scoreboard { get; set; }
+#endif
         /// <summary>The winner property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
@@ -50,6 +58,7 @@ namespace WebApp.Client.Services.Generated.Models
                 { "gameId", n => { GameId = n.GetIntValue(); } },
                 { "newScore", n => { NewScore = n.GetIntValue(); } },
                 { "playerId", n => { PlayerId = n.GetIntValue(); } },
+                { "scoreboard", n => { Scoreboard = n.GetCollectionOfObjectValues<global::WebApp.Client.Services.Generated.Models.FarkleContractsHttpResponses_PlayerScore>(global::WebApp.Client.Services.Generated.Models.FarkleContractsHttpResponses_PlayerScore.CreateFromDiscriminatorValue)?.AsList(); } },
                 { "winner", n => { Winner = n.GetObjectValue<global::WebApp.Client.Services.Generated.Models.FarkleContractsHttpResponses_WinnerResponse>(global::WebApp.Client.Services.Generated.Models.FarkleContractsHttpResponses_WinnerResponse.CreateFromDiscriminatorValue); } },
             };
         }
@@ -64,6 +73,7 @@ namespace WebApp.Client.Services.Generated.Models
             writer.WriteIntValue("gameId", GameId);
             writer.WriteIntValue("newScore", NewScore);
             writer.WriteIntValue("playerId", PlayerId);
+            writer.WriteCollectionOfObjectValues<global::WebApp.Client.Services.Generated.Models.FarkleContractsHttpResponses_PlayerScore>("scoreboard", Scoreboard);
             writer.WriteObjectValue<global::WebApp.Client.Services.Generated.Models.FarkleContractsHttpResponses_WinnerResponse>("winner", Winner);
         }
     }

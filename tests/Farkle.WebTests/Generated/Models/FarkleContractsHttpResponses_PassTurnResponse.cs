@@ -12,9 +12,23 @@ namespace Farkle.WebTests.Generated.Models
     public partial class FarkleContractsHttpResponses_PassTurnResponse : IParsable
     #pragma warning restore CS1591
     {
+        /// <summary>The currentPlayerId property</summary>
+        public int? CurrentPlayerId { get; set; }
+        /// <summary>The gameId property</summary>
         public int? GameId { get; set; }
+        /// <summary>The newScore property</summary>
         public int? NewScore { get; set; }
+        /// <summary>The playerId property</summary>
         public int? PlayerId { get; set; }
+        /// <summary>The scoreboard property</summary>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
+#nullable enable
+        public List<global::Farkle.WebTests.Generated.Models.FarkleContractsHttpResponses_PlayerScore>? Scoreboard { get; set; }
+#nullable restore
+#else
+        public List<global::Farkle.WebTests.Generated.Models.FarkleContractsHttpResponses_PlayerScore> Scoreboard { get; set; }
+#endif
+        /// <summary>The winner property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
         public global::Farkle.WebTests.Generated.Models.FarkleContractsHttpResponses_WinnerResponse? Winner { get; set; }
@@ -22,27 +36,44 @@ namespace Farkle.WebTests.Generated.Models
 #else
         public global::Farkle.WebTests.Generated.Models.FarkleContractsHttpResponses_WinnerResponse Winner { get; set; }
 #endif
+        /// <summary>
+        /// Creates a new instance of the appropriate class based on discriminator value
+        /// </summary>
+        /// <returns>A <see cref="global::Farkle.WebTests.Generated.Models.FarkleContractsHttpResponses_PassTurnResponse"/></returns>
+        /// <param name="parseNode">The parse node to use to read the discriminator value and create the object</param>
         public static global::Farkle.WebTests.Generated.Models.FarkleContractsHttpResponses_PassTurnResponse CreateFromDiscriminatorValue(IParseNode parseNode)
         {
             if(ReferenceEquals(parseNode, null)) throw new ArgumentNullException(nameof(parseNode));
             return new global::Farkle.WebTests.Generated.Models.FarkleContractsHttpResponses_PassTurnResponse();
         }
+        /// <summary>
+        /// The deserialization information for the current model
+        /// </summary>
+        /// <returns>A IDictionary&lt;string, Action&lt;IParseNode&gt;&gt;</returns>
         public virtual IDictionary<string, Action<IParseNode>> GetFieldDeserializers()
         {
             return new Dictionary<string, Action<IParseNode>>
             {
+                { "currentPlayerId", n => { CurrentPlayerId = n.GetIntValue(); } },
                 { "gameId", n => { GameId = n.GetIntValue(); } },
                 { "newScore", n => { NewScore = n.GetIntValue(); } },
                 { "playerId", n => { PlayerId = n.GetIntValue(); } },
+                { "scoreboard", n => { Scoreboard = n.GetCollectionOfObjectValues<global::Farkle.WebTests.Generated.Models.FarkleContractsHttpResponses_PlayerScore>(global::Farkle.WebTests.Generated.Models.FarkleContractsHttpResponses_PlayerScore.CreateFromDiscriminatorValue)?.AsList(); } },
                 { "winner", n => { Winner = n.GetObjectValue<global::Farkle.WebTests.Generated.Models.FarkleContractsHttpResponses_WinnerResponse>(global::Farkle.WebTests.Generated.Models.FarkleContractsHttpResponses_WinnerResponse.CreateFromDiscriminatorValue); } },
             };
         }
+        /// <summary>
+        /// Serializes information the current object
+        /// </summary>
+        /// <param name="writer">Serialization writer to use to serialize this model</param>
         public virtual void Serialize(ISerializationWriter writer)
         {
             if(ReferenceEquals(writer, null)) throw new ArgumentNullException(nameof(writer));
+            writer.WriteIntValue("currentPlayerId", CurrentPlayerId);
             writer.WriteIntValue("gameId", GameId);
             writer.WriteIntValue("newScore", NewScore);
             writer.WriteIntValue("playerId", PlayerId);
+            writer.WriteCollectionOfObjectValues<global::Farkle.WebTests.Generated.Models.FarkleContractsHttpResponses_PlayerScore>("scoreboard", Scoreboard);
             writer.WriteObjectValue<global::Farkle.WebTests.Generated.Models.FarkleContractsHttpResponses_WinnerResponse>("winner", Winner);
         }
     }

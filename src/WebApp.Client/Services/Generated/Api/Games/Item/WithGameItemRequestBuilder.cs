@@ -9,15 +9,33 @@ using System;
 using WebApp.Client.Services.Generated.Api.Games.Item.Players;
 namespace WebApp.Client.Services.Generated.Api.Games.Item
 {
+    /// <summary>
+    /// Builds and executes requests for operations under \api\games\{gameId}
+    /// </summary>
     [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
     public partial class WithGameItemRequestBuilder : BaseRequestBuilder
     {
+        /// <summary>The players property</summary>
         public global::WebApp.Client.Services.Generated.Api.Games.Item.Players.PlayersRequestBuilder Players
         {
             get => new global::WebApp.Client.Services.Generated.Api.Games.Item.Players.PlayersRequestBuilder(PathParameters, RequestAdapter);
         }
-        public WithGameItemRequestBuilder(Dictionary<string, object> pathParameters, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/api/games/{gameId}", pathParameters) { }
-        public WithGameItemRequestBuilder(string rawUrl, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/api/games/{gameId}", rawUrl) { }
+        /// <summary>
+        /// Instantiates a new <see cref="global::WebApp.Client.Services.Generated.Api.Games.Item.WithGameItemRequestBuilder"/> and sets the default values.
+        /// </summary>
+        /// <param name="pathParameters">Path parameters for the request</param>
+        /// <param name="requestAdapter">The request adapter to use to execute the requests.</param>
+        public WithGameItemRequestBuilder(Dictionary<string, object> pathParameters, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/api/games/{gameId}", pathParameters)
+        {
+        }
+        /// <summary>
+        /// Instantiates a new <see cref="global::WebApp.Client.Services.Generated.Api.Games.Item.WithGameItemRequestBuilder"/> and sets the default values.
+        /// </summary>
+        /// <param name="rawUrl">The raw URL to use for the request builder.</param>
+        /// <param name="requestAdapter">The request adapter to use to execute the requests.</param>
+        public WithGameItemRequestBuilder(string rawUrl, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/api/games/{gameId}", rawUrl)
+        {
+        }
     }
 }
 #pragma warning restore CS0618

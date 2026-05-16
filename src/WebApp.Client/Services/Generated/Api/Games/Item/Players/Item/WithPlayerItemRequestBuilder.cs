@@ -14,23 +14,47 @@ using WebApp.Client.Services.Generated.Api.Games.Item.Players.Item.Turns;
 using WebApp.Client.Services.Generated.Models;
 namespace WebApp.Client.Services.Generated.Api.Games.Item.Players.Item
 {
+    /// <summary>
+    /// Builds and executes requests for operations under \api\games\{gameId}\players\{playerId}
+    /// </summary>
     [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
     public partial class WithPlayerItemRequestBuilder : BaseRequestBuilder
     {
+        /// <summary>The keeps property</summary>
         public global::WebApp.Client.Services.Generated.Api.Games.Item.Players.Item.Keeps.KeepsRequestBuilder Keeps
         {
             get => new global::WebApp.Client.Services.Generated.Api.Games.Item.Players.Item.Keeps.KeepsRequestBuilder(PathParameters, RequestAdapter);
         }
+        /// <summary>The rolls property</summary>
         public global::WebApp.Client.Services.Generated.Api.Games.Item.Players.Item.Rolls.RollsRequestBuilder Rolls
         {
             get => new global::WebApp.Client.Services.Generated.Api.Games.Item.Players.Item.Rolls.RollsRequestBuilder(PathParameters, RequestAdapter);
         }
+        /// <summary>The turns property</summary>
         public global::WebApp.Client.Services.Generated.Api.Games.Item.Players.Item.Turns.TurnsRequestBuilder Turns
         {
             get => new global::WebApp.Client.Services.Generated.Api.Games.Item.Players.Item.Turns.TurnsRequestBuilder(PathParameters, RequestAdapter);
         }
-        public WithPlayerItemRequestBuilder(Dictionary<string, object> pathParameters, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/api/games/{gameId}/players/{playerId}", pathParameters) { }
-        public WithPlayerItemRequestBuilder(string rawUrl, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/api/games/{gameId}/players/{playerId}", rawUrl) { }
+        /// <summary>
+        /// Instantiates a new <see cref="global::WebApp.Client.Services.Generated.Api.Games.Item.Players.Item.WithPlayerItemRequestBuilder"/> and sets the default values.
+        /// </summary>
+        /// <param name="pathParameters">Path parameters for the request</param>
+        /// <param name="requestAdapter">The request adapter to use to execute the requests.</param>
+        public WithPlayerItemRequestBuilder(Dictionary<string, object> pathParameters, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/api/games/{gameId}/players/{playerId}", pathParameters)
+        {
+        }
+        /// <summary>
+        /// Instantiates a new <see cref="global::WebApp.Client.Services.Generated.Api.Games.Item.Players.Item.WithPlayerItemRequestBuilder"/> and sets the default values.
+        /// </summary>
+        /// <param name="rawUrl">The raw URL to use for the request builder.</param>
+        /// <param name="requestAdapter">The request adapter to use to execute the requests.</param>
+        public WithPlayerItemRequestBuilder(string rawUrl, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/api/games/{gameId}/players/{playerId}", rawUrl)
+        {
+        }
+        /// <returns>A <see cref="global::WebApp.Client.Services.Generated.Models.FarkleContractsHttpResponses_JoinPlayerResponse"/></returns>
+        /// <param name="body">The request body</param>
+        /// <param name="cancellationToken">Cancellation token to use when cancelling requests</param>
+        /// <param name="requestConfiguration">Configuration for the request such as headers, query parameters, and middleware options.</param>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
         public async Task<global::WebApp.Client.Services.Generated.Models.FarkleContractsHttpResponses_JoinPlayerResponse?> PostAsync(global::WebApp.Client.Services.Generated.Models.FarkleContractsHttpRequests_JoinPlayerRequest body, Action<RequestConfiguration<DefaultQueryParameters>>? requestConfiguration = default, CancellationToken cancellationToken = default)
@@ -44,6 +68,9 @@ namespace WebApp.Client.Services.Generated.Api.Games.Item.Players.Item
             var requestInfo = ToPostRequestInformation(body, requestConfiguration);
             return await RequestAdapter.SendAsync<global::WebApp.Client.Services.Generated.Models.FarkleContractsHttpResponses_JoinPlayerResponse>(requestInfo, global::WebApp.Client.Services.Generated.Models.FarkleContractsHttpResponses_JoinPlayerResponse.CreateFromDiscriminatorValue, default, cancellationToken).ConfigureAwait(false);
         }
+        /// <returns>A <see cref="RequestInformation"/></returns>
+        /// <param name="body">The request body</param>
+        /// <param name="requestConfiguration">Configuration for the request such as headers, query parameters, and middleware options.</param>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
         public RequestInformation ToPostRequestInformation(global::WebApp.Client.Services.Generated.Models.FarkleContractsHttpRequests_JoinPlayerRequest body, Action<RequestConfiguration<DefaultQueryParameters>>? requestConfiguration = default)
@@ -60,13 +87,23 @@ namespace WebApp.Client.Services.Generated.Api.Games.Item.Players.Item
             requestInfo.SetContentFromParsable(RequestAdapter, "application/json", body);
             return requestInfo;
         }
+        /// <summary>
+        /// Returns a request builder with the provided arbitrary URL. Using this method means any other path or query parameters are ignored.
+        /// </summary>
+        /// <returns>A <see cref="global::WebApp.Client.Services.Generated.Api.Games.Item.Players.Item.WithPlayerItemRequestBuilder"/></returns>
+        /// <param name="rawUrl">The raw URL to use for the request builder.</param>
         public global::WebApp.Client.Services.Generated.Api.Games.Item.Players.Item.WithPlayerItemRequestBuilder WithUrl(string rawUrl)
         {
             return new global::WebApp.Client.Services.Generated.Api.Games.Item.Players.Item.WithPlayerItemRequestBuilder(rawUrl, RequestAdapter);
         }
-        [Obsolete("This class is deprecated.")]
+        /// <summary>
+        /// Configuration for the request such as headers, query parameters, and middleware options.
+        /// </summary>
+        [Obsolete("This class is deprecated. Please use the generic RequestConfiguration class generated by the generator.")]
         [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
-        public partial class WithPlayerItemRequestBuilderPostRequestConfiguration : RequestConfiguration<DefaultQueryParameters> { }
+        public partial class WithPlayerItemRequestBuilderPostRequestConfiguration : RequestConfiguration<DefaultQueryParameters>
+        {
+        }
     }
 }
 #pragma warning restore CS0618

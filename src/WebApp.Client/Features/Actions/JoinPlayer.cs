@@ -26,6 +26,9 @@ public partial class GameState
         // PassTurn responses will correct this for multi-player games.
         if (State.CurrentPlayerId == 0)
           State.CurrentPlayerId = action.PlayerId.Value;
+        // Seed scoreboard until a PassTurn response provides authoritative data.
+        if (State.Scoreboard.Count == 0)
+          State.Scoreboard = [new PlayerStanding(action.PlayerId.Value, action.PlayerName.Value, 0)];
       }
     }
   }
