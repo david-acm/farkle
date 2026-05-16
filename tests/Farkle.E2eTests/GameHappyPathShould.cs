@@ -227,6 +227,9 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
         var scoringIdx = Array.FindIndex(diceValues, v => v == 1 || v == 5);
         if (scoringIdx >= 0)
         {
+            // MudBlazor's MudDropZone uses HTML5 drag events (@ondragstart / @ondrop).
+            // Playwright's DragToAsync fires mouse events which don't reliably trigger
+            // the HTML5 drag API in headless Chrome, so we dispatch the events directly.
             await page.EvaluateAsync($@"() => {{
                 const dice   = document.querySelectorAll('.mud-drop-zone')[0]
                                        .querySelectorAll('.mud-drop-item-draggable');

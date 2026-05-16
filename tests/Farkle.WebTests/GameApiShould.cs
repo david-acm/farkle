@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Net.Http.Headers;
 using System.Text;
 using Farkle.WebTests.Generated;
@@ -73,6 +74,41 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
         await KeepDiceAsync(gameId, 1, [1]);
     }
 
+    [Fact]
+    public async Task PassTurnResetsTurnScoreAsync()
+    {
+        const int gameId  = 209;
+        const int player1 = 1;
+        const int player2 = 2;
+
+        await StartGameAsync(gameId);
+        await JoinGameAsync(gameId, player1, "David");
+        await JoinGameAsync(gameId, player2, "Allison");
+
+        // Player 1 rolls and keeps a scoring die to accumulate a non-zero turn score.
+        var roll1        = await _client.Games[gameId].Players[player1].Rolls.PostAsync();
+        var scoringDice1 = (roll1!.DiceValues ?? []).Where(v => v == 1 || v == 5).ToList();
+        if (scoringDice1.Count > 0)
+        {
+            var kept = await KeepDiceAsync(gameId, player1, [(int)scoringDice1[0]!]);
+            Assert.True(kept!.TurnScore > 0, "turn score should be positive after keeping a scoring die");
+        }
+
+        await PassTurnAsync(gameId, player1);
+
+        // Player 2's turn score must start from 0, not carry over from player 1.
+        var roll2        = await _client.Games[gameId].Players[player2].Rolls.PostAsync();
+        var scoringDice2 = (roll2!.DiceValues ?? []).Where(v => v == 1 || v == 5).ToList();
+        if (scoringDice2.Count > 0)
+        {
+            var kept2 = await KeepDiceAsync(gameId, player2, [(int)scoringDice2[0]!]);
+            // A single die scores exactly 100 (for a 1) or 50 (for a 5).
+            // If turn score had carried over from player 1 it would be larger.
+            var expected = scoringDice2[0] == 1 ? 100 : 50;
+            Assert.Equal(expected, kept2!.TurnScore);
+        }
+    }
+
     private Task StartGameAsync(int gameId)
         => _client.Games.PostAsync(
             new FarkleContractsHttpRequests_StartGameRequest { Id = gameId });
@@ -84,12 +120,15 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
     private Task RollDiceAsync(int gameId, int playerId)
         => _client.Games[gameId].Players[playerId].Rolls.PostAsync();
 
-    private Task KeepDiceAsync(int gameId, int playerId, int[] dice)
+    private Task<FarkleContractsHttpResponses_KeepDiceResponse?> KeepDiceAsync(int gameId, int playerId, int[] dice)
         => _client.Games[gameId].Players[playerId].Keeps.PostAsync(
             new FarkleContractsHttpRequests_KeepDiceRequest
             {
                 DiceValues = dice.Select(v => (int?)v).ToList()
             });
+
+    private Task PassTurnAsync(int gameId, int playerId)
+        => _client.Games[gameId].Players[playerId].Turns.PostAsync();
 }
 
 // FastEndpoints rejects POST requests with no Content-Type / body with 415.
