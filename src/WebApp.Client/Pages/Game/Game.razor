@@ -36,6 +36,18 @@ else
       <MudText Typo="Typo.subtitle1">
         Playing as: <strong>@GameState.PlayerName.Value</strong>
       </MudText>
+      @if (GameState.IsMyTurn)
+      {
+        <MudAlert Severity="Severity.Success" Dense="true" Class="mt-2" data-testid="my-turn-indicator">
+          It's your turn!
+        </MudAlert>
+      }
+      else
+      {
+        <MudAlert Severity="Severity.Info" Dense="true" Class="mt-2" data-testid="waiting-indicator">
+          Waiting for player @GameState.CurrentPlayerId…
+        </MudAlert>
+      }
     </MudItem>
     <MudItem xs="12" sm="6" md="4">
       <TurnScore></TurnScore>
@@ -47,13 +59,13 @@ else
       <StartGameButton />
     </MudItem>
     <MudItem xs="12" sm="6" md="4">
-      <KeepButton />
+      <KeepButton IsDisabled="@(!GameState.IsMyTurn)" />
     </MudItem>
     <MudItem xs="12" sm="6" md="4">
-      <RollDiceButton />
+      <RollDiceButton IsDisabled="@(!GameState.IsMyTurn)" />
     </MudItem>
     <MudItem xs="12" sm="6" md="4">
-      <PassTurnButton />
+      <PassTurnButton IsDisabled="@(!GameState.IsMyTurn)" />
     </MudItem>
   </MudGrid>
 

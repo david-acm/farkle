@@ -12,7 +12,7 @@ public static class HttpResponses
   
   public record StartGameResponse(int Id);
 
-  public record PassTurnResponse(int GameId, int PlayerId, int NewScore, WinnerResponse? Winner);
+  public record PassTurnResponse(int GameId, int PlayerId, int NewScore, WinnerResponse? Winner, int CurrentPlayerId = 0);
 
   public record WinnerResponse(int PlayerId, string Name, int Score);
 }

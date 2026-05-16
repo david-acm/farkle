@@ -32,6 +32,7 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
     private const int ScoreGameId     = 1003;
     private const int TurnScoreGameId = 1004;
     private const int PassTurnGameId  = 1005;
+    private const int WhoseTurnGameId = 1006;
 
     // Resolved at runtime so it works both locally (dotnet test from repo root) and in CI.
     private static string VideoDir =>
@@ -203,6 +204,21 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
             new() { Timeout = WasmTimeoutMs });
 
         scoreHeading.Should().NotBeNull();
+    });
+
+    [Fact]
+    public Task WhoseTurnIndicatorIsVisible() => WithVideoAsync(async page =>
+    {
+        await NavigateAndWaitForWasmAsync(page, WhoseTurnGameId);
+
+        // After joining, the player is in turn — the "It's your turn!" alert must be visible.
+        var indicator = await page.WaitForSelectorAsync("[data-testid='my-turn-indicator']",
+            new() { Timeout = 10_000 });
+        indicator.Should().NotBeNull("turn indicator should appear after joining");
+
+        // Roll and Keep buttons must be enabled for the active player.
+        var rollDisabled = await page.GetAttributeAsync("button:has-text('Roll')", "disabled");
+        rollDisabled.Should().BeNull("Roll button should be enabled when it is the player's turn");
     });
 
     [Fact]

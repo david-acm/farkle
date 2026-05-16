@@ -181,6 +181,7 @@ jobs:
               `| \`ScoreIncreasesAfterKeepingAScoringDie.webm\` | Full keep cycle, score updates |`,
               `| \`TurnScoreDisplayIsVisible.webm\` | Score heading visible after WASM hydration |`,
               `| \`PassTurnButtonResetsScore.webm\` | Pass Turn resets dice and turn score |`,
+              `| \`WhoseTurnIndicatorIsVisible.webm\` | "It's your turn!" alert visible after join |`,
               failSection,
               `[View full run](${runUrl})`,
             ].join('\n');
