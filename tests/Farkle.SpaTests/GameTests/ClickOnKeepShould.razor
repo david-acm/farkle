@@ -37,6 +37,8 @@
       .ReturnsAsync(gameId);
     
     var game = Render<Game>(@<Game PlayerId=@playerId ParameterGameId="gameId"/>);
+    game.Find("[placeholder='Your name']").Input("Tester");
+    await game.FindAll("button").First(b => b.TextContent.Contains("Join")).ClickAsync(new MouseEventArgs());
     var score         = game.FindComponent<TurnScore>();
     await game.FindComponent<StartGameButton>().Find("button").ClickAsync(default!);
     var cut           = game.FindComponent<KeepButton>();

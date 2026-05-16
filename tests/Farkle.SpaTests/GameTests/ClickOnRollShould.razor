@@ -31,6 +31,8 @@
         expectedDieValue
       });
     var cut = Render(@<Game></Game>);
+    cut.Find("[placeholder='Your name']").Input("Tester");
+    cut.FindAll("button").First(b => b.TextContent.Contains("Join")).Click();
     var button = cut.FindComponent<RollDiceButton>().Find("button");
 
     // When

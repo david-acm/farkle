@@ -31,6 +31,8 @@
       .Setup(gs => gs.StartGameAsync(It.IsAny<int>()))
       .ReturnsAsync(gameId);
     var cut = Render(@<Game ParameterGameId="gameId"/>);
+    cut.Find("[placeholder='Your name']").Input("Tester");
+    cut.FindAll("button").First(b => b.TextContent.Contains("Join")).Click();
     var button = cut.FindComponent<StartGameButton>()
       .Find("button");
     
