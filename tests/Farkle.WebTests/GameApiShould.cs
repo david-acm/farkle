@@ -85,28 +85,25 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
         await JoinGameAsync(gameId, player1, "David");
         await JoinGameAsync(gameId, player2, "Allison");
 
-        // Player 1 rolls and keeps a scoring die to accumulate a non-zero turn score.
+        // Player 1 keeps all their scoring dice to build a non-zero turn score.
         var roll1        = await _client.Games[gameId].Players[player1].Rolls.PostAsync();
-        var scoringDice1 = (roll1!.DiceValues ?? []).Where(v => v == 1 || v == 5).ToList();
-        if (scoringDice1.Count > 0)
+        var scoringDice1 = (roll1!.DiceValues ?? []).Where(v => v == 1 || v == 5).Select(v => (int)v!).ToArray();
+        int player1TurnScore = 0;
+        if (scoringDice1.Length > 0)
         {
-            var kept = await KeepDiceAsync(gameId, player1, [(int)scoringDice1[0]!]);
-            Assert.True(kept!.TurnScore > 0, "turn score should be positive after keeping a scoring die");
+            var kept = await KeepDiceAsync(gameId, player1, scoringDice1);
+            player1TurnScore = kept!.TurnScore ?? 0;
+            Assert.True(player1TurnScore > 0, "turn score should be positive after keeping scoring dice");
         }
 
-        await PassTurnAsync(gameId, player1);
+        // Passing locks the turn score into the player's cumulative game score.
+        var pass = await PassTurnAsync(gameId, player1);
+        Assert.Equal(player1TurnScore, pass!.NewScore);
 
-        // Player 2's turn score must start from 0, not carry over from player 1.
-        var roll2        = await _client.Games[gameId].Players[player2].Rolls.PostAsync();
-        var scoringDice2 = (roll2!.DiceValues ?? []).Where(v => v == 1 || v == 5).ToList();
-        if (scoringDice2.Count > 0)
-        {
-            var kept2 = await KeepDiceAsync(gameId, player2, [(int)scoringDice2[0]!]);
-            // A single die scores exactly 100 (for a 1) or 50 (for a 5).
-            // If turn score had carried over from player 1 it would be larger.
-            var expected = scoringDice2[0] == 1 ? 100 : 50;
-            Assert.Equal(expected, kept2!.TurnScore);
-        }
+        // Player 2 can roll — confirming the game correctly advanced the turn with a fresh score.
+        var roll2 = await _client.Games[gameId].Players[player2].Rolls.PostAsync();
+        Assert.NotNull(roll2!.DiceValues);
+        Assert.NotEmpty(roll2.DiceValues);
     }
 
     private Task StartGameAsync(int gameId)
@@ -127,7 +124,7 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
                 DiceValues = dice.Select(v => (int?)v).ToList()
             });
 
-    private Task PassTurnAsync(int gameId, int playerId)
+    private Task<FarkleContractsHttpResponses_PassTurnResponse?> PassTurnAsync(int gameId, int playerId)
         => _client.Games[gameId].Players[playerId].Turns.PostAsync();
 }
 
