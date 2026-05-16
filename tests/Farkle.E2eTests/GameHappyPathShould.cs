@@ -93,7 +93,8 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
 
     // ── helpers ──────────────────────────────────────────────
 
-    private async Task NavigateAndWaitForWasmAsync(IPage page, int gameId)
+    private async Task NavigateAndWaitForWasmAsync(IPage page, int gameId,
+        string playerName = "Tester")
     {
         // WaitUntilState.Commit fires as soon as the server sends response headers,
         // before any CSS or JS is fetched. This bypasses the render-blocking
@@ -106,6 +107,10 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
         // activity (Google Fonts / MudBlazor icons) that keep the network busy.
         await page.WaitForSelectorAsync($"h3:has-text('{gameId}')",
             new() { Timeout = WasmTimeoutMs });
+        // Enter player name and join — the game controls are gated behind the join step.
+        await page.FillAsync("[placeholder='Your name']", playerName);
+        await page.ClickAsync("button:has-text('Join Game')");
+        await page.WaitForSelectorAsync("button:has-text('Roll')", new() { Timeout = 10_000 });
     }
 
     // ── tests ───────────────────────────────────────────────

@@ -20,8 +20,8 @@ public partial class GameState
         // TODO: refactor signature
         await service.JoinPlayerAsync(State.GameId, action.PlayerId, action.PlayerName);
         
-        // TODO: refactor playerId to player
-        State.PlayerId = action.PlayerId;
+        State.PlayerId   = action.PlayerId;
+        State.PlayerName = action.PlayerName;
       }
     }
   }
