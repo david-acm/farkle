@@ -399,6 +399,17 @@ The app re-seeds `player1@email.com` on startup if missing.
 
 ## Agent Workflow for Features
 
+### Starting a New Feature
+
+Before beginning any new work, always sync with the latest `main`:
+
+```bash
+git checkout main
+git pull origin main
+```
+
+Then create a feature branch from the updated `main`. Never start a new feature from a stale or unrelated branch.
+
 ### PR & CI Loop
 
 Every feature must follow this cycle:
@@ -407,7 +418,7 @@ Every feature must follow this cycle:
 2. **Open a PR** targeting `main` once the feature and tests are committed.
 3. **Subscribe to PR activity** using `subscribe_pr_activity` immediately after opening the PR so CI results and review comments arrive automatically — do not poll.
 4. **Wait for the `E2E Happy-Path Tests` CI job**. When the result arrives:
-   - If it passes, the feature is done.
+   - If it passes, the feature is done — wait for the PR to be **merged** before starting the next feature.
    - If it fails, diagnose using the logs described below and push a fix.
 
 ### Diagnosing E2E Failures
