@@ -3,6 +3,7 @@
 
 <MudButton Class="mt-4"
            Color="Color.Secondary"
+           Disabled="@IsDisabled"
            OnClick="PassTurnAsync"
            StartIcon="@Icons.Material.Filled.SkipNext"
            Variant="Variant.Filled">
@@ -10,6 +11,8 @@
 </MudButton>
 
 @code {
+  [Parameter] public bool IsDisabled { get; set; }
+
   private void PassTurnAsync()
   {
     Mediator.Send(new GameState.PassTurn.Action());

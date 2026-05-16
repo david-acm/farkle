@@ -12,6 +12,8 @@ namespace WebApp.Client.Services.Generated.Models
     public partial class FarkleContractsHttpResponses_PassTurnResponse : IParsable
     #pragma warning restore CS1591
     {
+        /// <summary>The currentPlayerId property</summary>
+        public int? CurrentPlayerId { get; set; }
         /// <summary>The gameId property</summary>
         public int? GameId { get; set; }
         /// <summary>The newScore property</summary>
@@ -44,6 +46,7 @@ namespace WebApp.Client.Services.Generated.Models
         {
             return new Dictionary<string, Action<IParseNode>>
             {
+                { "currentPlayerId", n => { CurrentPlayerId = n.GetIntValue(); } },
                 { "gameId", n => { GameId = n.GetIntValue(); } },
                 { "newScore", n => { NewScore = n.GetIntValue(); } },
                 { "playerId", n => { PlayerId = n.GetIntValue(); } },
@@ -57,6 +60,7 @@ namespace WebApp.Client.Services.Generated.Models
         public virtual void Serialize(ISerializationWriter writer)
         {
             if(ReferenceEquals(writer, null)) throw new ArgumentNullException(nameof(writer));
+            writer.WriteIntValue("currentPlayerId", CurrentPlayerId);
             writer.WriteIntValue("gameId", GameId);
             writer.WriteIntValue("newScore", NewScore);
             writer.WriteIntValue("playerId", PlayerId);

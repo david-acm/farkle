@@ -19,9 +19,13 @@ public partial class GameState
       {
         // TODO: refactor signature
         await service.JoinPlayerAsync(State.GameId, action.PlayerId, action.PlayerName);
-        
-        State.PlayerId   = action.PlayerId;
-        State.PlayerName = action.PlayerName;
+
+        State.PlayerId        = action.PlayerId;
+        State.PlayerName      = action.PlayerName;
+        // In a single-player session the joining player is always first in turn.
+        // PassTurn responses will correct this for multi-player games.
+        if (State.CurrentPlayerId == 0)
+          State.CurrentPlayerId = action.PlayerId.Value;
       }
     }
   }

@@ -3,6 +3,7 @@
 
 <MudButton Class="mt-4"
            Color="Color.Primary"
+           Disabled="@IsDisabled"
            OnClick="RollDiceAsync"
            StartIcon="@Icons.Material.Filled.PlayArrow"
            Variant="Variant.Filled">
@@ -10,7 +11,8 @@
 </MudButton>
 
 @code {
-  
+  [Parameter] public bool IsDisabled { get; set; }
+
   private void RollDiceAsync(MouseEventArgs obj)
   {
     Mediator.Send(new GameState.RollDice.Action());

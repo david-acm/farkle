@@ -27,7 +27,8 @@ internal class PassTurnEndpoint(
           s.Id!.Id,
           req.PlayerId,
           s.GameScoreFor(req.PlayerId),
-          s.Winner == null ? null : new WinnerResponse(s.Winner.Id, s.Winner.Name, s.GameScoreFor(s.Winner.Id))));
+          s.Winner == null ? null : new WinnerResponse(s.Winner.Id, s.Winner.Name, s.GameScoreFor(s.Winner.Id)),
+          s.PlayerInTurn));
 
     await SendResultAsync(result);
   }

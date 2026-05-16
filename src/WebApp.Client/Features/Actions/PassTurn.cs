@@ -15,8 +15,9 @@ public partial class GameState
 
       public override async Task Handle(Action action, CancellationToken aCancellationToken)
       {
-        await service.PassTurnAsync(State.GameId, State.PlayerId);
+        var response = await service.PassTurnAsync(State.GameId, State.PlayerId);
 
+        State.CurrentPlayerId = response.CurrentPlayerId;
         // Reset dice and turn score for the next turn.
         State.DiceInPlay.Clear();
         State.TurnScore = new(0);

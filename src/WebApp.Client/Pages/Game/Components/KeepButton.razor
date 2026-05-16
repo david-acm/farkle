@@ -1,11 +1,13 @@
 @using WebApp.Client.Features
 @inherits BlazorStateComponent
 
-<AppButton OnClick="KeepAsync">
+<AppButton OnClick="KeepAsync" Disabled="@IsDisabled">
   Set Dice Aside
 </AppButton>
 
 @code {
+  [Parameter] public bool IsDisabled { get; set; }
+
   private void KeepAsync()
   {
     Mediator.Send(new GameState.KeepDice.Action());
