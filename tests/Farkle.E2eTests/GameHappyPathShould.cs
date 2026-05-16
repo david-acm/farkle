@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
+using System.Text.Json;
 
 namespace Farkle.E2eTests;
 
@@ -204,11 +205,48 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
     {
         await NavigateAndWaitForWasmAsync(page, PassTurnGameId);
 
+        var scoreLocator = page.Locator("h3:has-text('Current Player Score')");
+        var initialScore = await scoreLocator.InnerTextAsync();
+
+        // Intercept the roll response to identify scoring dice (1s and 5s) by index.
+        // Die values aren't visible in the DOM (3D CSS cube), so the API response is
+        // the only way to know which die to drag deterministically.
+        var rollTask = page.WaitForResponseAsync(r => r.Url.Contains("/rolls") && r.Status == 200);
         await page.ClickAsync("button:has-text('Roll')");
+        var rollResponse = await rollTask;
         await page.WaitForSelectorAsync(".die-container", new() { Timeout = 10_000 });
 
-        // Pass immediately after rolling — PlayerCanPass only requires a DiceRolled event,
-        // so no keep step is needed and we avoid the non-scoring die rejection problem.
+        var body       = await rollResponse.TextAsync();
+        using var doc  = JsonDocument.Parse(body);
+        var diceValues = doc.RootElement.GetProperty("diceValues")
+            .EnumerateArray()
+            .Select(v => v.GetInt32())
+            .ToArray();
+
+        // Find the first scoring die (value 1 or 5) to drag to the set-aside zone.
+        var scoringIdx = Array.FindIndex(diceValues, v => v == 1 || v == 5);
+        if (scoringIdx >= 0)
+        {
+            await page.EvaluateAsync($@"() => {{
+                const dice   = document.querySelectorAll('.mud-drop-zone')[0]
+                                       .querySelectorAll('.mud-drop-item-draggable');
+                const source = dice[{scoringIdx}];
+                const target = document.querySelectorAll('.mud-drop-zone')[1];
+                const dt = new DataTransfer();
+                source.dispatchEvent(new DragEvent('dragstart', {{ bubbles: true, cancelable: true, dataTransfer: dt }}));
+                target.dispatchEvent(new DragEvent('dragenter', {{ bubbles: true, cancelable: true, dataTransfer: dt }}));
+                target.dispatchEvent(new DragEvent('dragover',  {{ bubbles: true, cancelable: true, dataTransfer: dt }}));
+                target.dispatchEvent(new DragEvent('drop',      {{ bubbles: true, cancelable: true, dataTransfer: dt }}));
+                source.dispatchEvent(new DragEvent('dragend',   {{ bubbles: true, cancelable: true, dataTransfer: dt }}));
+            }}");
+
+            await page.ClickAsync("button:has-text('Set Dice Aside')");
+            await page.WaitForTimeoutAsync(800);
+
+            var scoreAfterKeep = await scoreLocator.InnerTextAsync();
+            scoreAfterKeep.Should().NotBe(initialScore, "score should increase after keeping a scoring die");
+        }
+
         await page.ClickAsync("button:has-text('Pass Turn')");
         await page.WaitForTimeoutAsync(1_000);
 
@@ -216,7 +254,7 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
         var diceCount = await page.Locator(".die-container").CountAsync();
         diceCount.Should().Be(0, "all dice are cleared after passing the turn");
 
-        var scoreText = await page.Locator("h3:has-text('Current Player Score')").InnerTextAsync();
-        scoreText.Should().Contain("0", "turn score resets to 0 after passing");
+        var scoreAfterPass = await scoreLocator.InnerTextAsync();
+        scoreAfterPass.Should().Contain("0", "turn score resets to 0 after passing");
     });
 }
