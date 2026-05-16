@@ -5,42 +5,27 @@
 @using MudBlazor.Services
 @using WebApp.Client.Pages.Game
 @using WebApp.Client.Services
-@inherits BunitContext
+@inherits GameBunitContext
 
 @code {
-  private readonly IGameService _gameService;
-  
-  // TODO: Refactor common inicialization logic
-  public ClickOnStartShould()
-  {
-    _gameService = Mock.Of<IGameService>();
-    Services.AddScoped<IGameService>(_ => _gameService);
-    Services.AddScoped<IRotationCalculator>(_ => Mock.Of<IRotationCalculator>());
-    Services.AddMudServices();
-    
-    Services.AddBlazorState(o => o.Assemblies = [typeof(Program).Assembly]);
-  }
-  
   [Theory]
   [AutoData]
   public void UpdateGameId(int gameId)
   {
     // Given
-    JSInterop.Mode = JSRuntimeMode.Loose;
-    Mock.Get(_gameService)
+    Mock.Get(GameService)
       .Setup(gs => gs.StartGameAsync(It.IsAny<int>()))
       .ReturnsAsync(gameId);
     var cut = Render(@<Game ParameterGameId="gameId"/>);
-    cut.Find("[placeholder='Your name']").Input("Tester");
-    cut.FindAll("button").First(b => b.TextContent.Contains("Join")).Click();
+    JoinGame(cut);
     var button = cut.FindComponent<StartGameButton>()
       .Find("button");
-    
+
     // When
     // button.Click();
-    
+
     // Then
-    Mock.Get(_gameService).Verify(s => s.StartGameAsync(It.IsAny<int>()), Times.Once);
+    Mock.Get(GameService).Verify(s => s.StartGameAsync(It.IsAny<int>()), Times.Once);
     cut.FindComponent<GameTitle>().Instance.GameId.Should().Be(gameId);
   }
 }

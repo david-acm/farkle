@@ -8,51 +8,35 @@
 @using WebApp.Client.Pages.Game.Components
 @using WebApp.Client.Services
 @using TurnScore = WebApp.Client.Pages.Game.Components.TurnScore
-@inherits BunitContext
+@inherits GameBunitContext
 
 @code {
-  private readonly IGameService _gameService;
-  
-  // TODO: Remove this initialization duplication between gametests
-  public ClickOnKeepShould()
-  {
-    JSInterop.Mode = JSRuntimeMode.Loose;
-    _gameService   = Mock.Of<IGameService>();
-    Services.AddScoped<IGameService>(_ => _gameService);
-    Services.AddScoped<IRotationCalculator>(_ => Mock.Of<IRotationCalculator>());
-    Services.AddMudServices();
-    
-    var assembly = typeof(Program).Assembly;
-    Services.AddBlazorState(o => o.Assemblies = [assembly]);
-  }
-  
   [Fact]
   public async Task CallUpdateScore()
   {
     // Given
     var playerId = 1;
     var gameId   = new GameId(10);
-    Mock.Get(_gameService)
+    Mock.Get(GameService)
       .Setup(s => s.StartGameAsync(It.IsAny<int>()))
       .ReturnsAsync(gameId);
-    
+
     var game = Render<Game>(@<Game PlayerId=@playerId ParameterGameId="gameId"/>);
-    game.Find("[placeholder='Your name']").Input("Tester");
-    await game.FindAll("button").First(b => b.TextContent.Contains("Join")).ClickAsync(new MouseEventArgs());
+    JoinGame(game);
     var score         = game.FindComponent<TurnScore>();
     await game.FindComponent<StartGameButton>().Find("button").ClickAsync(default!);
     var cut           = game.FindComponent<KeepButton>();
     var button        = cut.Find("button");
     var expectedScore = 200;
-    Mock.Get(_gameService)
+    Mock.Get(GameService)
       .Setup(s => s.KeepDiceAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<IEnumerable<int>>()))
       .ReturnsAsync(new HttpResponses.KeepDiceResponse(gameId, expectedScore));
-    
+
     // When
     await button.ClickAsync(new MouseEventArgs());
-    
+
     // Then
-    Mock.Get(_gameService).Verify(s => s.KeepDiceAsync(gameId, playerId, It.IsAny<IEnumerable<int>>()));
+    Mock.Get(GameService).Verify(s => s.KeepDiceAsync(gameId, playerId, It.IsAny<IEnumerable<int>>()));
     score.Instance.Value.Should().Be(expectedScore);
   }
 }

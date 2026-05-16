@@ -5,41 +5,29 @@
 @using WebApp.Client.Pages.Game
 @using WebApp.Client.Services
 @using Die = WebApp.Client.Pages.Game.Components.Die
-@inherits BunitContext
+@inherits GameBunitContext
 
 @code {
-  private readonly IGameService _gameService;
-  public ClickOnRollShould()
-  {
-    Services.AddMudServices();
-    Services.AddBlazorState(o => o.Assemblies = [typeof(Program).Assembly]);
-    _gameService = Mock.Of<IGameService>();
-    Services.AddScoped<IGameService>(_ => _gameService);
-    Services.AddScoped<IRotationCalculator>(_ => Mock.Of<IRotationCalculator>());
-  }
-
   [Fact]
   public async Task UpdateDiceWithReceivedValues()
   {
     // Given
-    JSInterop.Mode = JSRuntimeMode.Loose;
     var expectedDieValue = DieValue.Five;
-    Mock.Get(_gameService)
+    Mock.Get(GameService)
       .Setup(g => g.RollDiceAsync(It.IsAny<int>(), It.IsAny<int>()))
       .ReturnsAsync(new List<DieValue>()
       {
         expectedDieValue
       });
     var cut = Render(@<Game></Game>);
-    cut.Find("[placeholder='Your name']").Input("Tester");
-    cut.FindAll("button").First(b => b.TextContent.Contains("Join")).Click();
+    JoinGame(cut);
     var button = cut.FindComponent<RollDiceButton>().Find("button");
 
     // When
     await cut.InvokeAsync(() => button.Click());
 
     // Then
-    Mock.Get(_gameService).Verify(s => s.RollDiceAsync(It.IsAny<int>(), It.IsAny<int>()), Times.Once);
+    Mock.Get(GameService).Verify(s => s.RollDiceAsync(It.IsAny<int>(), It.IsAny<int>()), Times.Once);
     cut.FindComponent<Die>().Instance.DieValue.Should().Be(expectedDieValue);
   }
 
