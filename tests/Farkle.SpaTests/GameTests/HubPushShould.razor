@@ -1,0 +1,39 @@
+@using BlazorState
+@using Moq
+@using MudBlazor.Services
+@using WebApp.Client.Pages.Game
+@using WebApp.Client.Pages.Game.Components
+@using WebApp.Client.Services
+@using static Farkle.Contracts.HttpResponses
+@inherits GameBunitContext
+
+@code {
+
+  [Fact]
+  public async Task UpdatesIndicatorWhenRemoteTurnChangedArrives()
+  {
+    // Given — Alice joined as player 1; current turn belongs to player 1.
+    var cut = Render(@<Game></Game>);
+    JoinGame(cut, "Alice", assignedPlayerId: 1);
+    cut.Find("[data-testid='my-turn-indicator']").Should().NotBeNull("Alice should be in turn after joining");
+
+    // When — hub push says turn moved to player 2.
+    var push = new PassTurnResponse(
+      GameId:          1,
+      PlayerId:        1,
+      NewScore:        0,
+      Winner:          null,
+      CurrentPlayerId: 2,
+      Scoreboard: [
+        new PlayerScore(1, "Alice", 0),
+        new PlayerScore(2, "Bob",   0),
+      ]);
+
+    await cut.InvokeAsync(() => HubService.RaiseTurnChanged(push));
+
+    // Then — Alice now sees the waiting indicator.
+    cut.Find("[data-testid='waiting-indicator']").Should().NotBeNull(
+      "Alice should see waiting-indicator after hub reports it's player 2's turn");
+  }
+
+}

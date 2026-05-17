@@ -148,6 +148,17 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
             (await page2.WaitForSelectorAsync("[data-testid='waiting-indicator']", new() { Timeout = 10_000 }))
                 .Should().NotBeNull("Bob should see the waiting indicator while Alice is in turn");
 
+            // Alice rolls and passes — SignalR hub will broadcast TurnChanged to Bob's session.
+            var rollTask = page.WaitForResponseAsync(r => r.Url.Contains("/rolls") && r.Status == 200);
+            await page.ClickAsync("button:has-text('Roll')");
+            await rollTask;
+            await page.ClickAsync("button:has-text('Pass Turn')");
+            await page.WaitForTimeoutAsync(500); // allow hub push to propagate
+
+            // Bob's indicator should flip automatically via SignalR — no page refresh required.
+            (await page2.WaitForSelectorAsync("[data-testid='my-turn-indicator']", new() { Timeout = 10_000 }))
+                .Should().NotBeNull("Bob should see my-turn-indicator after Alice passes via SignalR push");
+
             await page2.WaitForTimeoutAsync(StepDelayMs);
         }
         finally
