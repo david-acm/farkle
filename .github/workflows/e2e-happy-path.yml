@@ -219,7 +219,7 @@ jobs:
             echo "msgs="          >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Comment on PR with video links
+      - name: Comment on PR with video link
         if: always() && github.event_name == 'pull_request'
         uses: actions/github-script@v7
         with:
@@ -229,23 +229,12 @@ jobs:
             const names = `${{ steps.trx.outputs.names || '' }}`;
             const msgs  = `${{ steps.trx.outputs.msgs  || '' }}`;
             const failSection = names
-              ? `\n**Failed tests:** ${names}\n**Errors:** ${msgs}\n`
+              ? `\n**Failed:** ${names}\n**Errors:** ${msgs}\n`
               : '';
             const body = [
-              `## E2E Happy-Path Tests ${outcome}`,
+              `## E2E Happy-Path ${outcome}`,
               '',
-              `**Videos** (download from the run artifacts):`,
-              `- [e2e-videos-${context.runId}](${runUrl}#artifacts)`,
-              '',
-              `| Recording | Description |`,
-              `|-----------|-------------|`,
-              `| \`ShowDiceAfterRolling.webm\` | Roll button clicked, dice appear |`,
-              `| \`CanDragDieToSetAsideZone.webm\` | Die dragged from Rolled → SetAside zone |`,
-              `| \`ScoreIncreasesAfterKeepingAScoringDie.webm\` | Full keep cycle, score updates |`,
-              `| \`TurnScoreDisplayIsVisible.webm\` | Score heading visible after WASM hydration |`,
-              `| \`PassTurnButtonResetsScore.webm\` | Pass Turn resets dice and turn score |`,
-              `| \`WhoseTurnIndicatorIsVisible.webm\` | "It's your turn!" alert visible after join |`,
-              `| \`ScoreboardIsVisibleAfterJoin.webm\` | Scoreboard shows player name after joining |`,
+              `**Recording:** [HappyPath.webm](${runUrl}#artifacts) — full game session (join → roll → drag → keep → pass)`,
               failSection,
               `[View full run](${runUrl})`,
             ].join('\n');
