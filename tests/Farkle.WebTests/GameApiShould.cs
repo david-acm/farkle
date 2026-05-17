@@ -69,9 +69,14 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
 
         await StartGameAsync(gameId);
         await JoinGameAsync(gameId, 1, "David");
-        await JoinGameAsync(gameId, 1, "Allison");
-        await RollDiceAsync(gameId, 1);
-        await KeepDiceAsync(gameId, 1, [1]);
+
+        var roll = await _client.Api.Games[gameId].Players[1].Rolls.PostAsync();
+        Assert.NotNull(roll?.DiceValues);
+        Assert.NotEmpty(roll!.DiceValues!);
+
+        var scoringDice = roll.DiceValues.Where(v => v == 1 || v == 5).Select(v => (int)v!).ToArray();
+        if (scoringDice.Length > 0)
+            await KeepDiceAsync(gameId, 1, scoringDice);
     }
 
     [Fact]
