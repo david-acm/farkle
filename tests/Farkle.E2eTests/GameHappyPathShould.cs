@@ -5,24 +5,27 @@ using System.Text.Json;
 namespace Farkle.E2eTests;
 
 /// <summary>
-/// Full happy-path game flow in a single browser session:
-/// join → roll → drag die → keep → assert score → pass → assert reset.
+/// Two E2E tests covering the happy path:
 ///
-/// A single test keeps CI fast (one WASM hydration instead of many) and mirrors
-/// how a real player uses the app. Individual API steps are verified separately
-/// by the faster integration tests in Farkle.WebTests.
+/// 1. <see cref="HappyPath"/> — single-player flow in one browser session:
+///    join → roll → drag → keep → assert score → pass → assert reset.
+///    Recorded to <c>test-results/videos/HappyPath.webm</c>.
+///
+/// 2. <see cref="MultiplayerTwoPlayersCanPlay"/> — two independent browser
+///    contexts join the same game; verifies P1 sees their turn indicator and
+///    P2 immediately sees the waiting indicator via <c>CurrentPlayerId</c>
+///    from the join response. Recorded to <c>MultiplayerTwoPlayersCanPlay.webm</c>
+///    and <c>MultiplayerTwoPlayersCanPlay-Bob.webm</c>.
 ///
 /// Die values aren't exposed in the DOM (the component is a 3D CSS cube), so the
 /// roll API response is intercepted to identify scoring dice (1s and 5s) by index.
-///
-/// The session is recorded to <c>test-results/videos/HappyPath.webm</c> and
-/// uploaded as a GitHub Actions artifact on every run.
 /// </summary>
 [Collection(PlaywrightCollection.Name)]
 public class GameHappyPathShould(PlaywrightFixture fixture)
 {
     private const int WasmTimeoutMs    = 120_000;
     private const int GameId           = 1001;
+    private const int MultiplayerGameId = 1008;
 
     // Pause between steps so animations are visible in the recorded video.
     // Override with E2E_STEP_DELAY_MS environment variable (e.g. set to 0 for speed).
@@ -122,14 +125,14 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
             .ToArray();
     }
 
-    // ── test ─────────────────────────────────────────────────
+    // ── tests ─────────────────────────────────────────────────
 
     [Fact]
     public Task HappyPath() => WithVideoAsync(async page =>
     {
         await NavigateAndWaitForWasmAsync(page, GameId);
 
-        // After joining: turn indicator visible, Roll button enabled
+        // After joining: turn indicator visible, Roll button enabled.
         var indicator = await page.WaitForSelectorAsync("[data-testid='my-turn-indicator']",
             new() { Timeout = 10_000 });
         indicator.Should().NotBeNull("turn indicator should appear after joining");
@@ -150,7 +153,7 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
         var scoringIdx = Array.FindIndex(diceValues, v => v == 1 || v == 5);
         var dragIdx    = scoringIdx >= 0 ? scoringIdx : 0; // prefer scoring die; fall back to first
 
-        // Drag the chosen die to SetAside — verifies drag-and-drop interaction
+        // Drag the chosen die to SetAside — verifies drag-and-drop interaction.
         await DragDieAsync(page, dragIdx);
         var setAsideZone = page.Locator("[identifier='SetAside']");
         await setAsideZone.Locator(".mud-drop-item").First.WaitForAsync(new() { Timeout = 10_000 });
@@ -159,7 +162,7 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
 
         await page.WaitForTimeoutAsync(StepDelayMs);
 
-        // Keep and assert score increases when a scoring die was dragged
+        // Keep and assert score increases when a scoring die was dragged.
         var scoreLocator = page.Locator("h3:has-text('Current Player Score')");
         var scoreBefore  = await scoreLocator.InnerTextAsync();
         await page.ClickAsync("button:has-text('Set Dice Aside')");
@@ -169,7 +172,7 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
             (await scoreLocator.InnerTextAsync())
                 .Should().NotBe(scoreBefore, "score should increase after keeping a scoring die");
 
-        // Pass Turn — dice cleared, turn score resets to 0
+        // Pass Turn — dice cleared, turn score resets to 0.
         await page.ClickAsync("button:has-text('Pass Turn')");
         await page.WaitForTimeoutAsync(StepDelayMs);
 
@@ -177,5 +180,37 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
             .Should().Be(0, "all dice should be cleared after passing the turn");
         (await scoreLocator.InnerTextAsync())
             .Should().Contain("0", "turn score should reset to 0 after passing");
+    });
+
+    [Fact]
+    public Task MultiplayerTwoPlayersCanPlay() => WithVideoAsync(async page =>
+    {
+        // Player 1 joins in the main (video-recorded) context.
+        await NavigateAndWaitForWasmAsync(page, MultiplayerGameId, "Alice");
+
+        (await page.WaitForSelectorAsync("[data-testid='my-turn-indicator']", new() { Timeout = 10_000 }))
+            .Should().NotBeNull("Player 1 should see their turn indicator after joining");
+
+        // Player 2 joins in an independent browser context (separate session/cookies).
+        // The WASM client has no real-time push, so P2's state is set once at join time
+        // via the CurrentPlayerId field in JoinPlayerResponse.
+        var context2 = await fixture.NewContextWithVideoAsync(VideoDir);
+        var page2    = await context2.NewPageAsync();
+        try
+        {
+            await NavigateAndWaitForWasmAsync(page2, MultiplayerGameId, "Bob");
+
+            // Player 2 correctly sees the waiting indicator — the join response carries
+            // CurrentPlayerId so the client knows immediately it is not their turn.
+            (await page2.WaitForSelectorAsync("[data-testid='waiting-indicator']", new() { Timeout = 10_000 }))
+                .Should().NotBeNull("Player 2 should be waiting while Player 1 is in turn");
+        }
+        finally
+        {
+            var rawPath2 = await page2.Video!.PathAsync();
+            await context2.CloseAsync();
+            if (File.Exists(rawPath2))
+                File.Move(rawPath2, Path.Combine(VideoDir, "MultiplayerTwoPlayersCanPlay-Bob.webm"), overwrite: true);
+        }
     });
 }

@@ -234,7 +234,9 @@ jobs:
             const body = [
               `## E2E Happy-Path ${outcome}`,
               '',
-              `**Recording:** [HappyPath.webm](${runUrl}#artifacts) — full game session (join → roll → drag → keep → pass)`,
+              `**Recordings** (download from [e2e-videos artifact](${runUrl}#artifacts)):`,
+              `- \`HappyPath.webm\` — full single-player session (join → roll → drag → keep → pass)`,
+              `- \`MultiplayerTwoPlayersCanPlay.webm\` / \`-Bob.webm\` — two-browser multiplayer session`,
               failSection,
               `[View full run](${runUrl})`,
             ].join('\n');
