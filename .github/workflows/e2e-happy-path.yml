@@ -29,6 +29,7 @@ jobs:
         run: >
           dotnet test tests/Farkle.Tests/Farkle.Tests.csproj
           --no-build
+          --collect:"XPlat Code Coverage"
           --logger "trx;LogFileName=unit-results.trx"
           --results-directory test-results
 
@@ -41,6 +42,7 @@ jobs:
         run: >
           dotnet test tests/Farkle.WebTests/Farkle.WebTests.csproj
           --no-build
+          --collect:"XPlat Code Coverage"
           --logger "trx;LogFileName=integration-results.trx"
           --results-directory test-results
 
@@ -48,6 +50,7 @@ jobs:
         run: >
           dotnet test tests/Farkle.SpaTests/Farkle.SpaTests.csproj
           --no-build
+          --collect:"XPlat Code Coverage"
           --logger "trx;LogFileName=spa-results.trx"
           --results-directory test-results
 
@@ -58,6 +61,22 @@ jobs:
           name: test-trx-${{ github.run_id }}
           path: test-results/*.trx
           if-no-files-found: warn
+
+      - name: Upload coverage reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ github.run_id }}
+          path: test-results/**/coverage.cobertura.xml
+          if-no-files-found: warn
+
+      - name: Upload coverage to Codecov
+        if: always()
+        uses: codecov/codecov-action@v5
+        with:
+          files: test-results/**/coverage.cobertura.xml
+          flags: unittests
+          fail_ci_if_error: false
 
   verify-generated:
     name: Verify generated files are up to date
