@@ -21,9 +21,12 @@ public class GameBunitContext : BunitContext
     Services.AddBlazorState(o => o.Assemblies = [typeof(Program).Assembly]);
   }
 
-  protected void JoinGame<TComponent>(IRenderedComponent<TComponent> cut, string playerName = "Tester")
+  protected void JoinGame<TComponent>(IRenderedComponent<TComponent> cut, string playerName = "Tester", int assignedPlayerId = 1)
     where TComponent : IComponent
   {
+    Mock.Get(GameService)
+      .Setup(s => s.JoinPlayerAsync(It.IsAny<int>(), It.IsAny<string>()))
+      .ReturnsAsync(assignedPlayerId);
     cut.Find("[placeholder='Your name']").Input(playerName);
     cut.FindAll("button").First(b => b.TextContent.Contains("Join")).Click();
   }

@@ -68,27 +68,25 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
         const int gameId = 208;
 
         await StartGameAsync(gameId);
-        await JoinGameAsync(gameId, 1, "David");
+        var player1 = await JoinGameAsync(gameId, "David");
 
-        var roll = await _client.Api.Games[gameId].Players[1].Rolls.PostAsync();
+        var roll = await _client.Api.Games[gameId].Players[player1].Rolls.PostAsync();
         Assert.NotNull(roll?.DiceValues);
         Assert.NotEmpty(roll!.DiceValues!);
 
         var scoringDice = roll.DiceValues.Where(v => v == 1 || v == 5).Select(v => (int)v!).ToArray();
         if (scoringDice.Length > 0)
-            await KeepDiceAsync(gameId, 1, scoringDice);
+            await KeepDiceAsync(gameId, player1, scoringDice);
     }
 
     [Fact]
     public async Task PassTurnResetsTurnScoreAsync()
     {
-        const int gameId  = 209;
-        const int player1 = 1;
-        const int player2 = 2;
+        const int gameId = 209;
 
         await StartGameAsync(gameId);
-        await JoinGameAsync(gameId, player1, "David");
-        await JoinGameAsync(gameId, player2, "Allison");
+        var player1 = await JoinGameAsync(gameId, "David");
+        var player2 = await JoinGameAsync(gameId, "Allison");
 
         // Player 1 keeps all their scoring dice to build a non-zero turn score.
         var roll1        = await _client.Api.Games[gameId].Players[player1].Rolls.PostAsync();
@@ -115,13 +113,12 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
     [Fact]
     public async Task PassTurnIncludesScoreboardAsync()
     {
-        const int gameId  = 304;
-        const int player1 = 1;
-        const int player2 = 2;
+        const int gameId = 304;
 
         await StartGameAsync(gameId);
-        await JoinGameAsync(gameId, player1, "David");
-        await JoinGameAsync(gameId, player2, "Allison");
+        var player1 = await JoinGameAsync(gameId, "David");
+        var player2 = await JoinGameAsync(gameId, "Allison");
+        _ = player2; // joined to populate scoreboard; not needed for further assertions
 
         var roll1        = await _client.Api.Games[gameId].Players[player1].Rolls.PostAsync();
         var scoringDice1 = (roll1!.DiceValues ?? []).Where(v => v == 1 || v == 5).Select(v => (int)v!).ToArray();
@@ -144,13 +141,12 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
     [Fact]
     public async Task RejectRollFromPlayerNotInTurnAsync()
     {
-        const int gameId  = 301;
-        const int player1 = 1;
-        const int player2 = 2;
+        const int gameId = 301;
 
         await StartGameAsync(gameId);
-        await JoinGameAsync(gameId, player1, "David");
-        await JoinGameAsync(gameId, player2, "Allison");
+        var player1 = await JoinGameAsync(gameId, "David");
+        var player2 = await JoinGameAsync(gameId, "Allison");
+        _ = player1;
 
         // Player 1 goes first; player 2 rolling out of turn must be rejected.
         var ex = await Assert.ThrowsAsync<ApiException>(
@@ -162,13 +158,11 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
     [Fact]
     public async Task RejectDoubleRollWithoutKeepingAsync()
     {
-        const int gameId  = 302;
-        const int player1 = 1;
-        const int player2 = 2;
+        const int gameId = 302;
 
         await StartGameAsync(gameId);
-        await JoinGameAsync(gameId, player1, "David");
-        await JoinGameAsync(gameId, player2, "Allison");
+        var player1 = await JoinGameAsync(gameId, "David");
+        await JoinGameAsync(gameId, "Allison");
 
         // First roll always succeeds.
         await RollDiceAsync(gameId, player1);
@@ -183,13 +177,11 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
     [Fact]
     public async Task RejectPassWithoutRollingAsync()
     {
-        const int gameId  = 303;
-        const int player1 = 1;
-        const int player2 = 2;
+        const int gameId = 303;
 
         await StartGameAsync(gameId);
-        await JoinGameAsync(gameId, player1, "David");
-        await JoinGameAsync(gameId, player2, "Allison");
+        var player1 = await JoinGameAsync(gameId, "David");
+        await JoinGameAsync(gameId, "Allison");
 
         // Attempting to pass before rolling must be rejected.
         var ex = await Assert.ThrowsAsync<ApiException>(
@@ -202,9 +194,12 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
         => _client.Api.Games.PostAsync(
             new FarkleContractsHttpRequests_StartGameRequest { Id = gameId });
 
-    private Task JoinGameAsync(int gameId, int playerId, string playerName)
-        => _client.Api.Games[gameId].Players[playerId].PostAsync(
+    private async Task<int> JoinGameAsync(int gameId, string playerName)
+    {
+        var response = await _client.Api.Games[gameId].Players.PostAsync(
             new FarkleContractsHttpRequests_JoinPlayerRequest { PlayerName = playerName });
+        return response?.Id ?? 0;
+    }
 
     private Task RollDiceAsync(int gameId, int playerId)
         => _client.Api.Games[gameId].Players[playerId].Rolls.PostAsync();

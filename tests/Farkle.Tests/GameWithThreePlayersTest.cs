@@ -32,9 +32,9 @@ public class GameWithThreePlayersTest
 
     // Act
     game.Start(new StartGame(1));
-    game.JoinPlayer(new JoinPlayer(1, 1, "David"));
-    game.JoinPlayer(new JoinPlayer(1, 2, "Cristian"));
-    game.JoinPlayer(new JoinPlayer(1, 3, "German"));
+    game.JoinPlayer(new JoinPlayer(1, "David"));
+    game.JoinPlayer(new JoinPlayer(1, "Cristian"));
+    game.JoinPlayer(new JoinPlayer(1, "German"));
 
     Game = new Game(_randomProvider);
     Game.Load(game.Changes.ToList());

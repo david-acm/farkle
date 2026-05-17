@@ -15,13 +15,13 @@
   public async Task CallUpdateScore()
   {
     // Given
-    var playerId = 1;
-    var gameId   = new GameId(10);
+    const int playerId = 1;
+    var gameId         = new GameId(10);
     Mock.Get(GameService)
       .Setup(s => s.StartGameAsync(It.IsAny<int>()))
       .ReturnsAsync(gameId);
 
-    var game = Render<Game>(@<Game PlayerId=@playerId ParameterGameId="gameId"/>);
+    var game = Render<Game>(@<Game ParameterGameId="gameId"/>);
     JoinGame(game);
     var score         = game.FindComponent<TurnScore>();
     await game.FindComponent<StartGameButton>().Find("button").ClickAsync(default!);

@@ -12,9 +12,6 @@ public partial class Game : BlazorStateComponent
   public ILogger<Game> Logger { get; set; } = null!;
 
   [Parameter]
-  public int PlayerId { get; set; }
-
-  [Parameter]
   public int ParameterGameId { get; set; } = 0;
 
   private GameId    GameId    => new(ParameterGameId);
@@ -40,7 +37,7 @@ public partial class Game : BlazorStateComponent
     if (string.IsNullOrWhiteSpace(_playerName)) return;
     try
     {
-      await Mediator.Send(new GameState.JoinPlayer.Action(new(PlayerId), new(_playerName)));
+      await Mediator.Send(new GameState.JoinPlayer.Action(new(_playerName)));
     }
     catch (Exception ex)
     {

@@ -6,7 +6,7 @@
     "version": "1.0.0"
   },
   "paths": {
-    "/api/games/{gameId}/players/{playerId}": {
+    "/api/games/{gameId}/players": {
       "post": {
         "tags": [
           "Api"
@@ -15,15 +15,6 @@
         "parameters": [
           {
             "name": "gameId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          },
-          {
-            "name": "playerId",
             "in": "path",
             "required": true,
             "schema": {

@@ -12,7 +12,7 @@ internal static class Command
     }
   }
 
-  internal record JoinPlayer(int GameId, PlayerId Id, string Name);
+  internal record JoinPlayer(int GameId, string Name);
 
   internal record RollDice(GameId GameId, PlayerId PlayerId);
 

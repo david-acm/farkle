@@ -1,4 +1,4 @@
-﻿using Farkle.Application;
+using Farkle.Application;
 using Farkle.Domain.GameAggregate;
 using Microsoft.Extensions.Logging;
 using static Farkle.Contracts.HttpRequests;
@@ -13,18 +13,18 @@ internal class JoinPlayerEndpoint(
 {
   public override void Configure()
   {
-    Post("/api/games/{gameId}/players/{playerId}");
+    Post("/api/games/{gameId}/players");
   }
-  
+
   public override async Task HandleAsync(JoinPlayerRequest req, CancellationToken ct)
   {
-    // TODO: Use mediatr behaviors
-    logger.LogInformation("ℹ️ Game: {gameId}. Joining player: {playerId}. With name: {playerName}", req.GameId, req.PlayerId, req.PlayerName);
-    var command = new Command.JoinPlayer(req.GameId, req.PlayerId, req.PlayerName);
-    
+    logger.LogInformation("ℹ️ Game: {gameId}. Joining player with name: {playerName}", req.GameId, req.PlayerName);
+    var command = new Command.JoinPlayer(req.GameId, req.PlayerName);
+
     var result = await service
-      .HandleAsync<Command.JoinPlayer, JoinPlayerResponse>(command, ct);
-    
+      .HandleAsync<Command.JoinPlayer, JoinPlayerResponse>(command, ct,
+        s => new JoinPlayerResponse(s.Players.Last().Id));
+
     await SendResultAsync(result);
   }
 }

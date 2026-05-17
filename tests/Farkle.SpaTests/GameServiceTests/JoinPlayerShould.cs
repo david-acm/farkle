@@ -14,15 +14,16 @@ public class JoinPlayerShould
   {
     // Given
     var mock = GetMockHttpClient();
-    mock.Expect(HttpMethod.Post, "http://localhost/api/games/1/players/1")
+    mock.Expect(HttpMethod.Post, "http://localhost/api/games/1/players")
       .RespondJson(new JoinPlayerResponse(1));
 
     var sut = new GameService(mock.ToFarkleApiClient(), Mock.Of<ILogger<GameService>>());
 
     // When
-    await sut.JoinPlayerAsync(1, 1, "David");
+    var assignedId = await sut.JoinPlayerAsync(1, "David");
 
     // Then
+    Assert.Equal(1, assignedId);
     mock.VerifyNoOutstandingExpectation();
   }
 }
