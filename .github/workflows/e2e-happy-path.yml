@@ -162,6 +162,10 @@ jobs:
           --logger "trx;LogFileName=e2e-results.trx"
           --results-directory test-results
 
+      - name: List test-results files
+        if: always()
+        run: find test-results -type f 2>/dev/null || echo "(test-results is empty or missing)"
+
       - name: Print failure details
         if: failure()
         run: |
@@ -171,7 +175,6 @@ jobs:
             cat test-results/e2e-results.trx
           else
             echo "No TRX file found in test-results/"
-            ls -la test-results/ 2>/dev/null || true
           fi
 
       - name: Upload test videos
@@ -180,7 +183,7 @@ jobs:
         with:
           name: e2e-videos-${{ github.run_id }}
           path: test-results/videos/
-          if-no-files-found: warn
+          if-no-files-found: error
           retention-days: 14
 
       - name: Upload TRX results
