@@ -1,0 +1,30 @@
+using BlazorState;
+using static Farkle.Contracts.HttpResponses;
+
+namespace WebApp.Client.Features;
+
+public partial class GameState
+{
+    public static class RemoteTurnChanged
+    {
+        public record Action(PassTurnResponse Payload) : IAction;
+
+        public class Handler(IStore store) : ActionHandler<Action>(store)
+        {
+            private GameState State => Store.GetState<GameState>();
+
+            public override Task Handle(Action action, CancellationToken aCancellationToken)
+            {
+                var p = action.Payload;
+                State.CurrentPlayerId = p.CurrentPlayerId;
+                State.Scoreboard = (p.Scoreboard ?? [])
+                    .Select(s => new PlayerStanding(s.PlayerId, s.Name, s.Score))
+                    .ToList();
+                State.WinnerName = p.Winner?.Name;
+                State.DiceInPlay.Clear();
+                State.TurnScore = new(0);
+                return Task.CompletedTask;
+            }
+        }
+    }
+}

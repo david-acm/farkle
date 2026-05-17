@@ -55,6 +55,9 @@ services
       o.DisableAutoDiscovery = true;
   });
 
+services.AddSignalR();
+services.AddScoped<Farkle.Application.IGameEventBroadcaster, WebApp.Hubs.SignalRGameEventBroadcaster>();
+
 // Add module services
 services.AddFarkleModuleServices(builder.Configuration, logger, new List<Assembly>());
 
@@ -105,6 +108,8 @@ app.UseFastEndpoints(c =>
     c.Endpoints.Configurator = ep => { if (requireAuth) ep.Options(b => b.RequireAuthorization()); else ep.Options(b => b.AllowAnonymous());};
   })
    .UseSwaggerGen();
+
+app.MapHub<WebApp.Hubs.GameHub>("/hubs/game");
 
 app.UseAntiforgery();
 

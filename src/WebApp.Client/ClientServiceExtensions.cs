@@ -25,6 +25,7 @@ public static class ClientServiceExtensions
       return new FarkleApiClient(adapter);
     });
     services.AddScoped<IGameService, GameService>();
+    services.AddScoped<IGameHubService, GameHubService>();
 
     var assembly = typeof(Program).Assembly;
     services.AddBlazorState(o => o.Assemblies = [assembly]);

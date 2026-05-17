@@ -238,8 +238,8 @@ jobs:
               `## E2E Happy-Path ${outcome}`,
               '',
               `**Recordings** (download from [e2e-videos artifact](${runUrl}#artifacts)):`,
-              `- \`HappyPath.webm\` — P1 session (join → P2 joins → roll → drag → keep → pass)`,
-              `- \`HappyPath-Bob.webm\` — P2 session (join → waiting indicator)`,
+              `- \`HappyPath.webm\` — Alice session (join → two-player turns until win)`,
+              `- \`HappyPath-Bob.webm\` — Bob session (join → two-player turns until win)`,
               failSection,
               `[View full run](${runUrl})`,
             ].join('\n');
