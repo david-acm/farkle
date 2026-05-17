@@ -70,6 +70,14 @@ jobs:
           path: test-results/**/coverage.cobertura.xml
           if-no-files-found: warn
 
+      - name: Upload coverage to Codecov
+        if: always()
+        uses: codecov/codecov-action@v5
+        with:
+          files: test-results/**/coverage.cobertura.xml
+          flags: unittests
+          fail_ci_if_error: false
+
   verify-generated:
     name: Verify generated files are up to date
     runs-on: ubuntu-latest
