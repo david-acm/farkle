@@ -35,7 +35,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="NSwag.MSBuild" Version="14.7.1">
+    <PackageReference Include="NSwag.MSBuild" Version="14.2.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
@@ -43,7 +43,7 @@
 
   <Target Name="GenerateSwaggerJson" AfterTargets="Build"
           Condition="'$(GenerateSwagger)' == 'true'">
-    <Exec Command="$(NSwagExe_Net100) run nswag.json /variables:Configuration=$(Configuration)"
+    <Exec Command="$(NSwagExe_Net80) run nswag.json /variables:Configuration=$(Configuration)"
           EnvironmentVariables="ASPNETCORE_ENVIRONMENT=NSwag" />
   </Target>
 

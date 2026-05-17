@@ -85,7 +85,12 @@ else
 }
 
 app.UseStaticFiles();
-app.MapStaticAssets();
+// MapStaticAssets requires the static-web-assets endpoint manifest produced by the full
+// Blazor WASM build.  NSwag runs the app with noBuild=true to extract the OpenAPI spec,
+// so the manifest is absent.  Skipping it in that environment lets NSwag start the host
+// successfully without affecting runtime behaviour.
+if (!app.Environment.IsEnvironment("NSwag"))
+    app.MapStaticAssets();
 
 if (!app.Environment.IsEnvironment("NSwag"))
     app.SetUpFarkleModule();

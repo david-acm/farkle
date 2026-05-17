@@ -18,6 +18,10 @@ public partial class GameState
         var response = await service.PassTurnAsync(State.GameId, State.PlayerId);
 
         State.CurrentPlayerId = response.CurrentPlayerId;
+        State.Scoreboard = (response.Scoreboard ?? [])
+          .Select(p => new PlayerStanding(p.PlayerId, p.Name, p.Score))
+          .ToList();
+        State.WinnerName = response.Winner?.Name;
         // Reset dice and turn score for the next turn.
         State.DiceInPlay.Clear();
         State.TurnScore = new(0);

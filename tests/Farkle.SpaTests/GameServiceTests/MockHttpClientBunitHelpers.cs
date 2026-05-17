@@ -4,7 +4,7 @@ using System.Text.Json;
 using Microsoft.Kiota.Abstractions.Authentication;
 using Microsoft.Kiota.Http.HttpClientLibrary;
 using RichardSzalay.MockHttp;
-using WebApp.Client.Services.Generated;
+using Farkle.ApiClient;
 
 namespace Farkle.SpaTests.GameServiceTests;
 

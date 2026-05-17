@@ -32,7 +32,8 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
     private const int ScoreGameId     = 1003;
     private const int TurnScoreGameId = 1004;
     private const int PassTurnGameId  = 1005;
-    private const int WhoseTurnGameId = 1006;
+    private const int WhoseTurnGameId   = 1006;
+    private const int ScoreboardGameId  = 1007;
 
     // Resolved at runtime so it works both locally (dotnet test from repo root) and in CI.
     private static string VideoDir =>
@@ -219,6 +220,19 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
         // Roll and Keep buttons must be enabled for the active player.
         var rollDisabled = await page.GetAttributeAsync("button:has-text('Roll')", "disabled");
         rollDisabled.Should().BeNull("Roll button should be enabled when it is the player's turn");
+    });
+
+    [Fact]
+    public Task ScoreboardIsVisibleAfterJoin() => WithVideoAsync(async page =>
+    {
+        await NavigateAndWaitForWasmAsync(page, ScoreboardGameId);
+
+        var scoreboard = await page.WaitForSelectorAsync("[data-testid='scoreboard']",
+            new() { Timeout = 10_000 });
+        scoreboard.Should().NotBeNull("scoreboard should be visible after joining");
+
+        var text = await scoreboard!.InnerTextAsync();
+        text.Should().Contain("Tester", "scoreboard should show the joining player's name");
     });
 
     [Fact]

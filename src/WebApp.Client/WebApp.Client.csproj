@@ -16,12 +16,6 @@
   	<PackageReference Include="MudBlazor" Version="9.4.0" />
     <PackageReference Include="Blazor-State" Version="10.0.0" />
     <PackageReference Include="Serilog" Version="4.3.1" />
-    <PackageReference Include="Microsoft.Kiota.Abstractions" Version="2.0.0" />
-    <PackageReference Include="Microsoft.Kiota.Http.HttpClientLibrary" Version="2.0.0" />
-    <PackageReference Include="Microsoft.Kiota.Serialization.Json" Version="2.0.0" />
-    <PackageReference Include="Microsoft.Kiota.Serialization.Text" Version="2.0.0" />
-    <PackageReference Include="Microsoft.Kiota.Serialization.Form" Version="2.0.0" />
-    <PackageReference Include="Microsoft.Kiota.Serialization.Multipart" Version="2.0.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -29,6 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Farkle.ApiClient\Farkle.ApiClient.csproj" />
     <ProjectReference Include="..\Farkle.Contracts\Farkle.Contracts.csproj" />
   </ItemGroup>
 

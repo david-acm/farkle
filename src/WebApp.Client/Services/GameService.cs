@@ -1,7 +1,7 @@
 using Ardalis.Result;
+using Farkle.ApiClient;
 using WebApp.Client.Pages.Game.Components;
-using WebApp.Client.Services.Generated;
-using KiotaModels = WebApp.Client.Services.Generated.Models;
+using KiotaModels = Farkle.ApiClient.Models;
 using static Farkle.Contracts.HttpResponses;
 
 namespace WebApp.Client.Services;
@@ -49,6 +49,18 @@ public class GameService : IGameService
   {
     var response = await _client.Api.Games[gameId].Players[playerId].Turns.PostAsync();
     _logger.LogInformation("PassTurn response: newScore={NewScore}", response?.NewScore);
-    return new PassTurnResponse(response?.GameId ?? 0, response?.PlayerId ?? 0, response?.NewScore ?? 0, null, response?.CurrentPlayerId ?? 0);
+    return ToPassTurnResponse(response);
+  }
+
+  private static PassTurnResponse ToPassTurnResponse(KiotaModels.FarkleContractsHttpResponses_PassTurnResponse? r)
+  {
+    var scoreboard = r?.Scoreboard?
+      .Select(p => new PlayerScore(p.PlayerId ?? 0, p.Name ?? "", p.Score ?? 0))
+      .ToArray();
+    var winner = r?.Winner is null ? null
+      : new WinnerResponse(r.Winner.PlayerId ?? 0, r.Winner.Name ?? "", r.Winner.Score ?? 0);
+    return new PassTurnResponse(
+      r?.GameId ?? 0, r?.PlayerId ?? 0, r?.NewScore ?? 0,
+      winner, r?.CurrentPlayerId ?? 0, scoreboard);
   }
 }

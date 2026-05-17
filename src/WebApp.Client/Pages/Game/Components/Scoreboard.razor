@@ -1,0 +1,54 @@
+@using WebApp.Client.Features
+@inherits BlazorState.BlazorStateComponent
+
+@{
+  var state   = GetState<GameState>();
+  var leader  = state.Scoreboard.OrderByDescending(p => p.Score).FirstOrDefault();
+}
+
+<MudCard data-testid="scoreboard" Class="mt-4">
+  <MudCardHeader>
+    <CardHeaderContent>
+      <MudText Typo="Typo.h6">Scoreboard</MudText>
+    </CardHeaderContent>
+  </MudCardHeader>
+  <MudCardContent>
+    @if (state.IsGameOver)
+    {
+      <MudAlert Severity="Severity.Success" Class="mb-2">🏆 @state.WinnerName wins!</MudAlert>
+    }
+    <MudTable Items="@state.Scoreboard.OrderByDescending(p => p.Score)" Dense="true" Hover="false">
+      <HeaderContent>
+        <MudTh>Player</MudTh>
+        <MudTh>Score</MudTh>
+      </HeaderContent>
+      <RowTemplate>
+        @{
+          var isLeader = leader is not null && context.PlayerId == leader.PlayerId && leader.Score > 0;
+        }
+        <MudTd data-testid="@(isLeader ? "scoreboard-leader" : "scoreboard-row")">
+          @if (isLeader)
+          {
+            <MudText Color="Color.Primary"><strong>@context.Name</strong></MudText>
+          }
+          else
+          {
+            <MudText>@context.Name</MudText>
+          }
+        </MudTd>
+        <MudTd>
+          @if (isLeader)
+          {
+            <MudText Color="Color.Primary"><strong>@context.Score</strong></MudText>
+          }
+          else
+          {
+            <MudText>@context.Score</MudText>
+          }
+        </MudTd>
+      </RowTemplate>
+    </MudTable>
+  </MudCardContent>
+</MudCard>
+
+@code { }
