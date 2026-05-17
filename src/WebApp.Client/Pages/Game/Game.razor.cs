@@ -21,6 +21,12 @@ public partial class Game : BlazorStateComponent
 
   protected override async Task OnParametersSetAsync()
   {
+    // When the user navigates to a different game within the same WASM session
+    // (e.g. via Blazor Router), clear the stale player data so the join form
+    // appears for the new game rather than inheriting the previous game's state.
+    if (GameState.GameId.Value != 0 && GameState.GameId.Value != ParameterGameId)
+      await Mediator.Send(new GameState.LeaveGame.Action());
+
     try
     {
       await Mediator.Send(new GameState.StartGame.Action(GameId));
