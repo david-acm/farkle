@@ -423,6 +423,7 @@ To extend the API contract:
 - **E2E test videos**: Ensure videos are uploaded and linked on PR (GitHub Actions workflow)
 - **Architecture tests**: Must pass to ensure domain isolation
 - **Test coverage**: New domain logic requires unit tests; endpoints require integration tests; every new feature requires at least one E2E test covering the happy path
+- **Close issues via PR**: Every PR that resolves a GitHub issue MUST include `Closes #<issue>` (or `Fixes #<issue>`) in the PR body so GitHub auto-closes the issue on merge. Never reference an issue with just `#N` or `issue #N` — the keyword is required.
 
 ---
 
