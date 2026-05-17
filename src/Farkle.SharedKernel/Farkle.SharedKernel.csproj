@@ -8,6 +8,7 @@
 
     <ItemGroup>
       <PackageReference Include="Ardalis.Result" Version="10.1.0" />
+      <PackageReference Include="Eventuous.Application" Version="0.16.4" />
       <PackageReference Include="Eventuous.AspNetCore" Version="0.15.0-beta.7" />
       <PackageReference Include="FastEndpoints" Version="5.34.0" />
       <PackageReference Include="Mapster" Version="10.0.7" />

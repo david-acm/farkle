@@ -19,13 +19,13 @@
     <PackageReference Include="EventStore.Client.Grpc.Streams" Version="23.3.9" />
     <!-- Eventuous: pinned to last beta compatible with current application code.
          Migration to stable 0.16.x requires API updates tracked in a separate issue. -->
-    <PackageReference Include="Eventuous.Application" Version="0.15.0-beta.10" />
+    <PackageReference Include="Eventuous.Application" Version="0.16.4" />
     <PackageReference Include="Eventuous.AspNetCore" Version="0.15.0-beta.7" />
     <PackageReference Include="Eventuous.AspNetCore.Web" Version="0.15.0-beta.10" />
     <PackageReference Include="Eventuous.EventStore" Version="0.15.0-beta.10" />
     <PackageReference Include="Eventuous.Extensions.DependencyInjection" Version="0.15.0-beta.10" />
-    <PackageReference Include="Eventuous.Persistence" Version="0.15.0-beta.10" />
-    <PackageReference Include="Eventuous.Shared" Version="0.15.0-beta.10" />
+    <PackageReference Include="Eventuous.Persistence" Version="0.16.4" />
+    <PackageReference Include="Eventuous.Shared" Version="0.16.4" />
     <!-- FastEndpoints: pinned to 5.x — migration to 8.x requires API updates tracked separately. -->
     <PackageReference Include="FastEndpoints" Version="5.34.0" />
     <PackageReference Include="Mapster" Version="10.0.7" />
