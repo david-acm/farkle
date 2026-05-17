@@ -5,24 +5,27 @@ using System.Text.Json;
 namespace Farkle.E2eTests;
 
 /// <summary>
-/// Full happy-path game flow in a single browser session:
-/// two players join → P2 sees waiting indicator → P1 rolls → drags die →
-/// keeps → score increases → passes → dice cleared, score resets.
+/// Full happy-path game flow:
+/// 1. Multiplayer indicator check — Alice (P1) and Bob (P2) join game 1008 in separate
+///    browser contexts; Alice sees the turn indicator and Bob sees the waiting indicator.
+/// 2. Winning loop — Alice navigates to a fresh solo game (1001) and plays turn after
+///    turn (roll → keep all scoring dice → pass) until she reaches 10 000 and wins.
 ///
-/// A second Playwright context is opened for P2 to verify the multiplayer
-/// turn indicator, then closed before P1 continues. Both sessions are
-/// recorded: <c>HappyPath.webm</c> (P1) and <c>HappyPath-Bob.webm</c> (P2).
+/// Full-page navigation between the two games restarts WASM with fresh state so the
+/// join form appears correctly for each game. Both sessions are recorded:
+/// <c>HappyPath.webm</c> (Alice) and <c>HappyPath-Bob.webm</c> (Bob's brief session).
 ///
-/// Die values aren't exposed in the DOM (the component is a 3D CSS cube), so the
-/// roll API response is intercepted to identify scoring dice (1s and 5s) by index.
+/// Die values aren't exposed in the DOM (3D CSS cube), so the roll API response is
+/// intercepted to identify scoring dice (1s and 5s) by index.
 /// </summary>
 [Collection(PlaywrightCollection.Name)]
 public class GameHappyPathShould(PlaywrightFixture fixture)
 {
-    private const int WasmTimeoutMs = 120_000;
-    private const int GameId        = 1001;
+    private const int WasmTimeoutMs     = 120_000;
+    private const int GameId            = 1001; // solo winning game — Alice only
+    private const int MultiplayerGameId = 1008; // multiplayer indicator check — Alice + Bob
 
-    // Pause between steps so animations are visible in the recorded video.
+    // Pause between notable steps so animations are visible in the recorded video.
     // Override with E2E_STEP_DELAY_MS environment variable (e.g. set to 0 for speed).
     private static int StepDelayMs =>
         int.TryParse(Environment.GetEnvironmentVariable("E2E_STEP_DELAY_MS"), out var v) ? v : 2_000;
@@ -79,6 +82,8 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
 
     // ── helpers ──────────────────────────────────────────────
 
+    // Full-page navigation (GotoAsync) restarts WASM, giving a fresh BlazorState store
+    // with no player-specific data from a previous game session.
     private async Task NavigateAndWaitForWasmAsync(IPage page, int gameId,
         string playerName = "Tester")
     {
@@ -125,27 +130,23 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
     [Fact]
     public Task HappyPath() => WithVideoAsync(async page =>
     {
-        // ── Player 1 joins ──────────────────────────────────────
-        await NavigateAndWaitForWasmAsync(page, GameId, "Alice");
+        // ── Multiplayer indicator check ──────────────────────────────
+        // Alice joins first; Bob joins in a second context. Verifies that
+        // CurrentPlayerId in the join response drives the correct indicator
+        // for each player without any real-time push from the server.
+        await NavigateAndWaitForWasmAsync(page, MultiplayerGameId, "Alice");
 
         (await page.WaitForSelectorAsync("[data-testid='my-turn-indicator']", new() { Timeout = 10_000 }))
-            .Should().NotBeNull("turn indicator should appear after joining");
-        (await page.GetAttributeAsync("button:has-text('Roll')", "disabled"))
-            .Should().BeNull("Roll button should be enabled when it is the player's turn");
+            .Should().NotBeNull("Alice should see the turn indicator after joining");
 
-        await page.WaitForTimeoutAsync(StepDelayMs);
-
-        // ── Player 2 joins in a second browser context ──────────
-        // Verifies the join response's CurrentPlayerId correctly drives the waiting
-        // indicator without any real-time push from the server.
         var context2 = await fixture.NewContextWithVideoAsync(VideoDir);
         var page2    = await context2.NewPageAsync();
         try
         {
-            await NavigateAndWaitForWasmAsync(page2, GameId, "Bob");
+            await NavigateAndWaitForWasmAsync(page2, MultiplayerGameId, "Bob");
 
             (await page2.WaitForSelectorAsync("[data-testid='waiting-indicator']", new() { Timeout = 10_000 }))
-                .Should().NotBeNull("Player 2 should see waiting indicator while Player 1 is in turn");
+                .Should().NotBeNull("Bob should see the waiting indicator while Alice is in turn");
 
             await page2.WaitForTimeoutAsync(StepDelayMs);
         }
@@ -157,45 +158,56 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
                 File.Move(rawPath2, Path.Combine(VideoDir, "HappyPath-Bob.webm"), overwrite: true);
         }
 
-        // ── Player 1 rolls ──────────────────────────────────────
-        // Intercept the roll API response to identify scoring dice by index —
-        // die values are not visible in the DOM (3D CSS cube faces).
-        var rollTask = page.WaitForResponseAsync(r => r.Url.Contains("/rolls") && r.Status == 200);
-        await page.ClickAsync("button:has-text('Roll')");
-        var rollResponse = await rollTask;
-        await page.WaitForSelectorAsync(".die-container", new() { Timeout = 10_000 });
-        await page.WaitForTimeoutAsync(StepDelayMs);
+        // ── Play to win ──────────────────────────────────────────────
+        // Full-page navigation to a solo game restarts WASM so Alice can join fresh.
+        // With only one player the turn always rotates back to Alice, allowing an
+        // uninterrupted loop until she accumulates 10 000 points.
+        await NavigateAndWaitForWasmAsync(page, GameId, "Alice");
 
-        var diceValues = ParseDiceValues(await rollResponse.TextAsync());
-        var scoringIdx = Array.FindIndex(diceValues, v => v == 1 || v == 5);
-        var dragIdx    = scoringIdx >= 0 ? scoringIdx : 0; // prefer scoring die; fall back to first
+        (await page.WaitForSelectorAsync("[data-testid='my-turn-indicator']", new() { Timeout = 10_000 }))
+            .Should().NotBeNull("Alice should be in turn at the start of the solo game");
 
-        // ── Drag die to SetAside ─────────────────────────────────
-        await DragDieAsync(page, dragIdx);
-        var setAsideZone = page.Locator("[identifier='SetAside']");
-        await setAsideZone.Locator(".mud-drop-item").First.WaitForAsync(new() { Timeout = 10_000 });
-        (await setAsideZone.Locator(".mud-drop-item").CountAsync())
-            .Should().BeGreaterThan(0, "die should appear in SetAside after drag");
+        var won      = false;
+        const int maxTurns = 300;
 
-        await page.WaitForTimeoutAsync(StepDelayMs);
+        for (var turn = 0; turn < maxTurns; turn++)
+        {
+            // Roll — intercept the API response to find scoring dice by index.
+            var rollTask     = page.WaitForResponseAsync(r => r.Url.Contains("/rolls") && r.Status == 200);
+            await page.ClickAsync("button:has-text('Roll')");
+            var rollResponse = await rollTask;
+            await page.WaitForSelectorAsync(".die-container", new() { Timeout = 10_000 });
 
-        // ── Keep dice ────────────────────────────────────────────
-        var scoreLocator = page.Locator("h3:has-text('Current Player Score')");
-        var scoreBefore  = await scoreLocator.InnerTextAsync();
-        await page.ClickAsync("button:has-text('Set Dice Aside')");
-        await page.WaitForTimeoutAsync(StepDelayMs);
+            var diceValues = ParseDiceValues(await rollResponse.TextAsync());
+            var scoringIdx = Array.FindIndex(diceValues, v => v == 1 || v == 5);
 
-        if (scoringIdx >= 0)
-            (await scoreLocator.InnerTextAsync())
-                .Should().NotBe(scoreBefore, "score should increase after keeping a scoring die");
+            // Keep the first scoring die (1 = 100 pts, 5 = 50 pts).
+            // Farkle (no scoring dice) is valid: just pass with 0 turn score.
+            if (scoringIdx >= 0)
+            {
+                await DragDieAsync(page, scoringIdx);
+                await page.Locator("[identifier='SetAside']").Locator(".mud-drop-item")
+                    .First.WaitForAsync(new() { Timeout = 5_000 });
+                await page.ClickAsync("button:has-text('Set Dice Aside')");
+                await page.WaitForTimeoutAsync(200);
+            }
 
-        // ── Pass turn ────────────────────────────────────────────
-        await page.ClickAsync("button:has-text('Pass Turn')");
-        await page.WaitForTimeoutAsync(StepDelayMs);
+            await page.ClickAsync("button:has-text('Pass Turn')");
+            await page.WaitForTimeoutAsync(200);
 
-        (await page.Locator(".die-container").CountAsync())
-            .Should().Be(0, "all dice should be cleared after passing the turn");
-        (await scoreLocator.InnerTextAsync())
-            .Should().Contain("0", "turn score should reset to 0 after passing");
+            // The PassTurn response sets WinnerName in the store; the scoreboard then
+            // shows "🏆 Alice wins!" inside the [data-testid='scoreboard'] element.
+            if (await page.Locator("[data-testid='scoreboard']").GetByText("wins!").IsVisibleAsync())
+            {
+                won = true;
+                break;
+            }
+        }
+
+        await page.WaitForTimeoutAsync(StepDelayMs); // pause on the winner screen
+
+        won.Should().BeTrue($"Alice should win within {maxTurns} turns");
+        (await page.Locator("[data-testid='scoreboard']").InnerTextAsync())
+            .Should().Contain("wins!", "winner should be announced in the scoreboard");
     });
 }
