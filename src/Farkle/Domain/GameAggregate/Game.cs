@@ -25,7 +25,8 @@ internal class Game : Aggregate<GameState>
 
   public void JoinPlayer(Command.JoinPlayer joinPlayer)
   {
-    Apply(new GameEvents.V1.PlayerJoined(joinPlayer.Id, joinPlayer.Name));
+    var newId = State.Players.Length + 1;
+    Apply(new GameEvents.V1.PlayerJoined(newId, joinPlayer.Name));
   }
 
   public void RollDiceV1(Command.RollDice rollDice)

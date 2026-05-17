@@ -12,6 +12,8 @@ namespace Farkle.ApiClient.Models
     public partial class FarkleContractsHttpResponses_JoinPlayerResponse : IParsable
     #pragma warning restore CS1591
     {
+        /// <summary>The currentPlayerId property</summary>
+        public int? CurrentPlayerId { get; set; }
         /// <summary>The id property</summary>
         public int? Id { get; set; }
         /// <summary>
@@ -32,6 +34,7 @@ namespace Farkle.ApiClient.Models
         {
             return new Dictionary<string, Action<IParseNode>>
             {
+                { "currentPlayerId", n => { CurrentPlayerId = n.GetIntValue(); } },
                 { "id", n => { Id = n.GetIntValue(); } },
             };
         }
@@ -42,6 +45,7 @@ namespace Farkle.ApiClient.Models
         public virtual void Serialize(ISerializationWriter writer)
         {
             if(ReferenceEquals(writer, null)) throw new ArgumentNullException(nameof(writer));
+            writer.WriteIntValue("currentPlayerId", CurrentPlayerId);
             writer.WriteIntValue("id", Id);
         }
     }

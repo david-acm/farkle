@@ -57,7 +57,6 @@ public static class FarkleModuleServiceExtensions
         (cmd, ctx)
           => new Command.JoinPlayer(
             cmd.GameId,
-            cmd.PlayerId,
             cmd.PlayerName))
       .MapCommand<HttpRequests.RollDiceRequest, Command.RollDice>(
         (cmd, ctx)
