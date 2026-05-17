@@ -43,18 +43,18 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
     private async Task WithVideoAsync(Func<IPage, Task> test,
         [CallerMemberName] string testName = "")
     {
-        var context     = await fixture.NewContextWithVideoAsync(VideoDir);
-        var page        = await context.NewPageAsync();
-        var consoleLogs = new List<string>();
+        var aliceContext = await fixture.NewContextWithVideoAsync(VideoDir);
+        var alicePage    = await aliceContext.NewPageAsync();
+        var consoleLogs  = new List<string>();
 
-        page.Console   += (_, msg) => consoleLogs.Add($"[{msg.Type.ToUpper()}] {msg.Text}");
-        page.PageError += (_, err) => consoleLogs.Add($"[PAGE_ERROR] {err}");
+        alicePage.Console   += (_, msg) => consoleLogs.Add($"[{msg.Type.ToUpper()}] {msg.Text}");
+        alicePage.PageError += (_, err) => consoleLogs.Add($"[PAGE_ERROR] {err}");
 
         Exception? failure = null;
         try
         {
-            await test(page);
-            await page.WaitForTimeoutAsync(1_500); // hold on final state before recording ends
+            await test(alicePage);
+            await alicePage.WaitForTimeoutAsync(1_500); // hold on final state before recording ends
         }
         catch (Exception ex)
         {
@@ -62,8 +62,8 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
         }
         finally
         {
-            await context.CloseAsync(); // must close to finalise the .webm file
-            var rawPath = await page.Video!.PathAsync();
+            await aliceContext.CloseAsync(); // must close to finalise the .webm file
+            var rawPath = await alicePage.Video!.PathAsync();
             if (File.Exists(rawPath))
                 File.Move(rawPath, Path.Combine(VideoDir, $"{testName}.webm"), overwrite: true);
 
@@ -128,21 +128,21 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
     // ── test ─────────────────────────────────────────────────
 
     [Fact]
-    public Task HappyPath() => WithVideoAsync(async page =>
+    public Task HappyPath() => WithVideoAsync(async alicePage =>
     {
         // Alice joins first; Bob joins in a second context.
-        await NavigateAndWaitForWasmAsync(page, GameId, "Alice");
+        await NavigateAndWaitForWasmAsync(alicePage, GameId, "Alice");
 
-        (await page.WaitForSelectorAsync("[data-testid='my-turn-indicator']", new() { Timeout = 10_000 }))
+        (await alicePage.WaitForSelectorAsync("[data-testid='my-turn-indicator']", new() { Timeout = 10_000 }))
             .Should().NotBeNull("Alice should see the turn indicator after joining");
 
-        var context2 = await fixture.NewContextWithVideoAsync(VideoDir);
-        var page2    = await context2.NewPageAsync();
+        var bobContext = await fixture.NewContextWithVideoAsync(VideoDir);
+        var bobPage    = await bobContext.NewPageAsync();
         try
         {
-            await NavigateAndWaitForWasmAsync(page2, GameId, "Bob");
+            await NavigateAndWaitForWasmAsync(bobPage, GameId, "Bob");
 
-            (await page2.WaitForSelectorAsync("[data-testid='waiting-indicator']", new() { Timeout = 10_000 }))
+            (await bobPage.WaitForSelectorAsync("[data-testid='waiting-indicator']", new() { Timeout = 10_000 }))
                 .Should().NotBeNull("Bob should see the waiting indicator while Alice is in turn");
 
             // ── Two-player winning loop ──────────────────────────────────
@@ -155,13 +155,13 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
 
             for (var turn = 0; turn < maxTurns && !won; turn++)
             {
-                var (cur, other) = aliceTurn ? (page, page2) : (page2, page);
+                var (currentPage, waitingPage) = aliceTurn ? (alicePage, bobPage) : (bobPage, alicePage);
 
                 // Roll — intercept API response to identify scoring dice by index.
-                var rollTask = cur.WaitForResponseAsync(r => r.Url.Contains("/rolls") && r.Status == 200);
-                await cur.ClickAsync("button:has-text('Roll')");
+                var rollTask = currentPage.WaitForResponseAsync(r => r.Url.Contains("/rolls") && r.Status == 200);
+                await currentPage.ClickAsync("button:has-text('Roll')");
                 var rollResponse = await rollTask;
-                await cur.WaitForSelectorAsync(".die-container", new() { Timeout = 10_000 });
+                await currentPage.WaitForSelectorAsync(".die-container", new() { Timeout = 10_000 });
 
                 var diceValues = ParseDiceValues(await rollResponse.TextAsync());
                 var scoringIdx = Array.FindIndex(diceValues, v => v == 1 || v == 5);
@@ -170,43 +170,43 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
                 // Farkle (no scoring dice) is valid: just pass with 0 turn score.
                 if (scoringIdx >= 0)
                 {
-                    await DragDieAsync(cur, scoringIdx);
-                    await cur.Locator("[identifier='SetAside']").Locator(".mud-drop-item")
+                    await DragDieAsync(currentPage, scoringIdx);
+                    await currentPage.Locator("[identifier='SetAside']").Locator(".mud-drop-item")
                         .First.WaitForAsync(new() { Timeout = 5_000 });
-                    await cur.ClickAsync("button:has-text('Set Dice Aside')");
-                    await cur.WaitForTimeoutAsync(200);
+                    await currentPage.ClickAsync("button:has-text('Set Dice Aside')");
+                    await currentPage.WaitForTimeoutAsync(200);
                 }
 
-                await cur.ClickAsync("button:has-text('Pass Turn')");
-                await cur.WaitForTimeoutAsync(200);
+                await currentPage.ClickAsync("button:has-text('Pass Turn')");
+                await currentPage.WaitForTimeoutAsync(200);
 
-                if (await cur.Locator("[data-testid='scoreboard']").GetByText("wins!").IsVisibleAsync() ||
-                    await other.Locator("[data-testid='scoreboard']").GetByText("wins!").IsVisibleAsync())
+                if (await currentPage.Locator("[data-testid='scoreboard']").GetByText("wins!").IsVisibleAsync() ||
+                    await waitingPage.Locator("[data-testid='scoreboard']").GetByText("wins!").IsVisibleAsync())
                 {
                     won = true;
                     break;
                 }
 
-                // Other player's browser must flip to my-turn via SignalR — no page refresh.
-                await other.WaitForSelectorAsync("[data-testid='my-turn-indicator']",
+                // Waiting player's browser must flip to my-turn via SignalR — no page refresh.
+                await waitingPage.WaitForSelectorAsync("[data-testid='my-turn-indicator']",
                     new() { Timeout = 10_000 });
 
                 aliceTurn = !aliceTurn;
             }
 
-            await page.WaitForTimeoutAsync(StepDelayMs); // pause on the winner screen
+            await alicePage.WaitForTimeoutAsync(StepDelayMs); // pause on the winner screen
 
             won.Should().BeTrue($"a player should win within {maxTurns} turns");
-            var scoreboards = (await page.Locator("[data-testid='scoreboard']").InnerTextAsync()) +
-                              (await page2.Locator("[data-testid='scoreboard']").InnerTextAsync());
+            var scoreboards = (await alicePage.Locator("[data-testid='scoreboard']").InnerTextAsync()) +
+                              (await bobPage.Locator("[data-testid='scoreboard']").InnerTextAsync());
             scoreboards.Should().Contain("wins!", "winner should be announced in the scoreboard");
         }
         finally
         {
-            var rawPath2 = await page2.Video!.PathAsync();
-            await context2.CloseAsync();
-            if (File.Exists(rawPath2))
-                File.Move(rawPath2, Path.Combine(VideoDir, "HappyPath-Bob.webm"), overwrite: true);
+            var bobRawPath = await bobPage.Video!.PathAsync();
+            await bobContext.CloseAsync();
+            if (File.Exists(bobRawPath))
+                File.Move(bobRawPath, Path.Combine(VideoDir, "HappyPath-Bob.webm"), overwrite: true);
         }
     });
 }
