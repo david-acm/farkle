@@ -23,7 +23,7 @@ internal class JoinPlayerEndpoint(
 
     var result = await service
       .HandleAsync<Command.JoinPlayer, JoinPlayerResponse>(command, ct,
-        s => new JoinPlayerResponse(s.Players.Last().Id));
+        s => new JoinPlayerResponse(s.Players.Last().Id, s.PlayerInTurn));
 
     await SendResultAsync(result);
   }

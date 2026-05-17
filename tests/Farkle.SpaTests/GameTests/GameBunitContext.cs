@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Components;
 using Moq;
 using MudBlazor.Services;
 using WebApp.Client.Services;
+using static Farkle.Contracts.HttpResponses;
 
 namespace Farkle.SpaTests.GameTests;
 
@@ -26,7 +27,7 @@ public class GameBunitContext : BunitContext
   {
     Mock.Get(GameService)
       .Setup(s => s.JoinPlayerAsync(It.IsAny<int>(), It.IsAny<string>()))
-      .ReturnsAsync(assignedPlayerId);
+      .ReturnsAsync(new JoinPlayerResponse(assignedPlayerId, assignedPlayerId));
     cut.Find("[placeholder='Your name']").Input(playerName);
     cut.FindAll("button").First(b => b.TextContent.Contains("Join")).Click();
   }

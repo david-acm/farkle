@@ -49,6 +49,34 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
     }
 
     [Fact]
+    public async Task MultiplePlayersCanJoinAndPlayAsync()
+    {
+        const int gameId = 305;
+
+        await StartGameAsync(gameId);
+        var player1 = await JoinGameAsync(gameId, "David");
+        var player2 = await JoinGameAsync(gameId, "Allison");
+
+        // Server assigns sequential IDs — no collisions
+        Assert.Equal(1, player1);
+        Assert.Equal(2, player2);
+
+        // Player 1 goes first
+        var roll1       = await _client.Api.Games[gameId].Players[player1].Rolls.PostAsync();
+        var scoringDice = (roll1!.DiceValues ?? []).Where(v => v == 1 || v == 5).Select(v => (int)v!).ToArray();
+        if (scoringDice.Length > 0)
+            await KeepDiceAsync(gameId, player1, scoringDice);
+
+        var pass = await PassTurnAsync(gameId, player1);
+        Assert.Equal(player2, pass!.CurrentPlayerId);
+
+        // Player 2 can now roll — turn rotated correctly
+        var roll2 = await _client.Api.Games[gameId].Players[player2].Rolls.PostAsync();
+        Assert.NotNull(roll2?.DiceValues);
+        Assert.NotEmpty(roll2!.DiceValues!);
+    }
+
+    [Fact]
     public async Task RejectUnauthenticatedRequestsAsync()
     {
         var savedAuth = _httpClient.DefaultRequestHeaders.Authorization;

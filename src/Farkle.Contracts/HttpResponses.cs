@@ -2,7 +2,7 @@
 
 public static class HttpResponses
 {
-  public record JoinPlayerResponse(int Id);
+  public record JoinPlayerResponse(int Id, int CurrentPlayerId);
   
   public record PlayerScore(int PlayerId, string Name, int Score);
   

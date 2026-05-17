@@ -26,14 +26,20 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
     private const int WasmTimeoutMs = 120_000;
     private const int PlayerId      = 0;
 
+    // Pause between steps so animations are visible in the recorded video.
+    // Override with E2E_STEP_DELAY_MS environment variable (e.g. set to 0 for speed).
+    private static int StepDelayMs =>
+        int.TryParse(Environment.GetEnvironmentVariable("E2E_STEP_DELAY_MS"), out var v) ? v : 2_000;
+
     // Each test gets its own game ID to prevent EventStore state contamination.
-    private const int ShowDiceGameId  = 1001;
-    private const int DragDieGameId   = 1002;
-    private const int ScoreGameId     = 1003;
-    private const int TurnScoreGameId = 1004;
-    private const int PassTurnGameId  = 1005;
+    private const int ShowDiceGameId    = 1001;
+    private const int DragDieGameId     = 1002;
+    private const int ScoreGameId       = 1003;
+    private const int TurnScoreGameId   = 1004;
+    private const int PassTurnGameId    = 1005;
     private const int WhoseTurnGameId   = 1006;
     private const int ScoreboardGameId  = 1007;
+    private const int MultiplayerGameId = 1008;
 
     // Resolved at runtime so it works both locally (dotnet test from repo root) and in CI.
     private static string VideoDir =>
@@ -113,6 +119,29 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
         await page.FillAsync("[placeholder='Your name']", playerName);
         await page.ClickAsync("button:has-text('Join Game')");
         await page.WaitForSelectorAsync("button:has-text('Roll')", new() { Timeout = 10_000 });
+    }
+
+    private static Task DragDieAsync(IPage page, int index) =>
+        page.EvaluateAsync($@"() => {{
+            const dice   = document.querySelectorAll('.mud-drop-zone')[0]
+                                   .querySelectorAll('.mud-drop-item-draggable');
+            const source = dice[{index}];
+            const target = document.querySelectorAll('.mud-drop-zone')[1];
+            const dt     = new DataTransfer();
+            source.dispatchEvent(new DragEvent('dragstart', {{ bubbles: true, cancelable: true, dataTransfer: dt }}));
+            target.dispatchEvent(new DragEvent('dragenter', {{ bubbles: true, cancelable: true, dataTransfer: dt }}));
+            target.dispatchEvent(new DragEvent('dragover',  {{ bubbles: true, cancelable: true, dataTransfer: dt }}));
+            target.dispatchEvent(new DragEvent('drop',      {{ bubbles: true, cancelable: true, dataTransfer: dt }}));
+            source.dispatchEvent(new DragEvent('dragend',   {{ bubbles: true, cancelable: true, dataTransfer: dt }}));
+        }}");
+
+    private static int[] ParseDiceValues(string json)
+    {
+        using var doc = JsonDocument.Parse(json);
+        return doc.RootElement.GetProperty("diceValues")
+            .EnumerateArray()
+            .Select(v => v.GetInt32())
+            .ToArray();
     }
 
     // ── tests ───────────────────────────────────────────────
@@ -294,5 +323,67 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
 
         var scoreAfterPass = await scoreLocator.InnerTextAsync();
         scoreAfterPass.Should().Contain("0", "turn score resets to 0 after passing");
+    });
+
+    [Fact]
+    public Task MultiplayerTwoPlayersCanPlay() => WithVideoAsync(async page =>
+    {
+        // Player 1 joins in the main (video-recorded) context.
+        await NavigateAndWaitForWasmAsync(page, MultiplayerGameId, "Alice");
+
+        (await page.WaitForSelectorAsync("[data-testid='my-turn-indicator']", new() { Timeout = 10_000 }))
+            .Should().NotBeNull("Player 1 should see their turn indicator after joining");
+
+        // Player 2 joins in an independent browser context (separate session/cookies).
+        var context2 = await fixture.NewContextWithVideoAsync(VideoDir);
+        var page2    = await context2.NewPageAsync();
+        try
+        {
+            await NavigateAndWaitForWasmAsync(page2, MultiplayerGameId, "Bob");
+
+            // Player 2 correctly sees the waiting indicator — the join response now
+            // includes CurrentPlayerId so the client knows it is not their turn yet.
+            (await page2.WaitForSelectorAsync("[data-testid='waiting-indicator']", new() { Timeout = 10_000 }))
+                .Should().NotBeNull("Player 2 should be waiting while Player 1 is in turn");
+
+            // Player 1 rolls, keeps (if a scoring die was rolled), then passes.
+            var rollTask = page.WaitForResponseAsync(r => r.Url.Contains("/rolls") && r.Status == 200);
+            await page.ClickAsync("button:has-text('Roll')");
+            var rollResponse = await rollTask;
+            await page.WaitForSelectorAsync(".die-container", new() { Timeout = 10_000 });
+            await page.WaitForTimeoutAsync(StepDelayMs);
+
+            var diceValues = ParseDiceValues(await rollResponse.TextAsync());
+            var scoringIdx = Array.FindIndex(diceValues, v => v == 1 || v == 5);
+            if (scoringIdx >= 0)
+            {
+                await DragDieAsync(page, scoringIdx);
+                await page.WaitForTimeoutAsync(StepDelayMs);
+                await page.ClickAsync("button:has-text('Set Dice Aside')");
+                await page.WaitForTimeoutAsync(StepDelayMs);
+            }
+
+            await page.ClickAsync("button:has-text('Pass Turn')");
+            await page.WaitForTimeoutAsync(StepDelayMs);
+
+            // Player 2 navigates again — their session reloads with the latest game
+            // state showing it is now their turn (CurrentPlayerId = 2).
+            await NavigateAndWaitForWasmAsync(page2, MultiplayerGameId, "Bob");
+
+            (await page2.WaitForSelectorAsync("[data-testid='my-turn-indicator']", new() { Timeout = 10_000 }))
+                .Should().NotBeNull("Player 2 should see their turn indicator after Player 1 passes");
+
+            // Player 2 can roll — verifying the full two-player turn cycle.
+            await page2.ClickAsync("button:has-text('Roll')");
+            (await page2.WaitForSelectorAsync(".die-container", new() { Timeout = 10_000 }))
+                .Should().NotBeNull("Player 2 should see dice after rolling");
+        }
+        finally
+        {
+            var rawPath2 = await page2.Video!.PathAsync();
+            await context2.CloseAsync();
+            if (File.Exists(rawPath2))
+                File.Move(rawPath2, Path.Combine(VideoDir, "MultiplayerTwoPlayersCanPlay-Bob.webm"), overwrite: true);
+        }
     });
 }

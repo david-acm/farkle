@@ -15,16 +15,13 @@ public partial class GameState
 
       public override async Task Handle(Action action, CancellationToken aCancellationToken)
       {
-        var assignedId = await service.JoinPlayerAsync(State.GameId, action.PlayerName);
+        var response = await service.JoinPlayerAsync(State.GameId, action.PlayerName);
 
-        State.PlayerId        = new PlayerId(assignedId);
+        State.PlayerId        = new PlayerId(response.Id);
         State.PlayerName      = action.PlayerName;
-        // In a single-player session the joining player is always first in turn.
-        // PassTurn responses will correct this for multi-player games.
-        if (State.CurrentPlayerId == 0)
-          State.CurrentPlayerId = assignedId;
+        State.CurrentPlayerId = response.CurrentPlayerId;
         // Seed scoreboard at zero; PassTurn responses replace it with authoritative data.
-        State.Scoreboard = [new PlayerStanding(assignedId, action.PlayerName.Value, 0)];
+        State.Scoreboard = [new PlayerStanding(response.Id, action.PlayerName.Value, 0)];
       }
     }
   }

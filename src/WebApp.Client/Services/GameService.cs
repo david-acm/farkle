@@ -24,12 +24,13 @@ public class GameService : IGameService
     return dice;
   }
 
-  public async Task<int> JoinPlayerAsync(int gameId, string playerName)
+  public async Task<JoinPlayerResponse> JoinPlayerAsync(int gameId, string playerName)
   {
     var response = await _client.Api.Games[gameId].Players.PostAsync(
       new KiotaModels.FarkleContractsHttpRequests_JoinPlayerRequest { PlayerName = playerName });
-    _logger.LogInformation("JoinPlayer response: assignedId={Id}", response?.Id);
-    return response?.Id ?? 0;
+    _logger.LogInformation("JoinPlayer: assignedId={Id} currentPlayer={CurrentPlayerId}",
+      response?.Id, response?.CurrentPlayerId);
+    return new JoinPlayerResponse(response?.Id ?? 0, response?.CurrentPlayerId ?? 0);
   }
 
   public async Task<KeepDiceResponse> KeepDiceAsync(int gameId, int playerId, IEnumerable<int> diceToKeep)
