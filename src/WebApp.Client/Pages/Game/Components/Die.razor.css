@@ -1,5 +1,5 @@
 :root {
-    --die-size: 8vh;
+    --die-size: clamp(40px, 8vmin, 80px);
 }
 
 .die-container {

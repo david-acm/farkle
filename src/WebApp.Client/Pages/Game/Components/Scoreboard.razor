@@ -15,9 +15,12 @@
   <MudCardContent>
     @if (state.IsGameOver)
     {
-      <MudAlert Severity="Severity.Success" Class="mb-2">🏆 @state.WinnerName wins!</MudAlert>
+      <MudPaper Class="pa-4 mb-4 text-center"
+                Style="background: linear-gradient(135deg, #D4AF37 0%, #8B1A1A 100%);">
+        <MudText Typo="Typo.h5" Style="color: #F5F0E8;">🏆 @state.WinnerName wins!</MudText>
+      </MudPaper>
     }
-    <MudTable Items="@state.Scoreboard.OrderByDescending(p => p.Score)" Dense="true" Hover="false">
+    <MudTable Items="@state.Scoreboard.OrderByDescending(p => p.Score)" Dense="true" Hover="true">
       <HeaderContent>
         <MudTh>Player</MudTh>
         <MudTh>Score</MudTh>
@@ -45,6 +48,9 @@
           {
             <MudText>@context.Score</MudText>
           }
+          <MudProgressLinear Value="@(Math.Min((double)context.Score / 10000 * 100, 100))"
+                             Color="@(isLeader ? Color.Primary : Color.Default)"
+                             Rounded="true" Size="Size.Small" Class="mt-1" />
         </MudTd>
       </RowTemplate>
     </MudTable>

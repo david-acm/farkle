@@ -1,16 +1,15 @@
 @inherits LayoutComponentBase
 
-<MudThemeProvider />
+<MudThemeProvider Theme="_theme" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
 
 <MudLayout>
     <MudAppBar Elevation="1">
-		<MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
-        <MudText Typo="Typo.h5" Class="ml-3">Application</MudText>
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
+        <MudText Typo="Typo.h5" Class="ml-3">🎲 Farkle</MudText>
         <MudSpacer />
-        <MudIconButton Icon="@Icons.Material.Filled.MoreVert" Color="Color.Inherit" Edge="Edge.End" />
     </MudAppBar>
     <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
         <NavMenu />
@@ -27,4 +26,31 @@
     {
         _drawerOpen = !_drawerOpen;
     }
+
+    private static readonly MudTheme _theme = new()
+    {
+        PaletteLight = new PaletteLight
+        {
+            Primary          = "#D4AF37",
+            PrimaryDarken    = "#B8960C",
+            PrimaryLighten   = "#F0D060",
+            Secondary        = "#8B1A1A",
+            Background       = "#1B3A2D",
+            Surface          = "#234D38",
+            AppbarBackground = "#0F2419",
+            AppbarText       = "#F5F0E8",
+            DrawerBackground = "#162B1E",
+            DrawerText       = "#D4C5A9",
+            TextPrimary      = "#F5F0E8",
+            TextSecondary    = "#B8AC9C",
+            TableLines       = "#2E5942",
+            Divider          = "#2E5942",
+        },
+        Typography = new Typography
+        {
+            H3 = new H3Typography { FontFamily = ["Cinzel", "Georgia", "serif"] },
+            H5 = new H5Typography { FontFamily = ["Cinzel", "Georgia", "serif"] },
+            H6 = new H6Typography { FontFamily = ["Cinzel", "Georgia", "serif"] },
+        }
+    };
 }

@@ -1,15 +1,25 @@
 @using WebApp.Client.Features
 @inherits BlazorStateComponent
 
-<AppButton OnClick="KeepAsync" Disabled="@IsDisabled">
+<MudButton Class="mt-4"
+           Color="Color.Primary"
+           Disabled="@(IsDisabled || _loading)"
+           FullWidth="true"
+           OnClick="KeepAsync"
+           StartIcon="@(_loading ? Icons.Material.Filled.HourglassEmpty : Icons.Material.Filled.Done)"
+           Variant="Variant.Filled">
   Set Dice Aside
-</AppButton>
+</MudButton>
 
 @code {
   [Parameter] public bool IsDisabled { get; set; }
 
-  private void KeepAsync()
+  private bool _loading;
+
+  private async Task KeepAsync()
   {
-    Mediator.Send(new GameState.KeepDice.Action());
+    _loading = true;
+    try { await Mediator.Send(new GameState.KeepDice.Action()); }
+    finally { _loading = false; }
   }
 }
