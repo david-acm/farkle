@@ -404,12 +404,15 @@ To extend the API contract:
    ```
 3. Regenerate the Kiota client (one command — shared by all consumers):
    ```bash
-   cd src/Farkle.ApiClient && kiota generate \
+   # Using the pinned local tool (recommended — matches the version CI uses):
+   dotnet tool restore
+   cd src/Farkle.ApiClient && dotnet kiota generate \
      -l CSharp -d ../WebApp.Client/swagger.json \
      -c FarkleApiClient -n Farkle.ApiClient -o . \
      && cd -
    ```
-   If Kiota CLI is not installed: `dotnet tool install Microsoft.OpenApi.Kiota --global`
+   The Kiota version is pinned in `.config/dotnet-tools.json` (currently 1.31.1).
+   CI enforces that committed files match re-generated output (`verify-generated` job).
 
 ---
 

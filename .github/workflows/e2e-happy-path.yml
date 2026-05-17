@@ -59,6 +59,50 @@ jobs:
           path: test-results/*.trx
           if-no-files-found: warn
 
+  verify-generated:
+    name: Verify generated files are up to date
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      - name: Install wasm-tools workload
+        run: dotnet workload install wasm-tools
+
+      - name: Restore
+        run: dotnet restore src/WebApp/WebApp.csproj
+
+      - name: Regenerate swagger.json
+        run: dotnet build src/WebApp/WebApp.csproj --no-restore -p:GenerateSwagger=true
+
+      - name: Install Kiota (pinned via tool manifest)
+        run: dotnet tool restore
+
+      - name: Regenerate Kiota client
+        working-directory: src/Farkle.ApiClient
+        run: >
+          dotnet kiota generate -l CSharp
+          -d ../WebApp.Client/swagger.json
+          -c FarkleApiClient
+          -n Farkle.ApiClient
+          -o .
+
+      - name: Fail if generated files differ from committed
+        run: |
+          if ! git diff --exit-code -- src/WebApp.Client/swagger.json src/Farkle.ApiClient/; then
+            echo "::error::swagger.json or Farkle.ApiClient/ are out of sync with the source."
+            echo "::error::Run the generation commands documented in CLAUDE.md and commit the result."
+            exit 1
+          fi
+
   e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 20
