@@ -1,8 +1,8 @@
 using System.Linq;
 using System.Net.Http.Headers;
 using System.Text;
-using Farkle.WebTests.Generated;
-using Farkle.WebTests.Generated.Models;
+using Farkle.ApiClient;
+using Farkle.ApiClient.Models;
 using Microsoft.Kiota.Abstractions;
 using Microsoft.Kiota.Abstractions.Authentication;
 using Microsoft.Kiota.Http.HttpClientLibrary;

@@ -46,3 +46,4 @@ msbuild.log
 msbuild.err
 msbuild.wrn
 test-results/
+*.kiota.log

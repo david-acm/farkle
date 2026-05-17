@@ -3,7 +3,7 @@ using Microsoft.Kiota.Abstractions.Authentication;
 using Microsoft.Kiota.Http.HttpClientLibrary;
 using MudBlazor.Services;
 using WebApp.Client.Services;
-using WebApp.Client.Services.Generated;
+using Farkle.ApiClient;
 
 namespace WebApp.Client;
 
