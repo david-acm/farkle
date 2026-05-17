@@ -21,8 +21,13 @@ namespace Farkle.E2eTests;
 [Collection(PlaywrightCollection.Name)]
 public class GameHappyPathShould(PlaywrightFixture fixture)
 {
-    private const int WasmTimeoutMs = 120_000;
-    private const int GameId        = 1001;
+    private const int WasmTimeoutMs    = 120_000;
+    private const int GameId           = 1001;
+
+    // Pause between steps so animations are visible in the recorded video.
+    // Override with E2E_STEP_DELAY_MS environment variable (e.g. set to 0 for speed).
+    private static int StepDelayMs =>
+        int.TryParse(Environment.GetEnvironmentVariable("E2E_STEP_DELAY_MS"), out var v) ? v : 2_000;
 
     private static string VideoDir =>
         Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..",
@@ -131,12 +136,15 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
         (await page.GetAttributeAsync("button:has-text('Roll')", "disabled"))
             .Should().BeNull("Roll button should be enabled when it is the player's turn");
 
+        await page.WaitForTimeoutAsync(StepDelayMs);
+
         // Intercept the roll API response to identify scoring dice by index —
         // die values are not visible in the DOM (3D CSS cube faces).
         var rollTask = page.WaitForResponseAsync(r => r.Url.Contains("/rolls") && r.Status == 200);
         await page.ClickAsync("button:has-text('Roll')");
         var rollResponse = await rollTask;
         await page.WaitForSelectorAsync(".die-container", new() { Timeout = 10_000 });
+        await page.WaitForTimeoutAsync(StepDelayMs);
 
         var diceValues = ParseDiceValues(await rollResponse.TextAsync());
         var scoringIdx = Array.FindIndex(diceValues, v => v == 1 || v == 5);
@@ -149,11 +157,13 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
         (await setAsideZone.Locator(".mud-drop-item").CountAsync())
             .Should().BeGreaterThan(0, "die should appear in SetAside after drag");
 
+        await page.WaitForTimeoutAsync(StepDelayMs);
+
         // Keep and assert score increases when a scoring die was dragged
         var scoreLocator = page.Locator("h3:has-text('Current Player Score')");
         var scoreBefore  = await scoreLocator.InnerTextAsync();
         await page.ClickAsync("button:has-text('Set Dice Aside')");
-        await page.WaitForTimeoutAsync(800);
+        await page.WaitForTimeoutAsync(StepDelayMs);
 
         if (scoringIdx >= 0)
             (await scoreLocator.InnerTextAsync())
@@ -161,7 +171,7 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
 
         // Pass Turn — dice cleared, turn score resets to 0
         await page.ClickAsync("button:has-text('Pass Turn')");
-        await page.WaitForTimeoutAsync(1_000);
+        await page.WaitForTimeoutAsync(StepDelayMs);
 
         (await page.Locator(".die-container").CountAsync())
             .Should().Be(0, "all dice should be cleared after passing the turn");
