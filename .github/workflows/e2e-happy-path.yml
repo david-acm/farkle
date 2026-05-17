@@ -235,8 +235,8 @@ jobs:
               `## E2E Happy-Path ${outcome}`,
               '',
               `**Recordings** (download from [e2e-videos artifact](${runUrl}#artifacts)):`,
-              `- \`HappyPath.webm\` — full single-player session (join → roll → drag → keep → pass)`,
-              `- \`MultiplayerTwoPlayersCanPlay.webm\` / \`-Bob.webm\` — two-browser multiplayer session`,
+              `- \`HappyPath.webm\` — P1 session (join → P2 joins → roll → drag → keep → pass)`,
+              `- \`HappyPath-Bob.webm\` — P2 session (join → waiting indicator)`,
               failSection,
               `[View full run](${runUrl})`,
             ].join('\n');
