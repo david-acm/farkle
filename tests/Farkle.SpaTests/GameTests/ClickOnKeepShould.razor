@@ -24,7 +24,7 @@
     var game = Render<Game>(@<Game ParameterGameId="gameId"/>);
     JoinGame(game);
     var score         = game.FindComponent<TurnScore>();
-    await game.FindComponent<StartGameButton>().Find("button").ClickAsync(default!);
+    // StartGame is dispatched automatically in OnParametersSetAsync
     var cut           = game.FindComponent<KeepButton>();
     var button        = cut.Find("button");
     var expectedScore = 200;
