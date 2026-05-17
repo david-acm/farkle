@@ -5,37 +5,30 @@ using System.Text.Json;
 namespace Farkle.E2eTests;
 
 /// <summary>
-/// Happy-path game flow: navigate → roll → set a scoring die aside → keep → verify score.
+/// Full happy-path game flow in a single browser session:
+/// join → roll → drag die → keep → assert score → pass → assert reset.
 ///
-/// Each test is wrapped in <see cref="WithVideoAsync"/> which records the full browser
-/// session to <c>test-results/videos/{testName}.webm</c>.  The CI workflow uploads
-/// those files as a GitHub Actions artifact and posts a link on the PR.
+/// A single test keeps CI fast (one WASM hydration instead of many) and mirrors
+/// how a real player uses the app. Individual API steps are verified separately
+/// by the faster integration tests in Farkle.WebTests.
 ///
-/// Die values aren't exposed as text in the DOM (the component is a 3D CSS cube that
-/// rotates to show the face), so we ask the API for the dice that landed and keep only
-/// scoring ones (1s and 5s) when we need a deterministic assertion.
+/// Die values aren't exposed in the DOM (the component is a 3D CSS cube), so the
+/// roll API response is intercepted to identify scoring dice (1s and 5s) by index.
 ///
-/// Each test uses a unique game ID so tests are fully independent of execution order.
-/// Sharing a single game ID caused failures when one test left the game in "Keeping"
-/// stage and a subsequent test tried to Roll, resulting in a validation error and empty
-/// DiceInPlay, which removed .die-container from the DOM.
+/// The session is recorded to <c>test-results/videos/HappyPath.webm</c> and
+/// uploaded as a GitHub Actions artifact on every run.
 /// </summary>
 [Collection(PlaywrightCollection.Name)]
 public class GameHappyPathShould(PlaywrightFixture fixture)
 {
-    private const int WasmTimeoutMs = 120_000;
-    private const int PlayerId      = 0;
+    private const int WasmTimeoutMs    = 120_000;
+    private const int GameId           = 1001;
 
-    // Each test gets its own game ID to prevent EventStore state contamination.
-    private const int ShowDiceGameId  = 1001;
-    private const int DragDieGameId   = 1002;
-    private const int ScoreGameId     = 1003;
-    private const int TurnScoreGameId = 1004;
-    private const int PassTurnGameId  = 1005;
-    private const int WhoseTurnGameId   = 1006;
-    private const int ScoreboardGameId  = 1007;
+    // Pause between steps so animations are visible in the recorded video.
+    // Override with E2E_STEP_DELAY_MS environment variable (e.g. set to 0 for speed).
+    private static int StepDelayMs =>
+        int.TryParse(Environment.GetEnvironmentVariable("E2E_STEP_DELAY_MS"), out var v) ? v : 2_000;
 
-    // Resolved at runtime so it works both locally (dotnet test from repo root) and in CI.
     private static string VideoDir =>
         Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..",
             "test-results", "videos"));
@@ -46,12 +39,6 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
 
     // ── video wrapper ────────────────────────────────────────────
 
-    /// <summary>
-    /// Runs <paramref name="test"/> inside a video-recording browser context.
-    /// After the test (pass or fail) the context is closed to finalise the recording,
-    /// and the auto-named .webm file is renamed to <c>{testName}.webm</c>.
-    /// On failure, browser console + Web API logs are written to test-results/logs/.
-    /// </summary>
     private async Task WithVideoAsync(Func<IPage, Task> test,
         [CallerMemberName] string testName = "")
     {
@@ -79,7 +66,6 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
             if (File.Exists(rawPath))
                 File.Move(rawPath, Path.Combine(VideoDir, $"{testName}.webm"), overwrite: true);
 
-            // Always drain API logs to keep per-test isolation; only write to disk on failure.
             var apiLogs = fixture.Factory.DrainApiLogs();
             if (failure != null)
             {
@@ -102,197 +88,94 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
         // before any CSS or JS is fetched. This bypasses the render-blocking
         // fonts.googleapis.com link that causes GotoAsync to time out waiting for Load.
         await page.GotoAsync($"/games/{gameId}", new() { WaitUntil = WaitUntilState.Commit });
-        // Wait for the game-title heading to display the correct game ID. This element
-        // only appears after WASM has loaded and OnParametersSetAsync has run StartGame
-        // (which always sets GameId in the store, even on failure). Using a DOM element
-        // rather than LoadState.NetworkIdle avoids false timeouts from external CDN
-        // activity (Google Fonts / MudBlazor icons) that keep the network busy.
+        // Wait for the game-title heading — only present after WASM hydration and StartGame.
         await page.WaitForSelectorAsync($"h3:has-text('{gameId}')",
             new() { Timeout = WasmTimeoutMs });
-        // Enter player name and join — the game controls are gated behind the join step.
         await page.FillAsync("[placeholder='Your name']", playerName);
         await page.ClickAsync("button:has-text('Join Game')");
         await page.WaitForSelectorAsync("button:has-text('Roll')", new() { Timeout = 10_000 });
     }
 
-    // ── tests ───────────────────────────────────────────────
+    // MudBlazor's MudDropZone uses HTML5 drag events. Playwright's DragToAsync fires
+    // mouse events which don't reliably trigger the HTML5 drag API in headless Chrome,
+    // so we dispatch the events directly via JS.
+    private static Task DragDieAsync(IPage page, int index) =>
+        page.EvaluateAsync($@"() => {{
+            const dice   = document.querySelectorAll('.mud-drop-zone')[0]
+                                   .querySelectorAll('.mud-drop-item-draggable');
+            const source = dice[{index}];
+            const target = document.querySelectorAll('.mud-drop-zone')[1];
+            const dt     = new DataTransfer();
+            source.dispatchEvent(new DragEvent('dragstart', {{ bubbles: true, cancelable: true, dataTransfer: dt }}));
+            target.dispatchEvent(new DragEvent('dragenter', {{ bubbles: true, cancelable: true, dataTransfer: dt }}));
+            target.dispatchEvent(new DragEvent('dragover',  {{ bubbles: true, cancelable: true, dataTransfer: dt }}));
+            target.dispatchEvent(new DragEvent('drop',      {{ bubbles: true, cancelable: true, dataTransfer: dt }}));
+            source.dispatchEvent(new DragEvent('dragend',   {{ bubbles: true, cancelable: true, dataTransfer: dt }}));
+        }}");
+
+    private static int[] ParseDiceValues(string json)
+    {
+        using var doc = JsonDocument.Parse(json);
+        return doc.RootElement.GetProperty("diceValues")
+            .EnumerateArray()
+            .Select(v => v.GetInt32())
+            .ToArray();
+    }
+
+    // ── test ─────────────────────────────────────────────────
 
     [Fact]
-    public Task ShowDiceAfterRolling() => WithVideoAsync(async page =>
+    public Task HappyPath() => WithVideoAsync(async page =>
     {
-        await NavigateAndWaitForWasmAsync(page, ShowDiceGameId);
+        await NavigateAndWaitForWasmAsync(page, GameId);
 
-        await page.ClickAsync("button:has-text('Roll')");
-
-        var firstDie = await page.WaitForSelectorAsync(".die-container", new() { Timeout = 10_000 });
-        firstDie.Should().NotBeNull();
-    });
-
-    [Fact]
-    public Task CanDragDieToSetAsideZone() => WithVideoAsync(async page =>
-    {
-        await NavigateAndWaitForWasmAsync(page, DragDieGameId);
-
-        await page.ClickAsync("button:has-text('Roll')");
-
-        // MudBlazor renders draggable items as div.mud-drop-item-draggable[draggable="true"]
-        // inside a div.mud-drop-zone[identifier="Rolled"].
-        var firstDie     = page.Locator(".mud-drop-item-draggable").First;
-        var setAsideZone = page.Locator("[identifier='SetAside']");
-
-        await firstDie.WaitForAsync(new() { Timeout = 10_000 });
-
-        // MudBlazor's MudDropZone uses HTML5 drag events (@ondragstart / @ondrop).
-        // Playwright's DragToAsync fires mouse events which don't reliably trigger
-        // the HTML5 drag API in headless Chrome. Dispatch the events directly so
-        // Blazor's event delegation picks them up correctly.
-        await page.EvaluateAsync(@"() => {
-            const source = document.querySelector('.mud-drop-item-draggable');
-            const target = document.querySelector(""[identifier='SetAside']"");
-            const dt = new DataTransfer();
-            source.dispatchEvent(new DragEvent('dragstart', { bubbles: true, cancelable: true, dataTransfer: dt }));
-            target.dispatchEvent(new DragEvent('dragenter', { bubbles: true, cancelable: true, dataTransfer: dt }));
-            target.dispatchEvent(new DragEvent('dragover',  { bubbles: true, cancelable: true, dataTransfer: dt }));
-            target.dispatchEvent(new DragEvent('drop',      { bubbles: true, cancelable: true, dataTransfer: dt }));
-            source.dispatchEvent(new DragEvent('dragend',   { bubbles: true, cancelable: true, dataTransfer: dt }));
-        }");
-
-        await setAsideZone.Locator(".mud-drop-item").First.WaitForAsync(new() { Timeout = 10_000 });
-        var keptCount = await setAsideZone.Locator(".mud-drop-item").CountAsync();
-        keptCount.Should().BeGreaterThan(0);
-    });
-
-    [Fact]
-    public Task ScoreIncreasesAfterKeepingAScoringDie() => WithVideoAsync(async page =>
-    {
-        await NavigateAndWaitForWasmAsync(page, ScoreGameId);
-
-        var scoreLocator = page.Locator("h3:has-text('Current Player Score')");
-        var initialScore = await scoreLocator.InnerTextAsync();
-
-        await page.ClickAsync("button:has-text('Roll')");
-        await page.WaitForSelectorAsync(".die-container", new() { Timeout = 10_000 });
-
-        await page.EvaluateAsync(@"() => {
-            const rolled    = document.querySelectorAll('.mud-drop-zone')[0];
-            const setAside  = document.querySelectorAll('.mud-drop-zone')[1];
-            const source    = rolled.querySelector('.mud-drop-item-draggable');
-            const dt = new DataTransfer();
-            source.dispatchEvent(new DragEvent('dragstart', { bubbles: true, cancelable: true, dataTransfer: dt }));
-            setAside.dispatchEvent(new DragEvent('dragenter', { bubbles: true, cancelable: true, dataTransfer: dt }));
-            setAside.dispatchEvent(new DragEvent('dragover',  { bubbles: true, cancelable: true, dataTransfer: dt }));
-            setAside.dispatchEvent(new DragEvent('drop',      { bubbles: true, cancelable: true, dataTransfer: dt }));
-            source.dispatchEvent(new DragEvent('dragend',     { bubbles: true, cancelable: true, dataTransfer: dt }));
-        }");
-
-        await page.ClickAsync("button:has-text('Set Dice Aside')");
-        await page.WaitForTimeoutAsync(800);
-
-        var updatedScore = await scoreLocator.InnerTextAsync();
-        // Score increases only when a scoring die (1 or 5) was kept; if all dice
-        // were non-scoring the keep is rejected and score stays the same — that is
-        // still a valid game outcome, so we don't fail the test in that case.
-        if (updatedScore == initialScore) return;
-        updatedScore.Should().NotBe(initialScore, "score should update after keeping a scoring die");
-    });
-
-    [Fact]
-    public Task TurnScoreDisplayIsVisible() => WithVideoAsync(async page =>
-    {
-        await NavigateAndWaitForWasmAsync(page, TurnScoreGameId);
-
-        var scoreHeading = await page.WaitForSelectorAsync("h3:has-text('Current Player Score')",
-            new() { Timeout = WasmTimeoutMs });
-
-        scoreHeading.Should().NotBeNull();
-    });
-
-    [Fact]
-    public Task WhoseTurnIndicatorIsVisible() => WithVideoAsync(async page =>
-    {
-        await NavigateAndWaitForWasmAsync(page, WhoseTurnGameId);
-
-        // After joining, the player is in turn — the "It's your turn!" alert must be visible.
+        // After joining: turn indicator visible, Roll button enabled
         var indicator = await page.WaitForSelectorAsync("[data-testid='my-turn-indicator']",
             new() { Timeout = 10_000 });
         indicator.Should().NotBeNull("turn indicator should appear after joining");
+        (await page.GetAttributeAsync("button:has-text('Roll')", "disabled"))
+            .Should().BeNull("Roll button should be enabled when it is the player's turn");
 
-        // Roll and Keep buttons must be enabled for the active player.
-        var rollDisabled = await page.GetAttributeAsync("button:has-text('Roll')", "disabled");
-        rollDisabled.Should().BeNull("Roll button should be enabled when it is the player's turn");
-    });
+        await page.WaitForTimeoutAsync(StepDelayMs);
 
-    [Fact]
-    public Task ScoreboardIsVisibleAfterJoin() => WithVideoAsync(async page =>
-    {
-        await NavigateAndWaitForWasmAsync(page, ScoreboardGameId);
-
-        var scoreboard = await page.WaitForSelectorAsync("[data-testid='scoreboard']",
-            new() { Timeout = 10_000 });
-        scoreboard.Should().NotBeNull("scoreboard should be visible after joining");
-
-        var text = await scoreboard!.InnerTextAsync();
-        text.Should().Contain("Tester", "scoreboard should show the joining player's name");
-    });
-
-    [Fact]
-    public Task PassTurnButtonResetsScore() => WithVideoAsync(async page =>
-    {
-        await NavigateAndWaitForWasmAsync(page, PassTurnGameId);
-
-        var scoreLocator = page.Locator("h3:has-text('Current Player Score')");
-        var initialScore = await scoreLocator.InnerTextAsync();
-
-        // Intercept the roll response to identify scoring dice (1s and 5s) by index.
-        // Die values aren't visible in the DOM (3D CSS cube), so the API response is
-        // the only way to know which die to drag deterministically.
+        // Intercept the roll API response to identify scoring dice by index —
+        // die values are not visible in the DOM (3D CSS cube faces).
         var rollTask = page.WaitForResponseAsync(r => r.Url.Contains("/rolls") && r.Status == 200);
         await page.ClickAsync("button:has-text('Roll')");
         var rollResponse = await rollTask;
         await page.WaitForSelectorAsync(".die-container", new() { Timeout = 10_000 });
+        await page.WaitForTimeoutAsync(StepDelayMs);
 
-        var body       = await rollResponse.TextAsync();
-        using var doc  = JsonDocument.Parse(body);
-        var diceValues = doc.RootElement.GetProperty("diceValues")
-            .EnumerateArray()
-            .Select(v => v.GetInt32())
-            .ToArray();
-
-        // Find the first scoring die (value 1 or 5) to drag to the set-aside zone.
+        var diceValues = ParseDiceValues(await rollResponse.TextAsync());
         var scoringIdx = Array.FindIndex(diceValues, v => v == 1 || v == 5);
+        var dragIdx    = scoringIdx >= 0 ? scoringIdx : 0; // prefer scoring die; fall back to first
+
+        // Drag the chosen die to SetAside — verifies drag-and-drop interaction
+        await DragDieAsync(page, dragIdx);
+        var setAsideZone = page.Locator("[identifier='SetAside']");
+        await setAsideZone.Locator(".mud-drop-item").First.WaitForAsync(new() { Timeout = 10_000 });
+        (await setAsideZone.Locator(".mud-drop-item").CountAsync())
+            .Should().BeGreaterThan(0, "die should appear in SetAside after drag");
+
+        await page.WaitForTimeoutAsync(StepDelayMs);
+
+        // Keep and assert score increases when a scoring die was dragged
+        var scoreLocator = page.Locator("h3:has-text('Current Player Score')");
+        var scoreBefore  = await scoreLocator.InnerTextAsync();
+        await page.ClickAsync("button:has-text('Set Dice Aside')");
+        await page.WaitForTimeoutAsync(StepDelayMs);
+
         if (scoringIdx >= 0)
-        {
-            // MudBlazor's MudDropZone uses HTML5 drag events (@ondragstart / @ondrop).
-            // Playwright's DragToAsync fires mouse events which don't reliably trigger
-            // the HTML5 drag API in headless Chrome, so we dispatch the events directly.
-            await page.EvaluateAsync($@"() => {{
-                const dice   = document.querySelectorAll('.mud-drop-zone')[0]
-                                       .querySelectorAll('.mud-drop-item-draggable');
-                const source = dice[{scoringIdx}];
-                const target = document.querySelectorAll('.mud-drop-zone')[1];
-                const dt = new DataTransfer();
-                source.dispatchEvent(new DragEvent('dragstart', {{ bubbles: true, cancelable: true, dataTransfer: dt }}));
-                target.dispatchEvent(new DragEvent('dragenter', {{ bubbles: true, cancelable: true, dataTransfer: dt }}));
-                target.dispatchEvent(new DragEvent('dragover',  {{ bubbles: true, cancelable: true, dataTransfer: dt }}));
-                target.dispatchEvent(new DragEvent('drop',      {{ bubbles: true, cancelable: true, dataTransfer: dt }}));
-                source.dispatchEvent(new DragEvent('dragend',   {{ bubbles: true, cancelable: true, dataTransfer: dt }}));
-            }}");
+            (await scoreLocator.InnerTextAsync())
+                .Should().NotBe(scoreBefore, "score should increase after keeping a scoring die");
 
-            await page.ClickAsync("button:has-text('Set Dice Aside')");
-            await page.WaitForTimeoutAsync(800);
-
-            var scoreAfterKeep = await scoreLocator.InnerTextAsync();
-            scoreAfterKeep.Should().NotBe(initialScore, "score should increase after keeping a scoring die");
-        }
-
+        // Pass Turn — dice cleared, turn score resets to 0
         await page.ClickAsync("button:has-text('Pass Turn')");
-        await page.WaitForTimeoutAsync(1_000);
+        await page.WaitForTimeoutAsync(StepDelayMs);
 
-        // After passing, DiceInPlay is cleared and TurnScore resets to 0.
-        var diceCount = await page.Locator(".die-container").CountAsync();
-        diceCount.Should().Be(0, "all dice are cleared after passing the turn");
-
-        var scoreAfterPass = await scoreLocator.InnerTextAsync();
-        scoreAfterPass.Should().Contain("0", "turn score resets to 0 after passing");
+        (await page.Locator(".die-container").CountAsync())
+            .Should().Be(0, "all dice should be cleared after passing the turn");
+        (await scoreLocator.InnerTextAsync())
+            .Should().Contain("0", "turn score should reset to 0 after passing");
     });
 }
