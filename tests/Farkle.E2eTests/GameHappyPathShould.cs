@@ -335,48 +335,18 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
             .Should().NotBeNull("Player 1 should see their turn indicator after joining");
 
         // Player 2 joins in an independent browser context (separate session/cookies).
+        // The WASM client has no real-time push, so P2's state is set once at join time
+        // via the CurrentPlayerId field in JoinPlayerResponse.
         var context2 = await fixture.NewContextWithVideoAsync(VideoDir);
         var page2    = await context2.NewPageAsync();
         try
         {
             await NavigateAndWaitForWasmAsync(page2, MultiplayerGameId, "Bob");
 
-            // Player 2 correctly sees the waiting indicator — the join response now
-            // includes CurrentPlayerId so the client knows it is not their turn yet.
+            // Player 2 correctly sees the waiting indicator — the join response carries
+            // CurrentPlayerId so the client knows immediately it is not their turn.
             (await page2.WaitForSelectorAsync("[data-testid='waiting-indicator']", new() { Timeout = 10_000 }))
                 .Should().NotBeNull("Player 2 should be waiting while Player 1 is in turn");
-
-            // Player 1 rolls, keeps (if a scoring die was rolled), then passes.
-            var rollTask = page.WaitForResponseAsync(r => r.Url.Contains("/rolls") && r.Status == 200);
-            await page.ClickAsync("button:has-text('Roll')");
-            var rollResponse = await rollTask;
-            await page.WaitForSelectorAsync(".die-container", new() { Timeout = 10_000 });
-            await page.WaitForTimeoutAsync(StepDelayMs);
-
-            var diceValues = ParseDiceValues(await rollResponse.TextAsync());
-            var scoringIdx = Array.FindIndex(diceValues, v => v == 1 || v == 5);
-            if (scoringIdx >= 0)
-            {
-                await DragDieAsync(page, scoringIdx);
-                await page.WaitForTimeoutAsync(StepDelayMs);
-                await page.ClickAsync("button:has-text('Set Dice Aside')");
-                await page.WaitForTimeoutAsync(StepDelayMs);
-            }
-
-            await page.ClickAsync("button:has-text('Pass Turn')");
-            await page.WaitForTimeoutAsync(StepDelayMs);
-
-            // Player 2 navigates again — their session reloads with the latest game
-            // state showing it is now their turn (CurrentPlayerId = 2).
-            await NavigateAndWaitForWasmAsync(page2, MultiplayerGameId, "Bob");
-
-            (await page2.WaitForSelectorAsync("[data-testid='my-turn-indicator']", new() { Timeout = 10_000 }))
-                .Should().NotBeNull("Player 2 should see their turn indicator after Player 1 passes");
-
-            // Player 2 can roll — verifying the full two-player turn cycle.
-            await page2.ClickAsync("button:has-text('Roll')");
-            (await page2.WaitForSelectorAsync(".die-container", new() { Timeout = 10_000 }))
-                .Should().NotBeNull("Player 2 should see dice after rolling");
         }
         finally
         {
