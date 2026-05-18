@@ -1,18 +1,25 @@
-.drop-zones {
+.dice-zones {
+    width: 100%;
+}
+
+/* ::deep pierces into child-component rendered HTML without needing the
+   scoping attribute on those elements. .dice-zones[b-xxxx] is the anchor. */
+.dice-zones ::deep .mud-drop-container {
     display: flex;
     flex-wrap: wrap;
     flex-direction: column;
-    width: 100%;
     gap: 1rem;
+    width: 100%;
 }
 
-.zone {
+.dice-zones ::deep .mud-drop-zone {
     background: #111128;
     min-height: 180px;
+    flex: 1 1 auto;
 }
 
 @media (min-width: 960px) {
-    .drop-zones {
+    .dice-zones ::deep .mud-drop-container {
         flex-direction: row;
     }
 }
