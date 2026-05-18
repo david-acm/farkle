@@ -1,0 +1,18 @@
+.drop-zones {
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: column;
+    width: 100%;
+    gap: 1rem;
+}
+
+.zone {
+    background: #111128;
+    min-height: 180px;
+}
+
+@media (min-width: 960px) {
+    .drop-zones {
+        flex-direction: row;
+    }
+}

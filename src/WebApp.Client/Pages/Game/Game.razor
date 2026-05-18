@@ -62,7 +62,12 @@ else
     </MudItem>
   </MudGrid>
 
-  <MudGrid Spacing="1" Class="mt-8">
+  <MudContainer Class="mt-8">
+    <DragabbleDice>
+    </DragabbleDice>
+  </MudContainer>
+
+  <MudGrid Spacing="1" Class="mt-4">
     <MudItem xs="12" sm="4">
       <RollDiceButton IsDisabled="@(!GameState.IsMyTurn)" />
     </MudItem>
@@ -73,9 +78,4 @@ else
       <PassTurnButton IsDisabled="@(!GameState.IsMyTurn)" />
     </MudItem>
   </MudGrid>
-
-  <MudContainer Class="mt-8">
-    <DragabbleDice>
-    </DragabbleDice>
-  </MudContainer>
 }

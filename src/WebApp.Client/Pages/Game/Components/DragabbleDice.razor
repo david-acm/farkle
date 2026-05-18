@@ -1,27 +1,25 @@
 @inherits BlazorState.BlazorStateComponent
 
-<MudDropContainer Class="d-flex flex-column flex-grow-1 flex-wrap"
+<MudDropContainer Class="drop-zones"
                   ItemDropped="ItemUpdatedAsync"
                   Items="InternalDice()"
                   ItemsSelector="@((item, dropzone) => item.Identifier == dropzone)"
                   T="DraggableDie">
   <ChildContent>
 
-    <MudDropZone Class="d-flex flex-grow-1 flex-row flex-wrap justify-center mud-background-gray pa-6 rounded"
+    <MudDropZone Class="d-flex flex-grow-1 flex-row flex-wrap justify-center pa-4 rounded zone"
                  Identifier="Rolled"
                  T="DraggableDie">
-      <MudText Class="mb-4"
-               Typo="Typo.h6">
+      <MudText Class="mb-4" Color="Color.Primary" Typo="Typo.h6">
         In Play
       </MudText>
     </MudDropZone>
 
-    <MudDropZone Class="d-flex flex-grow-1 flex-row flex-wrap justify-center mud-background-gray pa-6 rounded"
+    <MudDropZone Class="d-flex flex-grow-1 flex-row flex-wrap justify-center pa-4 rounded zone"
                  Identifier="SetAside"
-                 Style="border: 2px dashed #D4AF37;"
+                 Style="border: 2px dashed #FFE600;"
                  T="DraggableDie">
-      <MudText Class="mb-4"
-               Typo="Typo.h6">
+      <MudText Class="mb-4" Color="Color.Primary" Typo="Typo.h6">
         Set Aside 🎯
       </MudText>
     </MudDropZone>
