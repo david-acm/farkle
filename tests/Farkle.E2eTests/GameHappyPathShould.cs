@@ -31,15 +31,15 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
         int.TryParse(Environment.GetEnvironmentVariable("E2E_STEP_DELAY_MS"), out var v) ? v : 2_000;
 
     private static string VideoDir =>
-        Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..",
+        Path.GetFullPath(Path.Join(AppContext.BaseDirectory, "..", "..", "..", "..", "..",
             "test-results", "videos"));
 
     private static string LogDir =>
-        Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..",
+        Path.GetFullPath(Path.Join(AppContext.BaseDirectory, "..", "..", "..", "..", "..",
             "test-results", "logs"));
 
     private static string ScreenshotDir =>
-        Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..",
+        Path.GetFullPath(Path.Join(AppContext.BaseDirectory, "..", "..", "..", "..", "..",
             "test-results", "screenshots"));
 
     // ── video wrapper ────────────────────────────────────────────
@@ -184,7 +184,7 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
                         Directory.CreateDirectory(ScreenshotDir);
                         await currentPage.ScreenshotAsync(new()
                         {
-                            Path     = Path.Combine(ScreenshotDir, "before-first-keep.png"),
+                            Path     = Path.Join(ScreenshotDir, "before-first-keep.png"),
                             FullPage = true,
                         });
                         screenshotTaken = true;
