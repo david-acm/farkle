@@ -40,6 +40,7 @@ public partial class GameState : State<GameState>
     Scoreboard      = [];
     WinnerName      = null;
     DiceSetAside    = [];
+    DiceInPlay      = [];
   }
 }
 

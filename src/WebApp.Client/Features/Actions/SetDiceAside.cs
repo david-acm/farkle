@@ -15,7 +15,7 @@ public partial class GameState
       
       public override Task Handle(Action action, CancellationToken aCancellationToken)
       {
-        var die = State.DiceInPlay.First(d => d.Value == action.Die.Value);
+        var die = State.DiceInPlay.First(d => d.Index == action.Die.Index);
         die.Identifier = action.Die.Identifier;
 
         if (action.Die.Identifier == "SetAside")

@@ -1,6 +1,7 @@
 @inherits BunitContext
 @using BlazorState
 @using Moq
+@using WebApp.Client.Features
 @using WebApp.Client.Pages.Game.Components
 @using WebApp.Client.Services
 
@@ -14,6 +15,11 @@
       _ => Mock.Of<IRotationCalculator>());
     Services.AddBlazorState(o => o.Assemblies = [typeof(Program).Assembly]);
     var die = new DraggableDie(index: 1, value: DieValue.One, identifier: "Rolled");
+
+    // Seed the store with one die before rendering (Initialize() clears DiceInPlay).
+    var store = Services.GetRequiredService<IStore>();
+    store.GetState<GameState>().DiceInPlay.Add(die);
+
     var cut = Render(
       @<DragabbleDice></DragabbleDice>);
 

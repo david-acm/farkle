@@ -2,7 +2,7 @@
 
 <MudDropContainer Class="drop-zones"
                   ItemDropped="ItemUpdatedAsync"
-                  Items="InternalDice()"
+                  Items="GameState.DiceInPlay"
                   ItemsSelector="@((item, dropzone) => item.Identifier == dropzone)"
                   T="DraggableDie">
   <ChildContent>
