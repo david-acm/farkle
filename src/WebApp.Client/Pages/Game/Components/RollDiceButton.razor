@@ -3,9 +3,10 @@
 
 <MudButton Class="mt-4"
            Color="Color.Primary"
-           Disabled="@IsDisabled"
+           Disabled="@(IsDisabled || _loading)"
+           FullWidth="true"
            OnClick="RollDiceAsync"
-           StartIcon="@Icons.Material.Filled.PlayArrow"
+           StartIcon="@(_loading ? Icons.Material.Filled.HourglassEmpty : Icons.Material.Filled.PlayArrow)"
            Variant="Variant.Filled">
   Roll
 </MudButton>
@@ -13,8 +14,12 @@
 @code {
   [Parameter] public bool IsDisabled { get; set; }
 
-  private void RollDiceAsync(MouseEventArgs obj)
+  private bool _loading;
+
+  private async Task RollDiceAsync(MouseEventArgs obj)
   {
-    Mediator.Send(new GameState.RollDice.Action());
+    _loading = true;
+    try { await Mediator.Send(new GameState.RollDice.Action()); }
+    finally { _loading = false; }
   }
 }

@@ -186,6 +186,15 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-screenshots-${{ github.run_id }}
+          path: test-results/screenshots/
+          if-no-files-found: warn
+          retention-days: 14
+
       - name: Upload TRX results
         if: always()
         uses: actions/upload-artifact@v4
@@ -236,6 +245,9 @@ jobs:
               : '';
             const body = [
               `## E2E Happy-Path ${outcome}`,
+              '',
+              `**Screenshot** (Alice — just before first keep, download from [e2e-screenshots artifact](${runUrl}#artifacts)):`,
+              `- \`before-first-keep.png\``,
               '',
               `**Recordings** (download from [e2e-videos artifact](${runUrl}#artifacts)):`,
               `- \`HappyPath.webm\` — Alice session (join → two-player turns until win)`,

@@ -18,11 +18,9 @@
       .ReturnsAsync(gameId);
     var cut = Render(@<Game ParameterGameId="gameId"/>);
     JoinGame(cut);
-    var button = cut.FindComponent<StartGameButton>()
-      .Find("button");
 
     // When
-    // button.Click();
+    // StartGame is dispatched automatically in OnParametersSetAsync
 
     // Then
     Mock.Get(GameService).Verify(s => s.StartGameAsync(It.IsAny<int>()), Times.Once);

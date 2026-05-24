@@ -31,12 +31,16 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
         int.TryParse(Environment.GetEnvironmentVariable("E2E_STEP_DELAY_MS"), out var v) ? v : 2_000;
 
     private static string VideoDir =>
-        Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..",
+        Path.GetFullPath(Path.Join(AppContext.BaseDirectory, "..", "..", "..", "..", "..",
             "test-results", "videos"));
 
     private static string LogDir =>
-        Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..",
+        Path.GetFullPath(Path.Join(AppContext.BaseDirectory, "..", "..", "..", "..", "..",
             "test-results", "logs"));
+
+    private static string ScreenshotDir =>
+        Path.GetFullPath(Path.Join(AppContext.BaseDirectory, "..", "..", "..", "..", "..",
+            "test-results", "screenshots"));
 
     // ── video wrapper ────────────────────────────────────────────
 
@@ -149,9 +153,10 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
             // Alice and Bob alternate turns. After each pass the SignalR hub broadcasts
             // TurnChanged so the other player's indicator flips without a page refresh.
             // The loop continues until one player reaches 10 000 points.
-            var won       = false;
-            var aliceTurn = true;
-            const int maxTurns = 300;
+            var won             = false;
+            var aliceTurn       = true;
+            var screenshotTaken = false;
+            const int maxTurns  = 300;
 
             for (var turn = 0; turn < maxTurns && !won; turn++)
             {
@@ -173,6 +178,18 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
                     await DragDieAsync(currentPage, scoringIdx);
                     await currentPage.Locator("[identifier='SetAside']").Locator(".mud-drop-item")
                         .First.WaitForAsync(new() { Timeout = 5_000 });
+
+                    if (aliceTurn && !screenshotTaken)
+                    {
+                        Directory.CreateDirectory(ScreenshotDir);
+                        await currentPage.ScreenshotAsync(new()
+                        {
+                            Path     = Path.Join(ScreenshotDir, "before-first-keep.png"),
+                            FullPage = true,
+                        });
+                        screenshotTaken = true;
+                    }
+
                     await currentPage.ClickAsync("button:has-text('Set Dice Aside')");
                     await currentPage.WaitForTimeoutAsync(200);
                 }

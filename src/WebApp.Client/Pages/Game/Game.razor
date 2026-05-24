@@ -4,7 +4,7 @@
 
 <PageTitle>Play Farkle!</PageTitle>
 
-<MudText Typo="Typo.h3">Welcome!</MudText>
+<MudText Typo="Typo.h3">Farkle!</MudText>
 <GameTitle></GameTitle>
 
 @if (!HasJoined)
@@ -36,6 +36,11 @@ else
       <MudText Typo="Typo.subtitle1">
         Playing as: <strong>@GameState.PlayerName.Value</strong>
       </MudText>
+      @{
+        var waitingFor = GameState.Scoreboard
+            .FirstOrDefault(p => p.PlayerId == GameState.CurrentPlayerId)?.Name
+            ?? $"Player {GameState.CurrentPlayerId}";
+      }
       @if (GameState.IsMyTurn)
       {
         <MudAlert Severity="Severity.Success" Dense="true" Class="mt-2" data-testid="my-turn-indicator">
@@ -45,7 +50,7 @@ else
       else
       {
         <MudAlert Severity="Severity.Info" Dense="true" Class="mt-2" data-testid="waiting-indicator">
-          Waiting for player @GameState.CurrentPlayerId…
+          Waiting for @waitingFor…
         </MudAlert>
       }
     </MudItem>
@@ -57,23 +62,20 @@ else
     </MudItem>
   </MudGrid>
 
-  <MudGrid Spacing="1" Class="mt-8">
-    <MudItem xs="12" sm="6" md="4">
-      <StartGameButton />
-    </MudItem>
-    <MudItem xs="12" sm="6" md="4">
-      <KeepButton IsDisabled="@(!GameState.IsMyTurn)" />
-    </MudItem>
-    <MudItem xs="12" sm="6" md="4">
-      <RollDiceButton IsDisabled="@(!GameState.IsMyTurn)" />
-    </MudItem>
-    <MudItem xs="12" sm="6" md="4">
-      <PassTurnButton IsDisabled="@(!GameState.IsMyTurn)" />
-    </MudItem>
-  </MudGrid>
-
   <MudContainer Class="mt-8">
     <DragabbleDice>
     </DragabbleDice>
   </MudContainer>
+
+  <MudGrid Spacing="1" Class="mt-4">
+    <MudItem xs="12" sm="4">
+      <RollDiceButton IsDisabled="@(!GameState.IsMyTurn)" />
+    </MudItem>
+    <MudItem xs="12" sm="4">
+      <KeepButton IsDisabled="@(!GameState.IsMyTurn)" />
+    </MudItem>
+    <MudItem xs="12" sm="4">
+      <PassTurnButton IsDisabled="@(!GameState.IsMyTurn)" />
+    </MudItem>
+  </MudGrid>
 }
