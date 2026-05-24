@@ -1,0 +1,76 @@
+<h3>KeepDiceShould</h3>
+@using Ardalis.Result
+@using BlazorState
+@using Farkle.Contracts
+@using MediatR
+@using Moq
+@using MudBlazor.Services
+@using WebApp.Client.Features
+@using WebApp.Client.Pages.Game
+@using WebApp.Client.Pages.Game.Components
+@using WebApp.Client.Services
+@inherits GameBunitContext
+
+@code {
+  [Fact]
+  public async Task RemoveDieFromDiceInPlay_AfterKeep()
+  {
+    // Given — roll returns a single Five
+    var gameId = new GameId(10);
+    Mock.Get(GameService)
+      .Setup(s => s.StartGameAsync(It.IsAny<int>()))
+      .ReturnsAsync(gameId);
+    Mock.Get(GameService)
+      .Setup(s => s.RollDiceAsync(It.IsAny<int>(), It.IsAny<int>()))
+      .ReturnsAsync(Result<IList<DieValue>>.Success(new List<DieValue> { DieValue.Five }));
+    Mock.Get(GameService)
+      .Setup(s => s.KeepDiceAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<IEnumerable<int>>()))
+      .ReturnsAsync(new HttpResponses.KeepDiceResponse(gameId, 0));
+
+    var game = Render<Game>(@<Game ParameterGameId="gameId"/>);
+    JoinGame(game);
+
+    // Roll to populate DiceInPlay with [Five]
+    await game.FindComponent<RollDiceButton>().Find("button").ClickAsync(new MouseEventArgs());
+
+    // Set the die aside
+    var sender = Services.GetRequiredService<ISender>();
+    await sender.Send(new GameState.SetDiceAside.Action(new DraggableDie(0, DieValue.Five, "SetAside")));
+
+    // When — player clicks "Set Dice Aside"
+    await game.FindComponent<KeepButton>().Find("button").ClickAsync(new MouseEventArgs());
+
+    // Then — kept dice must be removed from DiceInPlay, not just renamed
+    var state = Services.GetRequiredService<IStore>().GetState<GameState>();
+    state.DiceInPlay.Should().BeEmpty("kept dice must be removed from DiceInPlay, not left as Identifier='Kept'");
+  }
+
+  [Fact]
+  public async Task SetAsideCorrectDie_WhenDuplicateValues()
+  {
+    // Given — roll returns two Fives (same value, different indices)
+    var gameId = new GameId(10);
+    Mock.Get(GameService)
+      .Setup(s => s.StartGameAsync(It.IsAny<int>()))
+      .ReturnsAsync(gameId);
+    Mock.Get(GameService)
+      .Setup(s => s.RollDiceAsync(It.IsAny<int>(), It.IsAny<int>()))
+      .ReturnsAsync(Result<IList<DieValue>>.Success(
+        new List<DieValue> { DieValue.Five, DieValue.Five }));
+
+    var game = Render<Game>(@<Game ParameterGameId="gameId"/>);
+    JoinGame(game);
+
+    // Roll to populate DiceInPlay with [Five(0), Five(1)]
+    await game.FindComponent<RollDiceButton>().Find("button").ClickAsync(new MouseEventArgs());
+
+    // Drag the SECOND Five (index 1) to SetAside
+    var sender = Services.GetRequiredService<ISender>();
+    await sender.Send(new GameState.SetDiceAside.Action(new DraggableDie(1, DieValue.Five, "SetAside")));
+
+    // Then — only the die at index 1 should move; index 0 stays Rolled
+    var state = Services.GetRequiredService<IStore>().GetState<GameState>();
+    state.DiceInPlay[0].Identifier.Should().Be("Rolled", "first Five must remain in play");
+    state.DiceInPlay[1].Identifier.Should().Be("SetAside", "second Five must be set aside");
+  }
+}
