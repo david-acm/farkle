@@ -24,13 +24,17 @@ public partial class GameState : State<GameState>
       identifier: "Rolled")
   ];
   
-  public List<DraggableDie> KeptDice => DiceInPlay.Any() ? DiceInPlay.Where(d => d.Identifier == "SetAside").ToList() : new();
-  
-  private List<int> DiceSetAside     { get; set; }         = [];
+  public List<DraggableDie> KeptDice => DiceInPlay.Where(d => d.Identifier == "SetAside").ToList();
+
+  // Derived from DiceInPlay so the UI and the server payload can never disagree.
+  // Don't add a parallel field — it leaks across turns and duplicates on re-drop.
+  internal IReadOnlyList<int> DiceSetAside =>
+    DiceInPlay.Where(d => d.Identifier == "SetAside").Select(d => (int)d.Value).ToList();
+
   public  string    ErrorMessage     { get; private set; } = string.Empty;
   public  bool      ShowError        { get; private set; }
   public  object    LastErrorMessage { get; private set; } = string.Empty;
-  
+
   public override void Initialize()
   {
     GameId          = new GameId(0);
@@ -39,7 +43,6 @@ public partial class GameState : State<GameState>
     CurrentPlayerId = 0;
     Scoreboard      = [];
     WinnerName      = null;
-    DiceSetAside    = [];
     DiceInPlay      = [];
   }
 }
