@@ -4,23 +4,30 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Overview
 
-**Farkle** is a sample .NET application demonstrating Event Sourcing, CQRS, Clean Architecture, and Event Modelling patterns. It implements the Greedy dice game as a backend API (WebApi) and frontend (Blazor Server + WASM).
+**Farkle** is a sample .NET application demonstrating Event Sourcing, CQRS, Clean Architecture, and Event Modelling patterns. It implements the Greedy/Farkle dice game as a backend API (WebApi) and a frontend (Blazor Server host + WASM client) with **real-time multiplayer** over SignalR.
 
 The codebase prioritizes architectural patterns and test-driven development:
-- **Event Sourcing** with Eventuous framework and EventStore (ESDB)
+- **Event Sourcing** with the Eventuous framework and EventStore (ESDB)
 - **CQRS** separation of commands and queries
-- **Domain-Driven Design** with aggregate roots and validation
-- **Comprehensive testing** (unit, integration, E2E with Playwright)
+- **Domain-Driven Design** with an aggregate root and validation
+- **Real-time multiplayer** via a SignalR hub broadcasting turn changes
+- **Comprehensive testing** (unit, integration, component, E2E with Playwright)
 
 ### Key Technologies
 
 | Layer | Stack |
 |-------|-------|
-| Backend API | .NET 10, FastEndpoints, Eventuous |
-| Database | PostgreSQL (Identity), EventStore (Event Store) |
-| Frontend | Blazor Server + Blazor WASM, MudBlazor, BlazorState |
-| Testing | xUnit, Playwright, Testcontainers, FluentAssertions |
-| Infrastructure | Docker Compose, GitHub Actions CI/CD |
+| Backend API | .NET 10, FastEndpoints 5.x, Eventuous 0.15.0-beta |
+| Event Store | EventStore DB (ESDB) via `EventStore.Client.Grpc` |
+| Identity DB | PostgreSQL + EF Core (ASP.NET Identity) |
+| Real-time | ASP.NET Core SignalR (`/hubs/game`) |
+| Frontend | Blazor Server host + Blazor WASM client, MudBlazor, BlazorState |
+| API Client | Kiota-generated `Farkle.ApiClient` (shared by WASM client and tests) |
+| Auth | JWT bearer (FastEndpoints.Security), ASP.NET Identity |
+| Testing | xUnit, FluentAssertions, Playwright, Testcontainers, bUnit, Moq, AutoFixture |
+| Infrastructure | Docker Compose, GitHub Actions CI/CD, CodeQL |
+
+> **.NET version note:** `Directory.Build.props` sets a default `TargetFramework` of `net8.0`, but every project explicitly overrides it to `net10.0`. The repo targets **.NET 10** (`global.json` pins SDK `10.0.0`, roll-forward `feature`). The `verify-generated` CI job installs both 8.0.x and 10.0.x SDKs because the Kiota tooling needs 8.0.
 
 ---
 
@@ -28,23 +35,33 @@ The codebase prioritizes architectural patterns and test-driven development:
 
 ```
 src/
-├── Farkle/                    # Core domain module (Event Sourcing)
-│   ├── Domain/GameAggregate/  # Aggregate root, events, validation (~800 lines)
-│   ├── Application/           # GameService (command service)
+├── Farkle/                    # Core domain + application + endpoints (Event Sourcing)
+│   ├── Domain/GameAggregate/  # Aggregate root, events, validators, scoring
+│   ├── Application/           # GameService (command service), IGameEventBroadcaster
 │   ├── Endpoints/             # FastEndpoints (StartGame, RollDice, KeepDice, PassTurn, JoinPlayer)
-│   └── FarkleModuleServiceExtensions.cs  # DI registration
+│   └── FarkleModuleServiceExtensions.cs  # DI registration + Eventuous/ESDB setup
 ├── Farkle.Contracts/          # HTTP request/response DTOs (no dependencies)
-├── Farkle.SharedKernel/       # Shared utilities (Result extensions, validators)
-├── WebApp/                    # Blazor Server host + Identity/Auth (PostgreSQL)
-├── WebApp.Client/             # Blazor WASM client, state management (BlazorState)
-└── Scripts/                   # Utility scripts
+├── Farkle.SharedKernel/       # Shared utilities (Result extensions, TypedEndpoint base)
+├── Farkle.ApiClient/          # GENERATED Kiota client (do not hand-edit) — shared client
+├── WebApp/                    # Blazor Server host
+│   ├── Auth/                  # Identity (AppUser, AppDbContext), register/login endpoints (JWT)
+│   ├── Hubs/                  # GameHub + SignalRGameEventBroadcaster (real-time turn updates)
+│   ├── Migrations/            # EF Core Identity migrations (PostgreSQL)
+│   └── Program.cs             # Composition root (wires Farkle module, SignalR, Identity, WASM)
+├── WebApp.Client/             # Blazor WASM client
+│   ├── Features/              # BlazorState GameState + Actions/ (Redux-like reducers)
+│   ├── Pages/Game/Components/ # Dice, Scoreboard, buttons, drag-and-drop UI
+│   └── Services/              # IGameService, IGameHubService, RotationCalculator
+└── Scripts/                   # Deployment/utility scripts (containerapp, compose templates)
 
 tests/
-├── Farkle.Tests/              # Unit tests for domain (Game, validators)
-├── Farkle.WebTests/           # Integration tests (API via WebApplicationFactory, Testcontainers)
-├── Farkle.E2eTests/           # End-to-end tests (Playwright, videos uploaded to PR)
+├── Farkle.Tests/              # Unit tests for the domain (Game, validators, state)
+├── Farkle.WebTests/           # Integration tests (API + SignalR via WebApplicationFactory + Testcontainers)
+├── Farkle.E2eTests/           # End-to-end tests (Playwright, two-player happy path, video + screenshots)
 └── Farkle.SpaTests/           # Component tests (bUnit) for WASM components
 ```
+
+Two solution files exist: **`Farkle.sln`** (full solution — use this) and `src/WebApp.sln` (web-only subset).
 
 ---
 
@@ -54,39 +71,146 @@ tests/
 
 All game state mutations are captured as immutable events persisted to EventStore:
 
-1. **Commands** (`Command.*`) → HTTP requests validated at endpoint
-2. **Aggregate** (`Game`) → Applies command, emits event(s) to validate
-3. **Validators** (`GameValidator.*`) → Pre-conditions checked before event is applied
-4. **Events** (`GameEvents.V1.*`, `V2.*`) → Immutable facts stored in ESDB
-5. **State** (`GameState`) → Rebuilt by replaying events via `On<EventType>()` handlers
+1. **Commands** (`Command.*`) → HTTP request mapped at a FastEndpoint
+2. **Aggregate** (`Game`) → applies the command, emits event(s)
+3. **Validators** (`GameValidator`) → pre-conditions checked in `Game.Apply(...)` before the event is stored
+4. **Events** (`GameEvents.V1.*`, `V2.*`) → immutable facts stored in ESDB
+5. **State** (`GameState`) → rebuilt by replaying events via `On<EventType>()` handlers
 
 **Key files:**
-- `/src/Farkle/Domain/GameAggregate/Game.cs` - Aggregate root with command handlers
-- `/src/Farkle/Domain/GameAggregate/GameState.cs` - State reconstruction from events
-- `/src/Farkle/Domain/GameAggregate/GameValidator.cs` - Pre-condition validators (272 lines)
-- `/src/Farkle/Domain/GameAggregate/GameEvents.cs` - Event records (V1 & V2 versioned)
+- `src/Farkle/Domain/GameAggregate/Game.cs` — aggregate root, command handlers, scoring (`GetNewTurnScore`)
+- `src/Farkle/Domain/GameAggregate/GameState.cs` — immutable state, event-replay handlers
+- `src/Farkle/Domain/GameAggregate/GameValidator.cs` — pre-condition + scoring validators
+- `src/Farkle/Domain/GameAggregate/GameEvents.cs` — versioned event records (V1 & V2)
+- `src/Farkle/Domain/GameAggregate/Command.cs` — command records
+
+### Validation-as-Events
+
+Invalid operations do **not** throw to the caller. `Game.Apply(object @event)` runs `GameValidator.ValidatePreconditions(this, @event)`; on failure it applies a **failed-validation error event** (implementing `IErrorEvent`) instead of the intended event. The application layer detects `IErrorEvent` instances in `Changes` and converts them to HTTP errors. Error events include `PlayedOutOfTurn`, `RolledTwice`, `PassedWithoutRolling`, and `DiceNotAllowedToBeKept`.
 
 ### Event Versioning
 
 Two event versions coexist:
-- **V1** events: Original `DiceRolled`, `DiceKept` without game stage tracking
-- **V2** events: Include `GameStage` field for clearer state machine semantics
+- **V1** events: original `DiceRolled` / `DiceKept` without game-stage tracking, plus `GameStarted`, `PlayerJoined`, `TurnPassed`, `GameWon`, and the error events.
+- **V2** events: `DiceRolled` and `DiceKept` carry an extra `GameStage` field for clearer state-machine semantics.
 
-Handlers in `GameState` support both; the domain uses V2 going forward.
+`GameState` registers handlers for both versions. The aggregate uses **V2 for rolling** (`RollDiceV2`) going forward. Never modify a V1 event schema — add a new version instead.
 
-### Command Service & Validation
+### Command Service & Validation Composition
 
-`GameService` (extends `CommandService<Game, GameState, GameId>`) orchestrates:
+`GameService` (extends `Eventuous.CommandService<Game, GameState, GameId>`) orchestrates:
 - Command routing via fluent builder: `.On<Command.StartGame>().InState(New).Execute(...)`
-- Aggregate store persistence via `Eventuous`
-- Error event detection and conversion to HTTP results
+- Aggregate load/save via Eventuous + `EsdbEventStore`
+- `CommandHandlerBuilderExtensions.Execute(...)` wraps handlers in a try/catch for `DomainException` so error events still persist instead of failing the whole operation.
+- `IGameService.HandleAsync<TCommand, TResponse>(cmd, ct, mapper)` runs the command, scans `Changes` for `IErrorEvent`, and either returns an HTTP error or maps `GameState` → the endpoint's response DTO.
 
-**Validators** use the **Composite Pattern**:
+**Validators** use the **Composite Pattern** with a fluent `.And()` builder:
 ```csharp
 new PlayerIsInTurn(state, e.PlayerId)
   .And(new SingleRoll(state, e.PlayerId))
   .IsSatisfied()
 ```
+`AndValidator` short-circuits on the first failing validator.
+
+### Real-Time Multiplayer (SignalR)
+
+Turn changes are pushed to all players in a game in real time:
+
+1. **Server hub** — `src/WebApp/Hubs/GameHub.cs` exposes `JoinGame(int gameId)` / `LeaveGame(int gameId)`, which add/remove the connection to the SignalR group `game-{gameId}`. Mapped at `/hubs/game` in `Program.cs`.
+2. **Broadcaster** — `IGameEventBroadcaster` (in `src/Farkle/Application/`) is implemented by `SignalRGameEventBroadcaster` (in `src/WebApp/Hubs/`), registered scoped in `Program.cs`. Its `BroadcastTurnChangedAsync(PassTurnResponse, ct)` sends the `"TurnChanged"` message (carrying a `PassTurnResponse`) to group `game-{GameId}`.
+3. **Trigger** — `PassTurnEndpoint` injects `IGameEventBroadcaster` and, after a successful pass, broadcasts the turn change (broadcast failures are logged, not propagated to the HTTP response).
+4. **Client** — `IGameHubService` / `GameHubService` (in `src/WebApp.Client/Services/`) builds an auto-reconnecting `HubConnection`, registers `.On<PassTurnResponse>("TurnChanged", ...)`, calls `JoinGame`, and raises `OnTurnChanged`. `Game.razor.cs` subscribes and dispatches the `RemoteTurnChanged` BlazorState action so other players' UIs update live.
+
+---
+
+## Domain Model Concepts
+
+### Commands (`Command.cs`)
+`StartGame`, `JoinPlayer`, `RollDice`, `KeepDice`, `PassTurn` (plus the `PlayerId` value object).
+
+### Game Stages
+```csharp
+internal enum GameStage { None, Rolling, Keeping, Finished }
+```
+
+### Game Flow
+1. `StartGame` → `GameStarted` (stage = Rolling)
+2. `JoinPlayer` (one per player; player IDs assigned sequentially)
+3. `RollDice` → dice appear in the table center (`RollDiceV2` → stage = Keeping)
+4. `KeepDice` → move scoring dice to hand, update turn score
+5. `PassTurn` → lock in score, rotate to next player. If score ≥ **10,000** → `GameWon` (stage = Finished)
+
+### Score Calculation (`Game.GetNewTurnScore`)
+Scoring iterates a priority-ordered set of validators and takes the first satisfied trick:
+
+| Trick (validator) | Points |
+|-------------------|--------|
+| `DiceAreStraight` | 1,000 |
+| `DiceAreTrips` (three of a kind) | face value × 100 (e.g. three 4s = 400) |
+| `DiceAreOnesOrFives` | 100 per `1` + 50 per `5` |
+| `DiceAreStair` (full 1-2-3-4-5-6) | 1,500 |
+
+**Combo multiplier:** if the kept dice form a straight **and** at least one straight was already kept this turn (`StraightsKeptThisTurn > 0`), the running total is doubled: `(currentScore + turnScore) * 2`. Exact dice-pattern semantics for each validator live in `GameValidator.cs`.
+
+### Key Value Types
+- **DieValue** (Ardalis SmartEnum): One…Six (with Unicode pip glyphs ⚀⚁⚂⚃⚄⚅), plus `None`
+- **Player** (record): `(int Id, string Name)`
+- **GameId** (extends `Eventuous.Id`): implicit conversions to/from `int`
+- **Score** (record): int wrapper with implicit conversions
+- **Dice**: value object over a collection of `DieValue`
+- **GameState** (record): immutable; `Players`, `TableCenter`, `DiceKept`, `TurnScore`, `ScoreTable`, `StraightsKeptThisTurn`, `Winner`, `GameStage`
+
+---
+
+## HTTP API
+
+All game endpoints are FastEndpoints extending `TypedEndpoint<TRequest, TResponse>` (base in `Farkle.SharedKernel`). They inject `ILogger` + `IGameService` and call `service.HandleAsync<Command, Response>(cmd, ct, mapper)`.
+
+| Endpoint | Route (POST) | Request → Response |
+|----------|--------------|--------------------|
+| StartGame | `/api/games` | `StartGameRequest(Id)` → `StartGameResponse(Id)` |
+| JoinPlayer | `/api/games/{gameId}/players` | `JoinPlayerRequest(GameId, PlayerName)` → `JoinPlayerResponse(Id, CurrentPlayerId)` |
+| RollDice | `/api/games/{gameId}/players/{playerId}/rolls` | `RollDiceRequest(GameId, PlayerId)` → `RollDiceResponse(Id, DiceValues)` |
+| KeepDice | `/api/games/{gameId}/players/{playerId}/keeps` | `KeepDiceRequest(GameId, PlayerId, DiceValues)` → `KeepDiceResponse(Id, TurnScore)` |
+| PassTurn | `/api/games/{gameId}/players/{playerId}/turns` | `PassTurnHttp(GameId, PlayerId)` → `PassTurnResponse(...)` (also broadcast over SignalR) |
+
+`PassTurnResponse(GameId, PlayerId, NewScore, Winner?, CurrentPlayerId, Scoreboard?)` carries the full scoreboard (`PlayerScore[]`) and optional `WinnerResponse`. DTOs live in `src/Farkle.Contracts/HttpRequests.cs` and `HttpResponses.cs`.
+
+**Auth endpoints** (`src/WebApp/Auth/`, FastEndpoints, `AllowAnonymous`):
+- `POST /api/auth/register` — creates an Identity user
+- `POST /api/auth/login` — verifies credentials, returns a JWT (`Auth:JwtSecret`, 4-hour expiry)
+
+Auth is **off by default**; game endpoints `AllowAnonymous` unless `Auth:RequireAuthorization` is `true` in config (see `Program.cs`).
+
+---
+
+## Frontend (Blazor WASM Client)
+
+### State Management (BlazorState)
+
+WASM uses **BlazorState** (a Redux/MediatR-like pattern). `GameState` (`src/WebApp.Client/Features/GameState.cs`) holds game/player IDs, turn score, `CurrentPlayerId` (+ `IsMyTurn`), the live `Scoreboard`, `WinnerName` (+ `IsGameOver`), dice in play, and error/modal UI flags. Mutations happen through **Actions** (each is a nested `Action` record + `Handler`):
+
+| Action | Purpose |
+|--------|---------|
+| `StartGame` | Calls the API to start a game, stores the game id |
+| `JoinPlayer` | Joins the current game, seeds player id/name + scoreboard |
+| `RollDiceAction` | Rolls dice; on failure sets error state |
+| `SetDiceAside` | Local-only — toggles a die between "Rolled" and "SetAside" zones (drag-and-drop) |
+| `KeepDice` | Sends set-aside dice to the API, updates turn score |
+| `PassTurn` | Passes the turn locally (API call), updates scoreboard/winner |
+| `RemoteTurnChanged` | Applies a turn change received via SignalR `OnTurnChanged` |
+| `LeaveGame` | Resets game state |
+| `ToggleErrorModal` | Shows/hides the error modal |
+
+Registered via `services.AddBlazorState(...)` in `ClientServiceExtensions.RegisterClientServices`.
+
+### Services (`src/WebApp.Client/Services/`)
+- **`IGameService` / `GameService`** — adapter over the Kiota `FarkleApiClient`; one method per game command (`StartGameAsync`, `JoinPlayerAsync`, `RollDiceAsync`, `KeepDiceAsync`, `PassTurnAsync`). Returns Ardalis `Result<>` where a roll can fail.
+- **`IGameHubService` / `GameHubService`** — SignalR client connection (connect/disconnect, `OnTurnChanged`).
+- **`IRotationCalculator` / `RotationCalculator`** — maps a `DieValue` to CSS 3D rotation angles `(x, y, z)` for rendering a die face (optional random spin). Registered as a singleton.
+
+### Components (`src/WebApp.Client/Pages/Game/Components/`)
+`Game.razor` (route `/games/{gameId:int}`) composes: **Scoreboard** (MudTable, leader highlight, winner banner, progress bars), **DragabbleDice** (MudDropContainer with "Rolled" + "SetAside" zones), **Die** (CSS 3D die using `IRotationCalculator`), **RollDiceButton**, **KeepButton**, **PassTurnButton**, **TurnScore**, **GameTitle**, and the reusable **AppButton**. `Features/Actions/Components/ErrorModal.razor` renders domain errors.
 
 ---
 
@@ -109,196 +233,111 @@ dotnet test Farkle.sln
 **Single test by name:**
 ```bash
 dotnet test --filter "FullyQualifiedName~GameHappyPath"
-dotnet test tests/Farkle.Tests/Farkle.Tests.csproj --filter "TestClassName"
+dotnet test tests/Farkle.Tests/Farkle.Tests.csproj --filter "FullyQualifiedName~RollShould"
 ```
 
-**Test categories:**
-- **Unit tests**: `dotnet test tests/Farkle.Tests/Farkle.Tests.csproj`
-- **Integration tests** (WebApi): `dotnet test tests/Farkle.WebTests/Farkle.WebTests.csproj`
-- **Component tests** (bUnit WASM): `dotnet test tests/Farkle.SpaTests/Farkle.SpaTests.csproj`
-- **E2E tests** (Playwright):
-  ```bash
-  dotnet test tests/Farkle.E2eTests/Farkle.E2eTests.csproj --filter "FullyQualifiedName~GameHappyPath"
-  ```
+**By category:**
+- Unit: `dotnet test tests/Farkle.Tests/Farkle.Tests.csproj`
+- Integration (API + SignalR): `dotnet test tests/Farkle.WebTests/Farkle.WebTests.csproj`
+- Component (bUnit WASM): `dotnet test tests/Farkle.SpaTests/Farkle.SpaTests.csproj`
+- E2E (Playwright): `dotnet test tests/Farkle.E2eTests/Farkle.E2eTests.csproj --filter "FullyQualifiedName~GameHappyPath"`
 
-**E2E test video recordings** are saved to `test-results/videos/{testName}.webm` and uploaded as GitHub artifacts.
+**E2E artifacts** are written to `test-results/`: videos (`videos/*.webm`), screenshots (`screenshots/*.png`), logs (`logs/`), and TRX results — all uploaded as GitHub artifacts in CI.
 
 ### Run the Application Locally
 
-**Prerequisites:** Docker & Docker Compose installed
-
+**Prerequisites:** Docker & Docker Compose.
 ```bash
-# Start dependencies (PostgreSQL, EventStore)
+# Start dependencies (PostgreSQL + EventStore)
 docker-compose up -d
 
-# Run WebApp (Blazor Server + WASM)
+# Run the Blazor Server host (serves the WASM client too)
 dotnet run --project src/WebApp/WebApp.csproj
 
-# Navigate to https://localhost:5001 (or http://localhost:5000)
+# Browse to https://localhost:5001 (or http://localhost:5000)
 ```
 
-**Default seeded user for testing:**
+**Default seeded user** (created on startup if missing):
 - Email: `player1@email.com`
 - Password: `Pass@word1`
 
-**Configuration** (appsettings.Development.json):
+**Configuration** (`appsettings.Development.json`):
 - EventStore: `esdb://admin:changeit@localhost:2113?tls=false`
-- PostgreSQL (Identity): `farkle_identity` database on localhost:5432
-- Backend URL for client: `http://localhost:5157`
+- PostgreSQL (Identity): `farkle_identity` on localhost:5432
+- Backend URL the WASM client calls: `http://localhost:5157` (`BackendUrl`)
 
-### Linting & Code Quality
-
-The repository uses:
-- **.editorconfig** - Enforced formatting rules
-- **TreatWarningsAsErrors = true** (Directory.Build.props) - All warnings must be fixed
-- **Nullable reference types enabled** - `#nullable enable`
-- **Architecture tests** (ArchUnitNET): Validates domain layer isolation
-
-No explicit linter (StyleCop/Roslyn analyzer) beyond compiler settings.
-
-### Database Migrations
-
-The WebApp uses Entity Framework Core with PostgreSQL for Identity:
-
+### Database Migrations (EF Core / PostgreSQL Identity)
 ```bash
-# Create a new migration
 dotnet ef migrations add <MigrationName> -p src/WebApp/WebApp.csproj
-
-# Apply migrations (automatic on app startup in non-NSwag environment)
 dotnet ef database update -p src/WebApp/WebApp.csproj
 ```
+Migrations are applied automatically on startup (outside the `NSwag` environment); the app also re-seeds the default user.
+
+### Linting & Code Quality
+- **.editorconfig** — formatting rules
+- **`TreatWarningsAsErrors = true`** (`Directory.Build.props`) — all warnings must be fixed
+- **Nullable reference types enabled**
+- **CodeQL** SAST runs in CI (`security-and-quality` query suite for C#)
+- No StyleCop/Roslyn analyzer beyond compiler settings
 
 ---
 
-## Key Architectural Patterns
+## Continuous Integration
 
-### 1. Clean Layered Architecture
+### `.github/workflows/e2e-happy-path.yml` (name: **CI**) — runs on PRs to `main`
+Three jobs:
+1. **`test` (Unit & Integration Tests)** — restores/builds `Farkle.sln`, runs unit → integration (pulls `eventstore:23.10.0` + `postgres:16-alpine` for Testcontainers) → SPA component tests, with coverage uploaded to Codecov and TRX artifacts.
+2. **`verify-generated`** — regenerates `swagger.json` (`-p:GenerateSwagger=true`) and the Kiota client, then **fails if the committed generated files differ**. Installs both .NET 8 and 10 SDKs + `wasm-tools`.
+3. **`e2e`** — installs Playwright Chromium, runs the `GameHappyPath` E2E test (two players, Alice + Bob), uploads videos/screenshots/logs/TRX, and posts a PR comment with results and a failure summary parsed from the TRX.
 
-- **Domain Layer** (`Farkle`): Game aggregate, events, validators — zero infrastructure dependencies
-- **Application Layer** (`Farkle/Application`): GameService orchestrates commands
-- **Interface Layer** (Endpoints in `Farkle`): FastEndpoints route HTTP to commands
-- **Shared Kernel** (`Farkle.SharedKernel`): Cross-cutting utilities (Ardalis.Result)
+### `.github/workflows/codeql.yml` (name: **CodeQL**)
+Runs on push/PR to `main` and weekly (Mon 08:00 UTC). Builds the solution and runs CodeQL C# analysis.
 
-### 2. Aggregate Root: Game
+### Diagnosing E2E Failures
+The `e2e` job uploads:
 
-The `Game` aggregate encapsulates all game logic:
-- **State**: Immutable record `GameState` rebuilt by event replay
-- **Commands**: `StartGame`, `JoinPlayer`, `RollDice`, `KeepDice`, `PassTurn`
-- **Events**: Versioned (V1, V2) with pre-condition validation
-- **Invariants**: Enforced by validators (only current player can roll, can't roll twice, etc.)
+| Artifact | Contents |
+|----------|----------|
+| `e2e-trx-<run_id>` | Full TRX with error messages and stack traces |
+| `e2e-logs-<run_id>` | Structured log output captured during the run |
+| `e2e-videos-<run_id>` | `.webm` recordings (e.g. `HappyPath.webm`, `HappyPath-Bob.webm`) |
+| `e2e-screenshots-<run_id>` | PNGs (e.g. `before-first-keep.png`) |
 
-**Game flow:**
-1. `StartGame` → GameStage = Rolling
-2. `JoinPlayer` (multiple times)
-3. `RollDice` → dice appear on table
-4. `KeepDice` → move scoring dice to hand, update turn score
-5. `PassTurn` → lock in score, rotate to next player. If score ≥ 10,000 → `GameWon`
-
-### 3. Domain Validation via Composite Pattern
-
-Validators are composable:
-- `PlayerIsInTurn` - Only the current player can act
-- `SingleRoll` - Each turn, can roll only once until dice are kept
-- `PlayerCanPass` - Can't pass without rolling
-- `DiceAreOnesOrFives` - Only 1s and 5s score
-- `DiceAreStraight` - 1-2-3-4-5-6 scores 1500 points
-
-All extend abstract `Validator` class with `.And()` fluent builder.
-
-### 4. Command Service & Event Sourcing (Eventuous)
-
-`GameService` extends `Eventuous.CommandService<>`:
-- Registers command handlers: `.On<Command.X>().InState(Existing).Execute((game, cmd) => game.Method(cmd))`
-- Manages aggregate loading/saving via `IAggregateStore`
-- Converts results to HTTP via `Ardalis.Result` extension methods
-
-Event persistence via `EsdbEventStore` (EventStore gRPC client).
-
-### 5. Frontend State Management (BlazorState)
-
-WASM client uses **Redux-like pattern** via `BlazorState`:
-- `GameState` record holds game ID, player ID, dice, turn score, error state
-- Actions dispatch state mutations
-- Bindings to components via DI-injected `GameState` store
-- Kiota-generated HTTP client (`FarkleApiClient`) for API calls
-
----
-
-## Domain Model Concepts
-
-### Game Stages
-```csharp
-enum GameStage { None, Rolling, Keeping, Finished }
-```
-- **Rolling**: Player may roll dice
-- **Keeping**: Player choosing which dice to set aside
-- **Finished**: Winner determined
-
-### Score Calculation
-- **Ones**: 100 points each
-- **Fives**: 50 points each
-- **Three of a kind**: 100 × face value (e.g., three 4s = 400)
-- **Straight** (1-2-3-4-5-6): 1500 points
-- **Win threshold**: 10,000 points
-
-### Key Value Types
-
-**DieValue** (SmartEnum): One, Two, Three, Four, Five, Six
-**Player** (record): `(int Id, string Name)`
-**GameState** (record): Immutable state with event handlers
-**Score** (record): Int wrapper with implicit conversions
+The workflow also posts failing test names + truncated error messages directly to the PR. **Check the PR comment first** before downloading artifacts.
 
 ---
 
 ## Testing Patterns
 
-### Unit Tests (Farkle.Tests)
-
-Base class `GameWithThreePlayersTest` mocks `IRandom` and pre-loads a game with three players:
+### Unit Tests (`Farkle.Tests`)
+Base class `GameWithThreePlayersTest` mocks `IRandom` and pre-loads a three-player game:
 ```csharp
 var game = new Game(_randomProvider);
 game.Start(new StartGame(1));
-game.JoinPlayer(new JoinPlayer(1, 1, "David"));
-game.JoinPlayer(new JoinPlayer(1, 2, "Cristian"));
-game.JoinPlayer(new JoinPlayer(1, 3, "German"));
+game.JoinPlayer(new JoinPlayer(1, "David"));
+game.JoinPlayer(new JoinPlayer(1, "Cristian"));
+game.JoinPlayer(new JoinPlayer(1, "German"));
 ```
+Tests assert on `game.State` and `game.Changes` (emitted events). Domain tests live under `tests/Farkle.Tests/Domain/`.
 
-Tests assert on `game.State` and `game.Changes` (emitted events).
+### Integration Tests (`Farkle.WebTests`)
+`WebApplicationFactory<Program>` + Testcontainers (PostgreSQL, EventStore): full DI pipeline, real HTTP client, containers per fixture, auto-applied migrations. `GameHubShould` covers the SignalR hub.
 
-### Integration Tests (Farkle.WebTests)
+### E2E Tests (`Farkle.E2eTests`)
+Playwright (`Microsoft.Playwright` 1.50.0) drives two browser contexts (Alice + Bob) through the happy path until a win. `PlaywrightFixture.NewContextWithVideoAsync` records a `.webm` per session; `InMemoryLoggerProvider` captures structured logs into the `e2e-logs` artifact. Waits for WASM hydration (≈30s) before interacting.
 
-Use `WebApplicationFactory<Program>` + `Testcontainers` for PostgreSQL:
-- Full DI pipeline, real HTTP client
-- Docker container spun up per test fixture
-- Database migrations auto-applied
-
-### E2E Tests (Farkle.E2eTests)
-
-`PlaywrightFixture` records browser interactions to `.webm` video:
-- Navigates to `/games/{gameId}`
-- Waits for WASM hydration (30s timeout on "Roll" button)
-- Clicks, drags, and asserts DOM state
-- CI workflow uploads videos to GitHub artifacts and comments on PR
-
-### Component Tests (Farkle.SpaTests)
-
-bUnit tests for Blazor WASM components with mocked `FarkleApiClient` and `IGameService`.
+### Component Tests (`Farkle.SpaTests`)
+bUnit (`bunit` 2.7.2) tests for Blazor WASM components with mocked `FarkleApiClient`/`IGameService` (Moq, `RichardSzalay.MockHttp`, AutoFixture). Includes `RotationCalculator` and component-architecture tests.
 
 ---
 
 ## Important Implementation Notes
 
 ### Event Type Registration
+`SetUpFarkleModule()` calls `TypeMap.RegisterKnownEventTypes()` to register the versioned event types with Eventuous for serialization. This runs at startup outside the `NSwag` environment.
 
-Before running the app (or outside NSwag environment), call:
-```csharp
-TypeMap.RegisterKnownEventTypes();  // In SetUpFarkleModule()
-```
-This registers versioned event types with Eventuous for serialization.
-
-### Endpoint Discovery & FastEndpoints
-
-FastEndpoints is configured with **manual assembly specification** (auto-discovery disabled):
+### FastEndpoints Discovery
+Auto-discovery is **disabled**; assemblies are listed explicitly in `Program.cs`:
 ```csharp
 .AddFastEndpoints(o =>
 {
@@ -310,75 +349,95 @@ FastEndpoints is configured with **manual assembly specification** (auto-discove
   o.DisableAutoDiscovery = true;
 });
 ```
-Add new endpoints and ensure the assembly is listed.
+When adding endpoints, ensure their assembly is in this list.
 
-### Migration to Newer Eventuous
-
-The codebase pins `Eventuous 0.15.0-beta` due to API changes in stable 0.16.x. Upgrading is tracked in a separate issue and requires command handler refactoring.
-
-### FastEndpoints Version
-
-Pinned to **5.x** (migration to 8.x requires API updates, tracked separately).
-
-### Configuration via Dependency Injection
-
-The `Farkle` module is registered as a self-contained extension in `WebApp.Program.cs`:
+### Module Composition
+The `Farkle` module is registered as a self-contained extension in `Program.cs`:
 ```csharp
 services.AddFarkleModuleServices(builder.Configuration, logger, new List<Assembly>());
-app.SetUpFarkleModule();
+app.SetUpFarkleModule();   // skipped in the NSwag environment
 ```
+New infrastructure (stores, clients) should be added in `FarkleModuleServiceExtensions`, not directly in `Program.cs`.
 
-New infrastructure (stores, clients) should be added here, not directly in `WebApp.Program.cs`.
+### NSwag Environment
+NSwag runs the host with `noBuild=true` to extract the OpenAPI spec. In that environment the static-asset manifest and the Farkle module setup are skipped (`!app.Environment.IsEnvironment("NSwag")` guards). Don't break those guards.
+
+### Pinned Versions (upgrades tracked separately)
+- **Eventuous** `0.15.0-beta` (stable 0.16.x changes the command-handler API)
+- **FastEndpoints** `5.x` (8.x requires API updates)
+- **Kiota** `1.31.1` (pinned in `.config/dotnet-tools.json`)
+
+---
+
+## Generated Files Policy
+
+**Never hand-edit these files** — they are auto-generated and any manual changes will be overwritten:
+
+- `src/WebApp.Client/swagger.json` — generated by NSwag from the ASP.NET app
+- `src/Farkle.ApiClient/**` — generated by Kiota from `swagger.json` (single shared client used by both `WebApp.Client` and `Farkle.WebTests`)
+
+To extend the API contract:
+1. Edit the DTO in `src/Farkle.Contracts/HttpResponses.cs` (or `HttpRequests.cs`).
+2. Regenerate `swagger.json`:
+   ```bash
+   dotnet build src/WebApp/WebApp.csproj -p:GenerateSwagger=true
+   ```
+3. Regenerate the Kiota client (one command — shared by all consumers):
+   ```bash
+   dotnet tool restore
+   cd src/Farkle.ApiClient && dotnet kiota generate \
+     -l CSharp -d ../WebApp.Client/swagger.json \
+     -c FarkleApiClient -n Farkle.ApiClient -o . \
+     && cd -
+   ```
+   CI's `verify-generated` job fails if committed files don't match re-generated output.
 
 ---
 
 ## Common Workflows
 
 ### Adding a New Game Command
-
-1. Define command record in `Domain/GameAggregate/Command.cs`
-2. Add command handler method to `Game` aggregate (e.g., `public void RollDice(Command.RollDice cmd)`)
-3. Register in `GameService`: `.On<Command.RollDice>().InState(Existing).Execute((game, cmd) => game.RollDice(cmd))`
-4. Create endpoint in `Endpoints/` extending `TypedEndpoint<Request, Response>`
-5. Add HTTP request/response DTOs to `Contracts/HttpRequests.cs` and `HttpResponses.cs`
-6. Register endpoint assembly in `WebApp.Program.cs`
+1. Define the command record in `Domain/GameAggregate/Command.cs`.
+2. Add a handler method to `Game` (e.g. `public void RollDice(Command.RollDice cmd)`), applying the appropriate (V2) event.
+3. Register it in `GameService`: `.On<Command.X>().InState(Existing).Execute((game, cmd) => game.X(cmd))`.
+4. Create an endpoint in `Endpoints/` extending `TypedEndpoint<Request, Response>`.
+5. Add request/response DTOs to `Contracts/HttpRequests.cs` / `HttpResponses.cs`.
+6. Ensure the endpoint assembly is listed in `Program.cs` FastEndpoints config.
+7. Regenerate `swagger.json` + the Kiota client (see Generated Files Policy).
 
 ### Adding Validation to a Command
-
-1. Create a `Validator` subclass in `GameValidator.cs`
-2. Add case to `GameValidator.ValidatePreconditions()` switch
-3. Use fluent `.And()` to compose multiple validators
-4. On failure, emit an error event implementing `IErrorEvent` interface
+1. Create a `Validator` subclass in `GameValidator.cs`.
+2. Add a case to `GameValidator.ValidatePreconditions()`.
+3. Compose with `.And()` where multiple validators apply.
+4. On failure, return an event implementing `IErrorEvent` so the application layer surfaces it as an HTTP error.
 
 ### Extending Game State
+1. Add a property to the `GameState` record with `private init`.
+2. Add a static handler: `private static GameState HandleX(GameState state, XEvent e) => state with { ... }`.
+3. Register it in the `GameState` constructor: `On<XEvent>(HandleX)`.
 
-1. Add property to `GameState` record with `private init`
-2. Add handler method: `private static GameState Handle<EventType>(GameState state, EventType e)`
-3. Register in `GameState()` constructor: `On<EventType>(HandleEventType)`
-4. Update event handlers to return new state with `.with { Property = value }`
+### Adding/Changing Real-Time Updates
+1. Add a method to `IGameEventBroadcaster` and implement it in `SignalRGameEventBroadcaster` (server) using `IHubContext<GameHub>` and group `game-{gameId}`.
+2. Add the matching `.On<T>("MessageName", ...)` listener + event in `GameHubService` (client).
+3. Dispatch a BlazorState action from the component subscribing to the client event.
 
 ---
 
 ## Troubleshooting
 
-### E2E Tests Timeout on WASM Hydration
-
-The test waits 30 seconds for the "Roll" button. If timeout occurs:
-- Ensure PostgreSQL and EventStore are running: `docker-compose ps`
-- Check browser console for JS errors
-- Increase `WasmTimeoutMs` in test if system is slow
+### E2E Tests Time Out on WASM Hydration
+- Ensure dependencies are up: `docker-compose ps`
+- Check the browser console / `e2e-logs` artifact for JS errors
+- Slow machines may need a longer hydration wait in the test
 
 ### EventStore Connection Failed
-
 Verify `ConnectionStrings:Esdb` in `appsettings.Development.json`:
 ```json
 "Esdb": "esdb://admin:changeit@localhost:2113?tls=false"
 ```
-EventStore must be running: `docker-compose up esdb`
+EventStore must be running: `docker-compose up esdb`.
 
 ### Database Migration Issues
-
-If Identity schema is out of sync:
 ```bash
 dotnet ef database drop -p src/WebApp/WebApp.csproj -f
 dotnet ef database update -p src/WebApp/WebApp.csproj
@@ -387,99 +446,42 @@ The app re-seeds `player1@email.com` on startup if missing.
 
 ---
 
-## Generated Files Policy
-
-**Never hand-edit these files** — they are auto-generated and any manual changes
-will be overwritten the next time generation runs:
-
-- `src/WebApp.Client/swagger.json` — generated by NSwag from the ASP.NET app
-- `src/Farkle.ApiClient/**` — generated by Kiota from swagger.json (single shared client
-  used by both `WebApp.Client` and `Farkle.WebTests`)
-
-To extend the API contract:
-1. Edit the DTO in `src/Farkle.Contracts/HttpResponses.cs` (or `HttpRequests.cs`)
-2. Regenerate `swagger.json`:
-   ```bash
-   dotnet build src/WebApp/WebApp.csproj -p:GenerateSwagger=true
-   ```
-3. Regenerate the Kiota client (one command — shared by all consumers):
-   ```bash
-   # Using the pinned local tool (recommended — matches the version CI uses):
-   dotnet tool restore
-   cd src/Farkle.ApiClient && dotnet kiota generate \
-     -l CSharp -d ../WebApp.Client/swagger.json \
-     -c FarkleApiClient -n Farkle.ApiClient -o . \
-     && cd -
-   ```
-   The Kiota version is pinned in `.config/dotnet-tools.json` (currently 1.31.1).
-   CI enforces that committed files match re-generated output (`verify-generated` job).
-
----
-
 ## Contributing & PR Standards
 
-- **Warnings as errors**: All compiler warnings must be resolved
-- **Event versioning**: Don't modify V1 events; create V2 with new schema
-- **E2E test videos**: Ensure videos are uploaded and linked on PR (GitHub Actions workflow)
-- **Architecture tests**: Must pass to ensure domain isolation
-- **Test coverage**: New domain logic requires unit tests; endpoints require integration tests; every new feature requires at least one E2E test covering the happy path
-- **Close issues via PR**: Every PR that resolves a GitHub issue MUST include `Closes #<issue>` (or `Fixes #<issue>`) in the PR body so GitHub auto-closes the issue on merge. Never reference an issue with just `#N` or `issue #N` — the keyword is required.
-- **TDD commit convention**: Every bug fix or feature must follow the Red–Green pattern:
-  - **Commit 1 (Red):** failing tests only — these must fail before the fix is applied.
-  - **Commit 2+ (Green):** implementation that makes the tests pass. Never mix test and fix changes in the same commit.
+- **Warnings as errors**: all compiler warnings must be resolved.
+- **Event versioning**: never modify V1 events; create a V2 with the new schema.
+- **Generated files**: regenerate and commit `swagger.json` + `Farkle.ApiClient/` after any contract change (CI enforces this).
+- **E2E test videos**: ensure videos/screenshots are uploaded and linked on the PR.
+- **Architecture/domain isolation**: keep the domain layer free of infrastructure dependencies.
+- **Test coverage**: new domain logic requires unit tests; endpoints require integration tests; every new feature requires at least one E2E test covering the happy path.
+- **Close issues via PR**: every PR that resolves an issue MUST include `Closes #<issue>` (or `Fixes #<issue>`) in the body. A bare `#N` is not enough — the keyword is required.
+- **TDD commit convention** (Red–Green):
+  - **Commit 1 (Red):** failing tests only — must fail before the fix.
+  - **Commit 2+ (Green):** implementation that makes them pass. Never mix test and fix changes in one commit.
 
 ---
 
 ## Agent Workflow for Features
 
 ### Starting a New Feature
-
-Before beginning any new work, always sync with the latest `main`:
-
+Always sync with the latest `main` first, then branch from it:
 ```bash
 git checkout main
 git pull origin main
 ```
-
-Then create a feature branch from the updated `main`. Never start a new feature from a stale or unrelated branch.
+Never start new work from a stale or unrelated branch.
 
 ### PR & CI Loop
-
-Every feature must follow this cycle:
-
-1. **Write E2E tests** covering the happy path before or alongside the implementation.
+1. **Write E2E tests** for the happy path before/alongside the implementation.
 2. **Open a PR** targeting `main` once the feature and tests are committed.
-3. **Subscribe to PR activity** using `subscribe_pr_activity` immediately after opening the PR so CI results and review comments arrive automatically — do not poll.
-4. **Wait for the `E2E Happy-Path Tests` CI job**. When the result arrives:
-   - If it passes, the feature is done — wait for the PR to be **merged** before starting the next feature.
-   - If it fails, diagnose using the logs described below and push a fix.
-
-### Diagnosing E2E Failures
-
-The CI workflow uploads two artifacts per run that contain everything needed to diagnose a failure:
-
-| Artifact | Contents |
-|----------|----------|
-| `e2e-trx-<run_id>` | Full TRX results file with error messages and stack traces |
-| `e2e-logs-<run_id>` | Structured log output captured during the test run |
-| `e2e-videos-<run_id>` | `.webm` screen recordings of each test |
-
-The PR comment posted by the workflow also surfaces failing test names and truncated error messages directly in the thread, so check the PR comment first before downloading artifacts.
-
-To make failures diagnosable, every E2E test must:
-- Use descriptive `Page.GotoAsync` URLs and `Locator` descriptions so Playwright error messages identify the failing element.
-- Emit structured log entries at key steps via the app's `ILogger` (picked up by the `e2e-logs` artifact).
-- Record a `.webm` video using `PlaywrightFixture.NewContextWithVideoAsync` — name the video file after the test method so it maps 1-to-1 to the CI artifact.
+3. **Subscribe to PR activity** with `subscribe_pr_activity` immediately after opening so CI results and review comments arrive automatically — do not poll.
+4. **Wait for CI**. The relevant signals are the `test` job and the `e2e` job:
+   - Pass → wait for the PR to be **merged** before starting the next feature.
+   - Fail → diagnose from the PR comment / artifacts and push a fix.
 
 ### 5-Commit Limit
-
-If the E2E tests are still failing after **5 commits** on the PR branch:
-
+If E2E tests are still failing after **5 commits** on the PR branch:
 1. **Close the PR** without merging.
 2. **Delete the branch**.
-3. **Open a new issue** (or add a comment to the originating issue) containing:
-   - A summary of the intended implementation.
-   - Each approach attempted and why it failed (copy error messages from the TRX/logs artifacts).
-   - The test(s) that are still failing and the last observed failure reason.
-4. **Stop work** — leave the summary for the next agent session to start fresh with full context.
-
+3. **Open a new issue** (or comment on the originating issue) summarizing: the intended implementation, each approach tried and why it failed (with error messages from the TRX/logs artifacts), and the test(s) still failing with the last observed failure reason.
+4. **Stop work** — leave the summary for the next session to start fresh with full context.
