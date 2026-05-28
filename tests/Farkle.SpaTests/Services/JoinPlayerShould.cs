@@ -3,9 +3,9 @@ using Moq;
 using RichardSzalay.MockHttp;
 using WebApp.Client.Services;
 using static Farkle.Contracts.HttpResponses;
-using static Farkle.SpaTests.GameServiceTests.MockHttpClientBUnitHelpers;
+using static Farkle.SpaTests.Services.MockHttpClientBUnitHelpers;
 
-namespace Farkle.SpaTests.GameServiceTests;
+namespace Farkle.SpaTests.Services;
 
 public class JoinPlayerShould
 {

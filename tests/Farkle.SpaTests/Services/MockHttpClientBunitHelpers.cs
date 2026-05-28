@@ -6,7 +6,7 @@ using Microsoft.Kiota.Http.HttpClientLibrary;
 using RichardSzalay.MockHttp;
 using Farkle.ApiClient;
 
-namespace Farkle.SpaTests.GameServiceTests;
+namespace Farkle.SpaTests.Services;
 
 public static class MockHttpClientBUnitHelpers
 {

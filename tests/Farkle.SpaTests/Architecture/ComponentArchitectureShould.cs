@@ -2,7 +2,7 @@ using System.Reflection;
 using FluentAssertions;
 using WebApp.Client.Pages.Game.Components;
 
-namespace Farkle.SpaTests;
+namespace Farkle.SpaTests.Architecture;
 
 public class ComponentArchitectureShould
 {
