@@ -128,6 +128,8 @@ jobs:
     permissions:
       issues: write
       pull-requests: write
+    outputs:
+      e2e_status: ${{ job.status }}
 
     steps:
       - uses: actions/checkout@v4
@@ -236,29 +238,305 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
-            const outcome = '${{ job.status }}' === 'success' ? '✅ passed' : '❌ failed';
-            const names = `${{ steps.trx.outputs.names || '' }}`;
-            const msgs  = `${{ steps.trx.outputs.msgs  || '' }}`;
+            const runId    = context.runId;
+            const runUrl   = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${runId}`;
+            const pagesUrl = `https://david-acm.github.io/farkle/runs/${runId}/`;
+            const outcome  = '${{ job.status }}' === 'success' ? '✅ passed' : '❌ failed';
+            const names    = `${{ steps.trx.outputs.names || '' }}`;
+            const msgs     = `${{ steps.trx.outputs.msgs  || '' }}`;
             const failSection = names
               ? `\n**Failed:** ${names}\n**Errors:** ${msgs}\n`
               : '';
+            const MARKER = '<!-- e2e-video-comment -->';
             const body = [
+              MARKER,
               `## E2E Happy-Path ${outcome}`,
+              '',
+              '**Watch recordings (no download needed):**',
+              `- [Run ${runId} on GitHub Pages](${pagesUrl})`,
+              `  - \`HappyPath.webm\` — Alice session`,
+              `  - \`HappyPath-Bob.webm\` — Bob session`,
               '',
               `**Screenshot** (Alice — just before first keep, download from [e2e-screenshots artifact](${runUrl}#artifacts)):`,
               `- \`before-first-keep.png\``,
               '',
-              `**Recordings** (download from [e2e-videos artifact](${runUrl}#artifacts)):`,
-              `- \`HappyPath.webm\` — Alice session (join → two-player turns until win)`,
-              `- \`HappyPath-Bob.webm\` — Bob session (join → two-player turns until win)`,
+              `**Artifacts (download):** [videos](${runUrl}#artifacts) | [screenshots](${runUrl}#artifacts)`,
               failSection,
               `[View full run](${runUrl})`,
             ].join('\n');
 
-            await github.rest.issues.createComment({
+            const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo:  context.repo.repo,
               issue_number: context.issue.number,
-              body,
             });
+            const existing = comments.find(c => c.body && c.body.includes(MARKER));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner:      context.repo.owner,
+                repo:       context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner:        context.repo.owner,
+                repo:         context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+  deploy-pages:
+    name: Publish videos to GitHub Pages
+    needs: e2e
+    if: always() && (needs.e2e.result == 'success' || needs.e2e.result == 'failure')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download e2e video artifact
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: e2e-videos-${{ github.run_id }}
+          path: downloaded-videos/
+
+      - name: Checkout or create gh-pages branch
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          REPO_URL="https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git"
+          if git clone --depth=1 --branch gh-pages "$REPO_URL" gh-pages-checkout 2>/dev/null; then
+            echo "Cloned existing gh-pages branch."
+          else
+            echo "gh-pages branch not found — creating orphan."
+            mkdir gh-pages-checkout
+            cd gh-pages-checkout
+            git init
+            git remote add origin "$REPO_URL"
+            git checkout --orphan gh-pages
+            touch .nojekyll
+            git add .nojekyll
+            git commit -m "chore: initialise gh-pages branch"
+            git push -u origin gh-pages
+            cd ..
+          fi
+
+      - name: Ensure .nojekyll exists
+        run: touch gh-pages-checkout/.nojekyll
+
+      - name: Create run directory and copy videos
+        run: |
+          RUN_DIR="gh-pages-checkout/runs/${{ github.run_id }}"
+          mkdir -p "$RUN_DIR"
+          cp downloaded-videos/*.webm "$RUN_DIR/" 2>/dev/null || true
+
+      - name: Write metadata.json
+        run: |
+          RUN_DIR="gh-pages-checkout/runs/${{ github.run_id }}"
+          PR="${{ github.event.pull_request.number }}"
+          BRANCH="${{ github.head_ref || github.ref_name }}"
+          TIMESTAMP="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          VIDEOS="["
+          SEP=""
+          for f in "$RUN_DIR"/*.webm; do
+            [ -f "$f" ] || continue
+            VIDEOS="${VIDEOS}${SEP}\"$(basename "$f")\""
+            SEP=","
+          done
+          VIDEOS="${VIDEOS}]"
+          cat > "$RUN_DIR/metadata.json" << METAEOF
+          {
+            "run_id": "${{ github.run_id }}",
+            "pr_number": "${PR}",
+            "branch": "${BRANCH}",
+            "commit_sha": "${{ github.sha }}",
+            "timestamp": "${TIMESTAMP}",
+            "status": "${{ needs.e2e.result }}",
+            "videos": ${VIDEOS}
+          }
+          METAEOF
+
+      - name: Generate per-run index.html
+        run: |
+          RUN_DIR="gh-pages-checkout/runs/${{ github.run_id }}"
+          PR="${{ github.event.pull_request.number }}"
+          BRANCH="${{ github.head_ref || github.ref_name }}"
+          COMMIT="${{ github.sha }}"
+          TIMESTAMP="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          STATUS="${{ needs.e2e.result }}"
+          REPO="${{ github.repository }}"
+
+          if [ "$STATUS" = "success" ]; then
+            BADGE='<span class="badge pass">PASSED</span>'
+          else
+            BADGE='<span class="badge fail">FAILED</span>'
+          fi
+
+          if [ -n "$PR" ]; then
+            PR_LINK="<a href=\"https://github.com/${REPO}/pull/${PR}\">#${PR}</a>"
+          else
+            PR_LINK="(manual dispatch)"
+          fi
+
+          VIDEO_SECTIONS=""
+          for f in "$RUN_DIR"/*.webm; do
+            [ -f "$f" ] || continue
+            FNAME="$(basename "$f")"
+            TESTNAME="${FNAME%.webm}"
+            VIDEO_SECTIONS="${VIDEO_SECTIONS}
+          <section>
+            <h2>${TESTNAME}</h2>
+            <video controls width=\"1280\" height=\"720\" preload=\"metadata\">
+              <source src=\"${FNAME}\" type=\"video/webm\">
+              Your browser does not support the video tag.
+            </video>
+          </section>"
+          done
+          [ -z "$VIDEO_SECTIONS" ] && VIDEO_SECTIONS='<p class="empty">No videos were recorded for this run.</p>'
+
+          cat > "$RUN_DIR/index.html" << HTMLEOF
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>E2E Run ${{ github.run_id }}</title>
+            <style>
+              body{font-family:system-ui,sans-serif;max-width:1400px;margin:0 auto;padding:1rem 2rem;background:#0d1117;color:#e6edf3}
+              h1{font-size:1.4rem;border-bottom:1px solid #30363d;padding-bottom:.5rem}
+              h2{font-size:1rem;color:#8b949e;margin:.5rem 0 .25rem}
+              .meta{background:#161b22;border:1px solid #30363d;border-radius:6px;padding:1rem;margin-bottom:1.5rem;font-size:.85rem}
+              dl{display:grid;grid-template-columns:110px 1fr;gap:.25rem .5rem}
+              dt{color:#8b949e}dd{margin:0;font-family:monospace}
+              .badge{display:inline-block;padding:.15rem .5rem;border-radius:9999px;font-size:.75rem;font-weight:600}
+              .pass{background:#1f6feb;color:#fff}.fail{background:#da3633;color:#fff}
+              section{margin-bottom:2rem}
+              video{display:block;max-width:100%;border:1px solid #30363d;border-radius:6px;background:#000}
+              .empty{color:#8b949e}a{color:#58a6ff}.back{font-size:.85rem;margin-bottom:1rem}
+            </style>
+          </head>
+          <body>
+            <p class="back"><a href="../../index.html">&larr; All runs</a></p>
+            <h1>E2E Run ${{ github.run_id }} &nbsp; ${BADGE}</h1>
+            <div class="meta">
+              <dl>
+                <dt>PR</dt><dd>${PR_LINK}</dd>
+                <dt>Branch</dt><dd>${BRANCH}</dd>
+                <dt>Commit</dt><dd><a href="https://github.com/${REPO}/commit/${COMMIT}">${COMMIT:0:8}</a></dd>
+                <dt>Timestamp</dt><dd>${TIMESTAMP}</dd>
+                <dt>Actions run</dt><dd><a href="https://github.com/${REPO}/actions/runs/${{ github.run_id }}">${{ github.run_id }}</a></dd>
+              </dl>
+            </div>
+          ${VIDEO_SECTIONS}
+          </body>
+          </html>
+          HTMLEOF
+
+      - name: Prune old runs
+        run: |
+          RUNS_DIR="gh-pages-checkout/runs"
+          [ -d "$RUNS_DIR" ] || exit 0
+          CUTOFF="$(date -u -d '90 days ago' +%s)"
+          MAX=50
+          COUNT=0
+          while IFS= read -r -d '' dir; do
+            META="$dir/metadata.json"
+            if [ -f "$META" ]; then
+              TS="$(grep -o '"timestamp": "[^"]*"' "$META" | cut -d'"' -f4)"
+              EPOCH="$(date -u -d "$TS" +%s 2>/dev/null || echo 0)"
+            else
+              EPOCH="$(stat -c %Y "$dir" 2>/dev/null || echo 0)"
+            fi
+            COUNT=$((COUNT + 1))
+            if [ "$COUNT" -gt "$MAX" ] || [ "$EPOCH" -lt "$CUTOFF" ]; then
+              echo "Pruning: $(basename "$dir")"
+              rm -rf "$dir"
+            fi
+          done < <(find "$RUNS_DIR" -mindepth 1 -maxdepth 1 -type d -print0 | sort -rz)
+          echo "Kept $((COUNT > MAX ? MAX : COUNT)) run(s)."
+
+      - name: Regenerate root index.html
+        run: |
+          RUNS_DIR="gh-pages-checkout/runs"
+          REPO="${{ github.repository }}"
+          ROWS=""
+          while IFS= read -r -d '' dir; do
+            META="$dir/metadata.json"
+            [ -f "$META" ] || continue
+            RID="$(grep -o '"run_id": "[^"]*"'    "$META" | cut -d'"' -f4)"
+            PR="$(grep -o '"pr_number": "[^"]*"'   "$META" | cut -d'"' -f4)"
+            BR="$(grep -o '"branch": "[^"]*"'      "$META" | cut -d'"' -f4)"
+            SHA="$(grep -o '"commit_sha": "[^"]*"' "$META" | cut -d'"' -f4)"
+            TS="$(grep -o '"timestamp": "[^"]*"'   "$META" | cut -d'"' -f4)"
+            ST="$(grep -o '"status": "[^"]*"'      "$META" | cut -d'"' -f4)"
+            [ -z "$RID" ] && continue
+            if [ "$ST" = "success" ]; then
+              BDGE='<span class="badge pass">PASSED</span>'
+            else
+              BDGE='<span class="badge fail">FAILED</span>'
+            fi
+            if [ -n "$PR" ]; then
+              PR_CELL="<a href=\"https://github.com/${REPO}/pull/${PR}\">#${PR}</a>"
+            else
+              PR_CELL="—"
+            fi
+            ROWS="${ROWS}
+          <tr>
+            <td>${TS}</td><td>${BDGE}</td><td>${PR_CELL}</td>
+            <td>${BR}</td>
+            <td><a href=\"https://github.com/${REPO}/commit/${SHA}\">${SHA:0:8}</a></td>
+            <td><a href=\"runs/${RID}/\">Watch</a></td>
+          </tr>"
+          done < <(find "$RUNS_DIR" -mindepth 1 -maxdepth 1 -type d -print0 2>/dev/null | sort -rz)
+          [ -z "$ROWS" ] && ROWS='<tr><td colspan="6">No runs yet.</td></tr>'
+
+          cat > "gh-pages-checkout/index.html" << INDEXEOF
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Farkle E2E Recordings</title>
+            <style>
+              body{font-family:system-ui,sans-serif;max-width:1200px;margin:0 auto;padding:1rem 2rem;background:#0d1117;color:#e6edf3}
+              h1{font-size:1.5rem;border-bottom:1px solid #30363d;padding-bottom:.5rem}
+              p{color:#8b949e;font-size:.9rem}
+              table{width:100%;border-collapse:collapse;font-size:.9rem}
+              th{text-align:left;padding:.5rem .75rem;border-bottom:2px solid #30363d;color:#8b949e}
+              td{padding:.5rem .75rem;border-bottom:1px solid #21262d;vertical-align:middle}
+              tr:hover td{background:#161b22}
+              .badge{display:inline-block;padding:.15rem .5rem;border-radius:9999px;font-size:.75rem;font-weight:600}
+              .pass{background:#1f6feb;color:#fff}.fail{background:#da3633;color:#fff}
+              a{color:#58a6ff;text-decoration:none}a:hover{text-decoration:underline}
+              td:last-child a{background:#21262d;padding:.2rem .6rem;border-radius:4px;border:1px solid #30363d}
+            </style>
+          </head>
+          <body>
+            <h1>Farkle E2E Recordings</h1>
+            <p>Last 50 runs &middot; 90-day retention &middot; newest first</p>
+            <table>
+              <thead><tr>
+                <th>Timestamp (UTC)</th><th>Status</th><th>PR</th>
+                <th>Branch</th><th>Commit</th><th>Videos</th>
+              </tr></thead>
+              <tbody>
+          ${ROWS}
+              </tbody>
+            </table>
+          </body>
+          </html>
+          INDEXEOF
+
+      - name: Commit and push to gh-pages
+        run: |
+          cd gh-pages-checkout
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Nothing to commit — already up to date."
+          else
+            git commit -m "ci: add E2E videos for run ${{ github.run_id }} [skip ci]"
+            git push origin gh-pages
