@@ -309,7 +309,26 @@ The workflow also posts failing test names + truncated error messages directly t
 
 ## Testing Patterns
 
-### Unit Tests (`Farkle.Tests`)
+### Testing Layers — what belongs where
+
+Pick the layer that can answer the question with the least machinery. Overlap is fine **only** when each layer is asserting something the others can't.
+
+| Layer | Project | Owns | Does **not** own | Heuristic |
+|---|---|---|---|---|
+| **Domain unit** | `Farkle.Tests` | All business rules: validators, scoring, state replay, event emission. Pure aggregate behaviour with `IRandom` mocked. | HTTP, DOM, DI wiring, SignalR. | *"If the test wouldn't change when we swap FastEndpoints for ASP.NET MVC, it belongs here."* |
+| **Handler unit (frontend)** | `Farkle.SpaTests/Handlers` | BlazorState `Handler` classes in isolation: mocked `IGameService`, dispatch the action, assert `GameState` mutation (`DiceInPlay`, `TurnScore`, `Scoreboard`, `Error`). No bUnit context, no DOM. | Business rules — the client is a thin shell over the API; trust service responses. Component rendering. | *"Given a state and a mocked service response, what does the store look like after?"* |
+| **Component (bUnit)** | `Farkle.SpaTests/Components` | Rendering, conditional UI (`Disabled`, visibility), event wiring (clicking Roll dispatches `RollDice.Action`), CSS-class invariants. Mocked `IGameService` + `IGameHubService`. | State-machine internals — that's the handler's job. End-to-end flows — that's E2E. | *"Given this state, does the DOM look right and do clicks fire the right actions?"* |
+| **Web integration** | `Farkle.WebTests` | HTTP contract (status codes, JSON shape), FastEndpoints routing, Eventuous round-trip, SignalR broadcast, Identity/JWT, EF migrations. Real Postgres + EventStore via Testcontainers. | Exhaustive business-rule coverage (already in domain unit) — keep to one happy + one representative error path per endpoint. Frontend rendering. | *"Does the wire format and the wiring still hold together?"* |
+| **E2E** | `Farkle.E2eTests` | Real-browser flow: WASM hydration, two-player happy path, SignalR turn flip, CSS layout, win condition. Playwright + real backend + real DB. | Edge-case business rules; every error path. Anything that would be faster and just as informative as a unit test. | *"Can a real user, in a real browser, complete a meaningful journey?"* |
+
+**Anti-patterns to avoid:**
+- Re-asserting "can't roll out of turn" in `Farkle.WebTests` — already covered by `RollShould.cs`. Integration should prove the rejection becomes an HTTP 400 with the right error payload, not re-prove the rule.
+- Driving the BlazorState `Sender` inside a bUnit component test to set up state. If the test is about handler behaviour, write it under `Handlers/` without bUnit. If it's about DOM, set state through the store and render the component.
+- Adding a UI-side copy of a domain rule (e.g. "Pass disabled until rolled") just to test it. The validator is the source of truth; the client surfaces the resulting error.
+
+### Layer-specific setup
+
+#### Unit Tests (`Farkle.Tests`)
 Base class `GameWithThreePlayersTest` mocks `IRandom` and pre-loads a three-player game:
 ```csharp
 var game = new Game(_randomProvider);
@@ -320,14 +339,19 @@ game.JoinPlayer(new JoinPlayer(1, "German"));
 ```
 Tests assert on `game.State` and `game.Changes` (emitted events). Domain tests live under `tests/Farkle.Tests/Domain/`.
 
-### Integration Tests (`Farkle.WebTests`)
+#### Integration Tests (`Farkle.WebTests`)
 `WebApplicationFactory<Program>` + Testcontainers (PostgreSQL, EventStore): full DI pipeline, real HTTP client, containers per fixture, auto-applied migrations. `GameHubShould` covers the SignalR hub.
 
-### E2E Tests (`Farkle.E2eTests`)
+#### E2E Tests (`Farkle.E2eTests`)
 Playwright (`Microsoft.Playwright` 1.50.0) drives two browser contexts (Alice + Bob) through the happy path until a win. `PlaywrightFixture.NewContextWithVideoAsync` records a `.webm` per session; `InMemoryLoggerProvider` captures structured logs into the `e2e-logs` artifact. Waits for WASM hydration (≈30s) before interacting.
 
-### Component Tests (`Farkle.SpaTests`)
-bUnit (`bunit` 2.7.2) tests for Blazor WASM components with mocked `FarkleApiClient`/`IGameService` (Moq, `RichardSzalay.MockHttp`, AutoFixture). Includes `RotationCalculator` and component-architecture tests.
+#### SPA Tests (`Farkle.SpaTests`)
+Two sub-layers in one project, separated by folder:
+
+- **`Components/`** — bUnit (`bunit` 2.7.2) component tests. Inherit `GameBunitContext` (registers MudBlazor, BlazorState, mocked `IGameService`/`IGameHubService`). Assert on rendered DOM and on what user interactions dispatch.
+- **`Handlers/`** — Plain xUnit tests against `Handler` classes. Use `HandlerTestContext` (minimal `IStore` + mocked `IGameService`). No bUnit, no DOM. Assert state-after-action.
+- `Services/` covers the `IGameService` adapter over the Kiota client (mocked HTTP).
+- `Architecture/` holds `ComponentArchitectureShould.cs` and similar invariants.
 
 ---
 

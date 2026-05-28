@@ -1,0 +1,54 @@
+@inherits GameBunitContext
+@using BlazorState
+@using MediatR
+@using Moq
+@using WebApp.Client.Features
+@using WebApp.Client.Pages.Game
+@using WebApp.Client.Pages.Game.Components
+@using static Farkle.Contracts.HttpResponses
+
+@code {
+  // B2 — Roll, Keep and Pass buttons are Disabled when !IsMyTurn and
+  //      Enabled when IsMyTurn. The bound property is forwarded by each
+  //      button to its MudButton, so we assert on the rendered <button>'s
+  //      `disabled` attribute.
+
+  [Fact]
+  public void AllThreeButtonsEnabled_WhenItIsMyTurn()
+  {
+    var cut = Render(@<Game></Game>);
+    JoinGame(cut, "Alice", assignedPlayerId: 1);   // JoinPlayer makes us the current player
+
+    foreach (var (button, label) in new[]
+    {
+      (cut.FindComponent<RollDiceButton>().Find("button"), "Roll"),
+      (cut.FindComponent<KeepButton>().Find("button"),     "Keep"),
+      (cut.FindComponent<PassTurnButton>().Find("button"), "Pass"),
+    })
+    {
+      button.HasAttribute("disabled").Should().BeFalse($"{label} must be enabled when it is the player's turn");
+    }
+  }
+
+  [Fact]
+  public async Task AllThreeButtonsDisabled_WhenItIsNotMyTurn()
+  {
+    var cut = Render(@<Game></Game>);
+    JoinGame(cut, "Alice", assignedPlayerId: 1);
+
+    // Flip current player to someone else.
+    var sender = Services.GetRequiredService<ISender>();
+    await sender.Send(new GameState.RemoteTurnChanged.Action(
+      new PassTurnResponse(GameId: 0, PlayerId: 1, NewScore: 0, Winner: null, CurrentPlayerId: 2)));
+
+    foreach (var (button, label) in new[]
+    {
+      (cut.FindComponent<RollDiceButton>().Find("button"), "Roll"),
+      (cut.FindComponent<KeepButton>().Find("button"),     "Keep"),
+      (cut.FindComponent<PassTurnButton>().Find("button"), "Pass"),
+    })
+    {
+      button.HasAttribute("disabled").Should().BeTrue($"{label} must be disabled when it is another player's turn");
+    }
+  }
+}

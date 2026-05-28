@@ -1,0 +1,44 @@
+@inherits GameBunitContext
+@using BlazorState
+@using MediatR
+@using Moq
+@using WebApp.Client.Features
+@using WebApp.Client.Pages.Game
+@using static Farkle.Contracts.HttpResponses
+
+@code {
+  // B3 — Turn indicator: my-turn-indicator when IsMyTurn,
+  //                      waiting-indicator with opponent name otherwise.
+
+  [Fact]
+  public void ShowMyTurnIndicator_AfterJoining()
+  {
+    var cut = Render(@<Game></Game>);
+    JoinGame(cut, "Alice", assignedPlayerId: 1);
+
+    cut.Find("[data-testid='my-turn-indicator']")
+      .TextContent.Should().Contain("your turn");
+    cut.FindAll("[data-testid='waiting-indicator']").Should().BeEmpty();
+  }
+
+  [Fact]
+  public async Task ShowWaitingIndicatorWithOpponentName_WhenItIsNotMyTurn()
+  {
+    var cut = Render(@<Game></Game>);
+    JoinGame(cut, "Alice", assignedPlayerId: 1);
+
+    var sender = Services.GetRequiredService<ISender>();
+    await sender.Send(new GameState.RemoteTurnChanged.Action(
+      new PassTurnResponse(
+        GameId:          0,
+        PlayerId:        1,
+        NewScore:        0,
+        Winner:          null,
+        CurrentPlayerId: 2,
+        Scoreboard:      [new PlayerScore(1, "Alice", 0), new PlayerScore(2, "Bob", 0)])));
+
+    var waiting = cut.Find("[data-testid='waiting-indicator']");
+    waiting.TextContent.Should().Contain("Bob");
+    cut.FindAll("[data-testid='my-turn-indicator']").Should().BeEmpty();
+  }
+}

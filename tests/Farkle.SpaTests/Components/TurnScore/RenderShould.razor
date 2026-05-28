@@ -1,0 +1,47 @@
+@inherits BunitContext
+@using BlazorState
+@using MediatR
+@using Moq
+@using Farkle.Contracts
+@using WebApp.Client.Services
+@* Do not @using WebApp.Client.Features here — its TurnScore record collides
+   with the TurnScore component in Pages.Game.Components (already imported
+   globally via _Imports.razor). Reference GameState by full name below. *@
+
+@code {
+  // B6 — TurnScore component reads from GameState.TurnScore and re-renders
+  // when state changes.
+
+  [Fact]
+  public void RenderInitialZeroScore()
+  {
+    JSInterop.Mode = JSRuntimeMode.Loose;
+    Services.AddBlazorState(o => o.Assemblies = [typeof(WebApp.Client.Features.GameState).Assembly]);
+
+    var cut = Render(@<TurnScore></TurnScore>);
+
+    cut.Find("h3").TextContent.Should().Contain("0");
+  }
+
+  [Fact]
+  public async Task UpdateRenderedScore_WhenKeepDiceResponseSetsIt()
+  {
+    JSInterop.Mode = JSRuntimeMode.Loose;
+    var gameService = Mock.Of<IGameService>();
+    Services.AddScoped<IGameService>(_ => gameService);
+    Services.AddBlazorState(o => o.Assemblies = [typeof(WebApp.Client.Features.GameState).Assembly]);
+
+    var cut = Render(@<TurnScore></TurnScore>);
+    cut.Find("h3").TextContent.Should().Contain("0");
+
+    // Trigger the only legitimate state path that mutates TurnScore on the
+    // client: a successful KeepDice with the score the server returned.
+    Mock.Get(gameService)
+      .Setup(s => s.KeepDiceAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<IEnumerable<int>>()))
+      .ReturnsAsync(new HttpResponses.KeepDiceResponse(0, 200));
+    var sender = Services.GetRequiredService<ISender>();
+    await sender.Send(new WebApp.Client.Features.GameState.KeepDice.Action());
+
+    cut.WaitForAssertion(() => cut.Find("h3").TextContent.Should().Contain("200"));
+  }
+}

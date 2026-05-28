@@ -6,7 +6,7 @@ using MudBlazor.Services;
 using WebApp.Client.Services;
 using static Farkle.Contracts.HttpResponses;
 
-namespace Farkle.SpaTests.GameTests;
+namespace Farkle.SpaTests;
 
 public class GameBunitContext : BunitContext
 {
