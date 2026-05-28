@@ -1,0 +1,109 @@
+<h3>DiceSetAsideStaleShould</h3>
+@using Ardalis.Result
+@using BlazorState
+@using Farkle.Contracts
+@using MediatR
+@using Moq
+@using MudBlazor.Services
+@using WebApp.Client.Features
+@using WebApp.Client.Pages.Game
+@using WebApp.Client.Pages.Game.Components
+@using WebApp.Client.Services
+@inherits GameBunitContext
+
+@code {
+  // Reproduces the "more dice are sent than the UI shows" bug: dropping a die
+  // onto the SetAside zone it is *already* in (which MudDropContainer happily
+  // fires for a same-zone drop) re-runs the handler and the denormalized
+  // DiceSetAside list gets another copy of the value. The UI still shows one
+  // die set aside.
+  [Fact]
+  public async Task NotDuplicateDie_WhenDroppedOnSetAsideTwice()
+  {
+    var gameId = new GameId(10);
+    Mock.Get(GameService)
+      .Setup(s => s.StartGameAsync(It.IsAny<int>()))
+      .ReturnsAsync(gameId);
+    Mock.Get(GameService)
+      .Setup(s => s.RollDiceAsync(It.IsAny<int>(), It.IsAny<int>()))
+      .ReturnsAsync(Result<IList<DieValue>>.Success(new List<DieValue> { DieValue.Five }));
+
+    // Snapshot the dice argument before KeepDice clears the list.
+    List<int>? capturedDice = null;
+    Mock.Get(GameService)
+      .Setup(s => s.KeepDiceAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<IEnumerable<int>>()))
+      .Callback<int, int, IEnumerable<int>>((_, _, d) => capturedDice = d.ToList())
+      .ReturnsAsync(new HttpResponses.KeepDiceResponse(gameId, 0));
+
+    var game = Render<Game>(@<Game ParameterGameId="gameId"/>);
+    JoinGame(game);
+
+    await game.FindComponent<RollDiceButton>().Find("button").ClickAsync(new MouseEventArgs());
+
+    // Drop the same Five onto SetAside twice (MudDropContainer fires
+    // ItemDropped even when the target zone equals the source zone).
+    var sender = Services.GetRequiredService<ISender>();
+    await sender.Send(new GameState.SetDiceAside.Action(new DraggableDie(0, DieValue.Five, "SetAside")));
+    await sender.Send(new GameState.SetDiceAside.Action(new DraggableDie(0, DieValue.Five, "SetAside")));
+
+    var state = Services.GetRequiredService<IStore>().GetState<GameState>();
+    state.DiceInPlay.Count(d => d.Identifier == "SetAside")
+      .Should().Be(1, "the UI shows a single die set aside");
+
+    await game.FindComponent<KeepButton>().Find("button").ClickAsync(new MouseEventArgs());
+
+    capturedDice.Should().NotBeNull("KeepDiceAsync should have been called");
+    capturedDice!.Should().ContainSingle()
+      .Which.Should().Be(5, "the server must receive exactly what the UI shows");
+  }
+
+  // Reproduces the cross-turn leak: if a turn ends remotely while we had a die
+  // set aside, the parallel DiceSetAside list is not cleared and the stale
+  // value leaks into the next turn's Keep call.
+  [Fact]
+  public async Task ClearDiceSetAside_WhenTurnChangesRemotely()
+  {
+    var gameId = new GameId(10);
+    Mock.Get(GameService)
+      .Setup(s => s.StartGameAsync(It.IsAny<int>()))
+      .ReturnsAsync(gameId);
+    Mock.Get(GameService)
+      .Setup(s => s.RollDiceAsync(It.IsAny<int>(), It.IsAny<int>()))
+      .ReturnsAsync(Result<IList<DieValue>>.Success(new List<DieValue> { DieValue.Five }));
+
+    List<int>? capturedDice = null;
+    Mock.Get(GameService)
+      .Setup(s => s.KeepDiceAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<IEnumerable<int>>()))
+      .Callback<int, int, IEnumerable<int>>((_, _, d) => capturedDice = d.ToList())
+      .ReturnsAsync(new HttpResponses.KeepDiceResponse(gameId, 0));
+
+    var game = Render<Game>(@<Game ParameterGameId="gameId"/>);
+    JoinGame(game);
+
+    // Turn 1 (ours): roll, drag the die aside, then the turn rotates remotely
+    // before we click Keep.
+    await game.FindComponent<RollDiceButton>().Find("button").ClickAsync(new MouseEventArgs());
+    var sender = Services.GetRequiredService<ISender>();
+    await sender.Send(new GameState.SetDiceAside.Action(new DraggableDie(0, DieValue.Five, "SetAside")));
+
+    await sender.Send(new GameState.RemoteTurnChanged.Action(
+      new HttpResponses.PassTurnResponse(gameId, PlayerId: 1, NewScore: 0, Winner: null, CurrentPlayerId: 2)));
+
+    // …opponent plays, then the turn comes back to us.
+    await sender.Send(new GameState.RemoteTurnChanged.Action(
+      new HttpResponses.PassTurnResponse(gameId, PlayerId: 2, NewScore: 0, Winner: null, CurrentPlayerId: 1)));
+
+    // Turn 2 (ours again): fresh roll of a single One, set it aside, Keep.
+    Mock.Get(GameService)
+      .Setup(s => s.RollDiceAsync(It.IsAny<int>(), It.IsAny<int>()))
+      .ReturnsAsync(Result<IList<DieValue>>.Success(new List<DieValue> { DieValue.One }));
+
+    await game.FindComponent<RollDiceButton>().Find("button").ClickAsync(new MouseEventArgs());
+    await sender.Send(new GameState.SetDiceAside.Action(new DraggableDie(0, DieValue.One, "SetAside")));
+    await game.FindComponent<KeepButton>().Find("button").ClickAsync(new MouseEventArgs());
+
+    capturedDice.Should().NotBeNull("KeepDiceAsync should have been called");
+    capturedDice!.Should().ContainSingle()
+      .Which.Should().Be(1, "only this turn's set-aside die should be sent, not last turn's stale Five");
+  }
+}

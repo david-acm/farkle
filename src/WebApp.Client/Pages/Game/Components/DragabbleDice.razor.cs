@@ -15,13 +15,12 @@ public partial class DragabbleDice : BlazorStateComponent
 
   private async Task ItemUpdatedAsync(MudItemDropInfo<DraggableDie> dropItem)
   {
-    var item = Guard.Against.Null(dropItem.Item);
-
+    var item       = Guard.Against.Null(dropItem.Item);
     var identifier = dropItem.DropzoneIdentifier;
-    dropItem.Item.Identifier = identifier;
-    await Mediator.Send(new GameState.SetDiceAside.Action(item));
+
+    // Pass the target zone via the action; the handler owns the mutation.
+    await Mediator.Send(new GameState.SetDiceAside.Action(item, identifier));
 
     Logger.LogDebug("Dropped item with identifier: {identifier}", identifier);
-    await Task.CompletedTask;
   }
 }
