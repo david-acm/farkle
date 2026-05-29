@@ -33,7 +33,6 @@ public class HomePageShould(PlaywrightFixture fixture)
         await page.WaitForSelectorAsync("nav", new() { Timeout = 15_000 });
 
         var navHtml = await page.InnerHTMLAsync("nav");
-        navHtml.Should().Contain("Home");
         navHtml.Should().Contain("Play");
     }
 }

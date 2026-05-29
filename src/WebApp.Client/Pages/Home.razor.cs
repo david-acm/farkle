@@ -20,8 +20,23 @@ public partial class Home : BlazorStateComponent
   {
     if (string.IsNullOrWhiteSpace(_startName)) return;
 
-    await Mediator.Send(new GameState.CreateGame.Action());
+    try
+    {
+      await Mediator.Send(new GameState.CreateGame.Action());
+    }
+    catch (Exception ex)
+    {
+      Logger.LogWarning(ex, "Failed to create a new game");
+      return;
+    }
+
     var id = GetState<GameState>().GameId.Value;
+    if (id <= 0)
+    {
+      Logger.LogWarning("Game creation returned no id; staying on the landing page");
+      return;
+    }
+
     Logger.LogInformation("Created game {GameId}; navigating with host name {Name}", id, _startName);
     Nav.NavigateTo($"/games/{id}?name={Uri.EscapeDataString(_startName)}");
   }
