@@ -14,8 +14,13 @@ internal static class GameValidator
         state.GameStage == GameStage.None,
         new GameAlreadyStarted(e.Id)),
       PlayerJoined => Validate(
-        state.GameStage == GameStage.Rolling,
+        state.GameStage == GameStage.WaitingForPlayers,
         new GameHasNotStarted(state.GameStage)),
+      GamePlayStarted e =>
+        new GameIsWaitingForPlayers(state)
+          .And(new HasMinimumPlayers(state))
+          .And(new RequesterIsHost(state, e.StartedByPlayerId))
+          .IsSatisfied(),
       GameEvents.V1.DiceRolled e =>
         new PlayerIsInTurn(state, e.PlayerId).And(new SingleRoll(state, e.PlayerId)).IsSatisfied(),
       GameEvents.V2.DiceRolled e =>
@@ -225,6 +230,59 @@ internal class PlayerIsInTurn : Validator
   {
     return new ValidationResult(_state.PlayerInTurn == _playerId,
       new PlayedOutOfTurn(_playerId, _state.PlayerInTurn));
+  }
+}
+
+internal class GameIsWaitingForPlayers : Validator
+{
+  private readonly GameState _state;
+
+  public GameIsWaitingForPlayers(GameState state)
+  {
+    _state = state;
+  }
+
+  public override ValidationResult IsSatisfied()
+  {
+    return new ValidationResult(_state.GameStage == GameStage.WaitingForPlayers,
+      new GameAlreadyInPlay(_state.GameStage));
+  }
+}
+
+internal class HasMinimumPlayers : Validator
+{
+  internal const int Minimum = 2;
+  private readonly GameState _state;
+
+  public HasMinimumPlayers(GameState state)
+  {
+    _state = state;
+  }
+
+  public override ValidationResult IsSatisfied()
+  {
+    return new ValidationResult(_state.Players.Length >= Minimum,
+      new NotEnoughPlayers(_state.Players.Length));
+  }
+}
+
+internal class RequesterIsHost : Validator
+{
+  private readonly GameState _state;
+  private readonly int       _playerId;
+
+  public RequesterIsHost(GameState state, int playerId)
+  {
+    _state    = state;
+    _playerId = playerId;
+  }
+
+  public override ValidationResult IsSatisfied()
+  {
+    // The host is the first player to join (player id 1, the game creator).
+    var hostId = _state.Players.IsEmpty ? 0 : _state.Players[0].Id;
+    return new ValidationResult(_playerId == hostId,
+      new OnlyHostCanStartGame(_playerId, hostId));
   }
 }
 

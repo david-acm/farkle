@@ -29,6 +29,11 @@ internal class Game : Aggregate<GameState>
     Apply(new GameEvents.V1.PlayerJoined(newId, joinPlayer.Name));
   }
 
+  public void BeginGame(Command.BeginGame beginGame)
+  {
+    Apply(new GameEvents.V1.GamePlayStarted(beginGame.PlayerId));
+  }
+
   public void RollDiceV1(Command.RollDice rollDice)
   {
     var roll = Dice.FromNewRoll(
@@ -170,5 +175,8 @@ internal enum GameStage
   None,
   Rolling,
   Keeping,
-  Finished
+  Finished,
+  // Appended at the end to preserve existing ordinals: V2 events serialize GameStage,
+  // so inserting a value mid-enum would corrupt already-stored events.
+  WaitingForPlayers
 }

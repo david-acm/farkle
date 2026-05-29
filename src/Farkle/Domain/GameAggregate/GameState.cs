@@ -11,6 +11,7 @@ internal record GameState : State<GameState>
   {
     On<V1.GameStarted>(HandleGameStarted);
     On<V1.PlayerJoined>(HandlePlayerJoined);
+    On<V1.GamePlayStarted>(HandleGamePlayStarted);
     On<V1.DiceRolled>(HandleDiceRolled);
     On<V2.DiceRolled>(HandleDiceRolledV2);
     On<V1.TurnPassed>(HandleTurnPassed);
@@ -115,7 +116,12 @@ internal record GameState : State<GameState>
 
   private static GameState HandleGameStarted(GameState gameState, GameEvents.V1.GameStarted e)
   {
-    return gameState with { Id = e.Id, GameStage = GameStage.Rolling };
+    return gameState with { Id = e.Id, GameStage = GameStage.WaitingForPlayers };
+  }
+
+  private static GameState HandleGamePlayStarted(GameState state, GameEvents.V1.GamePlayStarted e)
+  {
+    return state with { GameStage = GameStage.Rolling };
   }
 
   private static GameState HandleGameWon(GameState state, GameEvents.V1.GameWon e)

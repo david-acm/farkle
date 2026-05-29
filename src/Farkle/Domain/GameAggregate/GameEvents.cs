@@ -45,6 +45,9 @@ internal static class GameEvents
     [EventType("V1.PlayerJoined")]
     internal record PlayerJoined(int Id, string Name);
 
+    [EventType("V1.GamePlayStarted")]
+    internal record GamePlayStarted(int StartedByPlayerId);
+
     [EventType("V1.DiceRolled")]
     internal record DiceRolled(int PlayerId, int[] Dice, Score TurnScore);
 
@@ -62,6 +65,15 @@ internal static class GameEvents
 
     [EventType("V1.PassedWithoutRolling")]
     internal record PassedWithoutRolling(int PlayerId) : IErrorEvent;
+
+    [EventType("V1.OnlyHostCanStartGame")]
+    internal record OnlyHostCanStartGame(int PlayerId, int HostId) : IErrorEvent;
+
+    [EventType("V1.NotEnoughPlayers")]
+    internal record NotEnoughPlayers(int PlayerCount) : IErrorEvent;
+
+    [EventType("V1.GameAlreadyInPlay")]
+    internal record GameAlreadyInPlay(GameStage Stage) : IErrorEvent;
 
     [EventType("V1.GameWon")]
     internal record GameWon(int PlayerId, int Score);

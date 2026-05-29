@@ -2,8 +2,22 @@
 
 public static class HttpResponses
 {
-  public record JoinPlayerResponse(int Id, int CurrentPlayerId);
-  
+  public record JoinPlayerResponse(
+    int Id,
+    int CurrentPlayerId,
+    int HostPlayerId = 0,
+    string Stage = "",
+    IReadOnlyList<LobbyPlayer>? Players = null);
+
+  public record LobbyPlayer(int PlayerId, string Name);
+
+  public record LobbyStateResponse(
+    int GameId,
+    string Stage,
+    IReadOnlyList<LobbyPlayer> Players,
+    int HostPlayerId,
+    int CurrentPlayerId);
+
   public record PlayerScore(int PlayerId, string Name, int Score);
   
   public record KeepDiceResponse(int Id, int TurnScore);

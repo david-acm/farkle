@@ -22,6 +22,11 @@ internal class GameService
       .InState(Existing)
       .Execute((game, cmd) => game.JoinPlayer(cmd));
 
+    On<Command.BeginGame>()
+      .InState(Existing)
+      .GetId(cmd => new GameId(cmd.GameId))
+      .Execute((game, cmd) => game.BeginGame(cmd));
+
     On<Command.RollDice>()
       .InState(Existing)
       .GetId(cmd => new GameId(cmd.GameId))
