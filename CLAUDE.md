@@ -285,10 +285,11 @@ Migrations are applied automatically on startup (outside the `NSwag` environment
 ## Continuous Integration
 
 ### `.github/workflows/e2e-happy-path.yml` (name: **CI**) — runs on PRs to `main`
-Three jobs:
+Four jobs:
 1. **`test` (Unit & Integration Tests)** — restores/builds `Farkle.sln`, runs unit → integration (pulls `eventstore:23.10.0` + `postgres:16-alpine` for Testcontainers) → SPA component tests, with coverage uploaded to Codecov and TRX artifacts.
 2. **`verify-generated`** — regenerates `swagger.json` (`-p:GenerateSwagger=true`) and the Kiota client, then **fails if the committed generated files differ**. Installs both .NET 8 and 10 SDKs + `wasm-tools`.
-3. **`e2e`** — installs Playwright Chromium, runs the `GameHappyPath` E2E test (two players, Alice + Bob), uploads videos/screenshots/logs/TRX, and posts a PR comment with results and a failure summary parsed from the TRX.
+3. **`e2e`** — installs Playwright Chromium, runs the `GameHappyPath` E2E test (two players, Alice + Bob), and uploads videos/screenshots/logs/TRX. On failure it parses failing test names + messages from the TRX into job outputs (`fail_names`/`fail_msgs`) for the `deploy-pages` job to surface.
+4. **`deploy-pages`** (`needs: e2e`, `if: always()`) — publishes E2E videos to a GitHub Pages static site so reviewers can **watch recordings inline** without downloading artifacts. It downloads the `e2e-videos` artifact, clones (or orphan-creates) the `gh-pages` branch, runs `.github/scripts/generate-pages.sh` to write `runs/{run_id}/` (videos + `metadata.json` + a per-run `index.html` with embedded `<video>` tags) and regenerate the root `index.html` (newest-first table of all runs), prunes runs older than 90 days or beyond the newest 50, pushes to `gh-pages`, and **upserts** a single PR comment (marker `<!-- e2e-video-report -->`) linking to `https://david-acm.github.io/farkle/runs/{run_id}/`. Uses only `GITHUB_TOKEN` (`contents: write`). The generator logic is covered by `tests/scripts/generate-pages.test.sh` (run manually). **One-time setup:** a repo admin must enable Pages (Settings → Pages → Deploy from a branch → `gh-pages` / `/`).
 
 ### `.github/workflows/codeql.yml` (name: **CodeQL**)
 Runs on push/PR to `main` and weekly (Mon 08:00 UTC). Builds the solution and runs CodeQL C# analysis.
@@ -303,7 +304,7 @@ The `e2e` job uploads:
 | `e2e-videos-<run_id>` | `.webm` recordings (e.g. `HappyPath.webm`, `HappyPath-Bob.webm`) |
 | `e2e-screenshots-<run_id>` | PNGs (e.g. `before-first-keep.png`) |
 
-The workflow also posts failing test names + truncated error messages directly to the PR. **Check the PR comment first** before downloading artifacts.
+The workflow also posts failing test names + truncated error messages directly to the PR (in the upserted `deploy-pages` comment, alongside the inline-video link). **Check the PR comment first** before downloading artifacts — and use the GitHub Pages link to watch the recordings in-browser.
 
 ---
 

@@ -128,6 +128,9 @@ jobs:
     permissions:
       issues: write
       pull-requests: write
+    outputs:
+      fail_names: ${{ steps.trx.outputs.names }}
+      fail_msgs: ${{ steps.trx.outputs.msgs }}
 
     steps:
       - uses: actions/checkout@v4
@@ -231,34 +234,111 @@ jobs:
             echo "msgs="          >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Comment on PR with video link
-        if: always() && github.event_name == 'pull_request'
+  deploy-pages:
+    name: Publish E2E videos to GitHub Pages
+    needs: e2e
+    if: always() && github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout source (for the page generator)
+        uses: actions/checkout@v4
+
+      - name: Download E2E videos artifact
+        # Infra failures before Playwright runs leave no artifact; we still want
+        # to publish a run page with failure metadata, so don't fail the job.
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: e2e-videos-${{ github.run_id }}
+          path: videos
+
+      - name: Prepare gh-pages working tree
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          REMOTE="https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          if git clone --quiet --branch gh-pages --single-branch "$REMOTE" gh-pages 2>/dev/null; then
+            echo "Cloned existing gh-pages branch."
+          else
+            echo "gh-pages branch not found — creating an orphan branch."
+            git clone --quiet "$REMOTE" gh-pages
+            git -C gh-pages checkout --orphan gh-pages
+            git -C gh-pages rm -rf --quiet . 2>/dev/null || true
+          fi
+          git -C gh-pages config user.name  "github-actions[bot]"
+          git -C gh-pages config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Generate pages
+        env:
+          PAGES_DIR: ${{ github.workspace }}/gh-pages
+          VIDEOS_DIR: ${{ github.workspace }}/videos
+          RUN_ID: ${{ github.run_id }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          BRANCH: ${{ github.head_ref }}
+          COMMIT_SHA: ${{ github.event.pull_request.head.sha }}
+          STATUS: ${{ needs.e2e.result }}
+          REPO: ${{ github.repository }}
+        run: bash .github/scripts/generate-pages.sh
+
+      - name: Commit and push to gh-pages
+        working-directory: gh-pages
+        run: |
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to publish."
+          else
+            git commit --quiet -m "ci: publish e2e videos for run ${{ github.run_id }}"
+            git push origin HEAD:gh-pages
+          fi
+
+      - name: Upsert PR comment with GitHub Pages link
         uses: actions/github-script@v7
+        env:
+          E2E_RESULT: ${{ needs.e2e.result }}
+          FAIL_NAMES: ${{ needs.e2e.outputs.fail_names }}
+          FAIL_MSGS:  ${{ needs.e2e.outputs.fail_msgs }}
         with:
           script: |
-            const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
-            const outcome = '${{ job.status }}' === 'success' ? '✅ passed' : '❌ failed';
-            const names = `${{ steps.trx.outputs.names || '' }}`;
-            const msgs  = `${{ steps.trx.outputs.msgs  || '' }}`;
-            const failSection = names
+            const owner = context.repo.owner;
+            const repo  = context.repo.repo;
+            const runId = context.runId;
+            const result  = process.env.E2E_RESULT || 'unknown';
+            const outcome = result === 'success' ? '✅ passed' : '❌ failed';
+            const names = (process.env.FAIL_NAMES || '').trim();
+            const msgs  = (process.env.FAIL_MSGS  || '').trim();
+            const failSection = (names && names !== '(no TRX)')
               ? `\n**Failed:** ${names}\n**Errors:** ${msgs}\n`
               : '';
+
+            const pagesRun  = `https://${owner}.github.io/${repo}/runs/${runId}/`;
+            const pagesRoot = `https://${owner}.github.io/${repo}/`;
+            const actionsRun = `https://github.com/${owner}/${repo}/actions/runs/${runId}`;
+
+            const marker = '<!-- e2e-video-report -->';
             const body = [
+              marker,
               `## E2E Happy-Path ${outcome}`,
               '',
-              `**Screenshot** (Alice — just before first keep, download from [e2e-screenshots artifact](${runUrl}#artifacts)):`,
-              `- \`before-first-keep.png\``,
+              `▶️ **[Watch the recordings inline](${pagesRun})** — plays in your browser, no download needed.`,
               '',
-              `**Recordings** (download from [e2e-videos artifact](${runUrl}#artifacts)):`,
-              `- \`HappyPath.webm\` — Alice session (join → two-player turns until win)`,
-              `- \`HappyPath-Bob.webm\` — Bob session (join → two-player turns until win)`,
+              `[All runs](${pagesRoot}) · [Actions run](${actionsRun})`,
               failSection,
-              `[View full run](${runUrl})`,
             ].join('\n');
 
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo:  context.repo.repo,
-              issue_number: context.issue.number,
-              body,
+            const { data: comments } = await github.rest.issues.listComments({
+              owner, repo, issue_number: context.issue.number, per_page: 100,
             });
+            const existing = comments.find(c => c.body && c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({
+                owner, repo, issue_number: context.issue.number, body,
+              });
+            }
