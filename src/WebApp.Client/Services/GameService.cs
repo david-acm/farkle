@@ -35,7 +35,7 @@ public class GameService : IGameService
       response?.CurrentPlayerId ?? 0,
       response?.HostPlayerId ?? 0,
       response?.Stage ?? "",
-      ToLobbyPlayers(response?.Players));
+      ToRoster(response?.Roster));
   }
 
   public async Task<LobbyStateResponse> BeginGameAsync(int gameId, int playerId)
@@ -46,14 +46,14 @@ public class GameService : IGameService
     return new LobbyStateResponse(
       response?.GameId ?? gameId,
       response?.Stage ?? "",
-      ToLobbyPlayers(response?.Players) ?? [],
+      ToRoster(response?.Roster) ?? [],
       response?.HostPlayerId ?? 0,
       response?.CurrentPlayerId ?? 0);
   }
 
-  private static IReadOnlyList<LobbyPlayer>? ToLobbyPlayers(
-    List<KiotaModels.FarkleContractsHttpResponses_LobbyPlayer>? players) =>
-    players?.Select(p => new LobbyPlayer(p.PlayerId ?? 0, p.Name ?? "")).ToArray();
+  private static IReadOnlyList<LobbyPlayer>? ToRoster(
+    List<KiotaModels.FarkleContractsHttpResponses_LobbyPlayer>? roster) =>
+    roster?.Select(p => new LobbyPlayer(p.PlayerId ?? 0, p.Name ?? "")).ToArray();
 
   public async Task<KeepDiceResponse> KeepDiceAsync(int gameId, int playerId, IEnumerable<int> diceToKeep)
   {

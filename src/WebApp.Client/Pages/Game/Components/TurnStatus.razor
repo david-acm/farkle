@@ -1,0 +1,30 @@
+@inherits BlazorState.BlazorStateComponent
+@using WebApp.Client.Features
+
+<MudText Class="mt-6" Typo="Typo.h5">
+  Roll the dice and don't Farkle!
+</MudText>
+<MudText Typo="Typo.subtitle1">
+  Playing as: <strong>@GameState.PlayerName.Value</strong>
+</MudText>
+@{
+  var waitingFor = GameState.Scoreboard
+      .FirstOrDefault(p => p.PlayerId == GameState.CurrentPlayerId)?.Name
+      ?? $"Player {GameState.CurrentPlayerId}";
+}
+@if (GameState.IsMyTurn)
+{
+  <MudAlert Severity="Severity.Success" Dense="true" Class="mt-2" data-testid="my-turn-indicator">
+    It's your turn!
+  </MudAlert>
+}
+else
+{
+  <MudAlert Severity="Severity.Info" Dense="true" Class="mt-2" data-testid="waiting-indicator">
+    Waiting for @waitingFor…
+  </MudAlert>
+}
+
+@code {
+  private GameState GameState => GetState<GameState>();
+}

@@ -34,7 +34,7 @@ internal class JoinPlayerEndpoint(
             s.PlayerInTurn,
             lobby.HostPlayerId,
             lobby.Stage,
-            lobby.Players);
+            lobby.Roster);
         });
 
     if (lobby is not null)

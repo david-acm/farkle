@@ -240,10 +240,10 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
         Assert.NotNull(second);
         Assert.Equal("WaitingForPlayers", second!.Stage);
         Assert.Equal(1, second.HostPlayerId);
-        Assert.NotNull(second.Players);
-        Assert.Equal(2, second.Players!.Count);
-        Assert.Contains(second.Players, p => p.Name == "David");
-        Assert.Contains(second.Players, p => p.Name == "Allison");
+        Assert.NotNull(second.Roster);
+        Assert.Equal(2, second.Roster!.Count);
+        Assert.Contains(second.Roster, p => p.Name == "David");
+        Assert.Contains(second.Roster, p => p.Name == "Allison");
     }
 
     [Fact]
@@ -259,7 +259,7 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
 
         Assert.NotNull(lobby);
         Assert.Equal("Rolling", lobby!.Stage);
-        Assert.Equal(2, lobby.Players!.Count);
+        Assert.Equal(2, lobby.Roster!.Count);
     }
 
     [Fact]

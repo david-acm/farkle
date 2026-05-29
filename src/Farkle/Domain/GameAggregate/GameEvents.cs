@@ -70,7 +70,7 @@ internal static class GameEvents
     internal record OnlyHostCanStartGame(int PlayerId, int HostId) : IErrorEvent;
 
     [EventType("V1.NotEnoughPlayers")]
-    internal record NotEnoughPlayers(int PlayerCount) : IErrorEvent;
+    internal record NotEnoughPlayers(int PlayerCount, int Minimum) : IErrorEvent;
 
     [EventType("V1.GameAlreadyInPlay")]
     internal record GameAlreadyInPlay(GameStage Stage) : IErrorEvent;

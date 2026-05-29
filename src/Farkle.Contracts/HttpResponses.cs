@@ -7,14 +7,14 @@ public static class HttpResponses
     int CurrentPlayerId,
     int HostPlayerId = 0,
     string Stage = "",
-    IReadOnlyList<LobbyPlayer>? Players = null);
+    IReadOnlyList<LobbyPlayer>? Roster = null);
 
   public record LobbyPlayer(int PlayerId, string Name);
 
   public record LobbyStateResponse(
     int GameId,
     string Stage,
-    IReadOnlyList<LobbyPlayer> Players,
+    IReadOnlyList<LobbyPlayer> Roster,
     int HostPlayerId,
     int CurrentPlayerId);
 

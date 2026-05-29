@@ -131,7 +131,7 @@ public class GameHubShould : IClassFixture<GameApiWebAppFactory>
         var lobby = await tcs.Task;
         Assert.Equal(gameId, lobby.GameId);
         Assert.Equal("WaitingForPlayers", lobby.Stage);
-        Assert.Contains(lobby.Players, p => p.Name == "David");
+        Assert.Contains(lobby.Roster, p => p.Name == "David");
 
         await connection.DisposeAsync();
     }

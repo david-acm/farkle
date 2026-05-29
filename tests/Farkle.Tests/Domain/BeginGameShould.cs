@@ -59,6 +59,7 @@ public class BeginGameShould
     game.State.GameStage.Should().Be(WaitingForPlayers);
     var error = game.Changes.Should().ContainSingleEvent<NotEnoughPlayers>();
     error!.PlayerCount.Should().Be(1);
+    error.Minimum.Should().Be(2);
   }
 
   [Fact]

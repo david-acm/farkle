@@ -18,7 +18,7 @@ public partial class GameState
         var p = action.Payload;
         State.GameStage    = p.Stage;
         State.HostPlayerId = p.HostPlayerId;
-        State.Roster       = p.Players
+        State.Roster       = p.Roster
           .Select(lp => new PlayerStanding(lp.PlayerId, lp.Name, 0))
           .ToList();
         return Task.CompletedTask;

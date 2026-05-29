@@ -17,7 +17,7 @@ public class HandleShould : HandlerTestContext
       .ReturnsAsync(new LobbyStateResponse(
         GameId: 7,
         Stage: "Rolling",
-        Players: [new LobbyPlayer(1, "Alice"), new LobbyPlayer(2, "Bob")],
+        Roster: [new LobbyPlayer(1, "Alice"), new LobbyPlayer(2, "Bob")],
         HostPlayerId: 1,
         CurrentPlayerId: 1));
 
@@ -35,7 +35,7 @@ public class HandleShould : HandlerTestContext
     var payload = new LobbyStateResponse(
       GameId: 7,
       Stage: "WaitingForPlayers",
-      Players: [new LobbyPlayer(1, "Alice"), new LobbyPlayer(2, "Bob")],
+      Roster: [new LobbyPlayer(1, "Alice"), new LobbyPlayer(2, "Bob")],
       HostPlayerId: 1,
       CurrentPlayerId: 1);
 
@@ -53,7 +53,7 @@ public class HandleShould : HandlerTestContext
     var payload = new LobbyStateResponse(
       GameId: 7,
       Stage: "Rolling",
-      Players: [new LobbyPlayer(1, "Alice"), new LobbyPlayer(2, "Bob")],
+      Roster: [new LobbyPlayer(1, "Alice"), new LobbyPlayer(2, "Bob")],
       HostPlayerId: 1,
       CurrentPlayerId: 1);
 

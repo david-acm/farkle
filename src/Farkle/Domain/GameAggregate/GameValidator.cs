@@ -262,7 +262,7 @@ internal class HasMinimumPlayers : Validator
   public override ValidationResult IsSatisfied()
   {
     return new ValidationResult(_state.Players.Length >= Minimum,
-      new NotEnoughPlayers(_state.Players.Length));
+      new NotEnoughPlayers(_state.Players.Length, Minimum));
   }
 }
 

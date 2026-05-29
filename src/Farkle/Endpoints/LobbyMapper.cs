@@ -9,7 +9,7 @@ internal static class LobbyMapper
     new(
       s.Id!.Id,
       s.GameStage.ToString(),
-      s.Players.Select(p => new LobbyPlayer(p.Id, p.Name)).ToArray(),
-      s.Players.IsEmpty ? 0 : s.Players[0].Id,
-      s.PlayerInTurn);
+      Roster: s.Players.Select(p => new LobbyPlayer(p.Id, p.Name)).ToArray(),
+      HostPlayerId: s.Players.IsEmpty ? 0 : s.Players[0].Id,
+      CurrentPlayerId: s.PlayerInTurn);
 }
