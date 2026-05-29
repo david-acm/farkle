@@ -1,6 +1,7 @@
 @page "/"
 @using WebApp.Client.Features
 @inherits BlazorState.BlazorStateComponent
+@rendermode @(new InteractiveWebAssemblyRenderMode(prerender: false))
 
 <PageTitle>Farkle!</PageTitle>
 

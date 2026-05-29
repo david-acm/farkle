@@ -107,6 +107,10 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
         await GotoLandingAndWaitForWasmAsync(page);
         // The Start card's name field is the first 'Your name' input.
         await page.Locator("[placeholder='Your name']").First.FillAsync(playerName);
+        // Only click once the bind has enabled the button (avoids a default-timeout
+        // wait if the value hasn't propagated yet).
+        await page.WaitForSelectorAsync("[data-testid='start-new-game']:not([disabled])",
+            new() { Timeout = WasmTimeoutMs });
         await page.ClickAsync("[data-testid='start-new-game']");
         await page.WaitForURLAsync(new Regex(@"/games/\d+"), new() { Timeout = WasmTimeoutMs });
         var match = Regex.Match(page.Url, @"/games/(\d+)");
@@ -120,6 +124,8 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
         // The Join card's name field is the second 'Your name' input.
         await page.Locator("[placeholder='Your name']").Last.FillAsync(playerName);
         await page.FillAsync("[placeholder='Game code']", gameId.ToString());
+        await page.WaitForSelectorAsync("[data-testid='join-existing-game']:not([disabled])",
+            new() { Timeout = WasmTimeoutMs });
         await page.ClickAsync("[data-testid='join-existing-game']");
         await page.WaitForURLAsync(new Regex(@"/games/\d+"), new() { Timeout = WasmTimeoutMs });
     }
