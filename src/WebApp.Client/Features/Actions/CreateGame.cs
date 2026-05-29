@@ -13,12 +13,10 @@ public partial class GameState
     {
       private GameState State => Store.GetState<GameState>();
 
-      public override Task Handle(Action action, CancellationToken cancellationToken)
+      public override async Task Handle(Action action, CancellationToken cancellationToken)
       {
-        // STUB (commit 1): real implementation in commit 2 creates the game via the API.
-        _ = service;
-        _ = State;
-        return Task.CompletedTask;
+        var id = await service.CreateGameAsync();
+        State.GameId = new(id);
       }
     }
   }

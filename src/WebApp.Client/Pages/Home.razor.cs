@@ -14,20 +14,21 @@ public partial class Home : BlazorStateComponent
 
   private string _startName = string.Empty;
   private string _joinName  = string.Empty;
-  private int    _joinId    = 0;
+  private int    _joinId;
 
-  // STUB (commit 1): handlers wired up with the cards in commit 2.
-  private Task StartNewGameAsync()
+  private async Task StartNewGameAsync()
   {
-    _ = _startName;
-    _ = Logger;
-    return Task.CompletedTask;
+    if (string.IsNullOrWhiteSpace(_startName)) return;
+
+    await Mediator.Send(new GameState.CreateGame.Action());
+    var id = GetState<GameState>().GameId.Value;
+    Logger.LogInformation("Created game {GameId}; navigating with host name {Name}", id, _startName);
+    Nav.NavigateTo($"/games/{id}?name={Uri.EscapeDataString(_startName)}");
   }
 
   private void JoinExistingGame()
   {
-    _ = _joinName;
-    _ = _joinId;
-    _ = Nav;
+    if (string.IsNullOrWhiteSpace(_joinName) || _joinId <= 0) return;
+    Nav.NavigateTo($"/games/{_joinId}?name={Uri.EscapeDataString(_joinName)}");
   }
 }

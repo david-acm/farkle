@@ -4,5 +4,65 @@
 
 <PageTitle>Farkle!</PageTitle>
 
-@* STUB (commit 1): minimal landing page — the real start/join cards arrive in commit 2. *@
-<MudText Typo="Typo.h3" Align="Align.Center">Farkle!</MudText>
+<MudContainer MaxWidth="MaxWidth.Small" Class="d-flex flex-column align-center pa-4">
+  <MudText Typo="Typo.h3" Align="Align.Center" GutterBottom="true" Class="mb-6">Farkle!</MudText>
+
+  <MudGrid Justify="Justify.Center" Spacing="4">
+    @* ── Start a new game ── *@
+    <MudItem xs="12" sm="6">
+      <MudCard Style="max-width: 420px" Class="mx-auto">
+        <MudCardContent>
+          <MudText Typo="Typo.h5" GutterBottom="true">Start New Game</MudText>
+          <MudTextField @bind-Value="_startName"
+                        Placeholder="Your name"
+                        Variant="Variant.Outlined"
+                        Immediate="true"
+                        Class="mb-3" />
+        </MudCardContent>
+        <MudCardActions>
+          <MudButton FullWidth="true"
+                     Variant="Variant.Filled"
+                     Color="Color.Primary"
+                     StartIcon="@Icons.Material.Filled.AddCircle"
+                     data-testid="start-new-game"
+                     Disabled="@string.IsNullOrWhiteSpace(_startName)"
+                     OnClick="StartNewGameAsync">
+            Start New Game
+          </MudButton>
+        </MudCardActions>
+      </MudCard>
+    </MudItem>
+
+    @* ── Join an existing game ── *@
+    <MudItem xs="12" sm="6">
+      <MudCard Style="max-width: 420px" Class="mx-auto">
+        <MudCardContent>
+          <MudText Typo="Typo.h5" GutterBottom="true">Join Existing Game</MudText>
+          <MudTextField @bind-Value="_joinName"
+                        Placeholder="Your name"
+                        Variant="Variant.Outlined"
+                        Immediate="true"
+                        Class="mb-3" />
+          <MudNumericField T="int"
+                           @bind-Value="_joinId"
+                           Placeholder="Game code"
+                           Variant="Variant.Outlined"
+                           Immediate="true"
+                           HideSpinButtons="true"
+                           Min="0" />
+        </MudCardContent>
+        <MudCardActions>
+          <MudButton FullWidth="true"
+                     Variant="Variant.Filled"
+                     Color="Color.Primary"
+                     StartIcon="@Icons.Material.Filled.Login"
+                     data-testid="join-existing-game"
+                     Disabled="@(string.IsNullOrWhiteSpace(_joinName) || _joinId <= 0)"
+                     OnClick="JoinExistingGame">
+            Join Existing Game
+          </MudButton>
+        </MudCardActions>
+      </MudCard>
+    </MudItem>
+  </MudGrid>
+</MudContainer>

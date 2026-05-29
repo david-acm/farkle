@@ -47,10 +47,27 @@ internal class GameService
       .Execute((game, cmd) => game.PassTurn(cmd));
   }
 
-  public Task<int> CreateGameAsync(CancellationToken cancellationToken)
+  public async Task<int> CreateGameAsync(CancellationToken cancellationToken)
   {
-    // STUB (commit 1): replaced with real collision-retrying implementation in commit 2.
-    throw new NotImplementedException();
+    const int maxAttempts = 10;
+    for (var attempt = 0; attempt < maxAttempts; attempt++)
+    {
+      var id     = _idGenerator.Next();
+      var result = await Handle(new Command.StartGame(new GameId(id)), cancellationToken);
+      switch (result)
+      {
+        case OkResult<GameState>:
+          return id;
+        case ErrorResult<GameState> e when e.Exception is OptimisticConcurrencyException:
+          continue; // id already taken — pick another
+        case ErrorResult<GameState> e:
+          throw e.Exception ?? new InvalidOperationException(e.Message);
+        default:
+          throw new InvalidOperationException("Unexpected result creating game.");
+      }
+    }
+
+    throw new InvalidOperationException($"Could not allocate a unique game id after {maxAttempts} attempts.");
   }
 
   // TODO: Generalize this method

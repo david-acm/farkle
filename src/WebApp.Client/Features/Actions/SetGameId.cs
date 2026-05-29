@@ -14,8 +14,7 @@ public partial class GameState
 
       public override Task Handle(Action action, CancellationToken cancellationToken)
       {
-        // STUB (commit 1): real implementation in commit 2 seeds State.GameId.
-        _ = State;
+        State.GameId = action.GameId;
         return Task.CompletedTask;
       }
     }

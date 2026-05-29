@@ -8,10 +8,17 @@ using static Farkle.Contracts.HttpResponses;
 
 namespace Farkle.SpaTests;
 
-public class GameBunitContext : BunitContext
+// Implements IAsyncLifetime so xUnit tears the bUnit context down asynchronously.
+// MudBlazor inputs that intercept keystrokes register KeyInterceptorService, which is
+// IAsyncDisposable-only; a synchronous Dispose would throw on teardown.
+public class GameBunitContext : BunitContext, Xunit.IAsyncLifetime
 {
   protected readonly IGameService  GameService;
   protected readonly TestHubService HubService = new();
+
+  Task Xunit.IAsyncLifetime.InitializeAsync() => Task.CompletedTask;
+
+  async Task Xunit.IAsyncLifetime.DisposeAsync() => await ((IAsyncDisposable)this).DisposeAsync();
 
   protected GameBunitContext()
   {
