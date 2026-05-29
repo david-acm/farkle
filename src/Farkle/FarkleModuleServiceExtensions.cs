@@ -23,6 +23,7 @@ public static class FarkleModuleServiceExtensions
     services.AddCommandService<GameService, Game>();
     services.AddAggregateStore<EsdbEventStore>();
     services.AddSingleton<IGameService, GameService>();
+    services.AddSingleton<IGameIdGenerator, RandomGameIdGenerator>();
     // services.AddRazorComponents();
     
     // TODO: Use Guard clause instead
@@ -43,36 +44,5 @@ public static class FarkleModuleServiceExtensions
     // app.MapCommands(); // Commented out to prevent duplicate routes with FastEndpoints
 
     return app;
-  }
-  private static void MapCommands(this WebApplication app)
-  {
-
-    app.MapAggregateCommands<Game>()
-      // .MapDiscoveredCommands<Game>()
-      .MapCommand<HttpRequests.StartGameRequest, Command.StartGame>(
-        (cmd, ctx)
-          => new Command.StartGame(
-            cmd.Id))
-      .MapCommand<HttpRequests.JoinPlayerRequest, Command.JoinPlayer>(
-        (cmd, ctx)
-          => new Command.JoinPlayer(
-            cmd.GameId,
-            cmd.PlayerName))
-      .MapCommand<HttpRequests.RollDiceRequest, Command.RollDice>(
-        (cmd, ctx)
-          => new Command.RollDice(
-            cmd.GameId,
-            cmd.PlayerId))
-      .MapCommand<HttpRequests.KeepDiceRequest, Command.KeepDice>(
-        (cmd, ctx)
-          => new Command.KeepDice(
-            cmd.GameId,
-            cmd.PlayerId,
-            cmd.DiceValues.ToDiceValues()))
-      .MapCommand<HttpRequests.PassTurnHttp, Command.PassTurn>(
-        (cmd, ctx)
-          => new Command.PassTurn(
-            cmd.GameId,
-            cmd.PlayerId));
   }
 }

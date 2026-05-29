@@ -7,22 +7,23 @@ using static Farkle.SpaTests.Services.MockHttpClientBUnitHelpers;
 
 namespace Farkle.SpaTests.Services;
 
-public class StartGameShould
+public class CreateGameShould
 {
   [Fact]
-  public async Task CallApiAsync()
+  public async Task PostBodylessAndReturnGeneratedIdAsync()
   {
-    // Given
+    // Given — the server generates the id; the client POSTs no request body.
     var mock = GetMockHttpClient();
     mock.Expect(HttpMethod.Post, "http://localhost/api/games")
-      .RespondJson(new StartGameResponse(1));
+      .RespondJson(new StartGameResponse(4242));
 
     var sut = new GameService(mock.ToFarkleApiClient(), Mock.Of<ILogger<GameService>>());
 
     // When
-    await sut.StartGameAsync(1);
+    var id = await sut.CreateGameAsync();
 
     // Then
+    id.Should().Be(4242);
     mock.VerifyNoOutstandingExpectation();
   }
 }

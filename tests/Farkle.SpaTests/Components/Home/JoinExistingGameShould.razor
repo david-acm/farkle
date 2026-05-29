@@ -1,0 +1,21 @@
+@inherits GameBunitContext
+@using Microsoft.AspNetCore.Components
+@using WebApp.Client.Pages
+
+@code {
+  // Joining an existing game navigates straight to that game's page with the
+  // entered name in the query string (no server call — the game already exists).
+  [Fact]
+  public void NavigateToEnteredGameCodeWithName()
+  {
+    var nav = Services.GetRequiredService<NavigationManager>();
+    var cut = Render(@<Home/>);
+
+    // The Join card is the second card, so its name field is the second 'Your name' input.
+    cut.FindAll("[placeholder='Your name']").Last().Input("Bob");
+    cut.Find("[placeholder='Game code']").Input("1234");
+    cut.Find("[data-testid='join-existing-game']").Click();
+
+    nav.Uri.Should().Contain("/games/1234?name=Bob");
+  }
+}

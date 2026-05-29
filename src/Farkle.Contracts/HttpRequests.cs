@@ -3,9 +3,6 @@ namespace Farkle.Contracts;
 // [AggregateCommands<Game>]
 public static class HttpRequests
 {
-  // [HttpCommand(Route = "games")]
-  public record StartGameRequest(int Id);
-
   // [HttpCommand(Route = "players")]
   public record JoinPlayerRequest(int GameId, string PlayerName);
 

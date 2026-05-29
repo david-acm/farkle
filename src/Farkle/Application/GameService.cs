@@ -10,8 +10,12 @@ internal class GameService
   : CommandService<Game, GameState, GameId>,
     IGameService
 {
-  public GameService(IAggregateStore store) : base(store)
+  private readonly IGameIdGenerator _idGenerator;
+
+  public GameService(IAggregateStore store, IGameIdGenerator idGenerator) : base(store)
   {
+    _idGenerator = idGenerator;
+
     On<Command.StartGame>()
       .InState(New)
       .GetId(cmd => new GameId(cmd.GameId))
@@ -41,6 +45,12 @@ internal class GameService
       .InState(Existing)
       .GetId(cmd => new GameId(cmd.GameId))
       .Execute((game, cmd) => game.PassTurn(cmd));
+  }
+
+  public Task<int> CreateGameAsync(CancellationToken cancellationToken)
+  {
+    // STUB (commit 1): replaced with real collision-retrying implementation in commit 2.
+    throw new NotImplementedException();
   }
 
   // TODO: Generalize this method
@@ -73,6 +83,8 @@ internal class GameService
 
 internal interface IGameService
 {
+  Task<int> CreateGameAsync(CancellationToken cancellationToken);
+
   Task<IResult> HandleAsync<TCommand, TResponse>(TCommand command, CancellationToken cancellationToken, Func<GameState,TResponse>? mapper = null)
     where TResponse : class
     where TCommand : class;

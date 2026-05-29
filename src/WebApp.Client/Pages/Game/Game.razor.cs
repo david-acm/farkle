@@ -19,6 +19,11 @@ public partial class Game : BlazorStateComponent, IAsyncDisposable
   [Parameter]
   public int ParameterGameId { get; set; } = 0;
 
+  [SupplyParameterFromQuery(Name = "name")]
+  public string? JoinName { get; set; }
+
+  private bool _autoJoinAttempted;
+
   private GameId    GameId    => new(ParameterGameId);
   private GameState GameState => GetState<GameState>();
 
@@ -33,16 +38,21 @@ public partial class Game : BlazorStateComponent, IAsyncDisposable
     {
       await GameHubService.DisconnectAsync();
       await Mediator.Send(new GameState.LeaveGame.Action());
+      _autoJoinAttempted = false;
     }
 
-    try
+    // Seed the game id — the game itself was created server-side by the landing page.
+    await Mediator.Send(new GameState.SetGameId.Action(GameId));
+
+    // The player's name is carried from the landing page via the ?name= query param,
+    // so auto-join without re-prompting.
+    if (!HasJoined && !_autoJoinAttempted && !string.IsNullOrWhiteSpace(JoinName))
     {
-      await Mediator.Send(new GameState.StartGame.Action(GameId));
+      _autoJoinAttempted = true; // set BEFORE awaiting to prevent double-join on re-render
+      _playerName = JoinName!;
+      await JoinAsync();
     }
-    catch (Exception ex)
-    {
-      Logger.LogWarning(ex, "StartGame failed for game {GameId}", GameId);
-    }
+
     await base.OnParametersSetAsync();
   }
 

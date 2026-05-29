@@ -22,9 +22,6 @@
   {
     var gameId = new GameId(10);
     Mock.Get(GameService)
-      .Setup(s => s.StartGameAsync(It.IsAny<int>()))
-      .ReturnsAsync(gameId);
-    Mock.Get(GameService)
       .Setup(s => s.RollDiceAsync(It.IsAny<int>(), It.IsAny<int>()))
       .ReturnsAsync(Result<IList<DieValue>>.Success(new List<DieValue> { DieValue.Five }));
 
@@ -64,9 +61,6 @@
   public async Task ClearDiceSetAside_WhenTurnChangesRemotely()
   {
     var gameId = new GameId(10);
-    Mock.Get(GameService)
-      .Setup(s => s.StartGameAsync(It.IsAny<int>()))
-      .ReturnsAsync(gameId);
     Mock.Get(GameService)
       .Setup(s => s.RollDiceAsync(It.IsAny<int>(), It.IsAny<int>()))
       .ReturnsAsync(Result<IList<DieValue>>.Success(new List<DieValue> { DieValue.Five }));

@@ -1,12 +1,14 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace Farkle.E2eTests;
 
 /// <summary>
-/// Full happy-path game flow — two players, one game (1008):
-/// 1. Alice (P1) and Bob (P2) join game 1008 in separate browser contexts.
+/// Full happy-path game flow — two players, one server-generated game:
+/// 1. Alice starts a new game from the landing page (server generates the id);
+///    Bob joins that game by its share code, both in separate browser contexts.
 /// 2. Alice sees the turn indicator; Bob sees the waiting indicator.
 /// 3. They alternate turns (roll → optionally keep a scoring die → pass) until one player
 ///    accumulates 10 000 points and wins.
@@ -23,7 +25,6 @@ namespace Farkle.E2eTests;
 public class GameHappyPathShould(PlaywrightFixture fixture)
 {
     private const int WasmTimeoutMs = 120_000;
-    private const int GameId        = 1008; // two-player game — Alice + Bob
 
     // Pause between notable steps so animations are visible in the recorded video.
     // Override with E2E_STEP_DELAY_MS environment variable (e.g. set to 0 for speed).
@@ -86,22 +87,41 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
 
     // ── helpers ──────────────────────────────────────────────
 
+    // Loads the landing page and waits for WASM hydration (the Start button appears).
     // Full-page navigation (GotoAsync) restarts WASM, giving a fresh BlazorState store
     // with no player-specific data from a previous game session.
-    private async Task NavigateAndWaitForWasmAsync(IPage page, int gameId,
-        string playerName = "Tester")
+    private async Task GotoLandingAndWaitForWasmAsync(IPage page)
     {
         // WaitUntilState.Commit fires as soon as the server sends response headers,
         // before any CSS or JS is fetched. This bypasses the render-blocking
         // fonts.googleapis.com link that causes GotoAsync to time out waiting for Load.
-        await page.GotoAsync($"/games/{gameId}", new() { WaitUntil = WaitUntilState.Commit });
-        // Wait for the game-title heading — only present after WASM hydration and StartGame.
-        await page.WaitForSelectorAsync($"h3:has-text('{gameId}')",
+        await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.Commit });
+        await page.WaitForSelectorAsync("[data-testid='start-new-game']",
             new() { Timeout = WasmTimeoutMs });
-        await page.FillAsync("[placeholder='Your name']", playerName);
-        await page.ClickAsync("button:has-text('Join Game')");
-        // After joining, the player lands in the lobby (waiting room) until the host starts.
-        await page.WaitForSelectorAsync("[data-testid='lobby']", new() { Timeout = 10_000 });
+    }
+
+    // Hosts a new game from the landing page: enters a name, clicks "Start New Game",
+    // waits for navigation to /games/{id}, and returns the server-generated id.
+    private async Task<int> StartNewGameFromLandingAsync(IPage page, string playerName)
+    {
+        await GotoLandingAndWaitForWasmAsync(page);
+        // The Start card's name field is the first 'Your name' input.
+        await page.Locator("[placeholder='Your name']").First.FillAsync(playerName);
+        await page.ClickAsync("[data-testid='start-new-game']");
+        await page.WaitForURLAsync(new Regex(@"/games/\d+"), new() { Timeout = WasmTimeoutMs });
+        var match = Regex.Match(page.Url, @"/games/(\d+)");
+        return int.Parse(match.Groups[1].Value);
+    }
+
+    // Joins an existing game from the landing page using its share code.
+    private async Task JoinExistingGameFromLandingAsync(IPage page, string playerName, int gameId)
+    {
+        await GotoLandingAndWaitForWasmAsync(page);
+        // The Join card's name field is the second 'Your name' input.
+        await page.Locator("[placeholder='Your name']").Last.FillAsync(playerName);
+        await page.FillAsync("[placeholder='Game code']", gameId.ToString());
+        await page.ClickAsync("[data-testid='join-existing-game']");
+        await page.WaitForURLAsync(new Regex(@"/games/\d+"), new() { Timeout = WasmTimeoutMs });
     }
 
     // MudBlazor's MudDropZone uses HTML5 drag events. Playwright's DragToAsync fires
@@ -135,8 +155,15 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
     [Fact]
     public Task HappyPath() => WithVideoAsync(async alicePage =>
     {
-        // Alice joins first (she is the host); Bob joins in a second context.
-        await NavigateAndWaitForWasmAsync(alicePage, GameId, "Alice");
+        // Alice starts a new game from the landing page (she becomes the host).
+        // The server generates the game id; capture it to share with Bob.
+        var gameId = await StartNewGameFromLandingAsync(alicePage, "Alice");
+
+        // Alice's name was carried via the ?name= query param, so she auto-joins and
+        // lands in the lobby — the roster must already show her.
+        await alicePage.WaitForSelectorAsync("[data-testid='lobby']", new() { Timeout = 10_000 });
+        (await alicePage.Locator("[data-testid='roster-player']").GetByText("Alice").IsVisibleAsync())
+            .Should().BeTrue("the host should auto-join and appear in the lobby roster");
 
         // The host's Start button is disabled until a second player joins.
         (await alicePage.WaitForSelectorAsync("[data-testid='start-game-button']", new() { Timeout = 10_000 }))
@@ -146,7 +173,9 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
         var bobPage    = await bobContext.NewPageAsync();
         try
         {
-            await NavigateAndWaitForWasmAsync(bobPage, GameId, "Bob");
+            // Bob joins the existing game using the share code from the landing page.
+            await JoinExistingGameFromLandingAsync(bobPage, "Bob", gameId);
+            await bobPage.WaitForSelectorAsync("[data-testid='lobby']", new() { Timeout = 10_000 });
 
             (await bobPage.WaitForSelectorAsync("[data-testid='waiting-for-host']", new() { Timeout = 10_000 }))
                 .Should().NotBeNull("Bob, as a non-host, should be waiting for the host to start");
