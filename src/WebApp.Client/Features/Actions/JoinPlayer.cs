@@ -20,8 +20,15 @@ public partial class GameState
         State.PlayerId        = new PlayerId(response.Id);
         State.PlayerName      = action.PlayerName;
         State.CurrentPlayerId = response.CurrentPlayerId;
-        // Seed scoreboard at zero; PassTurn responses replace it with authoritative data.
-        State.Scoreboard = [new PlayerStanding(response.Id, action.PlayerName.Value, 0)];
+        State.HostPlayerId    = response.HostPlayerId;
+        State.GameStage       = response.Stage;
+        State.Roster          = (response.Roster ?? [])
+          .Select(p => new PlayerStanding(p.PlayerId, p.Name, 0))
+          .ToList();
+        // Seed scoreboard from the lobby roster; PassTurn responses replace it with authoritative data.
+        State.Scoreboard = State.Roster.Count > 0
+          ? State.Roster
+          : [new PlayerStanding(response.Id, action.PlayerName.Value, 0)];
       }
     }
   }

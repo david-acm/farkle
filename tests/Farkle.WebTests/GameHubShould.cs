@@ -79,6 +79,9 @@ public class GameHubShould : IClassFixture<GameApiWebAppFactory>
         await _client.Api.Games[gameId].Players.PostAsync(
             new FarkleContractsHttpRequests_JoinPlayerRequest { PlayerName = "Allison" });
 
+        await _client.Api.Games[gameId].Start.PostAsync(
+            new FarkleContractsHttpRequests_BeginGameRequest { PlayerId = 1 });
+
         var roll = await _client.Api.Games[gameId].Players[player1].Rolls.PostAsync();
         var scoringDice = (roll!.DiceValues ?? []).Where(v => v == 1 || v == 5).Select(v => (int)v!).ToArray();
         if (scoringDice.Length > 0)
@@ -97,6 +100,73 @@ public class GameHubShould : IClassFixture<GameApiWebAppFactory>
         Assert.NotNull(received);
         Assert.Equal(2, received!.CurrentPlayerId); // turn rotated to player 2
         Assert.Equal(gameId, received.GameId);
+
+        await connection.DisposeAsync();
+    }
+
+    [Fact]
+    public async Task BroadcastsPlayerJoinedWhenAPlayerJoins()
+    {
+        const int gameId = 402;
+
+        var connection = new HubConnectionBuilder()
+            .WithUrl("http://localhost/hubs/game",
+                o => o.HttpMessageHandlerFactory = _ => _factory.Server.CreateHandler())
+            .Build();
+
+        var tcs = new TaskCompletionSource<LobbyStateResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
+        connection.On<LobbyStateResponse>("PlayerJoined", payload => tcs.TrySetResult(payload));
+
+        await connection.StartAsync();
+        await connection.InvokeAsync("JoinGame", gameId);
+
+        await _client.Api.Games.PostAsync(
+            new FarkleContractsHttpRequests_StartGameRequest { Id = gameId });
+        await _client.Api.Games[gameId].Players.PostAsync(
+            new FarkleContractsHttpRequests_JoinPlayerRequest { PlayerName = "David" });
+
+        var completed = await Task.WhenAny(tcs.Task, Task.Delay(5_000));
+        Assert.True(completed == tcs.Task, "Hub did not broadcast PlayerJoined within 5 seconds");
+
+        var lobby = await tcs.Task;
+        Assert.Equal(gameId, lobby.GameId);
+        Assert.Equal("WaitingForPlayers", lobby.Stage);
+        Assert.Contains(lobby.Roster, p => p.Name == "David");
+
+        await connection.DisposeAsync();
+    }
+
+    [Fact]
+    public async Task BroadcastsGameBeganWhenHostStarts()
+    {
+        const int gameId = 403;
+
+        var connection = new HubConnectionBuilder()
+            .WithUrl("http://localhost/hubs/game",
+                o => o.HttpMessageHandlerFactory = _ => _factory.Server.CreateHandler())
+            .Build();
+
+        var tcs = new TaskCompletionSource<LobbyStateResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
+        connection.On<LobbyStateResponse>("GameBegan", payload => tcs.TrySetResult(payload));
+
+        await connection.StartAsync();
+        await connection.InvokeAsync("JoinGame", gameId);
+
+        await _client.Api.Games.PostAsync(
+            new FarkleContractsHttpRequests_StartGameRequest { Id = gameId });
+        await _client.Api.Games[gameId].Players.PostAsync(
+            new FarkleContractsHttpRequests_JoinPlayerRequest { PlayerName = "David" });
+        await _client.Api.Games[gameId].Players.PostAsync(
+            new FarkleContractsHttpRequests_JoinPlayerRequest { PlayerName = "Allison" });
+        await _client.Api.Games[gameId].Start.PostAsync(
+            new FarkleContractsHttpRequests_BeginGameRequest { PlayerId = 1 });
+
+        var completed = await Task.WhenAny(tcs.Task, Task.Delay(5_000));
+        Assert.True(completed == tcs.Task, "Hub did not broadcast GameBegan within 5 seconds");
+
+        var lobby = await tcs.Task;
+        Assert.Equal(gameId, lobby.GameId);
+        Assert.Equal("Rolling", lobby.Stage);
 
         await connection.DisposeAsync();
     }

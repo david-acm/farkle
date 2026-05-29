@@ -14,6 +14,8 @@ internal static class Command
 
   internal record JoinPlayer(int GameId, string Name);
 
+  internal record BeginGame(GameId GameId, PlayerId PlayerId);
+
   internal record RollDice(GameId GameId, PlayerId PlayerId);
 
   internal record PassTurn(GameId GameId, PlayerId PlayerId);

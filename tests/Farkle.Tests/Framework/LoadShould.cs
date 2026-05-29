@@ -16,7 +16,7 @@ public class LoadShould
     game.Load(events);
 
     // Assert
-    game.State.GameStage.Should().Be(GameStage.Rolling);
+    game.State.GameStage.Should().Be(GameStage.WaitingForPlayers);
     game.State.Id.Should().Be((GameId)events[0].Id);
   }
 }

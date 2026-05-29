@@ -20,7 +20,7 @@ public class StartShould
     game.Start(new StartGame(gameId));
 
     // Assert
-    game.State.GameStage.Should().Be(Rolling);
+    game.State.GameStage.Should().Be(WaitingForPlayers);
     game.State.Id.Should().Be((GameId)gameId);
   }
 

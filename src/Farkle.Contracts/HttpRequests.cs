@@ -9,6 +9,9 @@ public static class HttpRequests
   // [HttpCommand(Route = "players")]
   public record JoinPlayerRequest(int GameId, string PlayerName);
 
+  // [HttpCommand(Route = "start")]
+  public record BeginGameRequest(int GameId, int PlayerId);
+
   // [HttpCommand(Route = "diceRolls")]
   public record RollDiceRequest(int GameId, int PlayerId);
 

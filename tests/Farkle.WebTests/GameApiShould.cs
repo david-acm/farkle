@@ -56,6 +56,7 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
         await StartGameAsync(gameId);
         var player1 = await JoinGameAsync(gameId, "David");
         var player2 = await JoinGameAsync(gameId, "Allison");
+        await BeginGameAsync(gameId);
 
         // Server assigns sequential IDs — no collisions
         Assert.Equal(1, player1);
@@ -97,6 +98,8 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
 
         await StartGameAsync(gameId);
         var player1 = await JoinGameAsync(gameId, "David");
+        await JoinGameAsync(gameId, "Allison");
+        await BeginGameAsync(gameId);
 
         var roll = await _client.Api.Games[gameId].Players[player1].Rolls.PostAsync();
         Assert.NotNull(roll?.DiceValues);
@@ -115,6 +118,7 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
         await StartGameAsync(gameId);
         var player1 = await JoinGameAsync(gameId, "David");
         var player2 = await JoinGameAsync(gameId, "Allison");
+        await BeginGameAsync(gameId);
 
         // Player 1 keeps all their scoring dice to build a non-zero turn score.
         var roll1        = await _client.Api.Games[gameId].Players[player1].Rolls.PostAsync();
@@ -146,6 +150,7 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
         await StartGameAsync(gameId);
         var player1 = await JoinGameAsync(gameId, "David");
         var player2 = await JoinGameAsync(gameId, "Allison");
+        await BeginGameAsync(gameId);
         _ = player2; // joined to populate scoreboard; not needed for further assertions
 
         var roll1        = await _client.Api.Games[gameId].Players[player1].Rolls.PostAsync();
@@ -174,6 +179,7 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
         await StartGameAsync(gameId);
         var player1 = await JoinGameAsync(gameId, "David");
         var player2 = await JoinGameAsync(gameId, "Allison");
+        await BeginGameAsync(gameId);
         _ = player1;
 
         // Player 1 goes first; player 2 rolling out of turn must be rejected.
@@ -191,6 +197,7 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
         await StartGameAsync(gameId);
         var player1 = await JoinGameAsync(gameId, "David");
         await JoinGameAsync(gameId, "Allison");
+        await BeginGameAsync(gameId);
 
         // First roll always succeeds.
         await RollDiceAsync(gameId, player1);
@@ -210,10 +217,62 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
         await StartGameAsync(gameId);
         var player1 = await JoinGameAsync(gameId, "David");
         await JoinGameAsync(gameId, "Allison");
+        await BeginGameAsync(gameId);
 
         // Attempting to pass before rolling must be rejected.
         var ex = await Assert.ThrowsAsync<ApiException>(
             () => PassTurnAsync(gameId, player1));
+
+        Assert.Equal(400, ex.ResponseStatusCode);
+    }
+
+    [Fact]
+    public async Task ReturnLobbyRosterWhenPlayerJoinsAsync()
+    {
+        const int gameId = 310;
+
+        await StartGameAsync(gameId);
+        await _client.Api.Games[gameId].Players.PostAsync(
+            new FarkleContractsHttpRequests_JoinPlayerRequest { PlayerName = "David" });
+        var second = await _client.Api.Games[gameId].Players.PostAsync(
+            new FarkleContractsHttpRequests_JoinPlayerRequest { PlayerName = "Allison" });
+
+        Assert.NotNull(second);
+        Assert.Equal("WaitingForPlayers", second!.Stage);
+        Assert.Equal(1, second.HostPlayerId);
+        Assert.NotNull(second.Roster);
+        Assert.Equal(2, second.Roster!.Count);
+        Assert.Contains(second.Roster, p => p.Name == "David");
+        Assert.Contains(second.Roster, p => p.Name == "Allison");
+    }
+
+    [Fact]
+    public async Task LetHostBeginGameAsync()
+    {
+        const int gameId = 311;
+
+        await StartGameAsync(gameId);
+        await JoinGameAsync(gameId, "David");
+        await JoinGameAsync(gameId, "Allison");
+
+        var lobby = await BeginGameAsync(gameId);
+
+        Assert.NotNull(lobby);
+        Assert.Equal("Rolling", lobby!.Stage);
+        Assert.Equal(2, lobby.Roster!.Count);
+    }
+
+    [Fact]
+    public async Task RejectBeginGameFromNonHostAsync()
+    {
+        const int gameId = 312;
+
+        await StartGameAsync(gameId);
+        await JoinGameAsync(gameId, "David");
+        await JoinGameAsync(gameId, "Allison");
+
+        // Player 2 is not the host; only player 1 (the creator) may begin play.
+        var ex = await Assert.ThrowsAsync<ApiException>(() => BeginGameAsync(gameId, hostId: 2));
 
         Assert.Equal(400, ex.ResponseStatusCode);
     }
@@ -228,6 +287,11 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
             new FarkleContractsHttpRequests_JoinPlayerRequest { PlayerName = playerName });
         return response?.Id ?? 0;
     }
+
+    // The host (player 1) begins play, moving the game out of the lobby into Rolling.
+    private Task<FarkleContractsHttpResponses_LobbyStateResponse?> BeginGameAsync(int gameId, int hostId = 1)
+        => _client.Api.Games[gameId].Start.PostAsync(
+            new FarkleContractsHttpRequests_BeginGameRequest { PlayerId = hostId });
 
     private Task RollDiceAsync(int gameId, int playerId)
         => _client.Api.Games[gameId].Players[playerId].Rolls.PostAsync();

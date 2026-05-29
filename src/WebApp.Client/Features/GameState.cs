@@ -15,6 +15,13 @@ public partial class GameState : State<GameState>
   public string?    WinnerName      { get; internal set; }
   public bool       IsGameOver      => WinnerName is not null;
   public bool      Error     { get; private set; }
+
+  // Lobby / waiting-room state.
+  public string     GameStage    { get; internal set; } = string.Empty;
+  public int        HostPlayerId { get; internal set; } = 0;
+  public IReadOnlyList<PlayerStanding> Roster { get; internal set; } = [];
+  public bool       IsHost       => PlayerId.Value != 0 && PlayerId.Value == HostPlayerId;
+  public bool       IsInLobby    => GameStage == "WaitingForPlayers";
   
   public List<DraggableDie> DiceInPlay { get; private set; } =
   [
@@ -44,6 +51,9 @@ public partial class GameState : State<GameState>
     Scoreboard      = [];
     WinnerName      = null;
     DiceInPlay      = [];
+    GameStage       = string.Empty;
+    HostPlayerId    = 0;
+    Roster          = [];
   }
 }
 
