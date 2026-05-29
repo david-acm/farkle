@@ -30,8 +30,30 @@ public class GameService : IGameService
       new KiotaModels.FarkleContractsHttpRequests_JoinPlayerRequest { PlayerName = playerName });
     _logger.LogInformation("JoinPlayer: assignedId={Id} currentPlayer={CurrentPlayerId}",
       response?.Id, response?.CurrentPlayerId);
-    return new JoinPlayerResponse(response?.Id ?? 0, response?.CurrentPlayerId ?? 0);
+    return new JoinPlayerResponse(
+      response?.Id ?? 0,
+      response?.CurrentPlayerId ?? 0,
+      response?.HostPlayerId ?? 0,
+      response?.Stage ?? "",
+      ToLobbyPlayers(response?.Players));
   }
+
+  public async Task<LobbyStateResponse> BeginGameAsync(int gameId, int playerId)
+  {
+    var response = await _client.Api.Games[gameId].Start.PostAsync(
+      new KiotaModels.FarkleContractsHttpRequests_BeginGameRequest { PlayerId = playerId });
+    _logger.LogInformation("BeginGame: game={GameId} stage={Stage}", gameId, response?.Stage);
+    return new LobbyStateResponse(
+      response?.GameId ?? gameId,
+      response?.Stage ?? "",
+      ToLobbyPlayers(response?.Players) ?? [],
+      response?.HostPlayerId ?? 0,
+      response?.CurrentPlayerId ?? 0);
+  }
+
+  private static IReadOnlyList<LobbyPlayer>? ToLobbyPlayers(
+    List<KiotaModels.FarkleContractsHttpResponses_LobbyPlayer>? players) =>
+    players?.Select(p => new LobbyPlayer(p.PlayerId ?? 0, p.Name ?? "")).ToArray();
 
   public async Task<KeepDiceResponse> KeepDiceAsync(int gameId, int playerId, IEnumerable<int> diceToKeep)
   {

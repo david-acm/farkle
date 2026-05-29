@@ -26,6 +26,10 @@
     </MudCardActions>
   </MudCard>
 }
+else if (GameState.IsInLobby)
+{
+  <Lobby />
+}
 else
 {
   <MudGrid Spacing="1">

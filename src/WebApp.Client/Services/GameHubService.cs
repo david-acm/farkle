@@ -9,6 +9,8 @@ public sealed class GameHubService(HttpClient http) : IGameHubService
     private int            _gameId;
 
     public event Action<PassTurnResponse>? OnTurnChanged;
+    public event Action<LobbyStateResponse>? OnPlayerJoined;
+    public event Action<LobbyStateResponse>? OnGameBegan;
 
     public async Task ConnectAsync(int gameId)
     {
@@ -21,6 +23,10 @@ public sealed class GameHubService(HttpClient http) : IGameHubService
 
         _connection.On<PassTurnResponse>("TurnChanged",
             payload => OnTurnChanged?.Invoke(payload));
+        _connection.On<LobbyStateResponse>("PlayerJoined",
+            payload => OnPlayerJoined?.Invoke(payload));
+        _connection.On<LobbyStateResponse>("GameBegan",
+            payload => OnGameBegan?.Invoke(payload));
 
         await _connection.StartAsync();
         await _connection.InvokeAsync("JoinGame", gameId);
