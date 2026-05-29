@@ -9,15 +9,15 @@ namespace Farkle.ApiClient.Models
 {
     [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
     #pragma warning disable CS1591
-    public partial class FarkleContractsHttpResponses_JoinPlayerResponse : IParsable
+    public partial class FarkleContractsHttpResponses_LobbyStateResponse : IParsable
     #pragma warning restore CS1591
     {
         /// <summary>The currentPlayerId property</summary>
         public int? CurrentPlayerId { get; set; }
+        /// <summary>The gameId property</summary>
+        public int? GameId { get; set; }
         /// <summary>The hostPlayerId property</summary>
         public int? HostPlayerId { get; set; }
-        /// <summary>The id property</summary>
-        public int? Id { get; set; }
         /// <summary>The players property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
@@ -37,12 +37,12 @@ namespace Farkle.ApiClient.Models
         /// <summary>
         /// Creates a new instance of the appropriate class based on discriminator value
         /// </summary>
-        /// <returns>A <see cref="global::Farkle.ApiClient.Models.FarkleContractsHttpResponses_JoinPlayerResponse"/></returns>
+        /// <returns>A <see cref="global::Farkle.ApiClient.Models.FarkleContractsHttpResponses_LobbyStateResponse"/></returns>
         /// <param name="parseNode">The parse node to use to read the discriminator value and create the object</param>
-        public static global::Farkle.ApiClient.Models.FarkleContractsHttpResponses_JoinPlayerResponse CreateFromDiscriminatorValue(IParseNode parseNode)
+        public static global::Farkle.ApiClient.Models.FarkleContractsHttpResponses_LobbyStateResponse CreateFromDiscriminatorValue(IParseNode parseNode)
         {
             if(ReferenceEquals(parseNode, null)) throw new ArgumentNullException(nameof(parseNode));
-            return new global::Farkle.ApiClient.Models.FarkleContractsHttpResponses_JoinPlayerResponse();
+            return new global::Farkle.ApiClient.Models.FarkleContractsHttpResponses_LobbyStateResponse();
         }
         /// <summary>
         /// The deserialization information for the current model
@@ -53,8 +53,8 @@ namespace Farkle.ApiClient.Models
             return new Dictionary<string, Action<IParseNode>>
             {
                 { "currentPlayerId", n => { CurrentPlayerId = n.GetIntValue(); } },
+                { "gameId", n => { GameId = n.GetIntValue(); } },
                 { "hostPlayerId", n => { HostPlayerId = n.GetIntValue(); } },
-                { "id", n => { Id = n.GetIntValue(); } },
                 { "players", n => { Players = n.GetCollectionOfObjectValues<global::Farkle.ApiClient.Models.FarkleContractsHttpResponses_LobbyPlayer>(global::Farkle.ApiClient.Models.FarkleContractsHttpResponses_LobbyPlayer.CreateFromDiscriminatorValue)?.AsList(); } },
                 { "stage", n => { Stage = n.GetStringValue(); } },
             };
@@ -67,8 +67,8 @@ namespace Farkle.ApiClient.Models
         {
             if(ReferenceEquals(writer, null)) throw new ArgumentNullException(nameof(writer));
             writer.WriteIntValue("currentPlayerId", CurrentPlayerId);
+            writer.WriteIntValue("gameId", GameId);
             writer.WriteIntValue("hostPlayerId", HostPlayerId);
-            writer.WriteIntValue("id", Id);
             writer.WriteCollectionOfObjectValues<global::Farkle.ApiClient.Models.FarkleContractsHttpResponses_LobbyPlayer>("players", Players);
             writer.WriteStringValue("stage", Stage);
         }
