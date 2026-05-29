@@ -349,6 +349,38 @@ public class KeepDiceShould : GameWithThreePlayersTest
     State.TurnScore.Should().Be(new Score(4300));
   }
 
+  [Fact]
+  public void NotAllowNonExistentPlayerToKeep()
+  {
+    // Arrange — the player in turn rolls
+    Game.RollDiceV2(new Command.RollDice(1, 1));
+
+    // Act — player 99 is not part of the game
+    Game.KeepDice(new Command.KeepDice(1, 99, new[] { DieValue.Five, DieValue.One }));
+
+    // Assert — the in-turn check rejects any id that isn't the current player
+    var playedOutOfTurn = Changes.Should().ContainSingleEvent<PlayedOutOfTurn>();
+    playedOutOfTurn.Should().Be(new PlayedOutOfTurn(99, 1));
+  }
+
+  [Fact]
+  public void ResetTurnScoreToZeroOnFarkle()
+  {
+    // Arrange — score a single 1 (100 pts) on the first roll
+    SetupDiceToRoll(new List<int> { 1, 2, 3, 4, 5, 6 });
+    Game.RollDiceV2(new Command.RollDice(1, 1));
+    Game.KeepDice(new Command.KeepDice(1, 1, new[] { DieValue.One }));
+    State.TurnScore.Should().Be(new Score(100));
+
+    // Act — re-roll the remaining five dice into a Farkle: no 1s, no 5s and
+    // no three-of-a-kind, so nothing can be kept
+    SetupDiceToRoll(new List<int> { 2, 3, 4, 6, 2 });
+    Game.RollDiceV2(new Command.RollDice(1, 1));
+
+    // Assert — busting wipes the accumulated turn score
+    State.TurnScore.Should().Be(new Score(0));
+  }
+
   public static IEnumerable<object[]> TricksAndScore()
   {
     yield return new object[] { "1 should add 100", new[] { 1, 2, 2, 3, 4, 4 }, new[] { DieValue.One }, 100 };

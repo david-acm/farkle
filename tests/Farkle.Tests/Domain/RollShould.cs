@@ -64,6 +64,18 @@ public class RollShould : GameWithThreePlayersTest
   }
 
   [Fact]
+  public void NotAllowNonExistentPlayerToRoll()
+  {
+    // Act — player 99 is not part of the game
+    Game.RollDiceV2(new RollDice(1, 99));
+
+    // Assert — the in-turn check rejects any id that isn't the current player;
+    // there is no separate "player not found" error
+    var playedOutOfTurn = Changes.Should().ContainSingleEvent<V1.PlayedOutOfTurn>();
+    playedOutOfTurn.Should().Be(new V1.PlayedOutOfTurn(99, 1));
+  }
+
+  [Fact]
   public void NotAllowPlayerToRollTwiceBeforeKeepingSomeDice()
   {
     // Arrange
