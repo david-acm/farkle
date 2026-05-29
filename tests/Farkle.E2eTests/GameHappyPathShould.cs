@@ -170,7 +170,12 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
             var won             = false;
             var aliceTurn       = true;
             var screenshotTaken = false;
-            const int maxTurns  = 300;
+            // Each turn keeps one scoring die (~50-100 pts), so reaching 10 000 by
+            // legitimate play takes a few hundred turns. The loop breaks the moment
+            // someone wins, so this cap only guards against a never-ending game — it
+            // does not add runtime. (It was 300 when a now-fixed scoring bug inflated
+            // turn scores; see issue #87.)
+            const int maxTurns  = 1000;
 
             for (var turn = 0; turn < maxTurns && !won; turn++)
             {

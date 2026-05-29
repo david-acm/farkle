@@ -81,7 +81,8 @@ internal record GameState : State<GameState>
       TableCenter = state.TableCenter.AddRange(state.DiceKept),
       GameStage = GameStage.Rolling,
       DiceKept = state.TableCenter.Clear(),
-      StraightsKeptThisTurn = 0
+      StraightsKeptThisTurn = 0,
+      TurnScore = new Score(0)
     };
   }
 
