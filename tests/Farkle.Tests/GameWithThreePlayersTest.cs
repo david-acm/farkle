@@ -35,6 +35,8 @@ public class GameWithThreePlayersTest
     game.JoinPlayer(new JoinPlayer(1, "David"));
     game.JoinPlayer(new JoinPlayer(1, "Cristian"));
     game.JoinPlayer(new JoinPlayer(1, "German"));
+    // The host (player 1) begins play, moving the game out of the lobby into Rolling.
+    game.BeginGame(new BeginGame(1, 1));
 
     Game = new Game(_randomProvider);
     Game.Load(game.Changes.ToList());
