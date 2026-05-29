@@ -100,7 +100,8 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
             new() { Timeout = WasmTimeoutMs });
         await page.FillAsync("[placeholder='Your name']", playerName);
         await page.ClickAsync("button:has-text('Join Game')");
-        await page.WaitForSelectorAsync("button:has-text('Roll')", new() { Timeout = 10_000 });
+        // After joining, the player lands in the lobby (waiting room) until the host starts.
+        await page.WaitForSelectorAsync("[data-testid='lobby']", new() { Timeout = 10_000 });
     }
 
     // MudBlazor's MudDropZone uses HTML5 drag events. Playwright's DragToAsync fires
@@ -134,11 +135,12 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
     [Fact]
     public Task HappyPath() => WithVideoAsync(async alicePage =>
     {
-        // Alice joins first; Bob joins in a second context.
+        // Alice joins first (she is the host); Bob joins in a second context.
         await NavigateAndWaitForWasmAsync(alicePage, GameId, "Alice");
 
-        (await alicePage.WaitForSelectorAsync("[data-testid='my-turn-indicator']", new() { Timeout = 10_000 }))
-            .Should().NotBeNull("Alice should see the turn indicator after joining");
+        // The host's Start button is disabled until a second player joins.
+        (await alicePage.WaitForSelectorAsync("[data-testid='start-game-button']", new() { Timeout = 10_000 }))
+            .Should().NotBeNull("Alice, as host, should see the Start button in the lobby");
 
         var bobContext = await fixture.NewContextWithVideoAsync(VideoDir);
         var bobPage    = await bobContext.NewPageAsync();
@@ -146,6 +148,18 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
         {
             await NavigateAndWaitForWasmAsync(bobPage, GameId, "Bob");
 
+            (await bobPage.WaitForSelectorAsync("[data-testid='waiting-for-host']", new() { Timeout = 10_000 }))
+                .Should().NotBeNull("Bob, as a non-host, should be waiting for the host to start");
+
+            // Once Bob's join reaches Alice over SignalR, the host's Start button enables.
+            await alicePage.WaitForSelectorAsync("[data-testid='start-game-button']:not([disabled])",
+                new() { Timeout = 10_000 });
+            await alicePage.ClickAsync("[data-testid='start-game-button']");
+
+            // Both players drop into play: Alice is in turn, Bob waits — the GameBegan
+            // broadcast flips Bob's view without a refresh.
+            (await alicePage.WaitForSelectorAsync("[data-testid='my-turn-indicator']", new() { Timeout = 10_000 }))
+                .Should().NotBeNull("Alice should be in turn once the game begins");
             (await bobPage.WaitForSelectorAsync("[data-testid='waiting-indicator']", new() { Timeout = 10_000 }))
                 .Should().NotBeNull("Bob should see the waiting indicator while Alice is in turn");
 
