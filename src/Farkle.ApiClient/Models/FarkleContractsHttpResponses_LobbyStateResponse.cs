@@ -18,13 +18,13 @@ namespace Farkle.ApiClient.Models
         public int? GameId { get; set; }
         /// <summary>The hostPlayerId property</summary>
         public int? HostPlayerId { get; set; }
-        /// <summary>The players property</summary>
+        /// <summary>The roster property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
-        public List<global::Farkle.ApiClient.Models.FarkleContractsHttpResponses_LobbyPlayer>? Players { get; set; }
+        public List<global::Farkle.ApiClient.Models.FarkleContractsHttpResponses_LobbyPlayer>? Roster { get; set; }
 #nullable restore
 #else
-        public List<global::Farkle.ApiClient.Models.FarkleContractsHttpResponses_LobbyPlayer> Players { get; set; }
+        public List<global::Farkle.ApiClient.Models.FarkleContractsHttpResponses_LobbyPlayer> Roster { get; set; }
 #endif
         /// <summary>The stage property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
@@ -55,7 +55,7 @@ namespace Farkle.ApiClient.Models
                 { "currentPlayerId", n => { CurrentPlayerId = n.GetIntValue(); } },
                 { "gameId", n => { GameId = n.GetIntValue(); } },
                 { "hostPlayerId", n => { HostPlayerId = n.GetIntValue(); } },
-                { "players", n => { Players = n.GetCollectionOfObjectValues<global::Farkle.ApiClient.Models.FarkleContractsHttpResponses_LobbyPlayer>(global::Farkle.ApiClient.Models.FarkleContractsHttpResponses_LobbyPlayer.CreateFromDiscriminatorValue)?.AsList(); } },
+                { "roster", n => { Roster = n.GetCollectionOfObjectValues<global::Farkle.ApiClient.Models.FarkleContractsHttpResponses_LobbyPlayer>(global::Farkle.ApiClient.Models.FarkleContractsHttpResponses_LobbyPlayer.CreateFromDiscriminatorValue)?.AsList(); } },
                 { "stage", n => { Stage = n.GetStringValue(); } },
             };
         }
@@ -69,7 +69,7 @@ namespace Farkle.ApiClient.Models
             writer.WriteIntValue("currentPlayerId", CurrentPlayerId);
             writer.WriteIntValue("gameId", GameId);
             writer.WriteIntValue("hostPlayerId", HostPlayerId);
-            writer.WriteCollectionOfObjectValues<global::Farkle.ApiClient.Models.FarkleContractsHttpResponses_LobbyPlayer>("players", Players);
+            writer.WriteCollectionOfObjectValues<global::Farkle.ApiClient.Models.FarkleContractsHttpResponses_LobbyPlayer>("roster", Roster);
             writer.WriteStringValue("stage", Stage);
         }
     }
