@@ -49,10 +49,10 @@ public class MultiPlayerTurnShould : GameWithThreePlayersTest
     State.PlayerInTurn.Should().Be(p1);
     State.Players.Select(p => p.Id).Should().Equal(p1, p2, p3);
 
-    // Player 1's banked score reflects the trick they kept on their turn.
-    // (Only player 1 is asserted here: the domain currently carries TurnScore
-    // across the turn boundary instead of resetting it on pass, so later
-    // players' banked totals are not isolated — see the note on the PR.)
+    // Each player banks exactly the trick they kept on their own turn —
+    // turn score must not leak across the turn boundary to the next player.
     State.GameScoreFor(new PlayerId(p1)).Should().Be(new Score(100));
+    State.GameScoreFor(new PlayerId(p2)).Should().Be(new Score(50));
+    State.GameScoreFor(new PlayerId(p3)).Should().Be(new Score(200));
   }
 }
