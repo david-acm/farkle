@@ -1,6 +1,9 @@
 @inherits BlazorState.BlazorStateComponent
 
-<h3>Current Player Score: @GameState.TurnScore</h3>
+<MudText Class="mt-6" Typo="Typo.h5">Current Score</MudText>
+<MudText Typo="Typo.h4" Color="Color.Primary" data-testid="turn-score">
+  <strong>@Value</strong>
+</MudText>
 
 @code {
   
