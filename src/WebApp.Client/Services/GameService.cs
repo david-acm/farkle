@@ -1,5 +1,6 @@
 using Ardalis.Result;
 using Farkle.ApiClient;
+using Microsoft.Kiota.Abstractions;
 using WebApp.Client.Pages.Game.Components;
 using KiotaModels = Farkle.ApiClient.Models;
 using static Farkle.Contracts.HttpResponses;
@@ -75,6 +76,39 @@ public class GameService : IGameService
     var response = await _client.Api.Games[gameId].Players[playerId].Turns.PostAsync();
     _logger.LogInformation("PassTurn response: newScore={NewScore}", response?.NewScore);
     return ToPassTurnResponse(response);
+  }
+
+  public async Task<GameStateResponse?> GetGameStateAsync(int gameId)
+  {
+    KiotaModels.FarkleContractsHttpResponses_GameStateResponse? r;
+    try
+    {
+      r = await _client.Api.Games[gameId].GetAsync();
+    }
+    catch (ApiException ex) when (ex.ResponseStatusCode == 404)
+    {
+      // Game no longer exists — caller treats null as "clear the stale session".
+      _logger.LogInformation("GetGameState: game {GameId} not found", gameId);
+      return null;
+    }
+
+    if (r is null) return null;
+    _logger.LogInformation("GetGameState: game={GameId} stage={Stage} current={CurrentPlayerId}",
+      r.GameId, r.Stage, r.CurrentPlayerId);
+    return new GameStateResponse(
+      r.GameId ?? 0,
+      r.Stage ?? "",
+      r.CurrentPlayerId ?? 0,
+      r.HostPlayerId ?? 0,
+      r.TurnScore ?? 0,
+      Scoreboard: (r.Scoreboard ?? [])
+        .Select(p => new PlayerScore(p.PlayerId ?? 0, p.Name ?? "", p.Score ?? 0))
+        .ToArray(),
+      Winner: r.Winner is null
+        ? null
+        : new WinnerResponse(r.Winner.PlayerId ?? 0, r.Winner.Name ?? "", r.Winner.Score ?? 0),
+      TableCenter: (r.TableCenter ?? []).Select(v => v ?? 0).ToArray(),
+      DiceKept: (r.DiceKept ?? []).Select(v => v ?? 0).ToArray());
   }
 
   private static PassTurnResponse ToPassTurnResponse(KiotaModels.FarkleContractsHttpResponses_PassTurnResponse? r)

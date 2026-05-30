@@ -280,4 +280,66 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
                 File.Move(bobRawPath, Path.Combine(VideoDir, "HappyPath-Bob.webm"), overwrite: true);
         }
     });
+
+    // Proves the refresh/reconnect restore pipeline: a player who reloads mid-turn
+    // is put back into the game (no join form), with their turn indicator, scoreboard
+    // and rolled dice restored from the server snapshot + the session-stored identity.
+    [Fact]
+    public Task RestoreStateAfterRefresh() => WithVideoAsync(async alicePage =>
+    {
+        var gameId = await StartNewGameFromLandingAsync(alicePage, "Alice");
+        await alicePage.WaitForSelectorAsync("[data-testid='lobby']", new() { Timeout = 10_000 });
+
+        var bobContext = await fixture.NewContextWithVideoAsync(VideoDir);
+        var bobPage    = await bobContext.NewPageAsync();
+        try
+        {
+            await JoinExistingGameFromLandingAsync(bobPage, "Bob", gameId);
+            await bobPage.WaitForSelectorAsync("[data-testid='lobby']", new() { Timeout = 10_000 });
+
+            // Host starts the game; Alice is in turn.
+            await alicePage.WaitForSelectorAsync("[data-testid='start-game-button']:not([disabled])",
+                new() { Timeout = 10_000 });
+            await alicePage.ClickAsync("[data-testid='start-game-button']");
+            await alicePage.WaitForSelectorAsync("[data-testid='my-turn-indicator']", new() { Timeout = 10_000 });
+
+            // Alice rolls — the game is now mid-turn with her dice on the table.
+            await alicePage.ClickAsync("button:has-text('Roll')");
+            await alicePage.WaitForSelectorAsync(".die-container", new() { Timeout = 10_000 });
+            var diceBefore = await alicePage.Locator(".die-container").CountAsync();
+            diceBefore.Should().BeGreaterThan(0, "Alice rolled, so dice should be on the table");
+
+            // ── Refresh Alice's browser tab ──────────────────────────────
+            // sessionStorage survives a reload, so the app should restore her view
+            // from GET /api/games/{id} without showing the join form again.
+            await alicePage.ReloadAsync(new() { WaitUntil = WaitUntilState.Commit });
+
+            // Back in the game in turn — proves identity + turn were restored.
+            (await alicePage.WaitForSelectorAsync("[data-testid='my-turn-indicator']",
+                new() { Timeout = WasmTimeoutMs }))
+                .Should().NotBeNull("Alice should be restored into her turn after a refresh");
+
+            // The join form must NOT reappear (she is already a player in this game).
+            (await alicePage.Locator("button:has-text('Join Game')").CountAsync())
+                .Should().Be(0, "a restored player skips the join form");
+
+            // Her rolled dice are restored from the snapshot.
+            await alicePage.WaitForSelectorAsync(".die-container", new() { Timeout = WasmTimeoutMs });
+            (await alicePage.Locator(".die-container").CountAsync())
+                .Should().Be(diceBefore, "the mid-turn dice should be restored after refresh");
+
+            // The scoreboard with both players is restored too.
+            (await alicePage.Locator("[data-testid='scoreboard']").InnerTextAsync())
+                .Should().Contain("Alice").And.Contain("Bob");
+
+            await alicePage.WaitForTimeoutAsync(StepDelayMs); // hold the restored state on video
+        }
+        finally
+        {
+            var bobRawPath = await bobPage.Video!.PathAsync();
+            await bobContext.CloseAsync();
+            if (File.Exists(bobRawPath))
+                File.Move(bobRawPath, Path.Combine(VideoDir, "RestoreStateAfterRefresh-Bob.webm"), overwrite: true);
+        }
+    });
 }
