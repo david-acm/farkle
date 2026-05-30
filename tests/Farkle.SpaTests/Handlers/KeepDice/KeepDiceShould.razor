@@ -18,9 +18,6 @@
     // Given — roll returns a single Five
     var gameId = new GameId(10);
     Mock.Get(GameService)
-      .Setup(s => s.StartGameAsync(It.IsAny<int>()))
-      .ReturnsAsync(gameId);
-    Mock.Get(GameService)
       .Setup(s => s.RollDiceAsync(It.IsAny<int>(), It.IsAny<int>()))
       .ReturnsAsync(Result<IList<DieValue>>.Success(new List<DieValue> { DieValue.Five }));
     Mock.Get(GameService)
@@ -50,9 +47,6 @@
   {
     // Given — roll returns two Fives (same value, different indices)
     var gameId = new GameId(10);
-    Mock.Get(GameService)
-      .Setup(s => s.StartGameAsync(It.IsAny<int>()))
-      .ReturnsAsync(gameId);
     Mock.Get(GameService)
       .Setup(s => s.RollDiceAsync(It.IsAny<int>(), It.IsAny<int>()))
       .ReturnsAsync(Result<IList<DieValue>>.Success(

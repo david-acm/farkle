@@ -63,10 +63,10 @@ public class GameService : IGameService
     return new KeepDiceResponse(response?.Id ?? 0, response?.TurnScore ?? 0);
   }
 
-  public async Task<int> StartGameAsync(int gameId)
+  public async Task<int> CreateGameAsync()
   {
-    var response = await _client.Api.Games.PostAsync(new KiotaModels.FarkleContractsHttpRequests_StartGameRequest { Id = gameId });
-    _logger.LogInformation("Started game with id: {Id}", response?.Id);
+    var response = await _client.Api.Games.PostAsync();
+    _logger.LogInformation("Created game with id: {Id}", response?.Id);
     return response?.Id ?? 0;
   }
 

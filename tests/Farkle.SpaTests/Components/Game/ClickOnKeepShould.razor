@@ -17,14 +17,9 @@
     // Given
     const int playerId = 1;
     var gameId         = new GameId(10);
-    Mock.Get(GameService)
-      .Setup(s => s.StartGameAsync(It.IsAny<int>()))
-      .ReturnsAsync(gameId);
-
     var game = Render<Game>(@<Game ParameterGameId="gameId"/>);
     JoinGame(game);
     var score         = game.FindComponent<TurnScore>();
-    // StartGame is dispatched automatically in OnParametersSetAsync
     var cut           = game.FindComponent<KeepButton>();
     var button        = cut.Find("button");
     var expectedScore = 200;

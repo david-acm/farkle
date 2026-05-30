@@ -50,9 +50,9 @@ public class GameHubShould : IClassFixture<GameApiWebAppFactory>
     [Fact]
     public async Task BroadcastsTurnChangedAfterPassTurn()
     {
-        const int gameId = 401;
+        // The server generates the id, so create the game first, then subscribe the hub.
+        var gameId = (await _client.Api.Games.PostAsync())!.Id!.Value;
 
-        // Subscribe to hub before the game action occurs.
         var connection = new HubConnectionBuilder()
             .WithUrl("http://localhost/hubs/game",
                 o => o.HttpMessageHandlerFactory = _ => _factory.Server.CreateHandler())
@@ -68,10 +68,6 @@ public class GameHubShould : IClassFixture<GameApiWebAppFactory>
 
         await connection.StartAsync();
         await connection.InvokeAsync("JoinGame", gameId);
-
-        // Set up game and perform a pass turn.
-        await _client.Api.Games.PostAsync(
-            new FarkleContractsHttpRequests_StartGameRequest { Id = gameId });
 
         var player1 = (await _client.Api.Games[gameId].Players.PostAsync(
             new FarkleContractsHttpRequests_JoinPlayerRequest { PlayerName = "David" }))?.Id ?? 0;
@@ -107,7 +103,7 @@ public class GameHubShould : IClassFixture<GameApiWebAppFactory>
     [Fact]
     public async Task BroadcastsPlayerJoinedWhenAPlayerJoins()
     {
-        const int gameId = 402;
+        var gameId = (await _client.Api.Games.PostAsync())!.Id!.Value;
 
         var connection = new HubConnectionBuilder()
             .WithUrl("http://localhost/hubs/game",
@@ -120,8 +116,6 @@ public class GameHubShould : IClassFixture<GameApiWebAppFactory>
         await connection.StartAsync();
         await connection.InvokeAsync("JoinGame", gameId);
 
-        await _client.Api.Games.PostAsync(
-            new FarkleContractsHttpRequests_StartGameRequest { Id = gameId });
         await _client.Api.Games[gameId].Players.PostAsync(
             new FarkleContractsHttpRequests_JoinPlayerRequest { PlayerName = "David" });
 
@@ -139,7 +133,7 @@ public class GameHubShould : IClassFixture<GameApiWebAppFactory>
     [Fact]
     public async Task BroadcastsGameBeganWhenHostStarts()
     {
-        const int gameId = 403;
+        var gameId = (await _client.Api.Games.PostAsync())!.Id!.Value;
 
         var connection = new HubConnectionBuilder()
             .WithUrl("http://localhost/hubs/game",
@@ -152,8 +146,6 @@ public class GameHubShould : IClassFixture<GameApiWebAppFactory>
         await connection.StartAsync();
         await connection.InvokeAsync("JoinGame", gameId);
 
-        await _client.Api.Games.PostAsync(
-            new FarkleContractsHttpRequests_StartGameRequest { Id = gameId });
         await _client.Api.Games[gameId].Players.PostAsync(
             new FarkleContractsHttpRequests_JoinPlayerRequest { PlayerName = "David" });
         await _client.Api.Games[gameId].Players.PostAsync(

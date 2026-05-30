@@ -51,9 +51,7 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
     [Fact]
     public async Task MultiplePlayersCanJoinAndPlayAsync()
     {
-        const int gameId = 305;
-
-        await StartGameAsync(gameId);
+        var gameId = await StartGameAsync();
         var player1 = await JoinGameAsync(gameId, "David");
         var player2 = await JoinGameAsync(gameId, "Allison");
         await BeginGameAsync(gameId);
@@ -78,14 +76,28 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
     }
 
     [Fact]
+    public async Task CreateGameReturnsFreshPositiveIdAsync()
+    {
+        var id = await StartGameAsync();
+        Assert.True(id > 0, "the server should generate a positive game id");
+    }
+
+    [Fact]
+    public async Task TwoCreatesReturnDistinctIdsAsync()
+    {
+        var first  = await StartGameAsync();
+        var second = await StartGameAsync();
+        Assert.NotEqual(first, second);
+    }
+
+    [Fact]
     public async Task RejectUnauthenticatedRequestsAsync()
     {
         var savedAuth = _httpClient.DefaultRequestHeaders.Authorization;
         _httpClient.DefaultRequestHeaders.Authorization = null;
 
         var ex = await Assert.ThrowsAsync<ApiException>(
-            () => _client.Api.Games.PostAsync(
-                new FarkleContractsHttpRequests_StartGameRequest { Id = 999 }));
+            () => _client.Api.Games.PostAsync());
 
         _httpClient.DefaultRequestHeaders.Authorization = savedAuth;
         Assert.Equal(401, ex.ResponseStatusCode);
@@ -94,9 +106,7 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
     [Fact]
     public async Task AllowPlayerToRollDiceAsync()
     {
-        const int gameId = 208;
-
-        await StartGameAsync(gameId);
+        var gameId = await StartGameAsync();
         var player1 = await JoinGameAsync(gameId, "David");
         await JoinGameAsync(gameId, "Allison");
         await BeginGameAsync(gameId);
@@ -113,9 +123,7 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
     [Fact]
     public async Task PassTurnResetsTurnScoreAsync()
     {
-        const int gameId = 209;
-
-        await StartGameAsync(gameId);
+        var gameId = await StartGameAsync();
         var player1 = await JoinGameAsync(gameId, "David");
         var player2 = await JoinGameAsync(gameId, "Allison");
         await BeginGameAsync(gameId);
@@ -145,9 +153,7 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
     [Fact]
     public async Task PassTurnIncludesScoreboardAsync()
     {
-        const int gameId = 304;
-
-        await StartGameAsync(gameId);
+        var gameId = await StartGameAsync();
         var player1 = await JoinGameAsync(gameId, "David");
         var player2 = await JoinGameAsync(gameId, "Allison");
         await BeginGameAsync(gameId);
@@ -174,9 +180,7 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
     [Fact]
     public async Task RejectRollFromPlayerNotInTurnAsync()
     {
-        const int gameId = 301;
-
-        await StartGameAsync(gameId);
+        var gameId = await StartGameAsync();
         var player1 = await JoinGameAsync(gameId, "David");
         var player2 = await JoinGameAsync(gameId, "Allison");
         await BeginGameAsync(gameId);
@@ -192,9 +196,7 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
     [Fact]
     public async Task RejectDoubleRollWithoutKeepingAsync()
     {
-        const int gameId = 302;
-
-        await StartGameAsync(gameId);
+        var gameId = await StartGameAsync();
         var player1 = await JoinGameAsync(gameId, "David");
         await JoinGameAsync(gameId, "Allison");
         await BeginGameAsync(gameId);
@@ -212,9 +214,7 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
     [Fact]
     public async Task RejectPassWithoutRollingAsync()
     {
-        const int gameId = 303;
-
-        await StartGameAsync(gameId);
+        var gameId = await StartGameAsync();
         var player1 = await JoinGameAsync(gameId, "David");
         await JoinGameAsync(gameId, "Allison");
         await BeginGameAsync(gameId);
@@ -229,9 +229,7 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
     [Fact]
     public async Task ReturnLobbyRosterWhenPlayerJoinsAsync()
     {
-        const int gameId = 310;
-
-        await StartGameAsync(gameId);
+        var gameId = await StartGameAsync();
         await _client.Api.Games[gameId].Players.PostAsync(
             new FarkleContractsHttpRequests_JoinPlayerRequest { PlayerName = "David" });
         var second = await _client.Api.Games[gameId].Players.PostAsync(
@@ -249,9 +247,7 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
     [Fact]
     public async Task LetHostBeginGameAsync()
     {
-        const int gameId = 311;
-
-        await StartGameAsync(gameId);
+        var gameId = await StartGameAsync();
         await JoinGameAsync(gameId, "David");
         await JoinGameAsync(gameId, "Allison");
 
@@ -265,9 +261,7 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
     [Fact]
     public async Task RejectBeginGameFromNonHostAsync()
     {
-        const int gameId = 312;
-
-        await StartGameAsync(gameId);
+        var gameId = await StartGameAsync();
         await JoinGameAsync(gameId, "David");
         await JoinGameAsync(gameId, "Allison");
 
@@ -277,9 +271,12 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
         Assert.Equal(400, ex.ResponseStatusCode);
     }
 
-    private Task StartGameAsync(int gameId)
-        => _client.Api.Games.PostAsync(
-            new FarkleContractsHttpRequests_StartGameRequest { Id = gameId });
+    // The server now generates the game id; the POST is body-less and returns the id.
+    private async Task<int> StartGameAsync()
+    {
+        var response = await _client.Api.Games.PostAsync();
+        return response?.Id ?? 0;
+    }
 
     private async Task<int> JoinGameAsync(int gameId, string playerName)
     {

@@ -43,6 +43,22 @@ internal class GameService
       .Execute((game, cmd) => game.PassTurn(cmd));
   }
 
+  // Attempts to start a brand-new game with the supplied id. Reports whether the id
+  // was free (Created) or already in use (IdAlreadyInUse) so the caller can decide on a
+  // retry policy; genuine failures are thrown. The retry/id-allocation policy lives in
+  // GameCreator — this method just delegates the StartGame command to the domain.
+  public async Task<StartGameOutcome> TryStartGameAsync(int id, CancellationToken cancellationToken)
+  {
+    var result = await Handle(new Command.StartGame(new GameId(id)), cancellationToken);
+    return result switch
+    {
+      OkResult<GameState>                                                        => StartGameOutcome.Created,
+      ErrorResult<GameState> e when e.Exception is OptimisticConcurrencyException => StartGameOutcome.IdAlreadyInUse,
+      ErrorResult<GameState> e                                                    => throw e.Exception ?? new InvalidOperationException(e.Message),
+      _                                                                          => throw new InvalidOperationException("Unexpected result creating game.")
+    };
+  }
+
   // TODO: Generalize this method
   public async Task<IResult> HandleAsync<TCommand, TResponse>(TCommand command, CancellationToken cancellationToken, Func<GameState,TResponse>? mapper = null)
     where TResponse : class
@@ -73,7 +89,15 @@ internal class GameService
 
 internal interface IGameService
 {
+  Task<StartGameOutcome> TryStartGameAsync(int id, CancellationToken cancellationToken);
+
   Task<IResult> HandleAsync<TCommand, TResponse>(TCommand command, CancellationToken cancellationToken, Func<GameState,TResponse>? mapper = null)
     where TResponse : class
     where TCommand : class;
+}
+
+internal enum StartGameOutcome
+{
+  Created,
+  IdAlreadyInUse
 }
