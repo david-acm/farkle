@@ -105,10 +105,11 @@ public sealed class ScriptedIdGameApiWebAppFactory : WebApplicationFactory<Progr
     }
 }
 
-public class GameIdGenerationShould : IClassFixture<ScriptedIdGameApiWebAppFactory>
+public class GameIdGenerationShould : IClassFixture<ScriptedIdGameApiWebAppFactory>, IDisposable
 {
-    private readonly HttpClient      _httpClient;
-    private readonly FarkleApiClient _client;
+    private readonly HttpClient               _httpClient;
+    private readonly HttpClientRequestAdapter _adapter;
+    private readonly FarkleApiClient          _client;
 
     public GameIdGenerationShould(ScriptedIdGameApiWebAppFactory factory)
     {
@@ -118,10 +119,10 @@ public class GameIdGenerationShould : IClassFixture<ScriptedIdGameApiWebAppFacto
             BaseAddress = factory.Server.BaseAddress
         };
         _httpClient = wrapped;
-        var adapter = new HttpClientRequestAdapter(
+        _adapter = new HttpClientRequestAdapter(
             new AnonymousAuthenticationProvider(), httpClient: _httpClient);
-        adapter.BaseUrl = _httpClient.BaseAddress?.ToString().TrimEnd('/') ?? string.Empty;
-        _client = new FarkleApiClient(adapter);
+        _adapter.BaseUrl = _httpClient.BaseAddress?.ToString().TrimEnd('/') ?? string.Empty;
+        _client = new FarkleApiClient(_adapter);
 
         AuthenticateAsync().GetAwaiter().GetResult();
     }
@@ -151,6 +152,12 @@ public class GameIdGenerationShould : IClassFixture<ScriptedIdGameApiWebAppFacto
         // Second create draws 424242 again (collision) then retries to 424243.
         var second = await _client.Api.Games.PostAsync();
         Assert.Equal(424243, second!.Id);
+    }
+
+    public void Dispose()
+    {
+        _adapter.Dispose();
+        _httpClient.Dispose();
     }
 }
 
