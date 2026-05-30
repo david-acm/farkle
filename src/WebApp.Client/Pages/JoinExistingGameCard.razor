@@ -1,0 +1,28 @@
+<MudCard Style="max-width: 420px" Class="mx-auto">
+  <MudCardContent>
+    <MudText Typo="Typo.h5" GutterBottom="true">Join Existing Game</MudText>
+    <MudTextField @bind-Value="_joinName"
+                  Placeholder="Your name"
+                  Variant="Variant.Outlined"
+                  Immediate="true"
+                  Class="mb-3" />
+    <MudNumericField T="int"
+                     @bind-Value="_joinId"
+                     Placeholder="Game code"
+                     Variant="Variant.Outlined"
+                     Immediate="true"
+                     HideSpinButtons="true"
+                     Min="0" />
+  </MudCardContent>
+  <MudCardActions>
+    <MudButton FullWidth="true"
+               Variant="Variant.Filled"
+               Color="Color.Primary"
+               StartIcon="@Icons.Material.Filled.Login"
+               data-testid="join-existing-game"
+               Disabled="@(string.IsNullOrWhiteSpace(_joinName) || _joinId <= 0)"
+               OnClick="JoinExistingGame">
+      Join Existing Game
+    </MudButton>
+  </MudCardActions>
+</MudCard>
