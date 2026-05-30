@@ -1,5 +1,6 @@
 using BlazorState;
 using Microsoft.AspNetCore.Components;
+using Microsoft.Kiota.Abstractions;
 using WebApp.Client.Features;
 
 namespace WebApp.Client.Pages;
@@ -22,9 +23,14 @@ public partial class StartNewGameCard : BlazorStateComponent
     {
       await Mediator.Send(new GameState.CreateGame.Action());
     }
-    catch (Exception ex)
+    catch (ApiException ex)
     {
-      Logger.LogWarning(ex, "Failed to create a new game");
+      Logger.LogWarning(ex, "Failed to create a new game (API error)");
+      return;
+    }
+    catch (HttpRequestException ex)
+    {
+      Logger.LogWarning(ex, "Failed to create a new game (network error)");
       return;
     }
 

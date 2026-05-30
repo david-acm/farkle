@@ -24,6 +24,7 @@ public static class FarkleModuleServiceExtensions
     services.AddAggregateStore<EsdbEventStore>();
     services.AddSingleton<IGameService, GameService>();
     services.AddSingleton<IGameIdGenerator, RandomGameIdGenerator>();
+    services.AddSingleton<IGameCreator, GameCreator>();
     // services.AddRazorComponents();
     
     // TODO: Use Guard clause instead

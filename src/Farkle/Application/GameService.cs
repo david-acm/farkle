@@ -10,12 +10,8 @@ internal class GameService
   : CommandService<Game, GameState, GameId>,
     IGameService
 {
-  private readonly IGameIdGenerator _idGenerator;
-
-  public GameService(IAggregateStore store, IGameIdGenerator idGenerator) : base(store)
+  public GameService(IAggregateStore store) : base(store)
   {
-    _idGenerator = idGenerator;
-
     On<Command.StartGame>()
       .InState(New)
       .GetId(cmd => new GameId(cmd.GameId))
@@ -47,27 +43,20 @@ internal class GameService
       .Execute((game, cmd) => game.PassTurn(cmd));
   }
 
-  public async Task<int> CreateGameAsync(CancellationToken cancellationToken)
+  // Attempts to start a brand-new game with the supplied id. Reports whether the id
+  // was free (Created) or already in use (IdAlreadyInUse) so the caller can decide on a
+  // retry policy; genuine failures are thrown. The retry/id-allocation policy lives in
+  // GameCreator — this method just delegates the StartGame command to the domain.
+  public async Task<StartGameOutcome> TryStartGameAsync(int id, CancellationToken cancellationToken)
   {
-    const int maxAttempts = 10;
-    for (var attempt = 0; attempt < maxAttempts; attempt++)
+    var result = await Handle(new Command.StartGame(new GameId(id)), cancellationToken);
+    return result switch
     {
-      var id     = _idGenerator.Next();
-      var result = await Handle(new Command.StartGame(new GameId(id)), cancellationToken);
-      switch (result)
-      {
-        case OkResult<GameState>:
-          return id;
-        case ErrorResult<GameState> e when e.Exception is OptimisticConcurrencyException:
-          continue; // id already taken — pick another
-        case ErrorResult<GameState> e:
-          throw e.Exception ?? new InvalidOperationException(e.Message);
-        default:
-          throw new InvalidOperationException("Unexpected result creating game.");
-      }
-    }
-
-    throw new InvalidOperationException($"Could not allocate a unique game id after {maxAttempts} attempts.");
+      OkResult<GameState>                                                        => StartGameOutcome.Created,
+      ErrorResult<GameState> e when e.Exception is OptimisticConcurrencyException => StartGameOutcome.IdAlreadyInUse,
+      ErrorResult<GameState> e                                                    => throw e.Exception ?? new InvalidOperationException(e.Message),
+      _                                                                          => throw new InvalidOperationException("Unexpected result creating game.")
+    };
   }
 
   // TODO: Generalize this method
@@ -100,9 +89,15 @@ internal class GameService
 
 internal interface IGameService
 {
-  Task<int> CreateGameAsync(CancellationToken cancellationToken);
+  Task<StartGameOutcome> TryStartGameAsync(int id, CancellationToken cancellationToken);
 
   Task<IResult> HandleAsync<TCommand, TResponse>(TCommand command, CancellationToken cancellationToken, Func<GameState,TResponse>? mapper = null)
     where TResponse : class
     where TCommand : class;
+}
+
+internal enum StartGameOutcome
+{
+  Created,
+  IdAlreadyInUse
 }
