@@ -140,7 +140,7 @@ public partial class Game : BlazorStateComponent, IAsyncDisposable
       var stored = JsonSerializer.Deserialize<StoredSession>(json);
       return stored is { PlayerId: > 0 } ? stored : null;
     }
-    catch
+    catch (JsonException)
     {
       return null;
     }

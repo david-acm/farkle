@@ -339,7 +339,7 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
             var bobRawPath = await bobPage.Video!.PathAsync();
             await bobContext.CloseAsync();
             if (File.Exists(bobRawPath))
-                File.Move(bobRawPath, Path.Combine(VideoDir, "RestoreStateAfterRefresh-Bob.webm"), overwrite: true);
+                File.Move(bobRawPath, Path.Join(VideoDir, "RestoreStateAfterRefresh-Bob.webm"), overwrite: true);
         }
     });
 }

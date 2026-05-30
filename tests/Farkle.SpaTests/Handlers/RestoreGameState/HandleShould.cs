@@ -103,7 +103,7 @@ public class HandleShould : HandlerTestContext
   {
     Mock.Get(GameService)
       .Setup(s => s.GetGameStateAsync(It.IsAny<int>()))
-      .ReturnsAsync((GameStateResponse?)null);
+      .ReturnsAsync(default(GameStateResponse));
 
     await Sender.Send(new GameState.RestoreGameState.Action(PlayerId: 7, PlayerName: "Alice"));
 
