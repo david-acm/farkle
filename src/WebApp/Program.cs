@@ -64,7 +64,10 @@ services.AddFarkleModuleServices(builder.Configuration, logger, new List<Assembl
 // Broadcast game events from an Eventuous subscription (reacting to persisted events)
 // rather than from the endpoints. The subscription registers a hosted service that
 // connects to ESDB at startup; the NSwag swagger-generation run has no ESDB, so skip it there.
-if (!builder.Environment.IsEnvironment("NSwag"))
+// Integration-test factories that don't exercise the hub set Farkle:EnableEventBroadcasting=false
+// so a live catch-up subscription isn't racing host disposal during their teardown.
+if (!builder.Environment.IsEnvironment("NSwag")
+    && builder.Configuration.GetValue("Farkle:EnableEventBroadcasting", true))
     services.AddFarkleEventBroadcasting();
 
 // Add services to the container.

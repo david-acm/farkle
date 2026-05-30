@@ -9,13 +9,13 @@ using static Farkle.Contracts.HttpResponses;
 
 namespace Farkle.WebTests;
 
-public class GameHubShould : IClassFixture<GameApiWebAppFactory>
+public class GameHubShould : IClassFixture<BroadcastingGameApiWebAppFactory>
 {
-    private readonly GameApiWebAppFactory _factory;
+    private readonly BroadcastingGameApiWebAppFactory _factory;
     private readonly HttpClient           _httpClient;
     private readonly FarkleApiClient      _client;
 
-    public GameHubShould(GameApiWebAppFactory factory)
+    public GameHubShould(BroadcastingGameApiWebAppFactory factory)
     {
         _factory = factory;
         var inner   = factory.Server.CreateHandler();

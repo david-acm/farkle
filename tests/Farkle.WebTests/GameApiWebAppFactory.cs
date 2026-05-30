@@ -11,6 +11,10 @@ namespace Farkle.WebTests;
 
 public class GameApiWebAppFactory : WebApplicationFactory<Program>
 {
+  // Off by default: only factories whose tests exercise the SignalR hub turn the live
+  // broadcast subscription on (see BroadcastingGameApiWebAppFactory).
+  protected virtual bool EnableEventBroadcasting => false;
+
   private static Dictionary<string, string> Variables => new()
   {
     { "EVENTSTORE_ENABLE_ATOM_PUB_OVER_HTTP", "true" },
@@ -57,7 +61,12 @@ public class GameApiWebAppFactory : WebApplicationFactory<Program>
     builder.ConfigureAppConfiguration(cfg =>
       cfg.AddInMemoryCollection(new Dictionary<string, string?>
       {
-        ["Auth:RequireAuthorization"] = "true"
+        ["Auth:RequireAuthorization"] = "true",
+        // The live broadcast subscription is a hosted service that catches up against ESDB.
+        // Only the hub tests need it; for every other factory it would just race host
+        // disposal during teardown (an in-flight Load throws ObjectDisposedException and
+        // fails class cleanup). Enable it only where the hub is actually exercised.
+        ["Farkle:EnableEventBroadcasting"] = EnableEventBroadcasting ? "true" : "false"
       }));
 
     builder.ConfigureServices(s =>
@@ -74,4 +83,12 @@ public class GameApiWebAppFactory : WebApplicationFactory<Program>
       s.AddDbContext<AppDbContext>(o => o.UseNpgsql(pgConnectionString));
     });
   }
+}
+
+// Variant that enables the live Eventuous broadcast subscription, used by the SignalR hub
+// tests (which wait for the broadcast to arrive, so the subscription is caught up and idle
+// by teardown). Every other factory leaves broadcasting off.
+public sealed class BroadcastingGameApiWebAppFactory : GameApiWebAppFactory
+{
+  protected override bool EnableEventBroadcasting => true;
 }

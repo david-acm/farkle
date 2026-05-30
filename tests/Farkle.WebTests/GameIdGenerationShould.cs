@@ -82,7 +82,11 @@ public sealed class ScriptedIdGameApiWebAppFactory : WebApplicationFactory<Progr
         builder.ConfigureAppConfiguration(cfg =>
             cfg.AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["Auth:RequireAuthorization"] = "true"
+                ["Auth:RequireAuthorization"] = "true",
+                // This factory never exercises the SignalR hub; keep the live broadcast
+                // subscription out so an in-flight catch-up can't race host disposal during
+                // teardown (which previously failed class cleanup with ObjectDisposedException).
+                ["Farkle:EnableEventBroadcasting"] = "false"
             }));
 
         builder.ConfigureServices(s =>
