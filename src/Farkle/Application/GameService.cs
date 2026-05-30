@@ -10,8 +10,12 @@ internal class GameService
   : CommandService<Game, GameState, GameId>,
     IGameService
 {
+  private readonly IAggregateStore _store;
+
   public GameService(IAggregateStore store) : base(store)
   {
+    _store = store;
+
     On<Command.StartGame>()
       .InState(New)
       .GetId(cmd => new GameId(cmd.GameId))
@@ -59,6 +63,18 @@ internal class GameService
     };
   }
 
+  // Read-only load of the current state by replaying the aggregate's event stream.
+  // Returns null when the game stream doesn't exist yet (LoadOrNew yields an empty
+  // aggregate whose State.Id is still null because no GameStarted event was applied).
+  public async Task<GameState?> LoadStateAsync(GameId gameId, CancellationToken cancellationToken)
+  {
+    // Resolve the stream name the same way the command path does — via StreamNameFactory
+    // (yields "Game-{id}") — so a hand-built string can never drift from how events were stored.
+    var streamName = StreamNameFactory.For<Game, GameState, GameId>(gameId);
+    var game = await _store.LoadOrNew<Game>(streamName, cancellationToken);
+    return game.State.Id is null ? null : game.State;
+  }
+
   // TODO: Generalize this method
   public async Task<IResult> HandleAsync<TCommand, TResponse>(TCommand command, CancellationToken cancellationToken, Func<GameState,TResponse>? mapper = null)
     where TResponse : class
@@ -90,6 +106,8 @@ internal class GameService
 internal interface IGameService
 {
   Task<StartGameOutcome> TryStartGameAsync(int id, CancellationToken cancellationToken);
+
+  Task<GameState?> LoadStateAsync(GameId gameId, CancellationToken cancellationToken);
 
   Task<IResult> HandleAsync<TCommand, TResponse>(TCommand command, CancellationToken cancellationToken, Func<GameState,TResponse>? mapper = null)
     where TResponse : class

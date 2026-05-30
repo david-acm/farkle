@@ -271,6 +271,47 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
         Assert.Equal(400, ex.ResponseStatusCode);
     }
 
+    [Fact]
+    public async Task ReturnGameStateSnapshotForRefreshAsync()
+    {
+        var gameId  = await StartGameAsync();
+        var player1 = await JoinGameAsync(gameId, "David");
+        await JoinGameAsync(gameId, "Allison");
+        await BeginGameAsync(gameId);
+
+        // Player 1 rolls — the game is now mid-turn (stage Keeping, dice on the table).
+        await RollDiceAsync(gameId, player1);
+
+        var snapshot = await _client.Api.Games[gameId].GetAsync();
+
+        Assert.NotNull(snapshot);
+        Assert.Equal(gameId, snapshot!.GameId);
+        Assert.Equal("Keeping", snapshot.Stage);
+        Assert.Equal(player1, snapshot.CurrentPlayerId);
+        Assert.Equal(1, snapshot.HostPlayerId);
+        Assert.Null(snapshot.Winner);
+
+        // The full scoreboard (names + scores) is restored, not just the lobby roster.
+        Assert.NotNull(snapshot.Scoreboard);
+        Assert.Equal(2, snapshot.Scoreboard!.Count);
+        Assert.Contains(snapshot.Scoreboard, p => p.Name == "David");
+        Assert.Contains(snapshot.Scoreboard, p => p.Name == "Allison");
+
+        // The dice the active player just rolled are part of the snapshot.
+        Assert.NotNull(snapshot.TableCenter);
+        Assert.NotEmpty(snapshot.TableCenter!);
+        Assert.All(snapshot.TableCenter!, v => Assert.InRange(v!.Value, 1, 6));
+    }
+
+    [Fact]
+    public async Task ReturnNotFoundForUnknownGameAsync()
+    {
+        var ex = await Assert.ThrowsAsync<ApiException>(
+            () => _client.Api.Games[999_999].GetAsync());
+
+        Assert.Equal(404, ex.ResponseStatusCode);
+    }
+
     // The server now generates the game id; the POST is body-less and returns the id.
     private async Task<int> StartGameAsync()
     {
