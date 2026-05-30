@@ -89,9 +89,9 @@ public class GameHubShould : IClassFixture<GameApiWebAppFactory>
 
         await _client.Api.Games[gameId].Players[player1].Turns.PostAsync();
 
-        // Wait up to 5 s for the hub message.
-        var completed = await Task.WhenAny(tcs.Task, Task.Delay(5_000));
-        Assert.True(completed == tcs.Task, "Hub did not broadcast TurnChanged within 5 seconds");
+        // Wait up to 15 s for the hub message (broadcast now flows through a catch-up subscription).
+        var completed = await Task.WhenAny(tcs.Task, Task.Delay(15_000));
+        Assert.True(completed == tcs.Task, "Hub did not broadcast TurnChanged within 15 seconds");
 
         Assert.NotNull(received);
         Assert.Equal(2, received!.CurrentPlayerId); // turn rotated to player 2
@@ -119,8 +119,8 @@ public class GameHubShould : IClassFixture<GameApiWebAppFactory>
         await _client.Api.Games[gameId].Players.PostAsync(
             new FarkleContractsHttpRequests_JoinPlayerRequest { PlayerName = "David" });
 
-        var completed = await Task.WhenAny(tcs.Task, Task.Delay(5_000));
-        Assert.True(completed == tcs.Task, "Hub did not broadcast PlayerJoined within 5 seconds");
+        var completed = await Task.WhenAny(tcs.Task, Task.Delay(15_000));
+        Assert.True(completed == tcs.Task, "Hub did not broadcast PlayerJoined within 15 seconds");
 
         var lobby = await tcs.Task;
         Assert.Equal(gameId, lobby.GameId);
@@ -153,8 +153,8 @@ public class GameHubShould : IClassFixture<GameApiWebAppFactory>
         await _client.Api.Games[gameId].Start.PostAsync(
             new FarkleContractsHttpRequests_BeginGameRequest { PlayerId = 1 });
 
-        var completed = await Task.WhenAny(tcs.Task, Task.Delay(5_000));
-        Assert.True(completed == tcs.Task, "Hub did not broadcast GameBegan within 5 seconds");
+        var completed = await Task.WhenAny(tcs.Task, Task.Delay(15_000));
+        Assert.True(completed == tcs.Task, "Hub did not broadcast GameBegan within 15 seconds");
 
         var lobby = await tcs.Task;
         Assert.Equal(gameId, lobby.GameId);

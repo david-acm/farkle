@@ -26,6 +26,7 @@
     <PackageReference Include="Eventuous.Extensions.DependencyInjection" Version="0.15.0-beta.10" />
     <PackageReference Include="Eventuous.Persistence" Version="0.15.0-beta.10" />
     <PackageReference Include="Eventuous.Shared" Version="0.15.0-beta.10" />
+    <PackageReference Include="Eventuous.Subscriptions" Version="0.15.0-beta.10" />
     <!-- FastEndpoints: pinned to 5.x — migration to 8.x requires API updates tracked separately. -->
     <PackageReference Include="FastEndpoints" Version="5.34.0" />
     <PackageReference Include="Mapster" Version="10.0.7" />

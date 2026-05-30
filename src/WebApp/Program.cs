@@ -56,10 +56,16 @@ services
   });
 
 services.AddSignalR();
-services.AddScoped<Farkle.Application.IGameEventBroadcaster, WebApp.Hubs.SignalRGameEventBroadcaster>();
+services.AddSingleton<Farkle.Application.IGameEventBroadcaster, WebApp.Hubs.SignalRGameEventBroadcaster>();
 
 // Add module services
 services.AddFarkleModuleServices(builder.Configuration, logger, new List<Assembly>());
+
+// Broadcast game events from an Eventuous subscription (reacting to persisted events)
+// rather than from the endpoints. The subscription registers a hosted service that
+// connects to ESDB at startup; the NSwag swagger-generation run has no ESDB, so skip it there.
+if (!builder.Environment.IsEnvironment("NSwag"))
+    services.AddFarkleEventBroadcasting();
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
