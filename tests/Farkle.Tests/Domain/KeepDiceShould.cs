@@ -143,6 +143,21 @@ public class KeepDiceShould : GameWithThreePlayersTest
   }
 
   [Fact]
+  public void RejectKeepingMoreCopiesOfADieThanAreOnTheTable()
+  {
+    // Arrange — a roll with exactly one 1 on the table.
+    SetupDiceToRoll(new List<int> { 1, 2, 3, 4, 6, 2 });
+    Game.RollDiceV2(new Command.RollDice(1, 1));
+
+    // Act — try to keep two 1s when only one is on the table.
+    Game.KeepDice(new Command.KeepDice(1, 1, new[] { DieValue.One, DieValue.One }));
+
+    // Assert — the second 1 is unavailable, so the keep is rejected. This guards the
+    // count (multiset) semantics of PlayerHasThoseDice, not just value presence.
+    Changes.Should().ContainSingleEvent<DiceNotAllowedToBeKept>();
+  }
+
+  [Fact]
   public void AllowToKeepOnlyDiceThatAreStillInTheTable()
   {
     // Arrange
