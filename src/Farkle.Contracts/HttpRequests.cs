@@ -17,4 +17,7 @@ public static class HttpRequests
 
   // [HttpCommand(Route = "turnPasses")]
   public record PassTurnHttp(int GameId, int PlayerId);
+
+  // GET /api/games/{gameId} — full state snapshot for refresh / reconnect.
+  public record GetGameRequest(int GameId);
 }
