@@ -8,31 +8,27 @@
 
 .zone {
     background: #111128;
-    min-height: 13rem;
+    min-height: 11rem;
     position: relative;
+    /* The stylised 3D dice render ~2x their box-size *above* their layout box
+       (the .die.solid layer's upward translate). Padding reliably pushes the dice
+       down (it reaches the zone even though MudDropContainer's wrapper defeats
+       flex alignment on .drop-zones), keeping them clear of the absolute title. */
     padding-top: 3.5rem;
     padding-bottom: 1rem;
-    /* The stylised 3D dice float well above their layout box (the .solid layer is
-       translated up by 2x the die size). Anchoring the dice to the bottom of the
-       zone keeps that upward float in the lower-middle, clear of the top title. */
-    align-items: flex-end;
-    align-content: flex-end;
 }
 
 /* The zone titles are positioned via an inline style on the MudText so they
    reliably leave the flex flow (CSS isolation doesn't always reach the nested
    MudText root). The .zone padding-top above reserves space for them. */
 
-/* Side by side from medium screens up; stacked on mobile so the dice get the
-   full width and lay out in a grid instead of piling into a narrow column. */
 @media (min-width: 768px) {
-    .drop-zones {
-        flex-direction: row;
-    }
-    /* One row of dice on desktop, so the zone collapses near min-height — give it
-       enough height that the bottom-anchored dice (which float upward) clear the
-       title rather than rendering on top of it. */
+    /* Desktop shows a single dice row that would otherwise sit at the top of the
+       zone — right under the title — and the dice's upward float then overlaps it.
+       A tall top padding drops that row well below the title. (Mobile keeps the
+       smaller padding: its multiple rows already make the zone tall enough.) */
     .zone {
-        min-height: 18rem;
+        padding-top: 9rem;
+        min-height: 14rem;
     }
 }
