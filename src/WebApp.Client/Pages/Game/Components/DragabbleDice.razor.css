@@ -13,14 +13,9 @@
     padding-top: 4rem;
 }
 
-.zone-title {
-    position: absolute;
-    top: 0.75rem;
-    left: 0;
-    right: 0;
-    text-align: center;
-    pointer-events: none;
-}
+/* The zone titles are positioned via an inline style on the MudText so they
+   reliably leave the flex flow (CSS isolation doesn't always reach the nested
+   MudText root). The .zone padding-top above reserves space for them. */
 
 /* Side by side from medium screens up; stacked on mobile so the dice get the
    full width and lay out in a grid instead of piling into a narrow column. */
