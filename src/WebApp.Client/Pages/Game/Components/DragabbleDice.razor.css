@@ -1,7 +1,7 @@
 .drop-zones {
     display: flex;
     flex-wrap: wrap;
-    flex-direction: column;
+    flex-direction: row;
     width: 100%;
     gap: 1rem;
 }
@@ -20,10 +20,4 @@
     right: 0;
     text-align: center;
     pointer-events: none;
-}
-
-@media (min-width: 960px) {
-    .drop-zones {
-        flex-direction: row;
-    }
 }
