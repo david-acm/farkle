@@ -29,4 +29,10 @@
     .drop-zones {
         flex-direction: row;
     }
+    /* One row of dice on desktop, so the zone collapses near min-height — give it
+       enough height that the bottom-anchored dice (which float upward) clear the
+       title rather than rendering on top of it. */
+    .zone {
+        min-height: 18rem;
+    }
 }
