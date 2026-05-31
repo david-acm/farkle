@@ -72,14 +72,17 @@ public class PlaywrightFixture : IAsyncLifetime
     /// Caller must close the context after the test to finalise the recording, then
     /// call <c>page.Video!.PathAsync()</c> to retrieve the generated file path.
     /// </summary>
-    public async Task<IBrowserContext> NewContextWithVideoAsync(string videoDir)
+    public async Task<IBrowserContext> NewContextWithVideoAsync(string videoDir, ViewportSize? viewport = null)
     {
         Directory.CreateDirectory(videoDir);
         return await _browser.NewContextAsync(new()
         {
             BaseURL       = BaseUrl,
             RecordVideoDir  = videoDir,
-            RecordVideoSize = new RecordVideoSize { Width = 1280, Height = 720 }
+            RecordVideoSize = new RecordVideoSize { Width = 1280, Height = 720 },
+            // Default null lets Playwright use its standard viewport; the storyboard
+            // test passes explicit sizes to capture responsive layouts.
+            ViewportSize  = viewport,
         });
     }
 
