@@ -8,7 +8,11 @@
 
 .zone {
     background: #111128;
-    min-height: 11rem;
+    /* Reserve enough height to hold the largest dice layout a single zone ever
+       shows (all 6 dice, which wrap to ~2 rows). Fixing the floor here means the
+       zone never grows or shrinks as dice are rolled, kept, or passed — which is
+       what caused the flickering. */
+    min-height: 20rem;
     position: relative;
 }
 
