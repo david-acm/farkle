@@ -1,7 +1,5 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
-using System.Text.Json;
-using System.Text.RegularExpressions;
 
 namespace Farkle.E2eTests;
 
@@ -22,33 +20,14 @@ namespace Farkle.E2eTests;
 /// intercepted to identify scoring dice (1s and 5s) by index.
 /// </summary>
 [Collection(PlaywrightCollection.Name)]
-public class GameHappyPathShould(PlaywrightFixture fixture)
+public class GameHappyPathShould(PlaywrightFixture fixture) : GamePlaywrightTest(fixture)
 {
-    private const int WasmTimeoutMs = 120_000;
-
-    // Pause between notable steps so animations are visible in the recorded video.
-    // Override with E2E_STEP_DELAY_MS environment variable (e.g. set to 0 for speed).
-    private static int StepDelayMs =>
-        int.TryParse(Environment.GetEnvironmentVariable("E2E_STEP_DELAY_MS"), out var v) ? v : 2_000;
-
-    private static string VideoDir =>
-        Path.GetFullPath(Path.Join(AppContext.BaseDirectory, "..", "..", "..", "..", "..",
-            "test-results", "videos"));
-
-    private static string LogDir =>
-        Path.GetFullPath(Path.Join(AppContext.BaseDirectory, "..", "..", "..", "..", "..",
-            "test-results", "logs"));
-
-    private static string ScreenshotDir =>
-        Path.GetFullPath(Path.Join(AppContext.BaseDirectory, "..", "..", "..", "..", "..",
-            "test-results", "screenshots"));
-
     // ── video wrapper ────────────────────────────────────────────
 
     private async Task WithVideoAsync(Func<IPage, Task> test,
         [CallerMemberName] string testName = "")
     {
-        var aliceContext = await fixture.NewContextWithVideoAsync(VideoDir);
+        var aliceContext = await Fixture.NewContextWithVideoAsync(VideoDir);
         var alicePage    = await aliceContext.NewPageAsync();
         var consoleLogs  = new List<string>();
 
@@ -72,7 +51,7 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
             if (File.Exists(rawPath))
                 File.Move(rawPath, Path.Combine(VideoDir, $"{testName}.webm"), overwrite: true);
 
-            var apiLogs = fixture.Factory.DrainApiLogs();
+            var apiLogs = Fixture.Factory.DrainApiLogs();
             if (failure != null)
             {
                 Directory.CreateDirectory(LogDir);
@@ -83,77 +62,6 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
 
         if (failure != null)
             ExceptionDispatchInfo.Capture(failure).Throw();
-    }
-
-    // ── helpers ──────────────────────────────────────────────
-
-    // Loads the landing page and waits for WASM hydration (the Start button appears).
-    // Full-page navigation (GotoAsync) restarts WASM, giving a fresh BlazorState store
-    // with no player-specific data from a previous game session.
-    private async Task GotoLandingAndWaitForWasmAsync(IPage page)
-    {
-        // WaitUntilState.Commit fires as soon as the server sends response headers,
-        // before any CSS or JS is fetched. This bypasses the render-blocking
-        // fonts.googleapis.com link that causes GotoAsync to time out waiting for Load.
-        await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.Commit });
-        await page.WaitForSelectorAsync("[data-testid='start-new-game']",
-            new() { Timeout = WasmTimeoutMs });
-    }
-
-    // Hosts a new game from the landing page: enters a name, clicks "Start New Game",
-    // waits for navigation to /games/{id}, and returns the server-generated id.
-    private async Task<int> StartNewGameFromLandingAsync(IPage page, string playerName)
-    {
-        await GotoLandingAndWaitForWasmAsync(page);
-        // The Start card's name field is the first 'Your name' input.
-        await page.Locator("[placeholder='Your name']").First.FillAsync(playerName);
-        // Only click once the bind has enabled the button (avoids a default-timeout
-        // wait if the value hasn't propagated yet).
-        await page.WaitForSelectorAsync("[data-testid='start-new-game']:not([disabled])",
-            new() { Timeout = WasmTimeoutMs });
-        await page.ClickAsync("[data-testid='start-new-game']");
-        await page.WaitForURLAsync(new Regex(@"/games/\d+"), new() { Timeout = WasmTimeoutMs });
-        var match = Regex.Match(page.Url, @"/games/(\d+)");
-        return int.Parse(match.Groups[1].Value);
-    }
-
-    // Joins an existing game from the landing page using its share code.
-    private async Task JoinExistingGameFromLandingAsync(IPage page, string playerName, int gameId)
-    {
-        await GotoLandingAndWaitForWasmAsync(page);
-        // The Join card's name field is the second 'Your name' input.
-        await page.Locator("[placeholder='Your name']").Last.FillAsync(playerName);
-        await page.FillAsync("[placeholder='Game code']", gameId.ToString());
-        await page.WaitForSelectorAsync("[data-testid='join-existing-game']:not([disabled])",
-            new() { Timeout = WasmTimeoutMs });
-        await page.ClickAsync("[data-testid='join-existing-game']");
-        await page.WaitForURLAsync(new Regex(@"/games/\d+"), new() { Timeout = WasmTimeoutMs });
-    }
-
-    // MudBlazor's MudDropZone uses HTML5 drag events. Playwright's DragToAsync fires
-    // mouse events which don't reliably trigger the HTML5 drag API in headless Chrome,
-    // so we dispatch the events directly via JS.
-    private static Task DragDieAsync(IPage page, int index) =>
-        page.EvaluateAsync($@"() => {{
-            const dice   = document.querySelectorAll('.mud-drop-zone')[0]
-                                   .querySelectorAll('.mud-drop-item-draggable');
-            const source = dice[{index}];
-            const target = document.querySelectorAll('.mud-drop-zone')[1];
-            const dt     = new DataTransfer();
-            source.dispatchEvent(new DragEvent('dragstart', {{ bubbles: true, cancelable: true, dataTransfer: dt }}));
-            target.dispatchEvent(new DragEvent('dragenter', {{ bubbles: true, cancelable: true, dataTransfer: dt }}));
-            target.dispatchEvent(new DragEvent('dragover',  {{ bubbles: true, cancelable: true, dataTransfer: dt }}));
-            target.dispatchEvent(new DragEvent('drop',      {{ bubbles: true, cancelable: true, dataTransfer: dt }}));
-            source.dispatchEvent(new DragEvent('dragend',   {{ bubbles: true, cancelable: true, dataTransfer: dt }}));
-        }}");
-
-    private static int[] ParseDiceValues(string json)
-    {
-        using var doc = JsonDocument.Parse(json);
-        return doc.RootElement.GetProperty("diceValues")
-            .EnumerateArray()
-            .Select(v => v.GetInt32())
-            .ToArray();
     }
 
     // ── test ─────────────────────────────────────────────────
@@ -175,7 +83,7 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
         (await alicePage.WaitForSelectorAsync("[data-testid='start-game-button']", new() { Timeout = 10_000 }))
             .Should().NotBeNull("Alice, as host, should see the Start button in the lobby");
 
-        var bobContext = await fixture.NewContextWithVideoAsync(VideoDir);
+        var bobContext = await Fixture.NewContextWithVideoAsync(VideoDir);
         var bobPage    = await bobContext.NewPageAsync();
         try
         {
@@ -290,7 +198,7 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
         var gameId = await StartNewGameFromLandingAsync(alicePage, "Alice");
         await alicePage.WaitForSelectorAsync("[data-testid='lobby']", new() { Timeout = 10_000 });
 
-        var bobContext = await fixture.NewContextWithVideoAsync(VideoDir);
+        var bobContext = await Fixture.NewContextWithVideoAsync(VideoDir);
         var bobPage    = await bobContext.NewPageAsync();
         try
         {

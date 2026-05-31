@@ -5,17 +5,19 @@
 # Given a checkout of the `gh-pages` branch and a directory of freshly
 # downloaded Playwright `.webm` recordings, this script:
 #   1. Copies the videos into runs/{run_id}/
-#   2. Writes runs/{run_id}/metadata.json
-#   3. Generates runs/{run_id}/index.html  (embedded <video> tags)
-#   4. Regenerates the root index.html      (table of all recent runs)
-#   5. Prunes runs older than 90 days or beyond the 50-run limit
-#   6. Ensures .nojekyll exists
+#   2. Copies the screenshots into runs/{run_id}/screenshots/
+#   3. Writes runs/{run_id}/metadata.json
+#   4. Generates runs/{run_id}/index.html  (embedded <video> + <img> tags)
+#   5. Regenerates the root index.html      (table of all recent runs)
+#   6. Prunes runs older than 90 days or beyond the 50-run limit
+#   7. Ensures .nojekyll exists
 #
 # All inputs are passed via environment variables so the script is easy to
 # exercise locally (see tests/scripts/generate-pages.test.sh):
 #
 #   PAGES_DIR    (required) checkout of the gh-pages branch to write into
 #   VIDEOS_DIR   (optional) directory containing the downloaded *.webm files
+#   SCREENSHOTS_DIR (optional) directory containing the downloaded *.png files
 #   RUN_ID       (required) GitHub Actions run id
 #   PR_NUMBER    (optional) pull-request number
 #   BRANCH       (optional) head branch name
@@ -30,6 +32,7 @@ set -euo pipefail
 
 PAGES_DIR="${PAGES_DIR:?PAGES_DIR is required}"
 VIDEOS_DIR="${VIDEOS_DIR:-}"
+SCREENSHOTS_DIR="${SCREENSHOTS_DIR:-}"
 RUN_ID="${RUN_ID:?RUN_ID is required}"
 PR_NUMBER="${PR_NUMBER:-}"
 BRANCH="${BRANCH:-}"
@@ -64,6 +67,20 @@ if [ -n "$VIDEOS_DIR" ] && [ -d "$VIDEOS_DIR" ]; then
   done < <(find "$VIDEOS_DIR" -type f -name '*.webm' -print0 | sort -z)
 fi
 
+# --- 1b. Copy screenshots -----------------------------------------------------
+# Screenshots live in a runs/{id}/screenshots/ subdir so they never collide with
+# the flat .webm files and stay tidy when there are many.
+SHOTS=()
+if [ -n "$SCREENSHOTS_DIR" ] && [ -d "$SCREENSHOTS_DIR" ]; then
+  mkdir -p "$RUN_DIR/screenshots"
+  while IFS= read -r -d '' png; do
+    cp "$png" "$RUN_DIR/screenshots/"
+    SHOTS+=("$(basename "$png")")
+  done < <(find "$SCREENSHOTS_DIR" -type f -name '*.png' -print0 | sort -z)
+  # Drop the subdir again if nothing was copied, so empty runs stay clean.
+  [ "${#SHOTS[@]}" -eq 0 ] && rmdir "$RUN_DIR/screenshots" 2>/dev/null || true
+fi
+
 # --- 2. metadata.json ---------------------------------------------------------
 {
   printf '{\n'
@@ -77,6 +94,12 @@ fi
   for i in "${!VIDEOS[@]}"; do
     [ "$i" -gt 0 ] && printf ', '
     printf '"%s"' "${VIDEOS[$i]}"
+  done
+  printf '],\n'
+  printf '  "screenshots": ['
+  for i in "${!SHOTS[@]}"; do
+    [ "$i" -gt 0 ] && printf ', '
+    printf '"%s"' "${SHOTS[$i]}"
   done
   printf ']\n'
   printf '}\n'
@@ -111,6 +134,7 @@ short_sha() { printf '%s' "${1:0:7}"; }
           gap: .25rem 1rem; margin: 1rem 0; }
   .meta dt { font-weight: 600; }
   video { width: 100%; background: #000; border-radius: 8px; margin: .5rem 0 1.5rem; }
+  img.shot { width: 100%; border: 1px solid #e5e7eb; border-radius: 8px; margin: .5rem 0 1.5rem; }
   h2 { margin-top: 2rem; }
   .empty { color: #9ca3af; font-style: italic; }
 </style>
@@ -146,6 +170,17 @@ HTML
     for v in "${VIDEOS[@]}"; do
       printf '<h3>%s</h3>\n' "$(esc "$v")"
       printf '<video controls preload="metadata" src="%s"></video>\n' "$(esc "$v")"
+    done
+  fi
+
+  printf '<h2>Screenshots</h2>\n'
+  if [ "${#SHOTS[@]}" -eq 0 ]; then
+    printf '<p class="empty">No screenshots were captured for this run.</p>\n'
+  else
+    for s in "${SHOTS[@]}"; do
+      printf '<h3>%s</h3>\n' "$(esc "$s")"
+      printf '<img class="shot" loading="lazy" alt="%s" src="screenshots/%s">\n' \
+        "$(esc "$s")" "$(esc "$s")"
     done
   fi
 
@@ -200,6 +235,8 @@ for meta in "$PAGES_DIR"/runs/*/metadata.json; do
   r_status="$(get status)"
   r_vcount="$( { grep -o '"videos"[[:space:]]*:[[:space:]]*\[[^]]*\]' "$meta" \
                  | grep -o '\.webm' || true; } | wc -l | tr -d ' ')"
+  r_scount="$( { grep -o '"screenshots"[[:space:]]*:[[:space:]]*\[[^]]*\]' "$meta" \
+                 | grep -o '\.png' || true; } | wc -l | tr -d ' ')"
   [ -n "$r_id" ] || continue
 
   pr_cell="—"
@@ -223,7 +260,8 @@ for meta in "$PAGES_DIR"/runs/*/metadata.json; do
   row+="<td>${commit_cell}</td>"
   row+="<td>$(esc "${r_ts:-—}")</td>"
   row+="<td>${r_vcount} 🎬</td>"
-  row+="<td><a href=\"runs/$(esc "$r_id")/\">Watch videos</a></td>"
+  row+="<td>${r_scount} 📷</td>"
+  row+="<td><a href=\"runs/$(esc "$r_id")/\">View run</a></td>"
   row+="</tr>"
 
   # Prefix with run id for sorting (newest first), tab-separated.
@@ -260,7 +298,7 @@ HTML
 
   if [ -s "$ROWS_TMP" ]; then
     printf '<table>\n<thead><tr>'
-    printf '<th>Run</th><th>Status</th><th>PR</th><th>Branch</th><th>Commit</th><th>Time (UTC)</th><th>Videos</th><th></th>'
+    printf '<th>Run</th><th>Status</th><th>PR</th><th>Branch</th><th>Commit</th><th>Time (UTC)</th><th>Videos</th><th>Screenshots</th><th></th>'
     printf '</tr></thead>\n<tbody>\n'
     sort -t"$(printf '\t')" -k1,1 -rn "$ROWS_TMP" | cut -f2-
     printf '</tbody>\n</table>\n'
@@ -274,4 +312,4 @@ HTML
 # --- .nojekyll ----------------------------------------------------------------
 touch "$PAGES_DIR/.nojekyll"
 
-echo "Generated pages for run $RUN_ID with ${#VIDEOS[@]} video(s)."
+echo "Generated pages for run $RUN_ID with ${#VIDEOS[@]} video(s) and ${#SHOTS[@]} screenshot(s)."

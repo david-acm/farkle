@@ -161,7 +161,7 @@ jobs:
         run: >
           dotnet test tests/Farkle.E2eTests/Farkle.E2eTests.csproj
           --no-build
-          --filter "FullyQualifiedName~GameHappyPath"
+          --filter "FullyQualifiedName~GameHappyPath|FullyQualifiedName~GameStoryboard"
           --logger "trx;LogFileName=e2e-results.trx"
           --results-directory test-results
 
@@ -258,6 +258,15 @@ jobs:
           name: e2e-videos-${{ github.run_id }}
           path: videos
 
+      - name: Download E2E screenshots artifact
+        # Storyboard screenshots are best-effort too — a run with no screenshots
+        # still publishes its videos and metadata.
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: e2e-screenshots-${{ github.run_id }}
+          path: screenshots
+
       - name: Prepare gh-pages working tree
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -278,6 +287,7 @@ jobs:
         env:
           PAGES_DIR: ${{ github.workspace }}/gh-pages
           VIDEOS_DIR: ${{ github.workspace }}/videos
+          SCREENSHOTS_DIR: ${{ github.workspace }}/screenshots
           RUN_ID: ${{ github.run_id }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           BRANCH: ${{ github.head_ref }}
