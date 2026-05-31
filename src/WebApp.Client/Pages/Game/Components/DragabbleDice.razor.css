@@ -8,9 +8,15 @@
 
 .zone {
     background: #111128;
-    min-height: 12rem;
+    min-height: 13rem;
     position: relative;
     padding-top: 3.5rem;
+    padding-bottom: 1rem;
+    /* The stylised 3D dice float well above their layout box (the .solid layer is
+       translated up by 2x the die size). Anchoring the dice to the bottom of the
+       zone keeps that upward float in the lower-middle, clear of the top title. */
+    align-items: flex-end;
+    align-content: flex-end;
 }
 
 /* The zone titles are positioned via an inline style on the MudText so they
