@@ -1,7 +1,7 @@
 .drop-zones {
     display: flex;
     flex-wrap: wrap;
-    flex-direction: row;
+    flex-direction: column;
     width: 100%;
     gap: 1rem;
 }
@@ -20,4 +20,12 @@
     right: 0;
     text-align: center;
     pointer-events: none;
+}
+
+/* Side by side from medium screens up; stacked on mobile so the dice get the
+   full width and lay out in a grid instead of piling into a narrow column. */
+@media (min-width: 768px) {
+    .drop-zones {
+        flex-direction: row;
+    }
 }
