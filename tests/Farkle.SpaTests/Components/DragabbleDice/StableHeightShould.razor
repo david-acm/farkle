@@ -1,0 +1,67 @@
+@inherits BunitContext
+@using System.Text.RegularExpressions
+@using AngleSharp.Dom
+@using BlazorState
+@using Moq
+@using WebApp.Client.Features
+@using WebApp.Client.Pages.Game.Components
+@using WebApp.Client.Services
+
+@code {
+  // The dice areas used to flicker because each zone grew/shrank as dice were
+  // rolled, kept or passed. The fix reserves a fixed min-height on every zone so
+  // it never resizes. These tests lock that in without a browser: bUnit gives us
+  // the rendered markup, and we assert the reserved height is present and that it
+  // does not change between an empty zone and a full (6-dice) one.
+
+  private IStore SetUp()
+  {
+    JSInterop.Mode = JSRuntimeMode.Loose;
+    Services.AddScoped<IRotationCalculator>(_ => Mock.Of<IRotationCalculator>());
+    Services.AddBlazorState(o => o.Assemblies = [typeof(GameState).Assembly]);
+    return Services.GetRequiredService<IStore>();
+  }
+
+  // Both drop zones must declare an explicit min-height so their size is reserved
+  // regardless of how many dice they currently hold.
+  private static IReadOnlyList<string> ZoneMinHeights(IElement container)
+  {
+    return container.QuerySelectorAll(".zone")
+      .Select(z => z.GetAttribute("style") ?? "")
+      .Select(style => Regex.Match(style, @"min-height:\s*([^;]+)").Groups[1].Value.Trim())
+      .ToList();
+  }
+
+  [Fact]
+  public void ReserveAnExplicitMinHeightOnEveryZone()
+  {
+    SetUp();
+
+    var cut       = Render(@<DragabbleDice></DragabbleDice>);
+    var container = cut.Find(".mud-drop-container");
+
+    var heights = ZoneMinHeights(container);
+    heights.Should().HaveCount(2, "there are two drop zones (In Play and Set Aside)");
+    heights.Should().OnlyContain(h => h.Length > 0,
+      "each zone reserves a fixed min-height so it does not resize as dice change");
+  }
+
+  [Fact]
+  public void KeepTheSameZoneHeight_WhetherEmptyOrFull()
+  {
+    var store = SetUp();
+    var state = store.GetState<GameState>();
+
+    // Empty: no dice in play.
+    var emptyHeights = ZoneMinHeights(Render(@<DragabbleDice></DragabbleDice>).Find(".mud-drop-container"));
+
+    // Full: all six dice in the Rolled zone (the busiest a single zone gets).
+    for (var i = 0; i < 6; i++)
+      state.DiceInPlay.Add(new DraggableDie(i, DieValue.Five, "Rolled"));
+    var fullHeights = ZoneMinHeights(Render(@<DragabbleDice></DragabbleDice>).Find(".mud-drop-container"));
+
+    fullHeights.Should().Equal(emptyHeights,
+      "the reserved zone height must not change between an empty and a full table — " +
+      "a changing height is exactly what made the dice areas flicker");
+  }
+}

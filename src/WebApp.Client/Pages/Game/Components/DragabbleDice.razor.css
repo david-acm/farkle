@@ -8,17 +8,14 @@
 
 .zone {
     background: #111128;
-    /* Reserve enough height to hold the largest dice layout a single zone ever
-       shows (all 6 dice, which wrap to ~2 rows). Fixing the floor here means the
-       zone never grows or shrinks as dice are rolled, kept, or passed — which is
-       what caused the flickering. */
-    min-height: 20rem;
     position: relative;
 }
 
 /* The zone titles are positioned via an inline style on the MudText so they
    reliably leave the flex flow (CSS isolation doesn't always reach the nested
-   MudText root). The zone's inline padding-top reserves space for the title, and
-   the dice's own top margin clears the upward 3D float of the .die.solid layer.
-   Padding is set inline on the MudDropZone (not here) because MudBlazor's pa-*
-   utility classes use !important and would otherwise override a .zone rule. */
+   MudText root). Padding and the flicker-preventing min-height are likewise set
+   inline on the MudDropZone (not here): MudBlazor's pa-* utilities use
+   !important and would override a .zone rule, and keeping the reserved height
+   inline lets a bUnit test assert it without a browser. The min-height holds the
+   busiest single-zone layout (all 6 dice) so the zone never resizes as dice are
+   rolled, kept, or passed — which is what caused the flickering. */
