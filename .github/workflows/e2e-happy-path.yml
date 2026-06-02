@@ -240,6 +240,11 @@ jobs:
     if: always() && github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # Serialise gh-pages pushes with the parallel storyboard publisher (both write the
+    # same runs/{id}/ tree and root table). cancel-in-progress: false → they queue.
+    concurrency:
+      group: gh-pages-publish
+      cancel-in-progress: false
     permissions:
       contents: write
       issues: write

@@ -1,0 +1,199 @@
+name: Storyboard
+
+# Multi-viewport storyboard screenshots (issue #98). Runs as its own workflow so the
+# infra-light capture executes in parallel with the e2e job rather than behind it. The
+# storyboard tests live in the same project as the happy-path E2E (tests/Farkle.E2eTests)
+# but are selected by the "Category=Storyboard" trait so they boot the in-memory backend
+# (no Postgres / EventStore / Docker) and never start Testcontainers.
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  storyboard:
+    name: Capture storyboard screenshots
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install wasm-tools workload
+        run: dotnet workload install wasm-tools
+
+      - name: Restore dependencies
+        run: dotnet restore tests/Farkle.E2eTests/Farkle.E2eTests.csproj
+
+      - name: Build
+        run: dotnet build tests/Farkle.E2eTests/Farkle.E2eTests.csproj --no-restore
+
+      - name: Install Playwright Chromium
+        # Use the playwright.ps1 bundled with the build output — it matches the exact
+        # Microsoft.Playwright NuGet version so browsers are installed to the right path.
+        run: pwsh tests/Farkle.E2eTests/bin/Debug/net10.0/playwright.ps1 install chromium --with-deps
+
+      - name: Run storyboard capture
+        # No Testcontainers / Docker — only the Storyboard-tagged tests run, so the
+        # container-backed happy-path fixture is never instantiated. The host boots with
+        # an in-memory aggregate store instead.
+        run: >
+          dotnet test tests/Farkle.E2eTests/Farkle.E2eTests.csproj
+          --no-build
+          --filter "Category=Storyboard"
+          --logger "trx;LogFileName=storyboard-results.trx"
+          --results-directory test-results
+
+      - name: List test-results files
+        if: always()
+        run: find test-results -type f 2>/dev/null || echo "(test-results is empty or missing)"
+
+      - name: Print failure details
+        if: failure()
+        run: |
+          if [ -f test-results/storyboard-results.trx ]; then
+            echo "=== Full TRX ==="
+            cat test-results/storyboard-results.trx
+          else
+            echo "No TRX file found in test-results/"
+          fi
+
+      - name: Upload storyboard screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: storyboard-screenshots-${{ github.run_id }}
+          path: test-results/storyboard/
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload TRX results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: storyboard-trx-${{ github.run_id }}
+          path: test-results/storyboard-results.trx
+          if-no-files-found: warn
+
+  deploy-screenshots:
+    name: Publish storyboard screenshots to GitHub Pages
+    needs: storyboard
+    if: always() && github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Shared with the e2e deploy-pages job so the two parallel publishers don't race on
+    # the gh-pages branch (they merge into the same runs/{id}/ tree + root table).
+    concurrency:
+      group: gh-pages-publish
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout source (for the page generator)
+        uses: actions/checkout@v4
+
+      - name: Download storyboard screenshots artifact
+        # An infra failure before the capture leaves no artifact; still publish a run
+        # entry with the status, so don't fail the job.
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: storyboard-screenshots-${{ github.run_id }}
+          path: screenshots
+
+      - name: Prepare gh-pages working tree
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          REMOTE="https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          if git clone --quiet --branch gh-pages --single-branch "$REMOTE" gh-pages 2>/dev/null; then
+            echo "Cloned existing gh-pages branch."
+          else
+            echo "gh-pages branch not found — creating an orphan branch."
+            git clone --quiet "$REMOTE" gh-pages
+            git -C gh-pages checkout --orphan gh-pages
+            git -C gh-pages rm -rf --quiet . 2>/dev/null || true
+          fi
+          git -C gh-pages config user.name  "github-actions[bot]"
+          git -C gh-pages config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Generate pages (screenshots)
+        env:
+          PAGES_DIR: ${{ github.workspace }}/gh-pages
+          MODE: screenshots
+          SCREENSHOTS_DIR: ${{ github.workspace }}/screenshots
+          RUN_ID: ${{ github.run_id }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          BRANCH: ${{ github.head_ref }}
+          COMMIT_SHA: ${{ github.event.pull_request.head.sha }}
+          STATUS: ${{ needs.storyboard.result }}
+          REPO: ${{ github.repository }}
+        run: bash .github/scripts/generate-pages.sh
+
+      - name: Commit and push to gh-pages
+        working-directory: gh-pages
+        # Another publisher may have pushed between our clone and push; rebase and retry.
+        run: |
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to publish."
+            exit 0
+          fi
+          git commit --quiet -m "ci: publish storyboard screenshots for run ${{ github.run_id }}"
+          for attempt in 1 2 3 4 5; do
+            if git push origin HEAD:gh-pages; then
+              echo "Pushed on attempt $attempt."
+              exit 0
+            fi
+            echo "Push failed (attempt $attempt) — rebasing on latest gh-pages."
+            git fetch origin gh-pages
+            git rebase origin/gh-pages || { git rebase --abort; sleep 3; }
+          done
+          echo "Failed to push after retries." >&2
+          exit 1
+
+      - name: Upsert PR comment with storyboard link
+        uses: actions/github-script@v7
+        env:
+          STORYBOARD_RESULT: ${{ needs.storyboard.result }}
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo  = context.repo.repo;
+            const runId = context.runId;
+            const result  = process.env.STORYBOARD_RESULT || 'unknown';
+            const outcome = result === 'success' ? '✅ passed' : '❌ failed';
+
+            const pagesRun  = `https://${owner}.github.io/${repo}/runs/${runId}/storyboard.html`;
+            const pagesRoot = `https://${owner}.github.io/${repo}/`;
+            const actionsRun = `https://github.com/${owner}/${repo}/actions/runs/${runId}`;
+
+            const marker = '<!-- e2e-storyboard-report -->';
+            const body = [
+              marker,
+              `## Storyboard screenshots ${outcome}`,
+              '',
+              `🖼️ **[View the multi-viewport storyboard](${pagesRun})** — mobile, medium and large desktop frames.`,
+              '',
+              `[All runs](${pagesRoot}) · [Actions run](${actionsRun})`,
+            ].join('\n');
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner, repo, issue_number: context.issue.number, per_page: 100,
+            });
+            const existing = comments.find(c => c.body && c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({
+                owner, repo, issue_number: context.issue.number, body,
+              });
+            }
