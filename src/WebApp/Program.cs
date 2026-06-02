@@ -119,7 +119,11 @@ app.MapRazorComponents<App>()
     .AddAdditionalAssemblies(typeof(Counter).Assembly)
     .WithStaticAssets();
 
-if (!app.Environment.IsEnvironment("NSwag"))
+// Storyboard screenshot tooling boots the host with a stubbed (in-memory) backend and
+// no Postgres. Identity isn't exercised there, so the migrate+seed is skipped via this
+// flag (default false → normal startup is unchanged).
+var skipIdentitySeed = builder.Configuration.GetValue<bool>("Storyboard:SkipIdentitySeed");
+if (!app.Environment.IsEnvironment("NSwag") && !skipIdentitySeed)
 {
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
