@@ -39,6 +39,10 @@ public sealed class StoryboardFixture : IAsyncLifetime
       await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.Commit });
       await page.WaitForSelectorAsync("[data-testid='start-new-game']", new() { Timeout = 120_000 });
     }
+    catch (TimeoutException)
+    {
+      // Non-fatal: the individual tests will report the real failure.
+    }
     catch (PlaywrightException)
     {
       // Non-fatal: the individual tests will report the real failure.

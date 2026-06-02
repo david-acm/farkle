@@ -110,22 +110,15 @@ public class StoryboardShould(StoryboardFixture fixture)
     response.EnsureSuccessStatusCode();
   }
 
-  // The host's Start button enables once the roster has two players. The second player's
-  // join normally arrives over SignalR; if it hasn't propagated yet, reloading restores
-  // the lobby from the server snapshot (GET /api/games/{id}).
+  // The host's Start button enables once the roster has two players. The second player
+  // was added out-of-band via the API, so reload to re-read the roster from the server
+  // snapshot (GET /api/games/{id}) — deterministic, unlike waiting on the SignalR
+  // PlayerJoined push which may not arrive promptly in CI.
   private static async Task WaitForStartEnabledAsync(IPage page)
   {
-    try
-    {
-      await page.WaitForSelectorAsync("[data-testid='start-game-button']:not([disabled])",
-        new() { Timeout = 8_000 });
-    }
-    catch (PlaywrightException)
-    {
-      await page.ReloadAsync(new() { WaitUntil = WaitUntilState.Commit });
-      await page.WaitForSelectorAsync("[data-testid='start-game-button']:not([disabled])",
-        new() { Timeout = WasmTimeoutMs });
-    }
+    await page.ReloadAsync(new() { WaitUntil = WaitUntilState.Commit });
+    await page.WaitForSelectorAsync("[data-testid='start-game-button']:not([disabled])",
+      new() { Timeout = WasmTimeoutMs });
   }
 
   // MudBlazor's MudDropZone uses HTML5 drag events, which Playwright's mouse-based
