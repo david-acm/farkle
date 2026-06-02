@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <RootNamespace>Farkle.StoryboardTests</RootNamespace>
+  </PropertyGroup>
+
+  <!--
+    Storyboard screenshot tooling (issue #98): an infra-light Playwright test that
+    boots the host with an in-memory aggregate store (no EventStore, no Postgres,
+    no Docker daemon) and captures multi-viewport screenshots of each opening stage.
+    Deliberately does NOT reference Testcontainers.
+  -->
+  <ItemGroup>
+    <PackageReference Include="FluentAssertions" Version="8.9.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.7" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />
+    <PackageReference Include="Microsoft.Playwright" Version="1.50.0" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="coverlet.collector" Version="10.0.0">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\WebApp\WebApp.csproj" />
+  </ItemGroup>
+
+  <!-- Install the Playwright browser after build (mirrors Farkle.E2eTests). -->
+  <Target Name="InstallPlaywrightBrowsers" AfterTargets="Build">
+    <Exec Command="pwsh bin/$(Configuration)/$(TargetFramework)/playwright.ps1 install chromium"
+          ContinueOnError="true" Condition="'$(OS)' == 'Windows_NT'" />
+    <Exec Command="playwright install chromium"
+          ContinueOnError="true" Condition="'$(OS)' != 'Windows_NT'" />
+  </Target>
+
+</Project>
