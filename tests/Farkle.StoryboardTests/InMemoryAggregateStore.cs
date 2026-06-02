@@ -18,6 +18,14 @@ internal sealed class InMemoryAggregateStore : IAggregateStore
 {
   private static readonly IRandom Dice = new ScriptedRandom();
   private readonly ConcurrentDictionary<string, List<object>> _streams = new();
+  private readonly AggregateFactoryRegistry _factories = new();
+
+  public InMemoryAggregateStore()
+  {
+    // Build Game aggregates with the deterministic dice source; other aggregate
+    // types (none in this app) fall back to their parameterless constructor.
+    _factories.CreateAggregateUsing<Game>(() => new Game(Dice));
+  }
 
   public Task<AppendEventsResult> Store<T>(StreamName streamName, T aggregate, CancellationToken cancellationToken)
     where T : Aggregate
@@ -38,7 +46,7 @@ internal sealed class InMemoryAggregateStore : IAggregateStore
 
   private T Rehydrate<T>(StreamName streamName) where T : Aggregate
   {
-    var aggregate = New<T>();
+    var aggregate = _factories.CreateInstance<T>();
     if (_streams.TryGetValue(streamName.ToString(), out var events))
     {
       List<object> snapshot;
@@ -48,9 +56,4 @@ internal sealed class InMemoryAggregateStore : IAggregateStore
 
     return aggregate;
   }
-
-  private static T New<T>() where T : Aggregate
-    => typeof(T) == typeof(Game)
-      ? (T)(object)new Game(Dice)
-      : Activator.CreateInstance<T>();
 }

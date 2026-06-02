@@ -120,7 +120,7 @@ public class StoryboardShould(StoryboardFixture fixture)
       await page.WaitForSelectorAsync("[data-testid='start-game-button']:not([disabled])",
         new() { Timeout = 8_000 });
     }
-    catch
+    catch (PlaywrightException)
     {
       await page.ReloadAsync(new() { WaitUntil = WaitUntilState.Commit });
       await page.WaitForSelectorAsync("[data-testid='start-game-button']:not([disabled])",
