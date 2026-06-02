@@ -18,7 +18,18 @@ public sealed class StoryboardFixture : IAsyncLifetime
 
     _playwright = await Playwright.CreateAsync();
 
-    var options = new BrowserTypeLaunchOptions { Headless = true };
+    var options = new BrowserTypeLaunchOptions
+    {
+      Headless = true,
+      // --no-sandbox: allows launching Chromium as root, which is the norm inside
+      //   containers (local dev sandboxes and CI runners).
+      // --disable-dev-shm-usage: containers often have a tiny /dev/shm; this routes
+      //   shared memory to a temp dir so the browser doesn't crash mid-run.
+      Args = ["--no-sandbox", "--disable-dev-shm-usage"],
+    };
+    // Allow overriding the browser executable when the Playwright-managed download is
+    // unavailable (e.g. network-restricted environments) — point at any Chromium build,
+    // such as system Chrome/Chromium or Microsoft Edge.
     var execPath = Environment.GetEnvironmentVariable("PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH");
     if (!string.IsNullOrEmpty(execPath))
       options.ExecutablePath = execPath;
