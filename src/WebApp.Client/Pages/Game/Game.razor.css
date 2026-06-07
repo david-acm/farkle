@@ -35,9 +35,17 @@
 }
 
 /* The shared button components ship with a top margin that, stacked in a row,
-   wastes vertical space here — trim it on the controls row. */
+   wastes vertical space here — trim it on the controls row. Make every button
+   fill its (equal-height) grid cell so all three controls match height even when
+   one label wraps to more lines than the others. */
+.play-controls ::deep .mud-grid-item {
+    display: flex;
+}
+
 .play-controls ::deep .mud-button-root {
     margin-top: 0 !important;
+    height: 100%;
+    flex: 1;
 }
 
 @media (max-width: 599px) {
@@ -47,5 +55,18 @@
 
     .play-heading {
         font-size: 1.6rem;
+    }
+
+    /* Smaller, tighter labels on phones so "Set Dice Aside" wraps to no more
+       lines than the others — keeping the three controls a sensible shared
+       height rather than one tall button. */
+    .play-controls ::deep .mud-button-root {
+        font-size: 0.72rem;
+        padding-left: 6px;
+        padding-right: 6px;
+    }
+
+    .play-controls ::deep .mud-button-root .mud-button-label {
+        line-height: 1.2;
     }
 }

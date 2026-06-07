@@ -57,16 +57,18 @@ else
       </DragabbleDice>
     </div>
 
-    <MudGrid Spacing="1" Class="play-controls">
-      <MudItem xs="4">
-        <RollDiceButton IsDisabled="@(!GameState.IsMyTurn)" />
-      </MudItem>
-      <MudItem xs="4">
-        <KeepButton IsDisabled="@(!GameState.IsMyTurn)" />
-      </MudItem>
-      <MudItem xs="4">
-        <PassTurnButton IsDisabled="@(!GameState.IsMyTurn)" />
-      </MudItem>
-    </MudGrid>
+    <div class="play-controls">
+      <MudGrid Spacing="1">
+        <MudItem xs="4">
+          <RollDiceButton IsDisabled="@(!GameState.IsMyTurn)" />
+        </MudItem>
+        <MudItem xs="4">
+          <KeepButton IsDisabled="@(!GameState.IsMyTurn)" />
+        </MudItem>
+        <MudItem xs="4">
+          <PassTurnButton IsDisabled="@(!GameState.IsMyTurn)" />
+        </MudItem>
+      </MudGrid>
+    </div>
   </div>
 }
