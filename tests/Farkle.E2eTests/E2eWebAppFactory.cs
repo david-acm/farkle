@@ -17,6 +17,11 @@ public class E2EWebAppFactory : WebApplicationFactory<Program>
 {
     public string ServerAddress { get; private set; } = string.Empty;
 
+    // EventStore runs in insecure mode in the test container; these are its
+    // well-known default credentials, named rather than inlined.
+    private const string EsdbUser     = "admin";
+    private const string EsdbPassword = "changeit";
+
     private IHost?                  _kestrelHost;
     private readonly InMemoryLoggerProvider _logProvider = new();
 
@@ -79,7 +84,7 @@ public class E2EWebAppFactory : WebApplicationFactory<Program>
         {
             var esClient = s.First(d => d.ServiceType == typeof(EventStoreClient));
             s.Remove(esClient);
-            s.AddEventStoreClient($"esdb://admin:changeit@localhost:{esdbPort}?tls=false");
+            s.AddEventStoreClient($"esdb://{EsdbUser}:{EsdbPassword}@localhost:{esdbPort}?tls=false");
 
             var dbDescriptor = s.SingleOrDefault(d => d.ServiceType == typeof(DbContextOptions<AppDbContext>));
             if (dbDescriptor != null) s.Remove(dbDescriptor);

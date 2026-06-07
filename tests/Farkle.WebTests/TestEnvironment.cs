@@ -1,0 +1,25 @@
+using System.Runtime.CompilerServices;
+
+namespace Farkle.WebTests;
+
+internal static class TestEnvironment
+{
+    // The app's Auth:JwtSecret no longer ships in appsettings.Development.json
+    // (issue #27). The integration tests register + log in and call authorized
+    // endpoints with the returned JWT, so a signing key must be present both when
+    // the host builds the JWT validation parameters and when LoginEndpoint mints
+    // the token. Supply a throwaway key (>= 32 chars for HS256) via an environment
+    // variable before any test host is built. This is a test-only value, not a secret.
+    [ModuleInitializer]
+    internal static void Init() =>
+        Environment.SetEnvironmentVariable(
+            "Auth__JwtSecret", "farkle-integration-test-signing-key-0123456789");
+
+    // EventStore runs in insecure mode in the test containers; these are its
+    // well-known default credentials, kept in one place rather than inlined.
+    internal const string EsdbUser     = "admin";
+    internal const string EsdbPassword = "changeit";
+
+    internal static string EsdbConnectionString(int port) =>
+        $"esdb://{EsdbUser}:{EsdbPassword}@localhost:{port}?tls=false";
+}

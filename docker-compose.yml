@@ -13,11 +13,11 @@
     environment:
       ASPNETCORE_HTTP_PORTS: 8080
       ASPNETCORE_HTTPS_PORTS: 8081
-      ASPNETCORE_Kestrel__Certificates__Default__Password: L0c4lS3cr3tP4ssw0rd
+      ASPNETCORE_Kestrel__Certificates__Default__Password: ${KESTREL_CERT_PASSWORD}
       ASPNETCORE_Kestrel__Certificates__Default__Path: /https/aspnetapp.pfx
       ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings:Esdb: esdb://admin:changeit@esdb:2113?tls=false
-      ConnectionStrings:Identity: Host=postgres;Port=5432;Database=farkle_identity;Username=farkle;Password=farkle_dev_password
+      ConnectionStrings:Esdb: esdb://${ESDB_USER}:${ESDB_PASSWORD}@esdb:2113?tls=false
+      ConnectionStrings:Identity: Host=postgres;Port=5432;Database=farkle_identity;Username=farkle;Password=${POSTGRES_PASSWORD}
     volumes:
       - ${HOME}/.aspnet/https:/https/
     networks:
@@ -40,7 +40,7 @@
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: farkle
-      POSTGRES_PASSWORD: farkle_dev_password
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: farkle_identity
     ports:
       - "5432:5432"

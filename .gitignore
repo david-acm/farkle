@@ -47,3 +47,6 @@ msbuild.err
 msbuild.wrn
 test-results/
 *.kiota.log
+
+# Local environment / secrets (keep .env.example tracked)
+.env
