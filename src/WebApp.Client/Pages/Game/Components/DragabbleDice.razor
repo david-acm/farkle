@@ -1,37 +1,30 @@
 @inherits BlazorState.BlazorStateComponent
 
-<MudDropContainer Class="drop-zones"
-                  ItemDropped="ItemUpdatedAsync"
-                  Items="GameState.DiceInPlay"
-                  ItemsSelector="@((item, dropzone) => item.Identifier == dropzone)"
-                  T="DraggableDie">
-  <ChildContent>
+<div class="dice-area">
+  <MudDropContainer Class="drop-zones"
+                    ItemDropped="ItemUpdatedAsync"
+                    Items="GameState.DiceInPlay"
+                    ItemsSelector="@((item, dropzone) => item.Identifier == dropzone)"
+                    T="DraggableDie">
+    <ChildContent>
 
-    <MudDropZone Class="d-flex flex-grow-1 flex-row flex-wrap justify-center pa-4 rounded zone"
-                 Identifier="Rolled"
-                 T="DraggableDie">
-      <MudText Class="mb-4" Color="Color.Primary" Typo="Typo.h6">
-        In Play
-      </MudText>
-    </MudDropZone>
+      <MudDropZone Class="zone zone--rolled" Identifier="Rolled" T="DraggableDie">
+        <MudText Class="zone-title" Color="Color.Primary" Typo="Typo.subtitle1">In Play</MudText>
+      </MudDropZone>
 
-    <MudDropZone Class="d-flex flex-grow-1 flex-row flex-wrap justify-center pa-4 rounded zone"
-                 Identifier="SetAside"
-                 Style="border: 2px dashed #FFE600;"
-                 T="DraggableDie">
-      <MudText Class="mb-4" Color="Color.Primary" Typo="Typo.h6">
-        Set Aside 🎯
-      </MudText>
-    </MudDropZone>
+      <MudDropZone Class="zone zone--aside" Identifier="SetAside" T="DraggableDie">
+        <MudText Class="zone-title" Color="Color.Primary" Typo="Typo.subtitle1">Set Aside 🎯</MudText>
+      </MudDropZone>
 
-  </ChildContent>
+    </ChildContent>
 
-  <ItemRenderer>
-    <MudItem Class="align-center d-flex ma-8 ma-8">
-      <Die DieValue="context.Value"
-           IsDragging="context.IsDragging"
-           Size="50">
-      </Die>
-    </MudItem>
-  </ItemRenderer>
-</MudDropContainer>
+    <ItemRenderer>
+      <div class="die-slot">
+        <Die DieValue="context.Value"
+             IsDragging="context.IsDragging"
+             Size="32">
+        </Die>
+      </div>
+    </ItemRenderer>
+  </MudDropContainer>
+</div>
