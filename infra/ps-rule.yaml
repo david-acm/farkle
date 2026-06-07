@@ -1,0 +1,11 @@
+# PSRule for Azure — https://azure.github.io/PSRule.Rules.Azure/
+# Expands the Bicep templates/params to ARM so the Well-Architected rules can run.
+configuration:
+  AZURE_BICEP_FILE_EXPANSION: true
+  AZURE_BICEP_PARAMS_FILE_EXPANSION: true
+  AZURE_BICEP_CHECK_TOOL: true
+
+input:
+  pathIgnore:
+    # Generated build output, not source.
+    - '**/*.json'

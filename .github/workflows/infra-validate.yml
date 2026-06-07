@@ -1,0 +1,44 @@
+name: Infra Validate
+
+# Credential-free static validation of the Bicep IaC: compile + lint (fails on the
+# error-level rules in infra/bicepconfig.json) and PSRule for Azure best-practice
+# analysis. No Azure login — runs on every PR that touches infra/.
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'infra/**'
+      - '.github/workflows/infra-validate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Bicep build + lint + PSRule
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Bicep build + lint (fails on error-level linter rules)
+        run: |
+          az bicep install
+          az bicep build --file infra/main.bicep
+          az bicep build-params --file infra/env/dev.bicepparam
+          az bicep build-params --file infra/env/prod.bicepparam
+
+      - name: PSRule for Azure
+        uses: microsoft/ps-rule@v2.9.0
+        # Non-blocking initially: surfaces Well-Architected findings as a report/annotations
+        # without gating the PR. Tighten to a hard gate once the baseline is clean.
+        continue-on-error: true
+        with:
+          modules: PSRule.Rules.Azure
+          inputPath: infra/
+          option: infra/ps-rule.yaml
+          outputFormat: Sarif
+          outputPath: reports/ps-rule.sarif
+          summary: true
