@@ -65,7 +65,7 @@ jobs:
 
       - name: Upload storyboard screenshots
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: storyboard-screenshots-${{ github.run_id }}
           path: test-results/storyboard/
@@ -74,7 +74,7 @@ jobs:
 
       - name: Upload TRX results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: storyboard-trx-${{ github.run_id }}
           path: test-results/storyboard-results.trx
