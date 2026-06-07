@@ -210,7 +210,18 @@ Registered via `services.AddBlazorState(...)` in `ClientServiceExtensions.Regist
 - **`IRotationCalculator` / `RotationCalculator`** — maps a `DieValue` to CSS 3D rotation angles `(x, y, z)` for rendering a die face (optional random spin). Registered as a singleton.
 
 ### Components (`src/WebApp.Client/Pages/Game/Components/`)
-`Game.razor` (route `/games/{gameId:int}`) composes: **Scoreboard** (MudTable, leader highlight, winner banner, progress bars), **DragabbleDice** (MudDropContainer with "Rolled" + "SetAside" zones), **Die** (CSS 3D die using `IRotationCalculator`), **RollDiceButton**, **KeepButton**, **PassTurnButton**, **TurnScore**, **GameTitle**, and the reusable **AppButton**. `Features/Actions/Components/ErrorModal.razor` renders domain errors.
+`Game.razor` (route `/games/{gameId:int}`) composes: **Scoreboard** (compact MudSimpleTable, leader highlight, winner banner), **DragabbleDice** (MudDropContainer with stable-height "Rolled"/"SetAside" zones and floating titles), **Die** (CSS 3D die using `IRotationCalculator`), **RollDiceButton**, **KeepButton**, **PassTurnButton**, **TurnScore**, **GameTitle**, and the reusable **AppButton**. `Features/Actions/Components/ErrorModal.razor` renders domain errors.
+
+### Game-screen UI conventions & gotchas
+
+These were established/learned while polishing the in-game screen (issue #97) and are easy to break. **Verify any UI change with the storyboard capture at all three viewports** (see Testing Patterns).
+
+- **No-scroll constraint (hard requirement).** Every game screen must fit entirely within the viewport — no vertical or horizontal scroll — at *every* stage (landing, lobby, before/after roll, set-aside, keep, pass, win) and at all three supported sizes: **mobile 390×844, medium 1280×800, large 1920×1080**. `Game.razor` lays the in-play view out as a single flex column (`Game.razor.css`).
+- **MudBlazor + component-scoped CSS needs `::deep`.** Blazor scoped `.razor.css` only decorates elements the component renders *directly* — it does **not** reach into child components, so a bare `.zone` / `.mud-button-root` rule silently does nothing against `MudDropZone` / `MudGrid` / `MudButton`. Wrap the MudBlazor markup in a plain element you own (e.g. `<div class="dice-area">`) and target descendants with `::deep` (`.dice-area ::deep .zone { … }`). Prefer scoped classes / MudBlazor props over inline styles.
+- **Dice rendering.** `Die` sizes itself from a `--die-size` custom property; override it on a wrapper (closer than the Die's own `:root`) to resize per breakpoint, and reserve a slot wider than the box (the tilted 3D die overshoots it). On mobile the dice are smaller, laid out **two rows of three** (set the ⅓ width on the `.mud-drop-item` wrapper, not the inner slot), and the `.die.solid` depth body is hidden (it shows as a grey slab at small sizes). Pip margins must scale with `--die-size` (not `vh`) or they overflow the face.
+- **Stable dice-zone height (no flicker).** Drop zones reserve a fixed `--zone-height`, identical empty vs. full — a content-driven height made them resize on every action. Guarded by `tests/Farkle.SpaTests/Components/DragabbleDice/StableZoneHeightShould.razor`. Flex pitfall: `flex: 1 1 0` makes `height` the *main-size* in a column layout and collapses the zone — keep the fixed height and only apply `flex-grow` in the side-by-side (row) layout.
+- **Button labels are load-bearing.** The E2E and storyboard tests click by visible text (`button:has-text('Roll' | 'Set Dice Aside' | 'Pass Turn')`). **Do not rename** these labels — restyle instead (e.g. equalize heights by stretching each button to fill its grid cell; shrink the mobile font to control wrapping).
+- **Contrast.** Yellow is the primary colour; set `PrimaryContrastText` (dark) in the theme so text/icons on filled yellow buttons stay legible. Yellow used as *text* on dark backgrounds (titles, scores, game code) is unaffected.
 
 ---
 
@@ -334,6 +345,13 @@ Four jobs:
 3. **`e2e`** — installs Playwright Chromium, runs the `GameHappyPath` E2E test (two players, Alice + Bob), and uploads videos/screenshots/logs/TRX. On failure it parses failing test names + messages from the TRX into job outputs (`fail_names`/`fail_msgs`) for the `deploy-pages` job to surface.
 4. **`deploy-pages`** (`needs: e2e`, `if: always()`) — publishes E2E videos to a GitHub Pages static site so reviewers can **watch recordings inline** without downloading artifacts. It downloads the `e2e-videos` artifact, clones (or orphan-creates) the `gh-pages` branch, runs `.github/scripts/generate-pages.sh` to write `runs/{run_id}/` (videos + `metadata.json` + a per-run `index.html` with embedded `<video>` tags) and regenerate the root `index.html` (newest-first table of all runs), prunes runs older than 90 days or beyond the newest 50, pushes to `gh-pages`, and **upserts** a single PR comment (marker `<!-- e2e-video-report -->`) linking to `https://david-acm.github.io/farkle/runs/{run_id}/`. Uses only `GITHUB_TOKEN` (`contents: write`). The generator logic is covered by `tests/scripts/generate-pages.test.sh` (run manually). **One-time setup:** a repo admin must enable Pages (Settings → Pages → Deploy from a branch → `gh-pages` / `/`).
 
+### `.github/workflows/storyboard.yml` (name: **Storyboard**) — runs on PRs to `main`
+Runs **in parallel** with the `CI` workflow. It builds `Farkle.E2eTests` and runs only the storyboard-tagged tests (`--filter "Category=Storyboard"`), which boot an **in-memory backend (no Testcontainers / Docker)** and capture multi-viewport screenshots of the opening flow. Two jobs:
+1. **`storyboard`** — installs Playwright Chromium, runs the capture, uploads `storyboard-screenshots-<run_id>` + TRX.
+2. **`deploy-screenshots`** — publishes the frames to GitHub Pages via `generate-pages.sh` (`MODE=screenshots`) and **upserts** a PR comment (marker `<!-- e2e-storyboard-report -->`) linking `runs/{run_id}/storyboard.html`.
+
+`generate-pages.sh` is **dual-mode** (`MODE=videos` default | `screenshots`); the e2e and storyboard publishers both write into the same `runs/{id}/` tree and share a `concurrency: gh-pages-publish` group so they don't race on `gh-pages` (its generator logic is covered by `tests/scripts/generate-pages.test.sh`, run manually).
+
 ### `.github/workflows/codeql.yml` (name: **CodeQL**)
 Runs on push/PR to `main` and weekly (Mon 08:00 UTC). Builds the solution and runs CodeQL C# analysis.
 
@@ -388,6 +406,20 @@ Tests assert on `game.State` and `game.Changes` (emitted events). Domain tests l
 
 #### E2E Tests (`Farkle.E2eTests`)
 Playwright (`Microsoft.Playwright` 1.50.0) drives two browser contexts (Alice + Bob) through the happy path until a win. `PlaywrightFixture.NewContextWithVideoAsync` records a `.webm` per session; `InMemoryLoggerProvider` captures structured logs into the `e2e-logs` artifact. Waits for WASM hydration (≈30s) before interacting.
+
+#### Storyboard screenshots (`Farkle.E2eTests`, `Category=Storyboard`)
+Multi-viewport screenshots of the opening flow live **in the E2E project** so they reuse the player-advancing helpers (`GameFlow`), but are tagged `[Trait("Category","Storyboard")]` and use a separate, lazy collection fixture (`StoryboardFixture` → in-memory `IAggregateStore`). xUnit instantiates a fixture only when a selected test needs it, so `--filter "Category=Storyboard"` runs **without** booting Testcontainers. Frames land in `test-results/storyboard/{step}-{viewport}.png` (steps `01-landing … 06-pass`; viewports mobile/medium/large).
+
+**This is the loop for iterating on UI changes locally:**
+```bash
+dotnet build tests/Farkle.E2eTests/Farkle.E2eTests.csproj
+PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/microsoft-edge \
+  dotnet test tests/Farkle.E2eTests/Farkle.E2eTests.csproj --no-build \
+  --filter "Category=Storyboard"
+```
+- **Chromium in restricted sandboxes:** the Playwright CDN is blocked. Install Edge from `packages.microsoft.com` and point the fixture at it via `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` (the fixture honours that env var). `pwsh` (for `playwright.ps1`) is also installable from there.
+- **No-scroll check:** the capture is full-page, so a frame's PNG height *equal to* the viewport height (mobile 844 / medium 800 / large 1080) means it fits; greater means it scrolls.
+- **Seeing multi-pip dice:** `ScriptedRandom` returns the minimum (six `1`s) for determinism. To eyeball faces 2–6, *temporarily* vary it, capture, then revert.
 
 #### SPA Tests (`Farkle.SpaTests`)
 Two sub-layers in one project, separated by folder:
@@ -522,6 +554,7 @@ The app re-seeds `player1@email.com` on startup if missing.
 - **E2E test videos**: ensure videos/screenshots are uploaded and linked on the PR.
 - **Architecture/domain isolation**: keep the domain layer free of infrastructure dependencies.
 - **Test coverage**: new domain logic requires unit tests; endpoints require integration tests; every new feature requires at least one E2E test covering the happy path.
+- **UI changes**: verify with the storyboard capture and keep the no-scroll constraint at all three viewports (mobile/medium/large); style via component-scoped CSS (`::deep` for MudBlazor children), not inline styles, and don't rename button labels the tests select by text.
 - **Close issues via PR**: every PR that resolves an issue MUST include `Closes #<issue>` (or `Fixes #<issue>`) in the body. A bare `#N` is not enough — the keyword is required.
 - **TDD commit convention** (Red–Green):
   - **Commit 1 (Red):** failing tests only — must fail before the fix.
