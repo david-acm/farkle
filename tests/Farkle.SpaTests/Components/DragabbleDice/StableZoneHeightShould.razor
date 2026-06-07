@@ -1,0 +1,97 @@
+@inherits BunitContext
+@using System.IO
+@using System.Text.RegularExpressions
+@using BlazorState
+@using Moq
+@using WebApp.Client.Features
+@using WebApp.Client.Pages.Game.Components
+@using WebApp.Client.Services
+
+@code {
+  // Issue #97 (item 1) — dice-area flicker regression guard.
+  //
+  // The "In Play" / "Set Aside" drop zones must reserve a STABLE height: an
+  // explicit height that is the SAME whether a zone is empty or holds all six
+  // dice. A zone height that grew and shrank with the dice count is exactly what
+  // produced the flicker on every roll / keep / pass.
+  //
+  // bUnit renders to an in-memory DOM with no layout engine and does not apply
+  // scoped CSS, so we assert on (a) the structure the component emits — the two
+  // height-reserving zones are present and unchanged by the dice count, with no
+  // inline height — and (b) the reserved-height declaration in the component's
+  // scoped CSS (the chosen fix), rather than a pixel measurement.
+
+  private IStore SetUp()
+  {
+    JSInterop.Mode = JSRuntimeMode.Loose;
+    Services.AddScoped<IRotationCalculator>(_ => Mock.Of<IRotationCalculator>());
+    Services.AddBlazorState(o => o.Assemblies = [typeof(GameState).Assembly]);
+    return Services.GetRequiredService<IStore>();
+  }
+
+  [Fact]
+  public void ReserveTheSameTwoZones_WhetherEmptyOrFull()
+  {
+    var store = SetUp();
+
+    // Empty: both zones present, capture their classes.
+    var cut = Render(@<DragabbleDice></DragabbleDice>);
+    var emptyZones = cut.FindAll(".zone");
+    emptyZones.Should().HaveCount(2, "both drop zones must always reserve their space");
+    var emptyClasses = emptyZones.Select(z => z.ClassName).ToArray();
+
+    // Full: drop all six dice into the 'Rolled' zone and re-render the SAME view.
+    for (var i = 0; i < 6; i++)
+      store.GetState<GameState>().DiceInPlay.Add(new DraggableDie(i, DieValue.One, "Rolled"));
+    cut.Render();
+
+    var fullZones = cut.FindAll(".zone");
+    fullZones.Should().HaveCount(2, "adding dice must not add or remove zones");
+
+    for (var z = 0; z < 2; z++)
+    {
+      // The height-reserving class set is identical empty vs full, so the reserved
+      // height cannot depend on the dice count.
+      fullZones[z].ClassName.Should().Be(emptyClasses[z],
+        "the zone's height-reserving classes must not change with dice count");
+
+      // ...and no inline height sneaks the size back in per-state.
+      (fullZones[z].GetAttribute("style") ?? string.Empty)
+        .Should().NotContain("height",
+          "the reserved height must come from the scoped class, not an inline style");
+    }
+  }
+
+  [Fact]
+  public void DeclareAnExplicitFixedZoneHeight_InScopedCss()
+  {
+    var css = File.ReadAllText(LocateScopedCss());
+
+    // An explicit, content-independent height is declared for the zone...
+    css.Should().MatchRegex(@"--zone-height:\s*[\d.]+rem",
+      "the zone must reserve an explicit height");
+    css.Should().MatchRegex(@"height:\s*var\(--zone-height\)",
+      "the zone's height must be that fixed reserved value");
+
+    // ...and the zone must NOT size itself from its content, which is what
+    // flickered. Guard against a content-driven height creeping back in.
+    Regex.IsMatch(css, @"\.zone\b[^{}]*\{[^}]*min-height:\s*(?:fit-content|max-content|auto)")
+      .Should().BeFalse("a content-driven zone height would reintroduce the flicker");
+  }
+
+  // The scoped CSS lives next to the component in the source tree. Walk up from
+  // the test output directory until we find it.
+  private static string LocateScopedCss()
+  {
+    var dir = new DirectoryInfo(AppContext.BaseDirectory);
+    while (dir is not null)
+    {
+      var candidate = Path.Combine(dir.FullName,
+        "src", "WebApp.Client", "Pages", "Game", "Components", "DragabbleDice.razor.css");
+      if (File.Exists(candidate)) return candidate;
+      dir = dir.Parent;
+    }
+    throw new FileNotFoundException(
+      "Could not locate DragabbleDice.razor.css by walking up from " + AppContext.BaseDirectory);
+  }
+}
