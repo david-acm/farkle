@@ -174,7 +174,7 @@ All game endpoints are FastEndpoints extending `TypedEndpoint<TRequest, TRespons
 | KeepDice | `/api/games/{gameId}/players/{playerId}/keeps` | `KeepDiceRequest(GameId, PlayerId, DiceValues)` → `KeepDiceResponse(Id, TurnScore)` |
 | PassTurn | `/api/games/{gameId}/players/{playerId}/turns` | `PassTurnHttp(GameId, PlayerId)` → `PassTurnResponse(...)` (also broadcast over SignalR) |
 
-`PassTurnResponse(GameId, PlayerId, NewScore, Winner?, CurrentPlayerId, Scoreboard?)` carries the full scoreboard (`PlayerScore[]`) and optional `WinnerResponse`. DTOs live in `src/Farkle.Contracts/HttpRequests.cs` and `HttpResponses.cs`.
+`PassTurnResponse` also carries the full scoreboard (`PlayerScore[]`) + optional winner and is broadcast over SignalR. All DTOs live in `src/Farkle.Contracts/HttpRequests.cs` / `HttpResponses.cs`.
 
 **Auth endpoints** (`src/WebApp/Auth/`, FastEndpoints, `AllowAnonymous`):
 - `POST /api/auth/register` — creates an Identity user
@@ -227,48 +227,8 @@ These were established/learned while polishing the in-game screen (issue #97) an
 
 ## Development Commands
 
-### .NET SDK on Claude Code web / remote sessions (IMPORTANT)
-
-The remote-execution containers used by Claude Code on the web are **ephemeral
-and ship without the .NET SDK pre-installed** — `dotnet` is not on `PATH` in a
-fresh session, so build/test/`kiota`/swagger regeneration all fail until you
-install it. (Local dev machines and CI are unaffected; CI installs the SDKs
-itself per `e2e-happy-path.yml`.)
-
-**Why it's missing:** the container is provisioned fresh from a clean clone with
-no SDK layer and **no SessionStart hook configured to install one**, so nothing
-puts `dotnet` on `PATH`. There is no evidence of a prior install in-session
-(no `~/.dotnet`, empty NuGet cache) — it was simply never present, not "lost".
-
-**Why the usual installer fails:** the environment's network policy is an
-allowlist. `https://dot.net/...` (the `dotnet-install.sh` host) and the SDK CDNs
-(`builds.dotnet.microsoft.com`, `*.azureedge.net`, `aka.ms`) are **blocked**
-(the proxy returns a 21-byte `Host not in allowlist` body). What *is* allowlisted:
-`packages.microsoft.com`, `api.nuget.org`, the Ubuntu mirrors
-(`archive.ubuntu.com`, `security.ubuntu.com`), and `download.docker.com`.
-
-**Workaround — install via apt from `packages.microsoft.com`** (root, Ubuntu 24.04):
-```bash
-# 1. Some preinstalled PPAs (deadsnakes, ondrej/php @ ppa.launchpadcontent.net)
-#    are NOT allowlisted and break `apt-get update` — disable them first:
-for f in /etc/apt/sources.list.d/*.sources; do
-  grep -q launchpadcontent "$f" && mv "$f" "$f.disabled"; done
-# 2. Add the Microsoft prod repo + refresh:
-curl -sSL https://packages.microsoft.com/config/ubuntu/24.04/packages-microsoft-prod.deb -o /tmp/ms.deb
-dpkg -i /tmp/ms.deb && apt-get update
-# 3. Install both SDKs (10.0 to build/run; 8.0 for the Kiota tooling):
-DEBIAN_FRONTEND=noninteractive apt-get install -y dotnet-sdk-10.0 dotnet-sdk-8.0
-```
-This yields `dotnet 10.0.1xx` (satisfies `global.json`'s `10.0.0` +
-`rollForward: feature`) and `8.0.1xx`, installed to `/usr/lib/dotnet` with a
-`/usr/bin/dotnet` symlink (persists across Bash calls within the session, but is
-**lost when the container is reclaimed**). `dotnet restore`/`tool restore` then
-work against the allowlisted `api.nuget.org`.
-
-> To make this automatic for every web session, add a **SessionStart hook** that
-> runs the steps above (see the `session-start-hook` skill). Until then, run them
-> manually at the start of any web session that needs to build, test, or
-> regenerate the Kiota client / `swagger.json`.
+### .NET SDK on Claude Code web / remote sessions
+Remote web/cloud containers are ephemeral and ship **without the .NET SDK** — `dotnet` isn't on `PATH`, and the usual `dotnet-install.sh`/CDN hosts are blocked by the network allowlist, so build/test/Kiota all fail until you install it. Install both SDKs via apt from the allowlisted `packages.microsoft.com` (10.0 to build/run, 8.0 for Kiota). Playwright's browser CDN is blocked too — use Microsoft Edge via `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`. **Full runbook (commands, rationale, the SessionStart-hook option, Chromium): [`docs/remote-sessions.md`](docs/remote-sessions.md).** Local dev machines and CI are unaffected.
 
 ### Build & Restore
 ```bash
@@ -343,7 +303,7 @@ Four jobs:
 1. **`test` (Unit & Integration Tests)** — restores/builds `Farkle.sln`, runs unit → integration (pulls `eventstore:23.10.0` + `postgres:16-alpine` for Testcontainers) → SPA component tests, with coverage uploaded to Codecov and TRX artifacts.
 2. **`verify-generated`** — regenerates `swagger.json` (`-p:GenerateSwagger=true`) and the Kiota client, then **fails if the committed generated files differ**. Installs both .NET 8 and 10 SDKs + `wasm-tools`.
 3. **`e2e`** — installs Playwright Chromium, runs the `GameHappyPath` E2E test (two players, Alice + Bob), and uploads videos/screenshots/logs/TRX. On failure it parses failing test names + messages from the TRX into job outputs (`fail_names`/`fail_msgs`) for the `deploy-pages` job to surface.
-4. **`deploy-pages`** (`needs: e2e`, `if: always()`) — publishes E2E videos to a GitHub Pages static site so reviewers can **watch recordings inline** without downloading artifacts. It downloads the `e2e-videos` artifact, clones (or orphan-creates) the `gh-pages` branch, runs `.github/scripts/generate-pages.sh` to write `runs/{run_id}/` (videos + `metadata.json` + a per-run `index.html` with embedded `<video>` tags) and regenerate the root `index.html` (newest-first table of all runs), prunes runs older than 90 days or beyond the newest 50, pushes to `gh-pages`, and **upserts** a single PR comment (marker `<!-- e2e-video-report -->`) linking to `https://david-acm.github.io/farkle/runs/{run_id}/`. Uses only `GITHUB_TOKEN` (`contents: write`). The generator logic is covered by `tests/scripts/generate-pages.test.sh` (run manually). **One-time setup:** a repo admin must enable Pages (Settings → Pages → Deploy from a branch → `gh-pages` / `/`).
+4. **`deploy-pages`** (`needs: e2e`, `if: always()`) — publishes the E2E videos to GitHub Pages so reviewers can **watch recordings inline**, and **upserts** a PR comment (marker `<!-- e2e-video-report -->`) linking `runs/{run_id}/`. Runs `.github/scripts/generate-pages.sh`, which writes per-run pages + a newest-first root table and prunes runs >90 days / beyond the newest 50 (generator covered by `tests/scripts/generate-pages.test.sh`); uses only `GITHUB_TOKEN`. **One-time setup:** a repo admin must enable Pages (Settings → Pages → branch `gh-pages` / `/`).
 
 ### `.github/workflows/storyboard.yml` (name: **Storyboard**) — runs on PRs to `main`
 Runs **in parallel** with the `CI` workflow. It builds `Farkle.E2eTests` and runs only the storyboard-tagged tests (`--filter "Category=Storyboard"`), which boot an **in-memory backend (no Testcontainers / Docker)** and capture multi-viewport screenshots of the opening flow. Two jobs:
