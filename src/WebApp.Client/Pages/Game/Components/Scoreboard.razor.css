@@ -1,0 +1,16 @@
+.scoreboard {
+    background: #111128;
+}
+
+.scoreboard-table {
+    background: transparent;
+}
+
+.scoreboard-table td {
+    border: none;
+    padding: 2px 8px;
+}
+
+.scoreboard-score {
+    text-align: right;
+}

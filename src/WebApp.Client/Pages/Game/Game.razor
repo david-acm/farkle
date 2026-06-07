@@ -4,11 +4,11 @@
 
 <PageTitle>Play Farkle!</PageTitle>
 
-<MudText Typo="Typo.h3">Farkle!</MudText>
-<GameTitle></GameTitle>
-
 @if (!HasJoined)
 {
+  <MudText Typo="Typo.h3">Farkle!</MudText>
+  <GameTitle></GameTitle>
+
   <MudCard Class="mt-4" Style="max-width: 400px">
     <MudCardContent>
       <MudText Typo="Typo.h6" Class="mb-2">Enter your name to join</MudText>
@@ -28,36 +28,45 @@
 }
 else if (GameState.IsInLobby)
 {
+  <MudText Typo="Typo.h3">Farkle!</MudText>
+  <GameTitle></GameTitle>
   <Lobby />
 }
 else
 {
-  <MudGrid Spacing="1">
-    <MudItem xs="12" sm="6" md="4">
-      <TurnStatus />
-    </MudItem>
-    <MudItem xs="12" sm="6" md="4">
-      <TurnScore></TurnScore>
-    </MudItem>
-    <MudItem xs="12" sm="6" md="4">
-      <Scoreboard />
-    </MudItem>
-  </MudGrid>
+  <div class="play-area">
+    <header class="play-header">
+      <MudText Typo="Typo.h4" Class="play-heading">Farkle!</MudText>
+      <div class="play-id"><GameTitle></GameTitle></div>
+    </header>
 
-  <MudContainer Class="mt-8">
-    <DragabbleDice>
-    </DragabbleDice>
-  </MudContainer>
+    <MudGrid Spacing="1" Class="play-info">
+      <MudItem xs="7" sm="6" md="4">
+        <TurnStatus />
+      </MudItem>
+      <MudItem xs="5" sm="6" md="4">
+        <TurnScore></TurnScore>
+      </MudItem>
+      <MudItem xs="12" sm="12" md="4">
+        <Scoreboard />
+      </MudItem>
+    </MudGrid>
 
-  <MudGrid Spacing="1" Class="mt-4">
-    <MudItem xs="12" sm="4">
-      <RollDiceButton IsDisabled="@(!GameState.IsMyTurn)" />
-    </MudItem>
-    <MudItem xs="12" sm="4">
-      <KeepButton IsDisabled="@(!GameState.IsMyTurn)" />
-    </MudItem>
-    <MudItem xs="12" sm="4">
-      <PassTurnButton IsDisabled="@(!GameState.IsMyTurn)" />
-    </MudItem>
-  </MudGrid>
+    <div class="play-dice">
+      <DragabbleDice>
+      </DragabbleDice>
+    </div>
+
+    <MudGrid Spacing="1" Class="play-controls">
+      <MudItem xs="4">
+        <RollDiceButton IsDisabled="@(!GameState.IsMyTurn)" />
+      </MudItem>
+      <MudItem xs="4">
+        <KeepButton IsDisabled="@(!GameState.IsMyTurn)" />
+      </MudItem>
+      <MudItem xs="4">
+        <PassTurnButton IsDisabled="@(!GameState.IsMyTurn)" />
+      </MudItem>
+    </MudGrid>
+  </div>
 }
