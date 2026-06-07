@@ -90,13 +90,20 @@
 
 @media (max-width: 599px) {
     .dice-area ::deep .zone {
-        --zone-height: 9rem;
+        --zone-height: 12rem;
         padding-top: 2rem;
     }
 
+    /* Two rows of three on phones: each dropped-die wrapper takes a third of the
+       row width so the six dice wrap 3 + 3. (The flex child of the zone is the
+       MudBlazor .mud-drop-item wrapper, not the inner slot.) */
+    .dice-area ::deep .mud-drop-item {
+        flex: 0 0 31%;
+    }
+
     .dice-area ::deep .die-slot {
-        --die-size: 19px;
-        min-width: calc(var(--die-size) * 2.3);
+        --die-size: 26px;
+        min-width: 0;
     }
 
     /* Drop the die's pseudo-3D depth body on phones. At this small size its
