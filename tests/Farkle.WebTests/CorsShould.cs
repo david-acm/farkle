@@ -19,11 +19,11 @@ public class CorsShould(GameApiWebAppFactory factory) : IClassFixture<GameApiWeb
     {
         var client = factory.CreateClient();
 
-        var request = new HttpRequestMessage(HttpMethod.Options, "/api/games");
+        using var request = new HttpRequestMessage(HttpMethod.Options, "/api/games");
         request.Headers.Add("Origin", AllowedOrigin);
         request.Headers.Add("Access-Control-Request-Method", "POST");
 
-        var response = await client.SendAsync(request);
+        using var response = await client.SendAsync(request);
 
         Assert.Equal(
             AllowedOrigin,
