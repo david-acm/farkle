@@ -89,8 +89,7 @@ public sealed class ScriptedIdGameApiWebAppFactory : WebApplicationFactory<Progr
         {
             var esClient = s.First(d => d.ServiceType == typeof(EventStoreClient));
             s.Remove(esClient);
-            var esdbTestConnectionString = $"esdb://admin:changeit@localhost:{esdbPort}?tls=false";
-            s.AddEventStoreClient(esdbTestConnectionString);
+            s.AddEventStoreClient(TestEnvironment.EsdbConnectionString(esdbPort));
 
             var dbContextDescriptor = s.SingleOrDefault(d => d.ServiceType == typeof(DbContextOptions<AppDbContext>));
             if (dbContextDescriptor != null) s.Remove(dbContextDescriptor);

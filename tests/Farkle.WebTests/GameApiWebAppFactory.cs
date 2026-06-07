@@ -64,8 +64,7 @@ public class GameApiWebAppFactory : WebApplicationFactory<Program>
     {
       var esClient = s.First(s => s.ServiceType == typeof(EventStoreClient));
       s.Remove(esClient);
-      var esdbTestConnectionString = $"esdb://admin:changeit@localhost:{esdbPort}?tls=false";
-      s.AddEventStoreClient(esdbTestConnectionString);
+      s.AddEventStoreClient(TestEnvironment.EsdbConnectionString(esdbPort));
 
       var dbContextDescriptor = s.SingleOrDefault(d => d.ServiceType == typeof(DbContextOptions<AppDbContext>));
       if (dbContextDescriptor != null) s.Remove(dbContextDescriptor);
