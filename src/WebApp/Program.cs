@@ -1,5 +1,6 @@
 using System.Reflection;
 using Farkle;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using FastEndpoints;
 using FastEndpoints.Security;
 using FastEndpoints.Swagger;
@@ -30,6 +31,11 @@ services.AddSwaggerGen();
 
 services.AddDbContext<AppDbContext>(o =>
     o.UseNpgsql(builder.Configuration.GetConnectionString("Identity")));
+
+// Readiness checks for the two backing services (tagged "ready"); liveness runs none.
+services.AddHealthChecks()
+    .AddDbContextCheck<AppDbContext>("postgres", tags: ["ready"])
+    .AddCheck<WebApp.Health.EventStoreHealthCheck>("eventstore", tags: ["ready"]);
 
 services
     .AddIdentityCore<AppUser>()
@@ -83,6 +89,13 @@ builder.Services.AddScoped(_ => new HttpClient
 builder.Services.RegisterClientServices();
 
 var app = builder.Build();
+
+// Health endpoints, mapped before CORS/auth/FastEndpoints so they always answer
+// anonymously (never gated by Auth:RequireAuthorization). Liveness runs no checks
+// (just "process is up"); readiness runs the "ready"-tagged Postgres + EventStore
+// checks. These are minimal-API endpoints, so they're absent from the Swagger doc.
+app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false });
+app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = c => c.Tags.Contains("ready") });
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
