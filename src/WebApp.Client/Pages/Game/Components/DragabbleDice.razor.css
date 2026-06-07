@@ -99,10 +99,11 @@
         min-width: calc(var(--die-size) * 2.3);
     }
 
-    /* Tighten the die's pseudo-3D depth on phones so six dice stay contained in
-       one short, non-scrolling row instead of spilling over the floating title.
-       Desktop keeps the fuller depth. */
+    /* Drop the die's pseudo-3D depth body on phones. At this small size its
+       gray slab shows as a distracting grey area under each die, and removing it
+       also keeps the six dice contained in one short, non-scrolling row. Desktop
+       keeps the fuller depth. */
     .dice-area ::deep .die.solid {
-        translate: 0 calc(var(--die-size) * -1);
+        display: none;
     }
 }
