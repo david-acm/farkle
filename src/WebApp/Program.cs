@@ -85,6 +85,9 @@ else
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
+    // Redirect HTTP → HTTPS in non-development environments (paired with HSTS).
+    // Local dev profiles (http/https in launchSettings) are intentionally exempt.
+    app.UseHttpsRedirection();
 }
 
 app.UseStaticFiles();
