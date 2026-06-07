@@ -58,6 +58,15 @@ services
 services.AddSignalR();
 services.AddScoped<Farkle.Application.IGameEventBroadcaster, WebApp.Hubs.SignalRGameEventBroadcaster>();
 
+// CORS: allow only the origins listed in Cors:AllowedOrigins (empty by default, so
+// no cross-origin access until configured). Never combine AllowAnyOrigin with
+// credentials — that is a CORS misconfiguration browsers reject.
+services.AddCors(o =>
+  o.AddPolicy("FarklePolicy", p => p
+    .WithOrigins(builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>())
+    .AllowAnyHeader()
+    .AllowAnyMethod()));
+
 // Add module services
 services.AddFarkleModuleServices(builder.Configuration, logger, new List<Assembly>());
 
@@ -100,6 +109,10 @@ if (!app.Environment.IsEnvironment("NSwag"))
 
 if (!app.Environment.IsEnvironment("NSwag"))
     app.SetUpFarkleModule();
+
+// Before authentication and the endpoints so preflight + FastEndpoints/Swagger
+// responses carry the CORS headers.
+app.UseCors("FarklePolicy");
 
 var requireAuth = builder.Configuration.GetValue<bool>("Auth:RequireAuthorization");
 if(requireAuth)
