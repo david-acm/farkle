@@ -4,7 +4,7 @@ properties:
   configuration:
     ingress:
       external: true
-      targetPort: 3000
+      targetPort: 8080
       customDomains:
       - name: www.my-name.com
         bindingType: SniEnabled
