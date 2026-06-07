@@ -86,7 +86,7 @@
     var dir = new DirectoryInfo(AppContext.BaseDirectory);
     while (dir is not null)
     {
-      var candidate = Path.Combine(dir.FullName,
+      var candidate = Path.Join(dir.FullName,
         "src", "WebApp.Client", "Pages", "Game", "Components", "DragabbleDice.razor.css");
       if (File.Exists(candidate)) return candidate;
       dir = dir.Parent;
