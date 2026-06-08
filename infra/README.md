@@ -68,7 +68,33 @@ az deployment sub create \
 
 The WebApp image must be built and pushed to the registry (output
 `containerRegistryLoginServer`) before/with the deploy — automated by the deploy
-workflow (issue #22).
+workflow below.
+
+## CI/CD deploy (GitHub Actions + OIDC)
+
+| Workflow | Trigger | Does |
+|---|---|---|
+| `infra.yml` | PR touching `infra/**` | `az deployment sub what-if` → posts the predicted changes as a PR comment |
+| `infra-deploy.yml` | push to `main` (`infra/**`,`src/**`), manual, or `workflow_call` | build + push the WebApp image to ACR, then `az deployment sub create` |
+| `infra-teardown.yml` | manual or `workflow_call` | `az group delete` on the workload RG (**destructive**) |
+
+All use **OIDC** (no stored cloud secrets) and **no-op until configured** — every job
+is gated on `vars.AZURE_CLIENT_ID`.
+
+### One-time setup (Azure + GitHub)
+1. Create an Entra app registration and add **federated credentials** for GitHub OIDC:
+   - subject `repo:david-acm/farkle:environment:production`
+   - subject `repo:david-acm/farkle:pull_request` (for what-if)
+   - issuer `https://token.actions.githubusercontent.com`, audience `api://AzureADTokenExchange`
+2. Grant it **Owner** on the target subscription (the Bicep creates the RG and does role
+   assignments, so Contributor alone isn't enough), plus **Cost Management Reader** (for the
+   budget cost-guard, PR4).
+3. Create a GitHub **environment** `production` (add required reviewers if you want approval gates).
+4. Repo/environment **variables**: `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`,
+   `AZURE_RESOURCE_GROUP`, `ACR_NAME`, `AZURE_LOCATION`.
+5. Repo/environment **secrets**: `JWT_SECRET`, `PG_ADMIN_PASSWORD` (the only long-lived secrets;
+   the deploy reads them via the `.bicepparam`'s `readEnvironmentVariable`). The RG name is
+   driven by the `AZURE_RESOURCE_GROUP` variable so deploy and teardown always agree.
 
 > **Post-deploy note:** the app's public origin (`BackendUrl` / `Cors:AllowedOrigins`)
 > depends on the assigned Container App FQDN (output `webAppFqdn`); set those once the
