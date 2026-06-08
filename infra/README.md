@@ -68,7 +68,62 @@ az deployment sub create \
 
 The WebApp image must be built and pushed to the registry (output
 `containerRegistryLoginServer`) before/with the deploy — automated by the deploy
-workflow (issue #22).
+workflow below.
+
+## CI/CD deploy (GitHub Actions + OIDC)
+
+| Workflow | Trigger | Does |
+|---|---|---|
+| `infra.yml` | PR touching `infra/**` | `az deployment sub what-if` → posts the predicted changes as a PR comment |
+| `infra-deploy.yml` | push to `main` (`infra/**`,`src/**`), manual, or `workflow_call` | build + push the WebApp image to ACR, then `az deployment sub create` |
+| `infra-teardown.yml` | manual or `workflow_call` | `az group delete` on the workload RG (**destructive**) |
+
+All use **OIDC** (no stored cloud secrets) and **no-op until configured** — every job
+is gated on `vars.AZURE_CLIENT_ID`.
+
+### One-time setup (Azure + GitHub)
+1. Create an Entra app registration and add **federated credentials** for GitHub OIDC:
+   - subject `repo:david-acm/farkle:environment:production`
+   - subject `repo:david-acm/farkle:pull_request` (for what-if)
+   - issuer `https://token.actions.githubusercontent.com`, audience `api://AzureADTokenExchange`
+2. Grant it rights on the target subscription. The Bicep both creates resources **and**
+   creates role assignments (it grants the managed identity **Key Vault Secrets User**
+   `4633458b-17de-408a-b874-0445c86b69e6` on the vault and **AcrPull**
+   `7f951dda-4ed3-4680-a7ca-43fe172d538d` on the registry), so Contributor alone isn't enough.
+   Either:
+   - the simple option — **Owner**; or
+   - least-privilege — **Contributor** + **Role Based Access Control Administrator** with an
+     ABAC condition restricting it to *only* those two role IDs, so it can never grant any
+     other role:
+
+     ```text
+     (
+      ( !(ActionMatches{'Microsoft.Authorization/roleAssignments/write'}) )
+      OR
+      ( @Request[Microsoft.Authorization/roleAssignments:RoleDefinitionId] ForAnyOfAnyValues:GuidEquals {4633458b-17de-408a-b874-0445c86b69e6, 7f951dda-4ed3-4680-a7ca-43fe172d538d} )
+     )
+     AND
+     (
+      ( !(ActionMatches{'Microsoft.Authorization/roleAssignments/delete'}) )
+      OR
+      ( @Resource[Microsoft.Authorization/roleAssignments:RoleDefinitionId] ForAnyOfAnyValues:GuidEquals {4633458b-17de-408a-b874-0445c86b69e6, 7f951dda-4ed3-4680-a7ca-43fe172d538d} )
+     )
+     ```
+
+     (`--condition-version "2.0"`.)
+
+   Also grant **Cost Management Reader** (read-only; for the budget cost-guard, PR4).
+3. Create a GitHub **environment** `production` (add required reviewers if you want approval gates).
+4. Repo/environment **variables**: `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`,
+   `AZURE_RESOURCE_GROUP`, `ACR_NAME`, `AZURE_LOCATION`. With a federated credential there is
+   **no client secret** — OIDC exchanges a short-lived token, so these are plain IDs (variables,
+   not secrets). Where to find them:
+   - `AZURE_CLIENT_ID` — Entra ID → App registrations → your app → **Overview** → "Application (client) ID".
+   - `AZURE_TENANT_ID` — same Overview page → "Directory (tenant) ID".
+   - `AZURE_SUBSCRIPTION_ID` — Subscriptions → your subscription → "Subscription ID".
+5. Repo/environment **secrets**: `JWT_SECRET`, `PG_ADMIN_PASSWORD` (the only long-lived secrets;
+   the deploy reads them via the `.bicepparam`'s `readEnvironmentVariable`). The RG name is
+   driven by the `AZURE_RESOURCE_GROUP` variable so deploy and teardown always agree.
 
 > **Post-deploy note:** the app's public origin (`BackendUrl` / `Cors:AllowedOrigins`)
 > depends on the assigned Container App FQDN (output `webAppFqdn`); set those once the

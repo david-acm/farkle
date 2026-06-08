@@ -1,0 +1,63 @@
+name: Infra Deploy
+
+# Builds the WebApp image, pushes it to ACR, and deploys the Bicep to Azure via
+# OIDC (no stored cloud credentials). Also exposed as a reusable workflow so the
+# scheduled lifecycle automation (infra-schedule.yml) can provision on demand.
+#
+# No-ops until OIDC is configured: every job is gated on vars.AZURE_CLIENT_ID.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'infra/**'
+      - 'src/**'
+      - '.github/workflows/infra-deploy.yml'
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    name: Build image + deploy Bicep
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: ${{ vars.AZURE_CLIENT_ID != '' }}
+    environment: production
+    env:
+      AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+      ACR_NAME: ${{ vars.ACR_NAME }}
+      AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
+      IMAGE_TAG: ${{ github.sha }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Build & push WebApp image to ACR
+        run: |
+          az acr login --name "$ACR_NAME"
+          image="${ACR_NAME}.azurecr.io/webapp:${IMAGE_TAG}"
+          docker build -t "$image" -f src/WebApp/Dockerfile .
+          docker push "$image"
+
+      - name: Deploy Bicep
+        # The .bicepparam reads JWT_SECRET / PG_ADMIN_PASSWORD / IMAGE_TAG /
+        # AZURE_RESOURCE_GROUP from the environment via readEnvironmentVariable().
+        env:
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          PG_ADMIN_PASSWORD: ${{ secrets.PG_ADMIN_PASSWORD }}
+        run: |
+          az bicep install
+          az deployment sub create \
+            --location "$AZURE_LOCATION" \
+            --template-file infra/main.bicep \
+            --parameters infra/env/dev.bicepparam

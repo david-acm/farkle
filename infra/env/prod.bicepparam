@@ -1,7 +1,7 @@
 using '../main.bicep'
 
 param location = 'eastus'
-param resourceGroupName = 'farkle-prod-rg'
+param resourceGroupName = readEnvironmentVariable('AZURE_RESOURCE_GROUP', 'farkle-prod-rg')
 param environmentName = 'prod'
 param namePrefix = 'farkle'
 

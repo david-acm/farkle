@@ -1,0 +1,34 @@
+name: Infra Teardown
+
+# Deletes the workload resource group via OIDC. Exposed as a reusable workflow so
+# the scheduled lifecycle automation (infra-schedule.yml) and the budget cost-guard
+# (infra-cost-guard.yml) can call it. Manual runs are also supported.
+#
+# Destructive: deletes the RG and everything in it (Postgres + EventStore data).
+# No-ops until OIDC is configured: gated on vars.AZURE_CLIENT_ID.
+on:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  teardown:
+    name: Delete resource group
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: ${{ vars.AZURE_CLIENT_ID != '' }}
+    environment: production
+
+    steps:
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Delete resource group
+        run: az group delete --name "${{ vars.AZURE_RESOURCE_GROUP }}" --yes
