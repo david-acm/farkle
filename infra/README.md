@@ -117,8 +117,16 @@ is gated on `vars.AZURE_CLIENT_ID`.
 3. Create a GitHub **environment** `production`. **Do not add required reviewers if you want the
    scheduled lifecycle automation to provision unattended** — an approval gate would stall the
    cron-triggered deploy. (Add reviewers only if you accept manual approval on every deploy.)
-4. Repo/environment **variables**: `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`,
-   `AZURE_RESOURCE_GROUP`, `ACR_NAME`, `AZURE_LOCATION`. With a federated credential there is
+4. **Repository** **variables** (Settings → Secrets and variables → Actions → Variables):
+   `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`, `AZURE_RESOURCE_GROUP`,
+   `ACR_NAME`, `AZURE_LOCATION`.
+   > ⚠️ These must be **repository** (or org) variables, **not** environment variables. The jobs
+   > are gated by `if: vars.AZURE_CLIENT_ID != ''`, which is evaluated *before* the job enters the
+   > `production` environment — environment-scoped variables aren't visible there, so an env-only
+   > `AZURE_CLIENT_ID` makes every job silently **skip**. (Secrets in step 5 may be env-scoped;
+   > they're only read inside steps.)
+
+   With a federated credential there is
    **no client secret** — OIDC exchanges a short-lived token, so these are plain IDs (variables,
    not secrets). Where to find them:
    - `AZURE_CLIENT_ID` — Entra ID → App registrations → your app → **Overview** → "Application (client) ID".
