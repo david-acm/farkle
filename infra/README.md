@@ -86,9 +86,33 @@ is gated on `vars.AZURE_CLIENT_ID`.
    - subject `repo:david-acm/farkle:environment:production`
    - subject `repo:david-acm/farkle:pull_request` (for what-if)
    - issuer `https://token.actions.githubusercontent.com`, audience `api://AzureADTokenExchange`
-2. Grant it **Owner** on the target subscription (the Bicep creates the RG and does role
-   assignments, so Contributor alone isn't enough), plus **Cost Management Reader** (for the
-   budget cost-guard, PR4).
+2. Grant it rights on the target subscription. The Bicep both creates resources **and**
+   creates role assignments (it grants the managed identity **Key Vault Secrets User**
+   `4633458b-17de-408a-b874-0445c86b69e6` on the vault and **AcrPull**
+   `7f951dda-4ed3-4680-a7ca-43fe172d538d` on the registry), so Contributor alone isn't enough.
+   Either:
+   - the simple option — **Owner**; or
+   - least-privilege — **Contributor** + **Role Based Access Control Administrator** with an
+     ABAC condition restricting it to *only* those two role IDs, so it can never grant any
+     other role:
+
+     ```text
+     (
+      ( !(ActionMatches{'Microsoft.Authorization/roleAssignments/write'}) )
+      OR
+      ( @Request[Microsoft.Authorization/roleAssignments:RoleDefinitionId] ForAnyOfAnyValues:GuidEquals {4633458b-17de-408a-b874-0445c86b69e6, 7f951dda-4ed3-4680-a7ca-43fe172d538d} )
+     )
+     AND
+     (
+      ( !(ActionMatches{'Microsoft.Authorization/roleAssignments/delete'}) )
+      OR
+      ( @Resource[Microsoft.Authorization/roleAssignments:RoleDefinitionId] ForAnyOfAnyValues:GuidEquals {4633458b-17de-408a-b874-0445c86b69e6, 7f951dda-4ed3-4680-a7ca-43fe172d538d} )
+     )
+     ```
+
+     (`--condition-version "2.0"`.)
+
+   Also grant **Cost Management Reader** (read-only; for the budget cost-guard, PR4).
 3. Create a GitHub **environment** `production` (add required reviewers if you want approval gates).
 4. Repo/environment **variables**: `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`,
    `AZURE_RESOURCE_GROUP`, `ACR_NAME`, `AZURE_LOCATION`.
