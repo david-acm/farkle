@@ -1,2 +1,0 @@
-FROM eventstore/eventstore:latest
-USER root

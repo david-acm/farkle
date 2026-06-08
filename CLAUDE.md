@@ -52,7 +52,9 @@ src/
 │   ├── Features/              # BlazorState GameState + Actions/ (Redux-like reducers)
 │   ├── Pages/Game/Components/ # Dice, Scoreboard, buttons, drag-and-drop UI
 │   └── Services/              # IGameService, IGameHubService, RotationCalculator
-└── Scripts/                   # Deployment/utility scripts (containerapp, compose templates)
+
+infra/                         # Azure Bicep IaC (AVM) — main.bicep + modules + env/*.bicepparam
+└── modules/workload.bicep     # Container Apps env, ESDB + WebApp apps, Postgres, Key Vault, ACR
 
 tests/
 ├── Farkle.Tests/              # Unit tests for the domain (Game, validators, state)
