@@ -75,17 +75,33 @@ workflow below.
 
 | Workflow | Trigger | Does |
 |---|---|---|
-| `infra.yml` | PR touching `infra/**` | `az deployment sub what-if` → posts the predicted changes as a PR comment |
 | `infra-deploy.yml` | push to `main` (`infra/**`,`src/**`), manual, or `workflow_call` | build + push the WebApp image to ACR, then `az deployment sub create` |
 | `infra-teardown.yml` | manual or `workflow_call` | `az group delete` on the workload RG (**destructive**) |
+| `infra.yml` | manual | `az deployment sub what-if` → predicted changes in the run summary |
 
-All use **OIDC** (no stored cloud secrets) and **no-op until configured** — every job
-is gated on `vars.AZURE_CLIENT_ID`.
+All use **OIDC** (no stored cloud credentials). They **no-op until enabled**: deploy/teardown
+are gated on the repository variable `DEPLOY_ENABLED == 'true'`, the lifecycle workflows on
+`LIFECYCLE_ENABLED == 'true'`. PR-time Bicep checking is done credential-free by
+`infra-validate.yml`, so the what-if is a manual preview rather than a PR check.
+
+### Variable scoping (important)
+
+GitHub evaluates a job-level `if:` **before** the job enters its `environment:`, and a job with
+no environment can't read environment-scoped variables at all. So the config splits in two:
+
+- **`production` environment** — the Azure target config + secrets (read inside steps):
+  `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`, `AZURE_RESOURCE_GROUP`,
+  `ACR_NAME`, `AZURE_LOCATION`, and secrets `JWT_SECRET`, `PG_ADMIN_PASSWORD`.
+- **Repository variables** — the non-sensitive switches/timing used in `if:`/gate steps:
+  `DEPLOY_ENABLED`, `LIFECYCLE_ENABLED`, `PROVISION_HOUR_UTC`, `TEARDOWN_HOUR_UTC`,
+  `ACTIVE_WEEKDAYS`, `AZURE_BUDGET_NAME`.
+
+> Putting the gating flags (`DEPLOY_ENABLED` / `LIFECYCLE_ENABLED`) in the environment instead of
+> the repository makes every job silently **skip** — that's the one thing that must be repo-scoped.
 
 ### One-time setup (Azure + GitHub)
-1. Create an Entra app registration and add **federated credentials** for GitHub OIDC:
-   - subject `repo:david-acm/farkle:environment:production`
-   - subject `repo:david-acm/farkle:pull_request` (for what-if)
+1. Create an Entra app registration and add a **federated credential** for GitHub OIDC:
+   - subject `repo:david-acm/farkle:environment:production` (all Azure jobs enter the `production` environment)
    - issuer `https://token.actions.githubusercontent.com`, audience `api://AzureADTokenExchange`
 2. Grant it rights on the target subscription. The Bicep both creates resources **and**
    creates role assignments (it grants the managed identity **Key Vault Secrets User**
@@ -114,27 +130,26 @@ is gated on `vars.AZURE_CLIENT_ID`.
      (`--condition-version "2.0"`.)
 
    Also grant **Cost Management Reader** (read-only; for the budget cost-guard, PR4).
-3. Create a GitHub **environment** `production`. **Do not add required reviewers if you want the
-   scheduled lifecycle automation to provision unattended** — an approval gate would stall the
-   cron-triggered deploy. (Add reviewers only if you accept manual approval on every deploy.)
-4. **Repository** **variables** (Settings → Secrets and variables → Actions → Variables):
+3. Create a GitHub **environment** `production`. Because the scheduled lifecycle automation and
+   the cost-guard enter this environment unattended, **do not add required reviewers** (an approval
+   gate would stall the cron-triggered deploy/teardown) and leave **deployment branches**
+   unrestricted enough for the workflows that use it. Add reviewers only if you accept manual
+   approval on every automated action.
+4. In the **`production` environment**, add the Azure target config as **environment variables**:
    `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`, `AZURE_RESOURCE_GROUP`,
-   `ACR_NAME`, `AZURE_LOCATION`.
-   > ⚠️ These must be **repository** (or org) variables, **not** environment variables. The jobs
-   > are gated by `if: vars.AZURE_CLIENT_ID != ''`, which is evaluated *before* the job enters the
-   > `production` environment — environment-scoped variables aren't visible there, so an env-only
-   > `AZURE_CLIENT_ID` makes every job silently **skip**. (Secrets in step 5 may be env-scoped;
-   > they're only read inside steps.)
-
-   With a federated credential there is
-   **no client secret** — OIDC exchanges a short-lived token, so these are plain IDs (variables,
-   not secrets). Where to find them:
+   `ACR_NAME`, `AZURE_LOCATION`; and **environment secrets** `JWT_SECRET`, `PG_ADMIN_PASSWORD`
+   (the deploy reads the secrets via the `.bicepparam`'s `readEnvironmentVariable`). With a
+   federated credential there is **no client secret** — OIDC exchanges a short-lived token, so the
+   `AZURE_*` values are plain IDs. Where to find them:
    - `AZURE_CLIENT_ID` — Entra ID → App registrations → your app → **Overview** → "Application (client) ID".
    - `AZURE_TENANT_ID` — same Overview page → "Directory (tenant) ID".
    - `AZURE_SUBSCRIPTION_ID` — Subscriptions → your subscription → "Subscription ID".
-5. Repo/environment **secrets**: `JWT_SECRET`, `PG_ADMIN_PASSWORD` (the only long-lived secrets;
-   the deploy reads them via the `.bicepparam`'s `readEnvironmentVariable`). The RG name is
-   driven by the `AZURE_RESOURCE_GROUP` variable so deploy and teardown always agree.
+5. As **repository variables** (Settings → Secrets and variables → Actions → Variables →
+   *Repository variables*), add the gating switches: `DEPLOY_ENABLED=true` to turn on push/manual
+   deploys + teardown, and (for the lifecycle automation) `LIFECYCLE_ENABLED=true` plus
+   `PROVISION_HOUR_UTC`, `TEARDOWN_HOUR_UTC`, `ACTIVE_WEEKDAYS`, `AZURE_BUDGET_NAME`. These must be
+   repository-scoped (see *Variable scoping* above). The RG name is driven by `AZURE_RESOURCE_GROUP`
+   so deploy and teardown always agree.
 
 > **Post-deploy note:** the app's public origin (`BackendUrl` / `Cors:AllowedOrigins`)
 > depends on the assigned Container App FQDN (output `webAppFqdn`); set those once the
@@ -144,8 +159,8 @@ is gated on `vars.AZURE_CLIENT_ID`.
 
 To keep the dev environment cheap, the Bicep provisions a **monthly RG budget** that emails
 the configured recipients at its thresholds, and two GitHub Actions workflows enforce a
-spending/lifecycle policy. Both **no-op until** `vars.AZURE_CLIENT_ID` is set **and**
-`vars.LIFECYCLE_ENABLED == 'true'`.
+spending/lifecycle policy. Both **no-op until** `vars.LIFECYCLE_ENABLED == 'true'`; the teardown
+they invoke is additionally gated on `vars.DEPLOY_ENABLED == 'true'`.
 
 | Workflow | Schedule | Does |
 |---|---|---|
@@ -163,7 +178,7 @@ image and **all Postgres/EventStore data**. That's why "provision" is the full b
 do not point this at anything whose data you need to keep. Teardown is idempotent (a no-op if
 the RG is already gone).
 
-### Lifecycle variables (all UTC; set as repository or environment variables)
+### Lifecycle variables (UTC; **repository** variables — see *Variable scoping*)
 
 | Variable | Example | Meaning |
 |---|---|---|

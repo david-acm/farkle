@@ -5,7 +5,8 @@ name: Infra Teardown
 # (infra-cost-guard.yml) can call it. Manual runs are also supported.
 #
 # Destructive: deletes the RG and everything in it (Postgres + EventStore data).
-# No-ops until OIDC is configured: gated on vars.AZURE_CLIENT_ID.
+# No-ops until enabled: gated on the repository variable DEPLOY_ENABLED == 'true'.
+# Azure config (AZURE_*) is read from the `production` environment.
 on:
   workflow_dispatch:
   workflow_call:
@@ -19,7 +20,7 @@ jobs:
     name: Delete resource group
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    if: ${{ vars.AZURE_CLIENT_ID != '' }}
+    if: ${{ vars.DEPLOY_ENABLED == 'true' }}
     environment: production
 
     steps:

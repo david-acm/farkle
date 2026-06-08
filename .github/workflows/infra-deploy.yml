@@ -4,7 +4,8 @@ name: Infra Deploy
 # OIDC (no stored cloud credentials). Also exposed as a reusable workflow so the
 # scheduled lifecycle automation (infra-schedule.yml) can provision on demand.
 #
-# No-ops until OIDC is configured: every job is gated on vars.AZURE_CLIENT_ID.
+# No-ops until enabled: gated on the repository variable DEPLOY_ENABLED == 'true'.
+# Azure config (AZURE_*) + secrets are read from the `production` environment.
 on:
   push:
     branches: [main]
@@ -24,7 +25,7 @@ jobs:
     name: Build image + deploy Bicep
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    if: ${{ vars.AZURE_CLIENT_ID != '' }}
+    if: ${{ vars.DEPLOY_ENABLED == 'true' }}
     environment: production
     env:
       AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
