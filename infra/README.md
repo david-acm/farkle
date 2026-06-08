@@ -115,7 +115,12 @@ is gated on `vars.AZURE_CLIENT_ID`.
    Also grant **Cost Management Reader** (read-only; for the budget cost-guard, PR4).
 3. Create a GitHub **environment** `production` (add required reviewers if you want approval gates).
 4. Repo/environment **variables**: `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`,
-   `AZURE_RESOURCE_GROUP`, `ACR_NAME`, `AZURE_LOCATION`.
+   `AZURE_RESOURCE_GROUP`, `ACR_NAME`, `AZURE_LOCATION`. With a federated credential there is
+   **no client secret** — OIDC exchanges a short-lived token, so these are plain IDs (variables,
+   not secrets). Where to find them:
+   - `AZURE_CLIENT_ID` — Entra ID → App registrations → your app → **Overview** → "Application (client) ID".
+   - `AZURE_TENANT_ID` — same Overview page → "Directory (tenant) ID".
+   - `AZURE_SUBSCRIPTION_ID` — Subscriptions → your subscription → "Subscription ID".
 5. Repo/environment **secrets**: `JWT_SECRET`, `PG_ADMIN_PASSWORD` (the only long-lived secrets;
    the deploy reads them via the `.bicepparam`'s `readEnvironmentVariable`). The RG name is
    driven by the `AZURE_RESOURCE_GROUP` variable so deploy and teardown always agree.
