@@ -20,6 +20,7 @@ PowerShell + Container App YAML that used to live under `src/Scripts/`.
 | Container Apps environment | `app/managed-environment` | wired to Log Analytics + the file share |
 | EventStore container app | `app/container-app` | internal TCP `:2113`, persistent volume |
 | WebApp container app | `app/container-app` | external `:8080`, KV-referenced secrets, health probes |
+| Cost budget | `consumption/budget/rg-scope` | monthly RG budget; emails at the configured thresholds |
 
 **Secrets** never live in source. The JWT secret + Postgres password are passed as
 `@secure()` parameters and stored in Key Vault; the WebApp reads them via the
@@ -113,7 +114,9 @@ is gated on `vars.AZURE_CLIENT_ID`.
      (`--condition-version "2.0"`.)
 
    Also grant **Cost Management Reader** (read-only; for the budget cost-guard, PR4).
-3. Create a GitHub **environment** `production` (add required reviewers if you want approval gates).
+3. Create a GitHub **environment** `production`. **Do not add required reviewers if you want the
+   scheduled lifecycle automation to provision unattended** — an approval gate would stall the
+   cron-triggered deploy. (Add reviewers only if you accept manual approval on every deploy.)
 4. Repo/environment **variables**: `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`,
    `AZURE_RESOURCE_GROUP`, `ACR_NAME`, `AZURE_LOCATION`. With a federated credential there is
    **no client secret** — OIDC exchanges a short-lived token, so these are plain IDs (variables,
@@ -128,3 +131,44 @@ is gated on `vars.AZURE_CLIENT_ID`.
 > **Post-deploy note:** the app's public origin (`BackendUrl` / `Cors:AllowedOrigins`)
 > depends on the assigned Container App FQDN (output `webAppFqdn`); set those once the
 > FQDN is known if cross-origin/WASM behavior needs it.
+
+## Cost control & lifecycle automation
+
+To keep the dev environment cheap, the Bicep provisions a **monthly RG budget** that emails
+the configured recipients at its thresholds, and two GitHub Actions workflows enforce a
+spending/lifecycle policy. Both **no-op until** `vars.AZURE_CLIENT_ID` is set **and**
+`vars.LIFECYCLE_ENABLED == 'true'`.
+
+| Workflow | Schedule | Does |
+|---|---|---|
+| `infra-schedule.yml` | hourly | provisions at `PROVISION_HOUR_UTC` (on active weekdays), tears down at `TEARDOWN_HOUR_UTC` |
+| `infra-cost-guard.yml` | hourly | reads the budget's current spend; tears down if spend ≥ the budget amount |
+
+**Why a cost-guard instead of a budget→webhook?** Azure budget action-group webhooks can't
+authenticate to the GitHub API, so the on-overspend teardown *pulls* the budget's current
+spend via OIDC rather than receiving a push. The Azure budget still sends its threshold
+**emails** — that's the alert.
+
+**Teardown deletes the whole resource group** (`az group delete`), including ACR + the pushed
+image and **all Postgres/EventStore data**. That's why "provision" is the full build+push+deploy
+(the morning run rebuilds the image into the fresh ACR). Acceptable for a dev environment;
+do not point this at anything whose data you need to keep. Teardown is idempotent (a no-op if
+the RG is already gone).
+
+### Lifecycle variables (all UTC; set as repository or environment variables)
+
+| Variable | Example | Meaning |
+|---|---|---|
+| `LIFECYCLE_ENABLED` | `true` | master switch for both workflows |
+| `PROVISION_HOUR_UTC` | `7` | hour to build + deploy |
+| `TEARDOWN_HOUR_UTC` | `19` | hour to delete the RG |
+| `ACTIVE_WEEKDAYS` | `1-5` | days provisioning runs — range `1-5` or list `1,2,3` (1=Mon…7=Sun); default `1-7` |
+| `AZURE_BUDGET_NAME` | `farkle-budget-dev` | budget the cost-guard reads (defaults to `farkle-budget-dev`) |
+
+### Budget parameters (Bicep)
+
+`monthlyBudgetAmount` (dev `50`, prod `200`), `budgetThresholds` (`[80, 100]`), and
+`budgetAlertEmails` are set in `infra/env/*.bicepparam`. **Override `budgetAlertEmails`** with a
+real recipient — the default `changeme@example.com` is a placeholder (or set the
+`BUDGET_ALERT_EMAIL` env var at deploy time). The cost-guard's OIDC identity also needs
+**Cost Management Reader** to read current spend.

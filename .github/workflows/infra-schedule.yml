@@ -1,0 +1,69 @@
+name: Infra Schedule
+
+# Provisions the environment in the morning and tears it down at night, on a
+# configurable UTC schedule, to keep the dev environment cheap. Runs hourly and
+# acts only when the current hour matches the configured provision/teardown hour.
+#
+# Configure via repo/environment variables (all UTC):
+#   LIFECYCLE_ENABLED   - 'true' to enable (otherwise this workflow no-ops)
+#   PROVISION_HOUR_UTC  - hour (0-23) to build+deploy, e.g. '7'
+#   TEARDOWN_HOUR_UTC   - hour (0-23) to delete the RG, e.g. '19'
+#   ACTIVE_WEEKDAYS     - days provisioning runs, range '1-5' or list '1,2,3' (1=Mon..7=Sun); default '1-7'
+#
+# Provision = the full build+push+deploy (the nightly RG delete also removes ACR
+# and its image, so the morning run rebuilds it). Teardown is idempotent.
+on:
+  schedule:
+    - cron: '0 * * * *'
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  gate:
+    name: Decide action for this hour
+    runs-on: ubuntu-latest
+    if: ${{ vars.AZURE_CLIENT_ID != '' && vars.LIFECYCLE_ENABLED == 'true' }}
+    outputs:
+      action: ${{ steps.decide.outputs.action }}
+    steps:
+      - id: decide
+        env:
+          PROVISION_HOUR_UTC: ${{ vars.PROVISION_HOUR_UTC }}
+          TEARDOWN_HOUR_UTC: ${{ vars.TEARDOWN_HOUR_UTC }}
+          ACTIVE_WEEKDAYS: ${{ vars.ACTIVE_WEEKDAYS }}
+        run: |
+          hour=$(date -u +%-H)
+          dow=$(date -u +%u)   # 1=Mon .. 7=Sun
+          days="${ACTIVE_WEEKDAYS:-1-7}"
+
+          active=false
+          if [[ "$days" == *-* ]]; then
+            lo="${days%-*}"; hi="${days#*-}"
+            if [ "$dow" -ge "$lo" ] && [ "$dow" -le "$hi" ]; then active=true; fi
+          else
+            case ",$days," in *",$dow,"*) active=true;; esac
+          fi
+
+          action=none
+          if [ "$active" = true ] && [ -n "$PROVISION_HOUR_UTC" ] && [ "$hour" -eq "$PROVISION_HOUR_UTC" ]; then
+            action=deploy
+          elif [ -n "$TEARDOWN_HOUR_UTC" ] && [ "$hour" -eq "$TEARDOWN_HOUR_UTC" ]; then
+            action=teardown
+          fi
+
+          echo "hour(UTC)=$hour dow=$dow active=$active -> action=$action"
+          echo "action=$action" >> "$GITHUB_OUTPUT"
+
+  provision:
+    needs: gate
+    if: ${{ needs.gate.outputs.action == 'deploy' }}
+    uses: ./.github/workflows/infra-deploy.yml
+    secrets: inherit
+
+  teardown:
+    needs: gate
+    if: ${{ needs.gate.outputs.action == 'teardown' }}
+    uses: ./.github/workflows/infra-teardown.yml

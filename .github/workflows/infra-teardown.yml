@@ -30,5 +30,11 @@ jobs:
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Delete resource group
-        run: az group delete --name "${{ vars.AZURE_RESOURCE_GROUP }}" --yes
+      - name: Delete resource group (idempotent)
+        run: |
+          rg="${{ vars.AZURE_RESOURCE_GROUP }}"
+          if [ "$(az group exists --name "$rg")" = "true" ]; then
+            az group delete --name "$rg" --yes
+          else
+            echo "Resource group '$rg' does not exist; nothing to delete."
+          fi

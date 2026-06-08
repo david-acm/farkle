@@ -1,0 +1,68 @@
+name: Infra Cost Guard
+
+# Polls the resource-group cost budget and tears the environment down if spend has
+# reached the budget amount. This is the "all GitHub Actions" realization of an
+# on-overspend teardown: Azure budget action-group webhooks can't authenticate to
+# GitHub, so instead of a push from Azure we pull the budget's current spend here.
+# The Azure budget still emails its threshold alerts (see infra/ Bicep).
+#
+# The OIDC identity needs Cost Management Reader (to read spend) in addition to
+# the teardown rights. No-ops until LIFECYCLE_ENABLED + OIDC are configured.
+on:
+  schedule:
+    - cron: '0 * * * *'
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  check:
+    name: Check budget spend
+    runs-on: ubuntu-latest
+    if: ${{ vars.AZURE_CLIENT_ID != '' && vars.LIFECYCLE_ENABLED == 'true' }}
+    outputs:
+      over: ${{ steps.budget.outputs.over }}
+    steps:
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Compare current spend to budget amount
+        id: budget
+        env:
+          AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+          BUDGET_NAME: ${{ vars.AZURE_BUDGET_NAME }}
+        run: |
+          az config set extension.use_dynamic_install=yes_without_prompt
+          budget="${BUDGET_NAME:-farkle-budget-dev}"
+
+          if [ "$(az group exists --name "$AZURE_RESOURCE_GROUP")" != "true" ]; then
+            echo "RG already gone; nothing to guard."
+            echo "over=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+
+          amount=$(az consumption budget show --budget-name "$budget" \
+            --resource-group "$AZURE_RESOURCE_GROUP" --query 'amount' -o tsv 2>/dev/null || echo "")
+          spend=$(az consumption budget show --budget-name "$budget" \
+            --resource-group "$AZURE_RESOURCE_GROUP" --query 'currentSpend.amount' -o tsv 2>/dev/null || echo "")
+          spend="${spend:-0}"
+
+          echo "budget=$budget amount=${amount:-?} currentSpend=$spend"
+          if [ -z "$amount" ]; then
+            echo "Budget not found; skipping (deploy may not have run yet)."
+            echo "over=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+
+          over=$(awk -v s="$spend" -v a="$amount" 'BEGIN { print (s+0 >= a+0) ? "true" : "false" }')
+          echo "over budget? $over"
+          echo "over=$over" >> "$GITHUB_OUTPUT"
+
+  teardown:
+    needs: check
+    if: ${{ needs.check.outputs.over == 'true' }}
+    uses: ./.github/workflows/infra-teardown.yml

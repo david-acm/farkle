@@ -21,6 +21,15 @@ param postgresAdminPassword string
 @description('JWT signing key (Auth:JwtSecret).')
 param jwtSecret string
 
+@description('Monthly cost budget for the resource group, in the billing currency.')
+param monthlyBudgetAmount int = 50
+
+@description('Budget alert thresholds, as percentages of the monthly amount.')
+param budgetThresholds array = [ 80, 100 ]
+
+@description('Emails notified when a budget threshold is crossed.')
+param budgetAlertEmails array = [ 'changeme@example.com' ]
+
 // ---------------------------------------------------------------------------
 // Naming. ACR / Key Vault / Storage names must be globally unique; derive a
 // short deterministic suffix from the resource group + environment.
@@ -34,6 +43,7 @@ var databaseName = 'farkle_identity'
 
 var esdbAppName = '${namePrefix}-esdb-${environmentName}'
 var webAppName = '${namePrefix}-web-${environmentName}'
+var budgetName = '${namePrefix}-budget-${environmentName}'
 
 // ESDB runs insecure inside the Container Apps environment; app-to-app TCP is
 // addressed by the container app name on its exposed port.
@@ -283,8 +293,29 @@ module webApp 'br/public:avm/res/app/container-app:0.22.1' = {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Cost control: a monthly budget that emails the configured recipients when
+// spend crosses the thresholds. The on-overspend teardown is enforced by the
+// infra-cost-guard GitHub Actions workflow, which polls this budget's current
+// spend and deletes the resource group when it exceeds the amount.
+// ---------------------------------------------------------------------------
+module budget 'br/public:avm/res/consumption/budget/rg-scope:0.1.0' = {
+  name: 'budget'
+  params: {
+    name: budgetName
+    amount: monthlyBudgetAmount
+    category: 'Cost'
+    resetPeriod: 'Monthly'
+    thresholds: budgetThresholds
+    contactEmails: budgetAlertEmails
+  }
+}
+
 @description('Public FQDN of the deployed WebApp.')
 output webAppFqdn string = webApp.outputs.fqdn
 
 @description('Login server of the container registry.')
 output containerRegistryLoginServer string = acr.outputs.loginServer
+
+@description('Name of the resource-group cost budget.')
+output budgetName string = budgetName

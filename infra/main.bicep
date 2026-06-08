@@ -26,6 +26,15 @@ param postgresAdminPassword string
 @description('JWT signing key (Auth:JwtSecret) the app uses to sign/validate tokens.')
 param jwtSecret string
 
+@description('Monthly cost budget for the resource group, in the billing currency.')
+param monthlyBudgetAmount int = 50
+
+@description('Budget alert thresholds, as percentages of the monthly amount.')
+param budgetThresholds array = [ 80, 100 ]
+
+@description('Emails notified when a budget threshold is crossed. Override with real recipients.')
+param budgetAlertEmails array = [ 'changeme@example.com' ]
+
 resource rg 'Microsoft.Resources/resourceGroups@2024-11-01' = {
   name: resourceGroupName
   location: location
@@ -42,6 +51,9 @@ module workload 'modules/workload.bicep' = {
     postgresAdminLogin: postgresAdminLogin
     postgresAdminPassword: postgresAdminPassword
     jwtSecret: jwtSecret
+    monthlyBudgetAmount: monthlyBudgetAmount
+    budgetThresholds: budgetThresholds
+    budgetAlertEmails: budgetAlertEmails
   }
 }
 
@@ -50,3 +62,6 @@ output webAppFqdn string = workload.outputs.webAppFqdn
 
 @description('Login server of the container registry to push the WebApp image to.')
 output containerRegistryLoginServer string = workload.outputs.containerRegistryLoginServer
+
+@description('Name of the resource-group cost budget (used by the cost-guard automation).')
+output budgetName string = workload.outputs.budgetName
