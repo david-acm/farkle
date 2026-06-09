@@ -15,3 +15,7 @@ param jwtSecret = readEnvironmentVariable('JWT_SECRET', '')
 param monthlyBudgetAmount = 200
 param budgetThresholds = [ 80, 100 ]
 param budgetAlertEmails = [ readEnvironmentVariable('BUDGET_ALERT_EMAIL', 'changeme@example.com') ]
+
+// Two-phase deploy: phase 1 sets DEPLOY_WEBAPP=false (create ACR + infra), then the
+// image is pushed, then phase 2 sets DEPLOY_WEBAPP=true to deploy the WebApp.
+param deployWebApp = bool(readEnvironmentVariable('DEPLOY_WEBAPP', 'true'))

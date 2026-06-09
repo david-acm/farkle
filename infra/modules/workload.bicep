@@ -30,6 +30,10 @@ param budgetThresholds array = [ 80, 100 ]
 @description('Emails notified when a budget threshold is crossed.')
 param budgetAlertEmails array = [ 'changeme@example.com' ]
 
+@description('''Deploy the WebApp container app. Set false for the first phase of a
+two-phase deploy (create ACR + infra), push the image, then deploy again with true.''')
+param deployWebApp bool = true
+
 // ---------------------------------------------------------------------------
 // Naming. ACR / Key Vault / Storage names must be globally unique; derive a
 // short deterministic suffix from the resource group + environment.
@@ -226,7 +230,7 @@ module esdbApp 'br/public:avm/res/app/container-app:0.22.1' = {
 // ---------------------------------------------------------------------------
 // WebApp container app — external HTTPS on 8080, KV-referenced secrets, probes.
 // ---------------------------------------------------------------------------
-module webApp 'br/public:avm/res/app/container-app:0.22.1' = {
+module webApp 'br/public:avm/res/app/container-app:0.22.1' = if (deployWebApp) {
   name: 'webapp-app'
   params: {
     name: webAppName
@@ -311,8 +315,8 @@ module budget 'br/public:avm/res/consumption/budget/rg-scope:0.1.0' = {
   }
 }
 
-@description('Public FQDN of the deployed WebApp.')
-output webAppFqdn string = webApp.outputs.fqdn
+@description('Public FQDN of the deployed WebApp (empty when deployWebApp is false).')
+output webAppFqdn string = deployWebApp ? webApp!.outputs.fqdn : ''
 
 @description('Login server of the container registry.')
 output containerRegistryLoginServer string = acr.outputs.loginServer

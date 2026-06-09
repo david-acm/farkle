@@ -35,6 +35,9 @@ param budgetThresholds array = [ 80, 100 ]
 @description('Emails notified when a budget threshold is crossed. Override with real recipients.')
 param budgetAlertEmails array = [ 'changeme@example.com' ]
 
+@description('Deploy the WebApp container app (false for phase 1 of the two-phase deploy).')
+param deployWebApp bool = true
+
 resource rg 'Microsoft.Resources/resourceGroups@2024-11-01' = {
   name: resourceGroupName
   location: location
@@ -54,6 +57,7 @@ module workload 'modules/workload.bicep' = {
     monthlyBudgetAmount: monthlyBudgetAmount
     budgetThresholds: budgetThresholds
     budgetAlertEmails: budgetAlertEmails
+    deployWebApp: deployWebApp
   }
 }
 

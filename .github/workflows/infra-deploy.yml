@@ -1,8 +1,14 @@
 name: Infra Deploy
 
-# Builds the WebApp image, pushes it to ACR, and deploys the Bicep to Azure via
-# OIDC (no stored cloud credentials). Also exposed as a reusable workflow so the
-# scheduled lifecycle automation (infra-schedule.yml) can provision on demand.
+# Two-phase deploy via OIDC (no stored cloud credentials), also exposed as a
+# reusable workflow so the scheduled lifecycle automation can provision on demand:
+#   Phase 1 - deploy all infra EXCEPT the WebApp (creates the ACR). DEPLOY_WEBAPP=false
+#   Build   - build + push the WebApp image to the now-existing ACR
+#   Phase 2 - deploy again with the WebApp (its image is now present). DEPLOY_WEBAPP=true
+# This avoids the chicken-and-egg where the WebApp container app references an image
+# that hasn't been pushed (and where the build can't push before the ACR exists).
+# Because teardown deletes the whole RG (incl. ACR), every provision is a fresh
+# bootstrap, so both phases run each time.
 #
 # No-ops until enabled: gated on the repository variable DEPLOY_ENABLED == 'true'.
 # Azure config (AZURE_*) + secrets are read from the `production` environment.
@@ -22,16 +28,18 @@ permissions:
 
 jobs:
   deploy:
-    name: Build image + deploy Bicep
+    name: Deploy infra + image (two-phase)
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     if: ${{ vars.DEPLOY_ENABLED == 'true' }}
     environment: production
     env:
       AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
-      ACR_NAME: ${{ vars.ACR_NAME }}
       AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
       IMAGE_TAG: ${{ github.sha }}
+      # Secrets consumed by the .bicepparam via readEnvironmentVariable().
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      PG_ADMIN_PASSWORD: ${{ secrets.PG_ADMIN_PASSWORD }}
 
     steps:
       - uses: actions/checkout@v4
@@ -43,22 +51,37 @@ jobs:
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Build & push WebApp image to ACR
+      - name: Phase 1 — deploy infra (creates ACR, no WebApp)
+        id: infra
+        env:
+          DEPLOY_WEBAPP: 'false'
         run: |
-          az acr login --name "$ACR_NAME"
-          image="${ACR_NAME}.azurecr.io/webapp:${IMAGE_TAG}"
+          az bicep install
+          login_server=$(az deployment sub create \
+            --name "farkle-infra-${IMAGE_TAG}" \
+            --location "$AZURE_LOCATION" \
+            --template-file infra/main.bicep \
+            --parameters infra/env/dev.bicepparam \
+            --query 'properties.outputs.containerRegistryLoginServer.value' -o tsv)
+          echo "login_server=$login_server" >> "$GITHUB_OUTPUT"
+
+      - name: Build & push WebApp image
+        env:
+          LOGIN_SERVER: ${{ steps.infra.outputs.login_server }}
+        run: |
+          az acr login --name "${LOGIN_SERVER%%.*}"
+          image="${LOGIN_SERVER}/webapp:${IMAGE_TAG}"
           docker build -t "$image" -f src/WebApp/Dockerfile .
           docker push "$image"
 
-      - name: Deploy Bicep
-        # The .bicepparam reads JWT_SECRET / PG_ADMIN_PASSWORD / IMAGE_TAG /
-        # AZURE_RESOURCE_GROUP from the environment via readEnvironmentVariable().
+      - name: Phase 2 — deploy WebApp (image now present)
         env:
-          JWT_SECRET: ${{ secrets.JWT_SECRET }}
-          PG_ADMIN_PASSWORD: ${{ secrets.PG_ADMIN_PASSWORD }}
+          DEPLOY_WEBAPP: 'true'
         run: |
-          az bicep install
-          az deployment sub create \
+          fqdn=$(az deployment sub create \
+            --name "farkle-webapp-${IMAGE_TAG}" \
             --location "$AZURE_LOCATION" \
             --template-file infra/main.bicep \
-            --parameters infra/env/dev.bicepparam
+            --parameters infra/env/dev.bicepparam \
+            --query 'properties.outputs.webAppFqdn.value' -o tsv)
+          echo "### WebApp deployed: https://${fqdn}" >> "$GITHUB_STEP_SUMMARY"

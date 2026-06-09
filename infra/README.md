@@ -75,7 +75,7 @@ workflow below.
 
 | Workflow | Trigger | Does |
 |---|---|---|
-| `infra-deploy.yml` | push to `main` (`infra/**`,`src/**`), manual, or `workflow_call` | build + push the WebApp image to ACR, then `az deployment sub create` |
+| `infra-deploy.yml` | push to `main` (`infra/**`,`src/**`), manual, or `workflow_call` | **two-phase**: deploy infra (creates ACR) → build + push the image → deploy the WebApp |
 | `infra-teardown.yml` | manual or `workflow_call` | `az group delete` on the workload RG (**destructive**) |
 | `infra.yml` | manual | `az deployment sub what-if` → predicted changes in the run summary |
 
@@ -84,6 +84,15 @@ are gated on the repository variable `DEPLOY_ENABLED == 'true'`, the lifecycle w
 `LIFECYCLE_ENABLED == 'true'`. PR-time Bicep checking is done credential-free by
 `infra-validate.yml`, so the what-if is a manual preview rather than a PR check.
 
+**Two-phase deploy (bootstrap).** The WebApp container app pulls its image from the ACR that the
+same Bicep creates — a chicken-and-egg on a fresh resource group (which is *every* run, since
+teardown deletes the RG). `infra-deploy.yml` resolves it by deploying in two passes, toggled by
+the `deployWebApp` parameter (driven by the `DEPLOY_WEBAPP` env var the `.bicepparam` reads):
+1. **infra** — `DEPLOY_WEBAPP=false` deploys everything except the WebApp, creating the ACR;
+2. **image** — build + push the WebApp image to that ACR (its login server comes from the
+   phase-1 deployment output, so the name always matches);
+3. **WebApp** — `DEPLOY_WEBAPP=true` deploys the WebApp now that its image exists.
+
 ### Variable scoping (important)
 
 GitHub evaluates a job-level `if:` **before** the job enters its `environment:`, and a job with
@@ -91,7 +100,8 @@ no environment can't read environment-scoped variables at all. So the config spl
 
 - **`production` environment** — the Azure target config + secrets (read inside steps):
   `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`, `AZURE_RESOURCE_GROUP`,
-  `ACR_NAME`, `AZURE_LOCATION`, and secrets `JWT_SECRET`, `PG_ADMIN_PASSWORD`.
+  `AZURE_LOCATION`, and secrets `JWT_SECRET`, `PG_ADMIN_PASSWORD`. (The ACR name is derived
+  from the deployment output, not configured.)
 - **Repository variables** — the non-sensitive switches/timing used in `if:`/gate steps:
   `DEPLOY_ENABLED`, `LIFECYCLE_ENABLED`, `PROVISION_HOUR_UTC`, `TEARDOWN_HOUR_UTC`,
   `ACTIVE_WEEKDAYS`, `AZURE_BUDGET_NAME`.
@@ -137,7 +147,7 @@ no environment can't read environment-scoped variables at all. So the config spl
    approval on every automated action.
 4. In the **`production` environment**, add the Azure target config as **environment variables**:
    `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`, `AZURE_RESOURCE_GROUP`,
-   `ACR_NAME`, `AZURE_LOCATION`; and **environment secrets** `JWT_SECRET`, `PG_ADMIN_PASSWORD`
+   `AZURE_LOCATION`; and **environment secrets** `JWT_SECRET`, `PG_ADMIN_PASSWORD`
    (the deploy reads the secrets via the `.bicepparam`'s `readEnvironmentVariable`). With a
    federated credential there is **no client secret** — OIDC exchanges a short-lived token, so the
    `AZURE_*` values are plain IDs. Where to find them:
