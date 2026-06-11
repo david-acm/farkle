@@ -14,8 +14,8 @@ name: Infra Schedule
 # teardown it calls read the Azure config from the `production` environment and are
 # themselves gated on DEPLOY_ENABLED == 'true'.
 #
-# Provision = the full build+push+deploy (the nightly RG delete also removes ACR
-# and its image, so the morning run rebuilds it). Teardown is idempotent.
+# Provision = deploy the latest already-published image (the persistent ACR + its
+# image survive the nightly teardown, so no rebuild is needed). Teardown is idempotent.
 on:
   schedule:
     - cron: '0 * * * *'
@@ -65,6 +65,8 @@ jobs:
     needs: gate
     if: ${{ needs.gate.outputs.action == 'deploy' }}
     uses: ./.github/workflows/infra-deploy.yml
+    with:
+      image_tag: latest
     secrets: inherit
 
   teardown:

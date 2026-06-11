@@ -1,0 +1,68 @@
+name: CI · Image
+
+# Builds the WebApp image and pushes it to the PERSISTENT ACR (private), then
+# chains the CD deploy of that exact image via `workflow_call` — build-once,
+# deploy-many. Using `needs:`/`workflow_call` (not `workflow_run`) means CD runs
+# in the same logical run, shares context, deploys the exact <sha> just built, and
+# shows up under this run rather than detached on the default branch.
+#
+# The image survives the nightly RG teardown (the ACR is in the persistent RG), so
+# the scheduled morning re-provision redeploys an existing image without rebuilding.
+#
+# No-ops until enabled: gated on the repository variable DEPLOY_ENABLED == 'true'.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'src/WebApp/Dockerfile'
+      - '.github/workflows/build-image.yml'
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build:
+    name: Build & push WebApp image to ACR
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    if: ${{ vars.DEPLOY_ENABLED == 'true' }}
+    environment: production
+    env:
+      AZURE_PERSISTENT_RESOURCE_GROUP: ${{ vars.AZURE_PERSISTENT_RESOURCE_GROUP }}
+      IMAGE_TAG: ${{ github.sha }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Build & push to persistent ACR
+        run: |
+          name=$(az acr list -g "$AZURE_PERSISTENT_RESOURCE_GROUP" --query '[0].name' -o tsv)
+          login=$(az acr list -g "$AZURE_PERSISTENT_RESOURCE_GROUP" --query '[0].loginServer' -o tsv)
+          if [ -z "$name" ]; then
+            echo "::error::Persistent ACR not found in '$AZURE_PERSISTENT_RESOURCE_GROUP'. Deploy infra-persistent.yml first."
+            exit 1
+          fi
+          az acr login --name "$name"
+          docker build -t "${login}/webapp:${IMAGE_TAG}" -t "${login}/webapp:latest" -f src/WebApp/Dockerfile .
+          docker push "${login}/webapp:${IMAGE_TAG}"
+          docker push "${login}/webapp:latest"
+          echo "### Image published: \`${login}/webapp:${IMAGE_TAG}\` (+ :latest)" >> "$GITHUB_STEP_SUMMARY"
+
+  # CD: deploy the exact image just built. Reusable CD is itself gated on
+  # DEPLOY_ENABLED and reads Azure config from the production environment.
+  deploy:
+    needs: build
+    uses: ./.github/workflows/infra-deploy.yml
+    with:
+      image_tag: ${{ github.sha }}
+    secrets: inherit

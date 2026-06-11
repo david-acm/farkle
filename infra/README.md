@@ -6,26 +6,36 @@ PowerShell + Container App YAML that used to live under `src/Scripts/`.
 
 ## What it provisions
 
-`main.bicep` (subscription scope) creates the resource group and deploys
-`modules/workload.bicep`, which composes:
+The infrastructure is split into **two stacks** in **two resource groups** so the
+cost-saving nightly teardown only destroys disposable compute/data:
+
+**Persistent stack** — `persistent.bicep` (subscription scope) → `modules/persistent.bicep`.
+A resource group the teardown **never** touches:
+
+| Resource | AVM module | Notes |
+|---|---|---|
+| Container Registry | `container-registry/registry` | private; holds the WebApp image (survives teardown) |
+| Key Vault | `key-vault/vault` | RBAC; holds the static `jwt-secret` (never destroyed → no soft-delete churn) |
+| User-assigned managed identity | `managed-identity/user-assigned-identity` | stable `AcrPull` + `Key Vault Secrets User` |
+
+**Disposable stack** — `main.bicep` (subscription scope) → `modules/workload.bicep`.
+Created/destroyed each lifecycle cycle; references the persistent stack by output:
 
 | Resource | AVM module | Notes |
 |---|---|---|
 | Log Analytics workspace | `operational-insights/workspace` | Container Apps logs |
-| User-assigned managed identity | `managed-identity/user-assigned-identity` | ACR pull + Key Vault read |
 | PostgreSQL Flexible Server | `db-for-postgre-sql/flexible-server` | managed Identity DB (`farkle_identity`) |
-| Key Vault | `key-vault/vault` | RBAC; holds the JWT secret + Postgres connection string |
-| Container Registry | `container-registry/registry` | WebApp image; identity has `AcrPull` |
 | Storage account + file share | `storage/storage-account` | Azure Files volume for EventStore data |
 | Container Apps environment | `app/managed-environment` | wired to Log Analytics + the file share |
 | EventStore container app | `app/container-app` | internal TCP `:2113`, persistent volume |
-| WebApp container app | `app/container-app` | external `:8080`, KV-referenced secrets, health probes |
+| WebApp container app | `app/container-app` | external `:8080`, pulls **privately** from the persistent ACR via the persistent identity; health probes |
 | Cost budget | `consumption/budget/rg-scope` | monthly RG budget; emails at the configured thresholds |
 
-**Secrets** never live in source. The JWT secret + Postgres password are passed as
-`@secure()` parameters and stored in Key Vault; the WebApp reads them via the
-managed identity (`Auth__JwtSecret`, `ConnectionStrings__Identity`). EventStore runs
-insecure inside the environment, so its connection string is assembled in Bicep.
+**Secrets** never live in source. `jwt-secret` lives in the persistent Key Vault and the
+WebApp reads it via a KV reference using the persistent managed identity (`Auth__JwtSecret`).
+The Postgres connection string (`ConnectionStrings__Identity`) is assembled as a Container App
+**value secret** from the disposable Postgres FQDN + the `@secure()` admin password. EventStore
+runs insecure inside the environment, so its connection string is assembled in Bicep.
 
 **Health probes** target the app's `/health/live` (liveness) and `/health/ready`
 (readiness) endpoints.
@@ -47,39 +57,50 @@ CI runs the same build/lint + PSRule on every PR touching `infra/` (`.github/wor
 
 ## Deploy
 
-Provide the two secrets via environment variables (or `--parameters` overrides):
+Two stages — the persistent stack once, then the disposable workload per cycle.
 
 ```bash
-export PG_ADMIN_PASSWORD='<strong-password>'
+# 1) persistent stack (ACR + KV + identity) — once
 export JWT_SECRET='<>= 32-char signing key>'
-export IMAGE_TAG='<git-sha-of-the-webapp-image-in-ACR>'
-
-# preview
-az deployment sub what-if \
+az deployment sub create \
   --location eastus \
-  --template-file infra/main.bicep \
-  --parameters infra/env/dev.bicepparam
+  --template-file infra/persistent.bicep \
+  --parameters infra/env/persistent.bicepparam
 
-# apply
+# read its outputs for the disposable deploy
+export ACR_LOGIN_SERVER=$(az acr list -g farkle-shared-rg --query '[0].loginServer' -o tsv)
+export KEY_VAULT_URI=$(az keyvault list -g farkle-shared-rg --query '[0].properties.vaultUri' -o tsv)
+export IDENTITY_RESOURCE_ID=$(az identity list -g farkle-shared-rg --query '[0].id' -o tsv)
+
+# 2) disposable workload — per cycle (image must already be in the persistent ACR)
+export PG_ADMIN_PASSWORD='<strong-password>'
+export IMAGE_TAG='<git-sha-or-latest>'
 az deployment sub create \
   --location eastus \
   --template-file infra/main.bicep \
-  --parameters infra/env/dev.bicepparam
+  --parameters infra/env/dev.bicepparam   # use what-if to preview
 ```
 
-The WebApp image must be built and pushed to the registry (output
-`containerRegistryLoginServer`) before/with the deploy — automated by the deploy
-workflow below.
+Deploy the **persistent stack once** first (`infra/persistent.bicep`); the disposable deploy
+reads its ACR login server / Key Vault URI / identity id (the CD workflow resolves these
+automatically). The WebApp image must already be in the persistent ACR (CI pushes it).
 
-## CI/CD deploy (GitHub Actions + OIDC)
+## CI/CD pipelines (GitHub Actions + OIDC)
 
-| Workflow | Trigger | Does |
-|---|---|---|
-| `infra-deploy.yml` | push to `main` (`infra/**`,`src/**`), manual, or `workflow_call` | build + push the WebApp image to ACR, then `az deployment sub create` |
-| `infra-teardown.yml` | manual or `workflow_call` | `az group delete` on the workload RG (**destructive**) |
-| `infra.yml` | manual | `az deployment sub what-if` → predicted changes in the run summary |
+Three concerns, three pipelines:
 
-All use **OIDC** (no stored cloud credentials). They **no-op until enabled**: deploy/teardown
+| Pipeline | Workflow | Trigger | Does |
+|---|---|---|---|
+| **CI** | `build-image.yml` | push to `main` (`src/**`), manual | build the WebApp image, push `webapp:<sha>` + `:latest` to the **persistent ACR**, then chain CD (via `workflow_call`) to deploy that exact `<sha>` |
+| **CD** | `infra-deploy.yml` | push to `main` (`infra/**`), manual, `workflow_call` | resolve the persistent stack refs and `az deployment sub create` the disposable workload for a given `image_tag` (default `latest`) |
+| **Infra CD** | `infra-persistent.yml` | push to `main` (persistent templates), manual | deploy the persistent ACR/KV/identity |
+| | `infra-teardown.yml` | manual, `workflow_call` | `az group delete` on the **disposable** RG (persistent untouched) |
+| | `infra.yml` | manual | `az deployment sub what-if` → run summary |
+
+CI chains CD with **`workflow_call`/`needs`** (not `workflow_run`), so the deploy runs in the
+same logical run, shares context, and ships the **exact** `<sha>` that was built.
+
+All use **OIDC** (no stored cloud credentials). They **no-op until enabled**: deploy/teardown/CI
 are gated on the repository variable `DEPLOY_ENABLED == 'true'`, the lifecycle workflows on
 `LIFECYCLE_ENABLED == 'true'`. PR-time Bicep checking is done credential-free by
 `infra-validate.yml`, so the what-if is a manual preview rather than a PR check.
@@ -90,8 +111,10 @@ GitHub evaluates a job-level `if:` **before** the job enters its `environment:`,
 no environment can't read environment-scoped variables at all. So the config splits in two:
 
 - **`production` environment** — the Azure target config + secrets (read inside steps):
-  `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`, `AZURE_RESOURCE_GROUP`,
-  `ACR_NAME`, `AZURE_LOCATION`, and secrets `JWT_SECRET`, `PG_ADMIN_PASSWORD`.
+  `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`, `AZURE_RESOURCE_GROUP`
+  (disposable RG), `AZURE_PERSISTENT_RESOURCE_GROUP`, `AZURE_LOCATION`, and secrets `JWT_SECRET`,
+  `PG_ADMIN_PASSWORD`. (The ACR + Key Vault names are derived; the workflows resolve them from the
+  persistent RG — no `ACR_NAME` needed.)
 - **Repository variables** — the non-sensitive switches/timing used in `if:`/gate steps:
   `DEPLOY_ENABLED`, `LIFECYCLE_ENABLED`, `PROVISION_HOUR_UTC`, `TEARDOWN_HOUR_UTC`,
   `ACTIVE_WEEKDAYS`, `AZURE_BUDGET_NAME`.
@@ -103,11 +126,10 @@ no environment can't read environment-scoped variables at all. So the config spl
 1. Create an Entra app registration and add a **federated credential** for GitHub OIDC:
    - subject `repo:david-acm/farkle:environment:production` (all Azure jobs enter the `production` environment)
    - issuer `https://token.actions.githubusercontent.com`, audience `api://AzureADTokenExchange`
-2. Grant it rights on the target subscription. The Bicep both creates resources **and**
-   creates role assignments (it grants the managed identity **Key Vault Secrets User**
-   `4633458b-17de-408a-b874-0445c86b69e6` on the vault and **AcrPull**
-   `7f951dda-4ed3-4680-a7ca-43fe172d538d` on the registry), so Contributor alone isn't enough.
-   Either:
+2. Grant it rights on the target subscription. The **persistent** stack creates role assignments
+   (it grants the managed identity **Key Vault Secrets User** `4633458b-17de-408a-b874-0445c86b69e6`
+   on the vault and **AcrPull** `7f951dda-4ed3-4680-a7ca-43fe172d538d` on the registry), and **CI
+   needs AcrPush** to push images, so Contributor alone isn't enough. Either:
    - the simple option — **Owner**; or
    - least-privilege — **Contributor** + **Role Based Access Control Administrator** with an
      ABAC condition restricting it to *only* those two role IDs, so it can never grant any
@@ -136,8 +158,9 @@ no environment can't read environment-scoped variables at all. So the config spl
    unrestricted enough for the workflows that use it. Add reviewers only if you accept manual
    approval on every automated action.
 4. In the **`production` environment**, add the Azure target config as **environment variables**:
-   `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`, `AZURE_RESOURCE_GROUP`,
-   `ACR_NAME`, `AZURE_LOCATION`; and **environment secrets** `JWT_SECRET`, `PG_ADMIN_PASSWORD`
+   `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`, `AZURE_RESOURCE_GROUP`
+   (disposable), `AZURE_PERSISTENT_RESOURCE_GROUP` (e.g. `farkle-shared-rg`), `AZURE_LOCATION`;
+   and **environment secrets** `JWT_SECRET`, `PG_ADMIN_PASSWORD`
    (the deploy reads the secrets via the `.bicepparam`'s `readEnvironmentVariable`). With a
    federated credential there is **no client secret** — OIDC exchanges a short-lived token, so the
    `AZURE_*` values are plain IDs. Where to find them:
@@ -148,8 +171,12 @@ no environment can't read environment-scoped variables at all. So the config spl
    *Repository variables*), add the gating switches: `DEPLOY_ENABLED=true` to turn on push/manual
    deploys + teardown, and (for the lifecycle automation) `LIFECYCLE_ENABLED=true` plus
    `PROVISION_HOUR_UTC`, `TEARDOWN_HOUR_UTC`, `ACTIVE_WEEKDAYS`, `AZURE_BUDGET_NAME`. These must be
-   repository-scoped (see *Variable scoping* above). The RG name is driven by `AZURE_RESOURCE_GROUP`
-   so deploy and teardown always agree.
+   repository-scoped (see *Variable scoping* above). The disposable RG name is driven by
+   `AZURE_RESOURCE_GROUP` so deploy and teardown always agree.
+6. **Deploy the persistent stack once** (Actions → *Infra Persistent* → Run workflow, or
+   `az deployment sub create --template-file infra/persistent.bicep --parameters infra/env/persistent.bicepparam`).
+   CI/CD resolve the ACR/KV/identity from `AZURE_PERSISTENT_RESOURCE_GROUP`, so this must exist
+   before the first image build/deploy.
 
 > **Post-deploy note:** the app's public origin (`BackendUrl` / `Cors:AllowedOrigins`)
 > depends on the assigned Container App FQDN (output `webAppFqdn`); set those once the
@@ -172,11 +199,11 @@ authenticate to the GitHub API, so the on-overspend teardown *pulls* the budget'
 spend via OIDC rather than receiving a push. The Azure budget still sends its threshold
 **emails** — that's the alert.
 
-**Teardown deletes the whole resource group** (`az group delete`), including ACR + the pushed
-image and **all Postgres/EventStore data**. That's why "provision" is the full build+push+deploy
-(the morning run rebuilds the image into the fresh ACR). Acceptable for a dev environment;
-do not point this at anything whose data you need to keep. Teardown is idempotent (a no-op if
-the RG is already gone).
+**Teardown deletes the whole *disposable* resource group** (`az group delete`), including
+**all Postgres/EventStore data**. The **persistent** RG (ACR + Key Vault + identity) is untouched,
+so the image survives and "provision" just **redeploys the latest image** — no rebuild. Acceptable
+for a dev environment; do not point this at anything whose data you need to keep. Teardown is
+idempotent (a no-op if the RG is already gone).
 
 ### Lifecycle variables (UTC; **repository** variables — see *Variable scoping*)
 
