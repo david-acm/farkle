@@ -17,9 +17,14 @@ param postgresAdminLogin string
 @description('PostgreSQL administrator password.')
 param postgresAdminPassword string
 
-@secure()
-@description('JWT signing key (Auth:JwtSecret).')
-param jwtSecret string
+@description('Login server of the persistent container registry the WebApp pulls from.')
+param acrLoginServer string
+
+@description('URI of the persistent Key Vault holding the jwt-secret.')
+param keyVaultUri string
+
+@description('Resource ID of the persistent user-assigned identity (ACR pull + KV read).')
+param identityResourceId string
 
 @description('Monthly cost budget for the resource group, in the billing currency.')
 param monthlyBudgetAmount int = 50
@@ -35,8 +40,6 @@ param budgetAlertEmails array = [ 'changeme@example.com' ]
 // short deterministic suffix from the resource group + environment.
 // ---------------------------------------------------------------------------
 var suffix = take(uniqueString(resourceGroup().id, environmentName), 8)
-var acrName = toLower('${namePrefix}acr${suffix}')
-var keyVaultName = take(toLower('${namePrefix}kv${suffix}'), 24)
 var storageName = take(toLower('${namePrefix}st${suffix}'), 24)
 var fileShareName = 'esdb-data'
 var databaseName = 'farkle_identity'
@@ -56,14 +59,6 @@ module logAnalytics 'br/public:avm/res/operational-insights/workspace:0.15.1' = 
   name: 'log-analytics'
   params: {
     name: '${namePrefix}-log-${environmentName}'
-    location: location
-  }
-}
-
-module identity 'br/public:avm/res/managed-identity/user-assigned-identity:0.5.1' = {
-  name: 'identity'
-  params: {
-    name: '${namePrefix}-id-${environmentName}'
     location: location
   }
 }
@@ -89,55 +84,10 @@ module postgres 'br/public:avm/res/db-for-postgre-sql/flexible-server:0.15.4' = 
   }
 }
 
-// ---------------------------------------------------------------------------
-// Secrets: Key Vault holds the Postgres connection string + JWT secret; the
-// user-assigned identity gets Key Vault Secrets User so the WebApp can read them.
-// ---------------------------------------------------------------------------
+// The Postgres connection string is assembled as a Container App value secret
+// below. The jwt-secret + the registry + the identity live in the PERSISTENT
+// stack (infra/persistent.bicep); this stack references them by the params above.
 var postgresFqdn = postgres.outputs.?fqdn ?? ''
-
-module keyVault 'br/public:avm/res/key-vault/vault:0.13.3' = {
-  name: 'key-vault'
-  params: {
-    name: keyVaultName
-    location: location
-    enableRbacAuthorization: true
-    enablePurgeProtection: false
-    secrets: [
-      { name: 'jwt-secret', value: jwtSecret }
-      { name: 'postgres-admin-password', value: postgresAdminPassword }
-      {
-        name: 'connectionstrings-identity'
-        value: 'Host=${postgresFqdn};Database=${databaseName};Username=${postgresAdminLogin};Password=${postgresAdminPassword};SSL Mode=Require;Trust Server Certificate=true'
-      }
-    ]
-    roleAssignments: [
-      {
-        principalId: identity.outputs.principalId
-        principalType: 'ServicePrincipal'
-        roleDefinitionIdOrName: 'Key Vault Secrets User'
-      }
-    ]
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Registry: the WebApp image is pushed here by CI; identity gets AcrPull.
-// ---------------------------------------------------------------------------
-module acr 'br/public:avm/res/container-registry/registry:0.12.1' = {
-  name: 'acr'
-  params: {
-    name: acrName
-    location: location
-    acrSku: 'Basic'
-    roleAssignments: [
-      {
-        principalId: identity.outputs.principalId
-        principalType: 'ServicePrincipal'
-        roleDefinitionIdOrName: 'AcrPull'
-      }
-    ]
-  }
-}
 
 // ---------------------------------------------------------------------------
 // Storage: Azure Files share that backs the EventStore data volume.
@@ -233,27 +183,28 @@ module webApp 'br/public:avm/res/app/container-app:0.22.1' = {
     location: location
     environmentResourceId: containerEnv.outputs.resourceId
     managedIdentities: {
-      userAssignedResourceIds: [ identity.outputs.resourceId ]
+      userAssignedResourceIds: [ identityResourceId ]
     }
     ingressExternal: true
     ingressTargetPort: 8080
     scaleSettings: { minReplicas: 1, maxReplicas: 3 }
     registries: [
       {
-        server: acr.outputs.loginServer
-        identity: identity.outputs.resourceId
+        server: acrLoginServer
+        identity: identityResourceId
       }
     ]
     secrets: [
       {
         name: 'auth-jwtsecret'
-        keyVaultUrl: '${keyVault.outputs.uri}secrets/jwt-secret'
-        identity: identity.outputs.resourceId
+        keyVaultUrl: '${keyVaultUri}secrets/jwt-secret'
+        identity: identityResourceId
       }
       {
+        // Assembled here (not via KV) because the Postgres FQDN is created in this
+        // disposable RG, which the persistent Key Vault cannot recompute.
         name: 'connectionstrings-identity'
-        keyVaultUrl: '${keyVault.outputs.uri}secrets/connectionstrings-identity'
-        identity: identity.outputs.resourceId
+        value: 'Host=${postgresFqdn};Database=${databaseName};Username=${postgresAdminLogin};Password=${postgresAdminPassword};SSL Mode=Require;Trust Server Certificate=true'
       }
       {
         name: 'connectionstrings-esdb'
@@ -263,7 +214,7 @@ module webApp 'br/public:avm/res/app/container-app:0.22.1' = {
     containers: [
       {
         name: 'webapp'
-        image: '${acr.outputs.loginServer}/webapp:${imageTag}'
+        image: '${acrLoginServer}/webapp:${imageTag}'
         resources: { cpu: json('0.5'), memory: '1Gi' }
         env: [
           { name: 'ASPNETCORE_ENVIRONMENT', value: 'Production' }
@@ -313,9 +264,6 @@ module budget 'br/public:avm/res/consumption/budget/rg-scope:0.1.0' = {
 
 @description('Public FQDN of the deployed WebApp.')
 output webAppFqdn string = webApp.outputs.fqdn
-
-@description('Login server of the container registry.')
-output containerRegistryLoginServer string = acr.outputs.loginServer
 
 @description('Name of the resource-group cost budget.')
 output budgetName string = budgetName

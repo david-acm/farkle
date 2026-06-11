@@ -22,9 +22,14 @@ param postgresAdminLogin string = 'farkleadmin'
 @description('PostgreSQL administrator password.')
 param postgresAdminPassword string
 
-@secure()
-@description('JWT signing key (Auth:JwtSecret) the app uses to sign/validate tokens.')
-param jwtSecret string
+@description('Login server of the persistent container registry the WebApp pulls from.')
+param acrLoginServer string
+
+@description('URI of the persistent Key Vault holding the jwt-secret.')
+param keyVaultUri string
+
+@description('Resource ID of the persistent user-assigned identity (ACR pull + KV read).')
+param identityResourceId string
 
 @description('Monthly cost budget for the resource group, in the billing currency.')
 param monthlyBudgetAmount int = 50
@@ -50,7 +55,9 @@ module workload 'modules/workload.bicep' = {
     imageTag: imageTag
     postgresAdminLogin: postgresAdminLogin
     postgresAdminPassword: postgresAdminPassword
-    jwtSecret: jwtSecret
+    acrLoginServer: acrLoginServer
+    keyVaultUri: keyVaultUri
+    identityResourceId: identityResourceId
     monthlyBudgetAmount: monthlyBudgetAmount
     budgetThresholds: budgetThresholds
     budgetAlertEmails: budgetAlertEmails
@@ -59,9 +66,6 @@ module workload 'modules/workload.bicep' = {
 
 @description('Public FQDN of the deployed WebApp.')
 output webAppFqdn string = workload.outputs.webAppFqdn
-
-@description('Login server of the container registry to push the WebApp image to.')
-output containerRegistryLoginServer string = workload.outputs.containerRegistryLoginServer
 
 @description('Name of the resource-group cost budget (used by the cost-guard automation).')
 output budgetName string = workload.outputs.budgetName
