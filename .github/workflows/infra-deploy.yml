@@ -1,37 +1,66 @@
-name: Infra Deploy
+name: Deploy (CD)
 
-# Builds the WebApp image, pushes it to ACR, and deploys the Bicep to Azure via
-# OIDC (no stored cloud credentials). Also exposed as a reusable workflow so the
-# scheduled lifecycle automation (infra-schedule.yml) can provision on demand.
+# Deploys the Bicep workload to Azure via OIDC (no stored cloud credentials). The
+# WebApp container image is built and published to GHCR separately by CI
+# (build-image.yml) — this workflow only *deploys* it (build-once, deploy-many).
+# Also exposed as a reusable workflow so the scheduled lifecycle automation
+# (infra-schedule.yml) can provision on demand.
 #
-# No-ops until enabled: gated on the repository variable DEPLOY_ENABLED == 'true'.
-# Azure config (AZURE_*) + secrets are read from the `production` environment.
+# Image tag: defaults to `latest` (the image CI just published / moved). Pin a
+# specific commit SHA via the image_tag input to roll back to an exact build.
+#
+# Auto-deploys after CI publishes a new image (workflow_run), and on infra changes
+# pushed to main. No-ops until enabled: gated on the repository variable
+# DEPLOY_ENABLED == 'true'. Azure config (AZURE_*) + secrets are read from the
+# `production` environment.
 on:
+  workflow_run:
+    workflows: ['CI · Image']
+    types: [completed]
+    branches: [main]
   push:
     branches: [main]
     paths:
       - 'infra/**'
-      - 'src/**'
       - '.github/workflows/infra-deploy.yml'
   workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Image tag to deploy (default: latest)'
+        required: false
+        default: 'latest'
   workflow_call:
+    inputs:
+      image_tag:
+        description: 'Image tag to deploy (default: latest)'
+        required: false
+        type: string
+        default: 'latest'
 
 permissions:
   id-token: write
   contents: read
 
+# Serialise deploys so a workflow_run-triggered deploy and a push-triggered one
+# don't race on the same resource group.
+concurrency:
+  group: cd-deploy
+  cancel-in-progress: false
+
 jobs:
   deploy:
-    name: Build image + deploy Bicep
+    name: Deploy Bicep
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    if: ${{ vars.DEPLOY_ENABLED == 'true' }}
+    # On workflow_run, only proceed when CI's image build actually succeeded.
+    if: >-
+      ${{ vars.DEPLOY_ENABLED == 'true' &&
+          (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success') }}
     environment: production
     env:
       AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
-      ACR_NAME: ${{ vars.ACR_NAME }}
       AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
-      IMAGE_TAG: ${{ github.sha }}
+      IMAGE_TAG: ${{ inputs.image_tag || 'latest' }}
 
     steps:
       - uses: actions/checkout@v4
@@ -42,13 +71,6 @@ jobs:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
-
-      - name: Build & push WebApp image to ACR
-        run: |
-          az acr login --name "$ACR_NAME"
-          image="${ACR_NAME}.azurecr.io/webapp:${IMAGE_TAG}"
-          docker build -t "$image" -f src/WebApp/Dockerfile .
-          docker push "$image"
 
       - name: Deploy Bicep
         # The .bicepparam reads JWT_SECRET / PG_ADMIN_PASSWORD / IMAGE_TAG /

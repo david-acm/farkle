@@ -7,7 +7,10 @@ param environmentName string
 @description('Naming prefix for all resources.')
 param namePrefix string
 
-@description('Container image tag for the WebApp image in ACR.')
+@description('Container image repository for the WebApp (without tag), e.g. a public GHCR path.')
+param imageRepository string = 'ghcr.io/david-acm/farkle-webapp'
+
+@description('Container image tag for the WebApp image (e.g. a git SHA or "latest").')
 param imageTag string
 
 @description('PostgreSQL administrator login.')
@@ -31,11 +34,10 @@ param budgetThresholds array = [ 80, 100 ]
 param budgetAlertEmails array = [ 'changeme@example.com' ]
 
 // ---------------------------------------------------------------------------
-// Naming. ACR / Key Vault / Storage names must be globally unique; derive a
-// short deterministic suffix from the resource group + environment.
+// Naming. Key Vault / Storage names must be globally unique; derive a short
+// deterministic suffix from the resource group + environment.
 // ---------------------------------------------------------------------------
 var suffix = take(uniqueString(resourceGroup().id, environmentName), 8)
-var acrName = toLower('${namePrefix}acr${suffix}')
 var keyVaultName = take(toLower('${namePrefix}kv${suffix}'), 24)
 var storageName = take(toLower('${namePrefix}st${suffix}'), 24)
 var fileShareName = 'esdb-data'
@@ -120,24 +122,9 @@ module keyVault 'br/public:avm/res/key-vault/vault:0.13.3' = {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Registry: the WebApp image is pushed here by CI; identity gets AcrPull.
-// ---------------------------------------------------------------------------
-module acr 'br/public:avm/res/container-registry/registry:0.12.1' = {
-  name: 'acr'
-  params: {
-    name: acrName
-    location: location
-    acrSku: 'Basic'
-    roleAssignments: [
-      {
-        principalId: identity.outputs.principalId
-        principalType: 'ServicePrincipal'
-        roleDefinitionIdOrName: 'AcrPull'
-      }
-    ]
-  }
-}
+// The WebApp image is built and published to a public GHCR repository by CI
+// (build-image.yml); the Container App pulls it anonymously, so no registry
+// resource or pull credentials are provisioned here.
 
 // ---------------------------------------------------------------------------
 // Storage: Azure Files share that backs the EventStore data volume.
@@ -238,12 +225,7 @@ module webApp 'br/public:avm/res/app/container-app:0.22.1' = {
     ingressExternal: true
     ingressTargetPort: 8080
     scaleSettings: { minReplicas: 1, maxReplicas: 3 }
-    registries: [
-      {
-        server: acr.outputs.loginServer
-        identity: identity.outputs.resourceId
-      }
-    ]
+    // No `registries`: the image is pulled anonymously from public GHCR.
     secrets: [
       {
         name: 'auth-jwtsecret'
@@ -263,7 +245,7 @@ module webApp 'br/public:avm/res/app/container-app:0.22.1' = {
     containers: [
       {
         name: 'webapp'
-        image: '${acr.outputs.loginServer}/webapp:${imageTag}'
+        image: '${imageRepository}:${imageTag}'
         resources: { cpu: json('0.5'), memory: '1Gi' }
         env: [
           { name: 'ASPNETCORE_ENVIRONMENT', value: 'Production' }
@@ -313,9 +295,6 @@ module budget 'br/public:avm/res/consumption/budget/rg-scope:0.1.0' = {
 
 @description('Public FQDN of the deployed WebApp.')
 output webAppFqdn string = webApp.outputs.fqdn
-
-@description('Login server of the container registry.')
-output containerRegistryLoginServer string = acr.outputs.loginServer
 
 @description('Name of the resource-group cost budget.')
 output budgetName string = budgetName

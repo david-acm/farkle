@@ -12,7 +12,10 @@ param environmentName string
 @description('Naming prefix for all resources.')
 param namePrefix string = 'farkle'
 
-@description('Container image tag for the WebApp image in ACR (e.g. a git SHA).')
+@description('Container image repository for the WebApp (without tag), e.g. a public GHCR path.')
+param imageRepository string = 'ghcr.io/david-acm/farkle-webapp'
+
+@description('Container image tag for the WebApp image (e.g. a git SHA or "latest").')
 param imageTag string = 'latest'
 
 @description('PostgreSQL administrator login.')
@@ -47,6 +50,7 @@ module workload 'modules/workload.bicep' = {
     location: location
     environmentName: environmentName
     namePrefix: namePrefix
+    imageRepository: imageRepository
     imageTag: imageTag
     postgresAdminLogin: postgresAdminLogin
     postgresAdminPassword: postgresAdminPassword
@@ -59,9 +63,6 @@ module workload 'modules/workload.bicep' = {
 
 @description('Public FQDN of the deployed WebApp.')
 output webAppFqdn string = workload.outputs.webAppFqdn
-
-@description('Login server of the container registry to push the WebApp image to.')
-output containerRegistryLoginServer string = workload.outputs.containerRegistryLoginServer
 
 @description('Name of the resource-group cost budget (used by the cost-guard automation).')
 output budgetName string = workload.outputs.budgetName

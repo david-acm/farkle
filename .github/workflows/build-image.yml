@@ -1,0 +1,65 @@
+name: CI · Image
+
+# Builds the WebApp container image and publishes it to GitHub Container Registry
+# (GHCR). This is the deployable artifact: CD (infra-deploy.yml) deploys the image
+# this workflow produced — build-once, deploy-many. Pushing to GHCR uses the
+# automatic GITHUB_TOKEN (no cloud credentials), so the build never depends on the
+# Azure ACR existing first. Tags every image with the commit SHA (immutable) and
+# moves :latest. GHCR images survive the nightly resource-group teardown, so the
+# scheduled morning re-provision redeploys an existing image instead of rebuilding.
+#
+# The package must be set to PUBLIC once (GitHub → Packages → package settings) so
+# the Container App can pull it without registry credentials.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'src/WebApp/Dockerfile'
+      - '.github/workflows/build-image.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    name: Build & push WebApp image to GHCR
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compute lowercase image name
+        id: image
+        # GHCR requires the repository path to be lowercase.
+        run: echo "name=ghcr.io/${GITHUB_REPOSITORY,,}-webapp" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: src/WebApp/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.image.outputs.name }}:${{ github.sha }}
+            ${{ steps.image.outputs.name }}:latest
+
+      - name: Summary
+        run: |
+          {
+            echo "### Image published"
+            echo '```'
+            echo "${{ steps.image.outputs.name }}:${{ github.sha }}"
+            echo "${{ steps.image.outputs.name }}:latest"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

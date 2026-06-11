@@ -12,14 +12,13 @@ PowerShell + Container App YAML that used to live under `src/Scripts/`.
 | Resource | AVM module | Notes |
 |---|---|---|
 | Log Analytics workspace | `operational-insights/workspace` | Container Apps logs |
-| User-assigned managed identity | `managed-identity/user-assigned-identity` | ACR pull + Key Vault read |
+| User-assigned managed identity | `managed-identity/user-assigned-identity` | Key Vault read |
 | PostgreSQL Flexible Server | `db-for-postgre-sql/flexible-server` | managed Identity DB (`farkle_identity`) |
 | Key Vault | `key-vault/vault` | RBAC; holds the JWT secret + Postgres connection string |
-| Container Registry | `container-registry/registry` | WebApp image; identity has `AcrPull` |
 | Storage account + file share | `storage/storage-account` | Azure Files volume for EventStore data |
 | Container Apps environment | `app/managed-environment` | wired to Log Analytics + the file share |
 | EventStore container app | `app/container-app` | internal TCP `:2113`, persistent volume |
-| WebApp container app | `app/container-app` | external `:8080`, KV-referenced secrets, health probes |
+| WebApp container app | `app/container-app` | external `:8080`, image pulled anonymously from public GHCR, KV-referenced secrets, health probes |
 | Cost budget | `consumption/budget/rg-scope` | monthly RG budget; emails at the configured thresholds |
 
 **Secrets** never live in source. The JWT secret + Postgres password are passed as
@@ -52,7 +51,7 @@ Provide the two secrets via environment variables (or `--parameters` overrides):
 ```bash
 export PG_ADMIN_PASSWORD='<strong-password>'
 export JWT_SECRET='<>= 32-char signing key>'
-export IMAGE_TAG='<git-sha-of-the-webapp-image-in-ACR>'
+export IMAGE_TAG='<git-sha-or-"latest" of the webapp image in GHCR>'
 
 # preview
 az deployment sub what-if \
@@ -67,19 +66,29 @@ az deployment sub create \
   --parameters infra/env/dev.bicepparam
 ```
 
-The WebApp image must be built and pushed to the registry (output
-`containerRegistryLoginServer`) before/with the deploy — automated by the deploy
-workflow below.
+The WebApp image is built and published to **public GHCR** by CI
+(`build-image.yml`) — independently of Azure, so the deploy only references an
+image that already exists (`imageRepository`:`imageTag`). `imageRepository`
+defaults to `ghcr.io/david-acm/farkle-webapp`.
 
 ## CI/CD deploy (GitHub Actions + OIDC)
 
+The image build (CI) and the deploy (CD) are separate pipelines — **build once,
+deploy many**:
+
 | Workflow | Trigger | Does |
 |---|---|---|
-| `infra-deploy.yml` | push to `main` (`infra/**`,`src/**`), manual, or `workflow_call` | build + push the WebApp image to ACR, then `az deployment sub create` |
+| `build-image.yml` (CI · Image) | push to `main` (`src/**`), manual | build + push the WebApp image to public GHCR (`:<sha>` + `:latest`) via the automatic `GITHUB_TOKEN` |
+| `infra-deploy.yml` (Deploy · CD) | after CI publishes an image (`workflow_run`), push to `main` (`infra/**`), manual, or `workflow_call` | `az deployment sub create` referencing the GHCR image (`image_tag` input, default `latest`) |
 | `infra-teardown.yml` | manual or `workflow_call` | `az group delete` on the workload RG (**destructive**) |
 | `infra.yml` | manual | `az deployment sub what-if` → predicted changes in the run summary |
 
-All use **OIDC** (no stored cloud credentials). They **no-op until enabled**: deploy/teardown
+> **One-time:** after the first `build-image` run, set the `farkle-webapp` GHCR
+> package visibility to **public** (GitHub → your profile/org → Packages → package
+> → Package settings) so the Container App can pull it without credentials.
+
+The deploy workflows use **OIDC** (no stored cloud credentials); the image build
+needs no cloud credentials at all. They **no-op until enabled**: deploy/teardown
 are gated on the repository variable `DEPLOY_ENABLED == 'true'`, the lifecycle workflows on
 `LIFECYCLE_ENABLED == 'true'`. PR-time Bicep checking is done credential-free by
 `infra-validate.yml`, so the what-if is a manual preview rather than a PR check.
@@ -91,7 +100,7 @@ no environment can't read environment-scoped variables at all. So the config spl
 
 - **`production` environment** — the Azure target config + secrets (read inside steps):
   `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`, `AZURE_RESOURCE_GROUP`,
-  `ACR_NAME`, `AZURE_LOCATION`, and secrets `JWT_SECRET`, `PG_ADMIN_PASSWORD`.
+  `AZURE_LOCATION`, and secrets `JWT_SECRET`, `PG_ADMIN_PASSWORD`.
 - **Repository variables** — the non-sensitive switches/timing used in `if:`/gate steps:
   `DEPLOY_ENABLED`, `LIFECYCLE_ENABLED`, `PROVISION_HOUR_UTC`, `TEARDOWN_HOUR_UTC`,
   `ACTIVE_WEEKDAYS`, `AZURE_BUDGET_NAME`.
@@ -104,26 +113,25 @@ no environment can't read environment-scoped variables at all. So the config spl
    - subject `repo:david-acm/farkle:environment:production` (all Azure jobs enter the `production` environment)
    - issuer `https://token.actions.githubusercontent.com`, audience `api://AzureADTokenExchange`
 2. Grant it rights on the target subscription. The Bicep both creates resources **and**
-   creates role assignments (it grants the managed identity **Key Vault Secrets User**
-   `4633458b-17de-408a-b874-0445c86b69e6` on the vault and **AcrPull**
-   `7f951dda-4ed3-4680-a7ca-43fe172d538d` on the registry), so Contributor alone isn't enough.
+   creates a role assignment (it grants the managed identity **Key Vault Secrets User**
+   `4633458b-17de-408a-b874-0445c86b69e6` on the vault), so Contributor alone isn't enough.
    Either:
    - the simple option — **Owner**; or
    - least-privilege — **Contributor** + **Role Based Access Control Administrator** with an
-     ABAC condition restricting it to *only* those two role IDs, so it can never grant any
+     ABAC condition restricting it to *only* that role ID, so it can never grant any
      other role:
 
      ```text
      (
       ( !(ActionMatches{'Microsoft.Authorization/roleAssignments/write'}) )
       OR
-      ( @Request[Microsoft.Authorization/roleAssignments:RoleDefinitionId] ForAnyOfAnyValues:GuidEquals {4633458b-17de-408a-b874-0445c86b69e6, 7f951dda-4ed3-4680-a7ca-43fe172d538d} )
+      ( @Request[Microsoft.Authorization/roleAssignments:RoleDefinitionId] ForAnyOfAnyValues:GuidEquals {4633458b-17de-408a-b874-0445c86b69e6} )
      )
      AND
      (
       ( !(ActionMatches{'Microsoft.Authorization/roleAssignments/delete'}) )
       OR
-      ( @Resource[Microsoft.Authorization/roleAssignments:RoleDefinitionId] ForAnyOfAnyValues:GuidEquals {4633458b-17de-408a-b874-0445c86b69e6, 7f951dda-4ed3-4680-a7ca-43fe172d538d} )
+      ( @Resource[Microsoft.Authorization/roleAssignments:RoleDefinitionId] ForAnyOfAnyValues:GuidEquals {4633458b-17de-408a-b874-0445c86b69e6} )
      )
      ```
 
@@ -137,7 +145,7 @@ no environment can't read environment-scoped variables at all. So the config spl
    approval on every automated action.
 4. In the **`production` environment**, add the Azure target config as **environment variables**:
    `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`, `AZURE_RESOURCE_GROUP`,
-   `ACR_NAME`, `AZURE_LOCATION`; and **environment secrets** `JWT_SECRET`, `PG_ADMIN_PASSWORD`
+   `AZURE_LOCATION`; and **environment secrets** `JWT_SECRET`, `PG_ADMIN_PASSWORD`
    (the deploy reads the secrets via the `.bicepparam`'s `readEnvironmentVariable`). With a
    federated credential there is **no client secret** — OIDC exchanges a short-lived token, so the
    `AZURE_*` values are plain IDs. Where to find them:
@@ -172,11 +180,11 @@ authenticate to the GitHub API, so the on-overspend teardown *pulls* the budget'
 spend via OIDC rather than receiving a push. The Azure budget still sends its threshold
 **emails** — that's the alert.
 
-**Teardown deletes the whole resource group** (`az group delete`), including ACR + the pushed
-image and **all Postgres/EventStore data**. That's why "provision" is the full build+push+deploy
-(the morning run rebuilds the image into the fresh ACR). Acceptable for a dev environment;
-do not point this at anything whose data you need to keep. Teardown is idempotent (a no-op if
-the RG is already gone).
+**Teardown deletes the whole resource group** (`az group delete`), including **all
+Postgres/EventStore data**. The WebApp image lives in GHCR (outside the RG), so it
+survives teardown — "provision" just redeploys the existing `latest` image, no
+rebuild. Acceptable for a dev environment; do not point this at anything whose data
+you need to keep. Teardown is idempotent (a no-op if the RG is already gone).
 
 ### Lifecycle variables (UTC; **repository** variables — see *Variable scoping*)
 
