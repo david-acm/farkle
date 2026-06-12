@@ -1,4 +1,4 @@
-name: Deploy (CD)
+name: Infra Deploy (workload)
 
 # Deploys the disposable workload (Postgres + EventStore + Container Apps env +
 # WebApp + budget) to Azure via OIDC. The WebApp image is built and pushed to the
@@ -46,7 +46,7 @@ concurrency:
 
 jobs:
   deploy:
-    name: Deploy disposable workload
+    name: Deploy workload
     runs-on: ubuntu-latest
     timeout-minutes: 30
     if: ${{ vars.DEPLOY_ENABLED == 'true' }}
