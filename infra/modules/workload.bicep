@@ -276,7 +276,10 @@ module webApp 'br/public:avm/res/app/container-app:0.22.1' = {
         env: [
           { name: 'ASPNETCORE_ENVIRONMENT', value: 'Production' }
           { name: 'ASPNETCORE_HTTP_PORTS', value: '8080' }
-          { name: 'Auth__RequireAuthorization', value: 'true' }
+          // Anonymous play: game endpoints are AllowAnonymous; players join by name
+          // (the domain identifies players by name, no account needed). Flip to 'true'
+          // to require a JWT for game actions.
+          { name: 'Auth__RequireAuthorization', value: 'false' }
           { name: 'Auth__JwtSecret', secretRef: 'auth-jwtsecret' }
           { name: 'ConnectionStrings__Identity', secretRef: 'connectionstrings-identity' }
           { name: 'ConnectionStrings__Esdb', secretRef: 'connectionstrings-esdb' }
