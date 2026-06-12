@@ -54,11 +54,20 @@ jobs:
     env:
       AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
       AZURE_PERSISTENT_RESOURCE_GROUP: ${{ vars.AZURE_PERSISTENT_RESOURCE_GROUP }}
-      AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
+      AZURE_LOCATION: ${{ vars.AZURE_LOCATION || 'eastus' }}
       IMAGE_TAG: ${{ inputs.image_tag || 'latest' }}
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Validate required configuration
+        # Fail fast with a clear message instead of a cryptic Bicep "name property
+        # cannot be null or empty" — readEnvironmentVariable() returns the empty
+        # string (not the param default) when the variable is set-but-empty, which
+        # is what an undefined `vars.*` expands to.
+        run: |
+          : "${AZURE_RESOURCE_GROUP:?Set the AZURE_RESOURCE_GROUP variable (the disposable RG) in repo/environment settings}"
+          : "${AZURE_PERSISTENT_RESOURCE_GROUP:?Set the AZURE_PERSISTENT_RESOURCE_GROUP variable (e.g. rg-hotdice-eus2-shared) in repo/environment settings}"
 
       - name: Azure login (OIDC)
         uses: azure/login@v2

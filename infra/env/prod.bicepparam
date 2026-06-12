@@ -1,6 +1,6 @@
 using '../main.bicep'
 
-param location = 'eastus'
+param location = readEnvironmentVariable('AZURE_LOCATION', 'eastus')
 param resourceGroupName = readEnvironmentVariable('AZURE_RESOURCE_GROUP', 'hotdice-prod-rg')
 param environmentName = 'prod'
 param namePrefix = 'hotdice'
