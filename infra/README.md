@@ -92,8 +92,8 @@ Three concerns, three pipelines:
 | Pipeline | Workflow | Trigger | Does |
 |---|---|---|---|
 | **CI** | `build-image.yml` | push to `main` (`src/**`), manual | build the WebApp image, push `webapp:<sha>` + `:latest` to the **persistent ACR**, then chain CD (via `workflow_call`) to deploy that exact `<sha>` |
-| **CD** | `infra-deploy.yml` | push to `main` (`infra/**`), manual, `workflow_call` | resolve the persistent stack refs and `az deployment sub create` the disposable workload for a given `image_tag` (default `latest`) |
-| **Infra CD** | `infra-persistent.yml` | push to `main` (persistent templates), manual | deploy the persistent ACR/KV/identity |
+| **CD (workload)** | `infra-deploy.yml` | push to `main` (`infra/**`), manual, `workflow_call` | resolve the persistent stack refs and `az deployment sub create` the disposable workload for a given `image_tag` (default `latest`) |
+| **Platform** | `infra-persistent.yml` | push to `main` (persistent templates), manual | deploy the persistent ACR/KV/identity |
 | | `infra-teardown.yml` | manual, `workflow_call` | `az group delete` on the **disposable** RG (persistent untouched) |
 | | `infra.yml` | manual | `az deployment sub what-if` → run summary |
 
@@ -173,7 +173,7 @@ no environment can't read environment-scoped variables at all. So the config spl
    `PROVISION_HOUR_UTC`, `TEARDOWN_HOUR_UTC`, `ACTIVE_WEEKDAYS`, `AZURE_BUDGET_NAME`. These must be
    repository-scoped (see *Variable scoping* above). The disposable RG name is driven by
    `AZURE_RESOURCE_GROUP` so deploy and teardown always agree.
-6. **Deploy the persistent stack once** (Actions → *Infra Persistent* → Run workflow, or
+6. **Deploy the persistent stack once** (Actions → *Infra Platform (persistent)* → Run workflow, or
    `az deployment sub create --template-file infra/persistent.bicep --parameters infra/env/persistent.bicepparam`).
    CI/CD resolve the ACR/KV/identity from `AZURE_PERSISTENT_RESOURCE_GROUP`, so this must exist
    before the first image build/deploy.
