@@ -223,7 +223,10 @@ module webApp 'br/public:avm/res/app/container-app:0.22.1' = {
         // Assembled here (not via KV) because the Postgres FQDN is created in this
         // disposable RG, which the persistent Key Vault cannot recompute.
         name: 'connectionstrings-identity'
-        value: 'Host=${postgresFqdn};Database=${databaseName};Username=${postgresAdminLogin};Password=${postgresAdminPassword};SSL Mode=Require;Trust Server Certificate=true'
+        // Password is double-quoted so special characters (e.g. ';' or '=') in the
+        // generated admin password don't truncate the value when Npgsql parses the
+        // connection string — that surfaced as "28P01 password authentication failed".
+        value: 'Host=${postgresFqdn};Database=${databaseName};Username=${postgresAdminLogin};Password="${postgresAdminPassword}";SSL Mode=Require;Trust Server Certificate=true'
       }
       {
         name: 'connectionstrings-esdb'
