@@ -1,4 +1,4 @@
-name: Infra Persistent
+name: Infra Platform (persistent)
 
 # Deploys the persistent platform stack (ACR + Key Vault + managed identity) into a
 # resource group the nightly teardown never touches. Rarely changes — runs on edits
@@ -22,17 +22,25 @@ permissions:
 
 jobs:
   deploy:
-    name: Deploy infra
+    name: Deploy platform
     runs-on: ubuntu-latest
     timeout-minutes: 20
     if: ${{ vars.DEPLOY_ENABLED == 'true' }}
     environment: production
     env:
       AZURE_PERSISTENT_RESOURCE_GROUP: ${{ vars.AZURE_PERSISTENT_RESOURCE_GROUP }}
-      AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
+      AZURE_LOCATION: ${{ vars.AZURE_LOCATION || 'eastus' }}
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Validate required configuration
+        # Fail fast with a clear message instead of a cryptic Bicep "name property
+        # cannot be null or empty" — readEnvironmentVariable() returns the empty
+        # string (not the param default) when the variable is set-but-empty, which
+        # is what an undefined `vars.*` expands to.
+        run: |
+          : "${AZURE_PERSISTENT_RESOURCE_GROUP:?Set the AZURE_PERSISTENT_RESOURCE_GROUP variable (e.g. rg-hotdice-eus2-shared) in repo/environment settings}"
 
       - name: Azure login (OIDC)
         uses: azure/login@v2
@@ -42,14 +50,14 @@ jobs:
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
       - name: Deploy persistent stack
-        # The .bicepparam reads JWT_SECRET / AZURE_PERSISTENT_RESOURCE_GROUP from the
-        # environment via readEnvironmentVariable().
+        # The .bicepparam reads JWT_SECRET / AZURE_PERSISTENT_RESOURCE_GROUP /
+        # AZURE_LOCATION from the environment via readEnvironmentVariable().
         env:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
         run: |
           az bicep install
           az deployment sub create \
-            --name "farkle-persistent-${{ github.sha }}" \
+            --name "hotdice-platform-${{ github.run_id }}" \
             --location "$AZURE_LOCATION" \
             --template-file infra/persistent.bicep \
             --parameters infra/env/persistent.bicepparam

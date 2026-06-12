@@ -1,6 +1,6 @@
 using '../persistent.bicep'
 
-param location = 'eastus'
+param location = readEnvironmentVariable('AZURE_LOCATION', 'eastus')
 param resourceGroupName = readEnvironmentVariable('AZURE_PERSISTENT_RESOURCE_GROUP', 'hotdice-shared-rg')
 param environmentName = 'shared'
 param namePrefix = 'hotdice'
