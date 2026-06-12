@@ -91,8 +91,13 @@ module postgres 'br/public:avm/res/db-for-postgre-sql/flexible-server:0.15.4' = 
     administratorLogin: postgresAdminLogin
     administratorLoginPassword: postgresAdminPassword
     databases: [ { name: databaseName } ]
+    // Public access ON so the firewall rules below actually apply; the AVM module
+    // otherwise defaults to Disabled, leaving the server unreachable (firewall
+    // rules can't be set on a public-access-disabled server).
+    publicNetworkAccess: 'Enabled'
     firewallRules: [
-      // Allow other Azure services (incl. Container Apps) to reach the server.
+      // The 0.0.0.0 rule is the special "allow Azure services" rule, which covers
+      // the WebApp Container App's egress.
       { name: 'AllowAllAzureInternalIPs', startIpAddress: '0.0.0.0', endIpAddress: '0.0.0.0' }
     ]
   }
