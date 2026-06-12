@@ -46,7 +46,14 @@ public class GameApiWebAppFactory : WebApplicationFactory<Program>
       .WithEnvironment("POSTGRES_USER", "farkle_test")
       .WithEnvironment("POSTGRES_PASSWORD", "farkle_test")
       .WithEnvironment("POSTGRES_DB", "farkle_test")
-      .WithWaitStrategy(Wait.ForUnixContainer().UntilCommandIsCompleted("pg_isready", "-U", "farkle_test"))
+      // The postgres image starts a *temporary* server to run its init scripts, then
+      // restarts the real one. `pg_isready` succeeds against that temp server, so tests
+      // that connect in the gap get "connection reset by peer" when it restarts. Wait
+      // until "ready to accept connections" is logged twice (temp + real) so we only
+      // proceed once the durable server is up.
+      .WithWaitStrategy(Wait.ForUnixContainer()
+        .UntilCommandIsCompleted("pg_isready", "-U", "farkle_test")
+        .UntilMessageIsLogged("database system is ready to accept connections[\\s\\S]*database system is ready to accept connections"))
       .WithAutoRemove(false).Build();
 
     pgContainer.StartAsync().GetAwaiter().GetResult();
