@@ -28,6 +28,16 @@ public sealed class GameHubService(HttpClient http) : IGameHubService
         _connection.On<LobbyStateResponse>("GameBegan",
             payload => OnGameBegan?.Invoke(payload));
 
+        // After an automatic reconnect the connection has a *new* connection id, so
+        // the server-side group membership (game-{gameId}) is lost. Re-join the game
+        // group on every reconnect, otherwise the player stops receiving turn/lobby
+        // broadcasts until they reload the page.
+        _connection.Reconnected += async _ =>
+        {
+            if (_connection is not null)
+                await _connection.InvokeAsync("JoinGame", _gameId);
+        };
+
         await _connection.StartAsync();
         await _connection.InvokeAsync("JoinGame", gameId);
     }
