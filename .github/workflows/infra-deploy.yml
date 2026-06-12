@@ -79,10 +79,13 @@ jobs:
       - name: Resolve persistent stack references
         id: persistent
         run: |
-          acr=$(az acr list -g "$AZURE_PERSISTENT_RESOURCE_GROUP" --query '[0].loginServer' -o tsv)
-          kv=$(az keyvault list -g "$AZURE_PERSISTENT_RESOURCE_GROUP" --query '[0].properties.vaultUri' -o tsv)
-          read -r mi mi_principal mi_client mi_name <<< "$(az identity list -g "$AZURE_PERSISTENT_RESOURCE_GROUP" \
-            --query '[0].[id, principalId, clientId, name]' -o tsv)"
+          rg="$AZURE_PERSISTENT_RESOURCE_GROUP"
+          acr=$(az acr list -g "$rg" --query '[0].loginServer' -o tsv)
+          kv=$(az keyvault list -g "$rg" --query '[0].properties.vaultUri' -o tsv)
+          mi=$(az identity list -g "$rg" --query '[0].id' -o tsv)
+          mi_principal=$(az identity list -g "$rg" --query '[0].principalId' -o tsv)
+          mi_client=$(az identity list -g "$rg" --query '[0].clientId' -o tsv)
+          mi_name=$(az identity list -g "$rg" --query '[0].name' -o tsv)
           if [ -z "$acr" ] || [ -z "$kv" ] || [ -z "$mi" ] || [ -z "$mi_principal" ] || [ -z "$mi_name" ]; then
             echo "::error::Persistent stack not found in '$AZURE_PERSISTENT_RESOURCE_GROUP'. Deploy infra-persistent.yml first."
             exit 1
