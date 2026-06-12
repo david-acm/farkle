@@ -270,19 +270,23 @@ module webApp 'br/public:avm/res/app/container-app:0.22.1' = {
           // Tells DefaultAzureCredential which user-assigned identity to use for the Postgres token.
           { name: 'AZURE_CLIENT_ID', value: identityClientId }
         ]
+        // TCP probes (port-open) rather than HTTP /health/*: the health endpoints sit
+        // behind auth and return 403, which would fail HTTP probes even when the app is
+        // healthy. The generous liveness delay gives EF Core's startup migration time.
         probes: [
           {
             type: 'Liveness'
-            httpGet: { path: '/health/live', port: 8080 }
-            initialDelaySeconds: 15
+            tcpSocket: { port: 8080 }
+            initialDelaySeconds: 60
             periodSeconds: 30
+            failureThreshold: 5
           }
           {
             type: 'Readiness'
-            httpGet: { path: '/health/ready', port: 8080 }
-            initialDelaySeconds: 15
-            periodSeconds: 30
-            failureThreshold: 6
+            tcpSocket: { port: 8080 }
+            initialDelaySeconds: 20
+            periodSeconds: 15
+            failureThreshold: 10
           }
         ]
       }
