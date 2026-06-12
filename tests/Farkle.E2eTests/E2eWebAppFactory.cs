@@ -63,7 +63,10 @@ public class E2EWebAppFactory : WebApplicationFactory<Program>
             .WithEnvironment("POSTGRES_USER", "farkle_e2e")
             .WithEnvironment("POSTGRES_PASSWORD", "farkle_e2e")
             .WithEnvironment("POSTGRES_DB", "farkle_e2e")
-            .WithWaitStrategy(Wait.ForUnixContainer().UntilCommandIsCompleted("pg_isready", "-U", "farkle_e2e"))
+            // TCP pg_isready (-h): the postgres image's temporary init server listens only
+            // on the unix socket, so a socket-based check passes too early and connections
+            // race the restart ("connection reset by peer"). Wait for the real TCP server.
+            .WithWaitStrategy(Wait.ForUnixContainer().UntilCommandIsCompleted("pg_isready", "-h", "127.0.0.1", "-U", "farkle_e2e"))
             .WithAutoRemove(false).Build();
 
         pgContainer.StartAsync().GetAwaiter().GetResult();
