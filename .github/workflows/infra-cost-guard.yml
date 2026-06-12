@@ -42,7 +42,7 @@ jobs:
           BUDGET_NAME: ${{ vars.AZURE_BUDGET_NAME }}
         run: |
           az config set extension.use_dynamic_install=yes_without_prompt
-          budget="${BUDGET_NAME:-farkle-budget-dev}"
+          budget="${BUDGET_NAME:-hotdice-budget-dev}"
 
           if [ "$(az group exists --name "$AZURE_RESOURCE_GROUP")" != "true" ]; then
             echo "RG already gone; nothing to guard."
