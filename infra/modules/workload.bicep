@@ -38,6 +38,15 @@ param keyVaultUri string
 @description('Resource ID of the persistent user-assigned identity (ACR pull + KV read).')
 param identityResourceId string
 
+@description('Principal (object) ID of the persistent user-assigned identity — registered as the Postgres Entra administrator.')
+param identityPrincipalId string
+
+@description('Client ID of the persistent user-assigned identity — the WebApp uses it (AZURE_CLIENT_ID) to fetch an Entra token for Postgres.')
+param identityClientId string
+
+@description('Name of the persistent user-assigned identity — the Postgres Entra username the WebApp connects as.')
+param identityName string
+
 @description('Monthly cost budget for the resource group, in the billing currency.')
 param monthlyBudgetAmount int = 50
 
@@ -93,6 +102,19 @@ module postgres 'br/public:avm/res/db-for-postgre-sql/flexible-server:0.15.4' = 
     highAvailability: 'Disabled'
     administratorLogin: postgresAdminLogin
     administratorLoginPassword: postgresAdminPassword
+    // Entra-only auth: the WebApp's managed identity is the Postgres Entra admin and
+    // connects with an Entra token (no password). passwordAuth is left Disabled.
+    authConfig: {
+      activeDirectoryAuth: 'Enabled'
+      passwordAuth: 'Disabled'
+    }
+    administrators: [
+      {
+        objectId: identityPrincipalId
+        principalName: identityName
+        principalType: 'ServicePrincipal'
+      }
+    ]
     databases: [ { name: databaseName } ]
     // Public access ON so the firewall rules below actually apply; the AVM module
     // otherwise defaults to Disabled, leaving the server unreachable (firewall
@@ -229,9 +251,9 @@ module webApp 'br/public:avm/res/app/container-app:0.22.1' = {
         // Assembled here (not via KV) because the Postgres FQDN is created in this
         // disposable RG, which the persistent Key Vault cannot recompute.
         name: 'connectionstrings-identity'
-        // The admin password is kept alphanumeric (no ';'/'='/quotes) so it needs no
-        // connection-string quoting — Npgsql here does not strip wrapping quotes.
-        value: 'Host=${postgresFqdn};Database=${databaseName};Username=${postgresAdminLogin};Password=${postgresAdminPassword};SSL Mode=Require;Trust Server Certificate=true'
+        // No password: the WebApp authenticates to Postgres with an Entra token from
+        // its managed identity (Username = the identity name). See WebApp.IdentityDataSource.
+        value: 'Host=${postgresFqdn};Database=${databaseName};Username=${identityName};SSL Mode=Require;Trust Server Certificate=true'
       }
       {
         name: 'connectionstrings-esdb'
@@ -250,6 +272,8 @@ module webApp 'br/public:avm/res/app/container-app:0.22.1' = {
           { name: 'Auth__JwtSecret', secretRef: 'auth-jwtsecret' }
           { name: 'ConnectionStrings__Identity', secretRef: 'connectionstrings-identity' }
           { name: 'ConnectionStrings__Esdb', secretRef: 'connectionstrings-esdb' }
+          // Tells DefaultAzureCredential which user-assigned identity to use for the Postgres token.
+          { name: 'AZURE_CLIENT_ID', value: identityClientId }
         ]
         probes: [
           {

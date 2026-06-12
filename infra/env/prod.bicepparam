@@ -24,6 +24,9 @@ param postgresAdminPassword = readEnvironmentVariable('PG_ADMIN_PASSWORD', '')
 param acrLoginServer = readEnvironmentVariable('ACR_LOGIN_SERVER', '')
 param keyVaultUri = readEnvironmentVariable('KEY_VAULT_URI', '')
 param identityResourceId = readEnvironmentVariable('IDENTITY_RESOURCE_ID', '')
+param identityPrincipalId = readEnvironmentVariable('IDENTITY_PRINCIPAL_ID', '')
+param identityClientId = readEnvironmentVariable('IDENTITY_CLIENT_ID', '')
+param identityName = readEnvironmentVariable('IDENTITY_NAME', '')
 
 // Cost control. Set BUDGET_ALERT_EMAILS to a comma-free single address, or edit here.
 param monthlyBudgetAmount = 200

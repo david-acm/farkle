@@ -29,8 +29,11 @@ var services = builder.Services;
 services.AddEndpointsApiExplorer();
 services.AddSwaggerGen();
 
-services.AddDbContext<AppDbContext>(o =>
-    o.UseNpgsql(builder.Configuration.GetConnectionString("Identity")));
+// Build the Npgsql data source once (it owns the connection pool). Uses the password
+// from the connection string when present (local/tests), otherwise an Entra token from
+// the managed identity (Azure). See WebApp.IdentityDataSource.
+var identityDataSource = WebApp.IdentityDataSource.Build(builder.Configuration.GetConnectionString("Identity"));
+services.AddDbContext<AppDbContext>(o => o.UseNpgsql(identityDataSource));
 
 // Readiness checks for the two backing services (tagged "ready"); liveness runs none.
 services.AddHealthChecks()

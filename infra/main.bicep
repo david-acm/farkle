@@ -40,6 +40,15 @@ param keyVaultUri string
 @description('Resource ID of the persistent user-assigned identity (ACR pull + KV read).')
 param identityResourceId string
 
+@description('Principal (object) ID of the persistent user-assigned identity — Postgres Entra admin.')
+param identityPrincipalId string
+
+@description('Client ID of the persistent user-assigned identity — WebApp Postgres token (AZURE_CLIENT_ID).')
+param identityClientId string
+
+@description('Name of the persistent user-assigned identity — Postgres Entra username.')
+param identityName string
+
 @description('Monthly cost budget for the resource group, in the billing currency.')
 param monthlyBudgetAmount int = 50
 
@@ -68,6 +77,9 @@ module workload 'modules/workload.bicep' = {
     acrLoginServer: acrLoginServer
     keyVaultUri: keyVaultUri
     identityResourceId: identityResourceId
+    identityPrincipalId: identityPrincipalId
+    identityClientId: identityClientId
+    identityName: identityName
     monthlyBudgetAmount: monthlyBudgetAmount
     budgetThresholds: budgetThresholds
     budgetAlertEmails: budgetAlertEmails
