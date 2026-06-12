@@ -251,7 +251,7 @@ internal class GameIsWaitingForPlayers : Validator
 
 internal class HasMinimumPlayers : Validator
 {
-  internal const int Minimum = 2;
+  internal const int Minimum = 1;
   private readonly GameState _state;
 
   public HasMinimumPlayers(GameState state)

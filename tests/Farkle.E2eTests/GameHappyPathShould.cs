@@ -101,7 +101,8 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
         (await alicePage.Locator("[data-testid='roster-player']").GetByText("Alice").IsVisibleAsync())
             .Should().BeTrue("the host should auto-join and appear in the lobby roster");
 
-        // The host's Start button is disabled until a second player joins.
+        // The host sees the Start button as soon as the lobby loads (a single player
+        // is enough to begin; this two-player flow waits for Bob below before starting).
         (await alicePage.WaitForSelectorAsync("[data-testid='start-game-button']", new() { Timeout = 10_000 }))
             .Should().NotBeNull("Alice, as host, should see the Start button in the lobby");
 

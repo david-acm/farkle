@@ -71,7 +71,10 @@ public sealed class ScriptedIdGameApiWebAppFactory : WebApplicationFactory<Progr
             .WithEnvironment("POSTGRES_USER", "farkle_test")
             .WithEnvironment("POSTGRES_PASSWORD", "farkle_test")
             .WithEnvironment("POSTGRES_DB", "farkle_test")
-            .WithWaitStrategy(Wait.ForUnixContainer().UntilCommandIsCompleted("pg_isready", "-U", "farkle_test"))
+            // TCP pg_isready (-h): the postgres image's temporary init server listens only
+            // on the unix socket, so a socket-based check passes too early and tests race
+            // the restart ("connection reset by peer"). Wait for the real TCP server.
+            .WithWaitStrategy(Wait.ForUnixContainer().UntilCommandIsCompleted("pg_isready", "-h", "127.0.0.1", "-U", "farkle_test"))
             .WithAutoRemove(false).Build();
 
         pgContainer.StartAsync().GetAwaiter().GetResult();
