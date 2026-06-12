@@ -1,40 +1,73 @@
-name: Infra Deploy
+name: Infra Deploy (workload)
 
-# Builds the WebApp image, pushes it to ACR, and deploys the Bicep to Azure via
-# OIDC (no stored cloud credentials). Also exposed as a reusable workflow so the
-# scheduled lifecycle automation (infra-schedule.yml) can provision on demand.
+# Deploys the disposable workload (Postgres + EventStore + Container Apps env +
+# WebApp + budget) to Azure via OIDC. The WebApp image is built and pushed to the
+# PERSISTENT ACR separately by CI (build-image.yml) — this workflow only *deploys*
+# it (build-once, deploy-many). The persistent ACR / Key Vault / identity are
+# resolved from the persistent resource group and passed into the deploy.
 #
+# image_tag defaults to `latest` (the most recent image CI published); pass a
+# specific git SHA to roll back to an exact build.
+#
+# Also a reusable workflow so CI and the scheduled lifecycle automation can call it.
 # No-ops until enabled: gated on the repository variable DEPLOY_ENABLED == 'true'.
 # Azure config (AZURE_*) + secrets are read from the `production` environment.
 on:
   push:
     branches: [main]
     paths:
-      - 'infra/**'
-      - 'src/**'
+      - 'infra/main.bicep'
+      - 'infra/modules/workload.bicep'
+      - 'infra/env/dev.bicepparam'
+      - 'infra/env/prod.bicepparam'
       - '.github/workflows/infra-deploy.yml'
   workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Image tag to deploy (default: latest)'
+        required: false
+        default: 'latest'
   workflow_call:
+    inputs:
+      image_tag:
+        description: 'Image tag to deploy (default: latest)'
+        required: false
+        type: string
+        default: 'latest'
 
 permissions:
   id-token: write
   contents: read
 
+# Serialise deploys so a CI-triggered deploy and an infra push don't race on the RG.
+concurrency:
+  group: cd-deploy
+  cancel-in-progress: false
+
 jobs:
   deploy:
-    name: Build image + deploy Bicep
+    name: Deploy workload
     runs-on: ubuntu-latest
     timeout-minutes: 30
     if: ${{ vars.DEPLOY_ENABLED == 'true' }}
     environment: production
     env:
       AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
-      ACR_NAME: ${{ vars.ACR_NAME }}
-      AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
-      IMAGE_TAG: ${{ github.sha }}
+      AZURE_PERSISTENT_RESOURCE_GROUP: ${{ vars.AZURE_PERSISTENT_RESOURCE_GROUP }}
+      AZURE_LOCATION: ${{ vars.AZURE_LOCATION || 'eastus' }}
+      IMAGE_TAG: ${{ inputs.image_tag || 'latest' }}
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Validate required configuration
+        # Fail fast with a clear message instead of a cryptic Bicep "name property
+        # cannot be null or empty" — readEnvironmentVariable() returns the empty
+        # string (not the param default) when the variable is set-but-empty, which
+        # is what an undefined `vars.*` expands to.
+        run: |
+          : "${AZURE_RESOURCE_GROUP:?Set the AZURE_RESOURCE_GROUP variable (the disposable RG) in repo/environment settings}"
+          : "${AZURE_PERSISTENT_RESOURCE_GROUP:?Set the AZURE_PERSISTENT_RESOURCE_GROUP variable (e.g. rg-hotdice-eus2-shared) in repo/environment settings}"
 
       - name: Azure login (OIDC)
         uses: azure/login@v2
@@ -43,22 +76,34 @@ jobs:
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Build & push WebApp image to ACR
+      - name: Resolve persistent stack references
+        id: persistent
         run: |
-          az acr login --name "$ACR_NAME"
-          image="${ACR_NAME}.azurecr.io/webapp:${IMAGE_TAG}"
-          docker build -t "$image" -f src/WebApp/Dockerfile .
-          docker push "$image"
+          acr=$(az acr list -g "$AZURE_PERSISTENT_RESOURCE_GROUP" --query '[0].loginServer' -o tsv)
+          kv=$(az keyvault list -g "$AZURE_PERSISTENT_RESOURCE_GROUP" --query '[0].properties.vaultUri' -o tsv)
+          mi=$(az identity list -g "$AZURE_PERSISTENT_RESOURCE_GROUP" --query '[0].id' -o tsv)
+          if [ -z "$acr" ] || [ -z "$kv" ] || [ -z "$mi" ]; then
+            echo "::error::Persistent stack not found in '$AZURE_PERSISTENT_RESOURCE_GROUP'. Deploy infra-persistent.yml first."
+            exit 1
+          fi
+          echo "acr=$acr" >> "$GITHUB_OUTPUT"
+          echo "kv=$kv"   >> "$GITHUB_OUTPUT"
+          echo "mi=$mi"   >> "$GITHUB_OUTPUT"
 
       - name: Deploy Bicep
-        # The .bicepparam reads JWT_SECRET / PG_ADMIN_PASSWORD / IMAGE_TAG /
-        # AZURE_RESOURCE_GROUP from the environment via readEnvironmentVariable().
+        # The .bicepparam reads PG_ADMIN_PASSWORD / IMAGE_TAG / AZURE_RESOURCE_GROUP /
+        # ACR_LOGIN_SERVER / KEY_VAULT_URI / IDENTITY_RESOURCE_ID from the environment.
         env:
-          JWT_SECRET: ${{ secrets.JWT_SECRET }}
           PG_ADMIN_PASSWORD: ${{ secrets.PG_ADMIN_PASSWORD }}
+          ACR_LOGIN_SERVER: ${{ steps.persistent.outputs.acr }}
+          KEY_VAULT_URI: ${{ steps.persistent.outputs.kv }}
+          IDENTITY_RESOURCE_ID: ${{ steps.persistent.outputs.mi }}
         run: |
           az bicep install
-          az deployment sub create \
+          fqdn=$(az deployment sub create \
+            --name "hotdice-workload-${{ github.run_id }}" \
             --location "$AZURE_LOCATION" \
             --template-file infra/main.bicep \
-            --parameters infra/env/dev.bicepparam
+            --parameters infra/env/dev.bicepparam \
+            --query 'properties.outputs.webAppFqdn.value' -o tsv)
+          echo "### WebApp deployed: https://${fqdn} (image tag \`${IMAGE_TAG}\`)" >> "$GITHUB_STEP_SUMMARY"
