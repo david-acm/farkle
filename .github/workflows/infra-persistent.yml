@@ -1,0 +1,55 @@
+name: Infra Persistent
+
+# Deploys the persistent platform stack (ACR + Key Vault + managed identity) into a
+# resource group the nightly teardown never touches. Rarely changes — runs on edits
+# to the persistent templates or on demand. Via OIDC; no stored cloud credentials.
+#
+# No-ops until enabled: gated on the repository variable DEPLOY_ENABLED == 'true'.
+# Azure config (AZURE_*) + secrets are read from the `production` environment.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'infra/persistent.bicep'
+      - 'infra/modules/persistent.bicep'
+      - 'infra/env/persistent.bicepparam'
+      - '.github/workflows/infra-persistent.yml'
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy infra
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: ${{ vars.DEPLOY_ENABLED == 'true' }}
+    environment: production
+    env:
+      AZURE_PERSISTENT_RESOURCE_GROUP: ${{ vars.AZURE_PERSISTENT_RESOURCE_GROUP }}
+      AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy persistent stack
+        # The .bicepparam reads JWT_SECRET / AZURE_PERSISTENT_RESOURCE_GROUP from the
+        # environment via readEnvironmentVariable().
+        env:
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        run: |
+          az bicep install
+          az deployment sub create \
+            --name "farkle-persistent-${{ github.sha }}" \
+            --location "$AZURE_LOCATION" \
+            --template-file infra/persistent.bicep \
+            --parameters infra/env/persistent.bicepparam
