@@ -8,6 +8,14 @@ name: Storyboard
 on:
   pull_request:
     branches: [main]
+    # App-behaviour capture only — skip for infra/docs-only PRs.
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'Farkle.sln'
+      - 'Directory.Build.props'
+      - 'global.json'
+      - '.github/workflows/storyboard.yml'
   workflow_dispatch:
 
 jobs:
