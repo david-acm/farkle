@@ -102,19 +102,14 @@ module postgres 'br/public:avm/res/db-for-postgre-sql/flexible-server:0.15.4' = 
     highAvailability: 'Disabled'
     administratorLogin: postgresAdminLogin
     administratorLoginPassword: postgresAdminPassword
-    // Entra-only auth: the WebApp's managed identity is the Postgres Entra admin and
-    // connects with an Entra token (no password). passwordAuth is left Disabled.
+    // Password auth: the WebApp connects with the admin login/password above.
+    // (Managed-identity/Entra token auth is implemented in WebApp.IdentityDataSource
+    // and the bicep scaffolding remains, but is parked — the token call hung at
+    // startup; re-enable by switching authConfig + dropping the password below.)
     authConfig: {
-      activeDirectoryAuth: 'Enabled'
-      passwordAuth: 'Disabled'
+      activeDirectoryAuth: 'Disabled'
+      passwordAuth: 'Enabled'
     }
-    administrators: [
-      {
-        objectId: identityPrincipalId
-        principalName: identityName
-        principalType: 'ServicePrincipal'
-      }
-    ]
     databases: [ { name: databaseName } ]
     // Public access ON so the firewall rules below actually apply; the AVM module
     // otherwise defaults to Disabled, leaving the server unreachable (firewall
@@ -251,9 +246,9 @@ module webApp 'br/public:avm/res/app/container-app:0.22.1' = {
         // Assembled here (not via KV) because the Postgres FQDN is created in this
         // disposable RG, which the persistent Key Vault cannot recompute.
         name: 'connectionstrings-identity'
-        // No password: the WebApp authenticates to Postgres with an Entra token from
-        // its managed identity (Username = the identity name). See WebApp.IdentityDataSource.
-        value: 'Host=${postgresFqdn};Database=${databaseName};Username=${identityName};SSL Mode=Require;Trust Server Certificate=true'
+        // Password auth: includes the admin login/password. The app's IdentityDataSource
+        // uses plain password auth whenever the connection string carries a password.
+        value: 'Host=${postgresFqdn};Database=${databaseName};Username=${postgresAdminLogin};Password=${postgresAdminPassword};SSL Mode=Require;Trust Server Certificate=true'
       }
       {
         name: 'connectionstrings-esdb'
