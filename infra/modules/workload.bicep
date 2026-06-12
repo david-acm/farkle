@@ -85,6 +85,9 @@ module postgres 'br/public:avm/res/db-for-postgre-sql/flexible-server:0.15.4' = 
     skuName: 'Standard_B1ms'
     tier: 'Burstable'
     availabilityZone: -1
+    // Burstable SKUs don't support High Availability; the AVM module otherwise
+    // defaults to zone-redundant HA, which fails with HANotSupportedForBurstableSku.
+    highAvailability: 'Disabled'
     administratorLogin: postgresAdminLogin
     administratorLoginPassword: postgresAdminPassword
     databases: [ { name: databaseName } ]
