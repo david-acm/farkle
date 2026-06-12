@@ -1,4 +1,4 @@
-name: Infra Persistent
+name: Infra Platform (persistent)
 
 # Deploys the persistent platform stack (ACR + Key Vault + managed identity) into a
 # resource group the nightly teardown never touches. Rarely changes — runs on edits
@@ -22,7 +22,7 @@ permissions:
 
 jobs:
   deploy:
-    name: Deploy infra
+    name: Deploy platform
     runs-on: ubuntu-latest
     timeout-minutes: 20
     if: ${{ vars.DEPLOY_ENABLED == 'true' }}
