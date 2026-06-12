@@ -68,9 +68,9 @@ az deployment sub create \
   --parameters infra/env/persistent.bicepparam
 
 # read its outputs for the disposable deploy
-export ACR_LOGIN_SERVER=$(az acr list -g farkle-shared-rg --query '[0].loginServer' -o tsv)
-export KEY_VAULT_URI=$(az keyvault list -g farkle-shared-rg --query '[0].properties.vaultUri' -o tsv)
-export IDENTITY_RESOURCE_ID=$(az identity list -g farkle-shared-rg --query '[0].id' -o tsv)
+export ACR_LOGIN_SERVER=$(az acr list -g hotdice-shared-rg --query '[0].loginServer' -o tsv)
+export KEY_VAULT_URI=$(az keyvault list -g hotdice-shared-rg --query '[0].properties.vaultUri' -o tsv)
+export IDENTITY_RESOURCE_ID=$(az identity list -g hotdice-shared-rg --query '[0].id' -o tsv)
 
 # 2) disposable workload — per cycle (image must already be in the persistent ACR)
 export PG_ADMIN_PASSWORD='<strong-password>'
@@ -159,7 +159,7 @@ no environment can't read environment-scoped variables at all. So the config spl
    approval on every automated action.
 4. In the **`production` environment**, add the Azure target config as **environment variables**:
    `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`, `AZURE_RESOURCE_GROUP`
-   (disposable), `AZURE_PERSISTENT_RESOURCE_GROUP` (e.g. `farkle-shared-rg`), `AZURE_LOCATION`;
+   (disposable), `AZURE_PERSISTENT_RESOURCE_GROUP` (e.g. `hotdice-shared-rg`), `AZURE_LOCATION`;
    and **environment secrets** `JWT_SECRET`, `PG_ADMIN_PASSWORD`
    (the deploy reads the secrets via the `.bicepparam`'s `readEnvironmentVariable`). With a
    federated credential there is **no client secret** — OIDC exchanges a short-lived token, so the
@@ -213,7 +213,7 @@ idempotent (a no-op if the RG is already gone).
 | `PROVISION_HOUR_UTC` | `7` | hour to build + deploy |
 | `TEARDOWN_HOUR_UTC` | `19` | hour to delete the RG |
 | `ACTIVE_WEEKDAYS` | `1-5` | days provisioning runs — range `1-5` or list `1,2,3` (1=Mon…7=Sun); default `1-7` |
-| `AZURE_BUDGET_NAME` | `farkle-budget-dev` | budget the cost-guard reads (defaults to `farkle-budget-dev`) |
+| `AZURE_BUDGET_NAME` | `hotdice-budget-dev` | budget the cost-guard reads (defaults to `hotdice-budget-dev`) |
 
 ### Budget parameters (Bicep)
 
