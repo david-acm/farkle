@@ -19,6 +19,9 @@ param resourceAbbreviations object = {
 @description('Container image tag for the WebApp image (e.g. a git SHA or "latest").')
 param imageTag string
 
+@description('Changes every deployment so the WebApp rolls a NEW revision — Container Apps does not roll a revision on secret-value changes alone, so without this a changed connection string / image:latest would never reach the running app.')
+param deploymentId string = utcNow()
+
 @description('PostgreSQL administrator login.')
 param postgresAdminLogin string
 
@@ -200,6 +203,9 @@ module webApp 'br/public:avm/res/app/container-app:0.22.1' = {
   params: {
     name: webAppName
     location: location
+    // New suffix each deploy → a fresh revision that re-reads secrets (e.g. the
+    // Postgres connection string) and re-pulls image:latest.
+    revisionSuffix: 'r${take(uniqueString(deploymentId), 12)}'
     environmentResourceId: containerEnv.outputs.resourceId
     managedIdentities: {
       userAssignedResourceIds: [ identityResourceId ]
@@ -223,10 +229,9 @@ module webApp 'br/public:avm/res/app/container-app:0.22.1' = {
         // Assembled here (not via KV) because the Postgres FQDN is created in this
         // disposable RG, which the persistent Key Vault cannot recompute.
         name: 'connectionstrings-identity'
-        // Password is double-quoted so special characters (e.g. ';' or '=') in the
-        // generated admin password don't truncate the value when Npgsql parses the
-        // connection string — that surfaced as "28P01 password authentication failed".
-        value: 'Host=${postgresFqdn};Database=${databaseName};Username=${postgresAdminLogin};Password="${postgresAdminPassword}";SSL Mode=Require;Trust Server Certificate=true'
+        // The admin password is kept alphanumeric (no ';'/'='/quotes) so it needs no
+        // connection-string quoting — Npgsql here does not strip wrapping quotes.
+        value: 'Host=${postgresFqdn};Database=${databaseName};Username=${postgresAdminLogin};Password=${postgresAdminPassword};SSL Mode=Require;Trust Server Certificate=true'
       }
       {
         name: 'connectionstrings-esdb'
