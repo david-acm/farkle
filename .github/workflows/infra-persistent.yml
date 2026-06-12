@@ -57,7 +57,7 @@ jobs:
         run: |
           az bicep install
           az deployment sub create \
-            --name "farkle-persistent-${{ github.sha }}" \
+            --name "hotdice-platform-${{ github.run_id }}" \
             --location "$AZURE_LOCATION" \
             --template-file infra/persistent.bicep \
             --parameters infra/env/persistent.bicepparam
