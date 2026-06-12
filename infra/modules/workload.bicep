@@ -242,7 +242,13 @@ module webApp 'br/public:avm/res/app/container-app:0.22.1' = {
     }
     ingressExternal: true
     ingressTargetPort: 8080
-    scaleSettings: { minReplicas: 1, maxReplicas: 3 }
+    // SignalR runs in-memory (no Redis/Azure SignalR backplane), so every player in a
+    // game must land on the same replica or broadcasts/reconnects are lost (404 on the
+    // hub, forced page reload). Pin to a single replica AND enable sticky sessions so a
+    // reconnect returns to the same instance. Revisit (backplane + multi-replica) if we
+    // need to scale out.
+    scaleSettings: { minReplicas: 1, maxReplicas: 1 }
+    stickySessionsAffinity: 'sticky'
     registries: [
       {
         server: acrLoginServer
