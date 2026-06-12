@@ -36,7 +36,7 @@
                  FullWidth="true"
                  StartIcon="@Icons.Material.Filled.PlayArrow"
                  data-testid="start-game-button"
-                 Disabled="@(GameState.Roster.Count < 2)"
+                 Disabled="@(GameState.Roster.Count < 1)"
                  OnClick="StartGameAsync">Start the game</MudButton>
     }
     else
