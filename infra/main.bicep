@@ -12,7 +12,16 @@ param environmentName string
 @description('Naming prefix for all resources.')
 param namePrefix string = 'farkle'
 
-@description('Container image tag for the WebApp image in ACR (e.g. a git SHA).')
+@description('Microsoft Cloud Adoption Framework resource-type abbreviations used to build resource names. Defaults follow https://learn.microsoft.com/azure/cloud-adoption-framework/ready/azure-best-practices/resource-abbreviations — override in the .bicepparam to use your own.')
+param resourceAbbreviations object = {
+  logAnalytics: 'log'
+  postgreSql: 'psql'
+  storageAccount: 'st'
+  containerAppsEnvironment: 'cae'
+  containerApp: 'ca'
+}
+
+@description('Container image tag for the WebApp image (e.g. a git SHA or "latest").')
 param imageTag string = 'latest'
 
 @description('PostgreSQL administrator login.')
@@ -52,6 +61,7 @@ module workload 'modules/workload.bicep' = {
     location: location
     environmentName: environmentName
     namePrefix: namePrefix
+    resourceAbbreviations: resourceAbbreviations
     imageTag: imageTag
     postgresAdminLogin: postgresAdminLogin
     postgresAdminPassword: postgresAdminPassword

@@ -1,9 +1,19 @@
 using '../main.bicep'
 
 param location = 'eastus'
-param resourceGroupName = readEnvironmentVariable('AZURE_RESOURCE_GROUP', 'farkle-dev-rg')
+param resourceGroupName = readEnvironmentVariable('AZURE_RESOURCE_GROUP', 'hotdice-dev-rg')
 param environmentName = 'dev'
-param namePrefix = 'farkle'
+param namePrefix = 'hotdice'
+
+// Microsoft CAF resource-type abbreviations used to build resource names.
+// https://learn.microsoft.com/azure/cloud-adoption-framework/ready/azure-best-practices/resource-abbreviations
+param resourceAbbreviations = {
+  logAnalytics: 'log'
+  postgreSql: 'psql'
+  storageAccount: 'st'
+  containerAppsEnvironment: 'cae'
+  containerApp: 'ca'
+}
 
 // Supplied by CI / the operator at deploy time (kept out of source).
 param imageTag = readEnvironmentVariable('IMAGE_TAG', 'latest')
