@@ -29,11 +29,22 @@ var services = builder.Services;
 services.AddEndpointsApiExplorer();
 services.AddSwaggerGen();
 
-// Build the Npgsql data source once (it owns the connection pool). Uses the password
-// from the connection string when present (local/tests), otherwise an Entra token from
-// the managed identity (Azure). See WebApp.IdentityDataSource.
-var identityDataSource = WebApp.IdentityDataSource.Build(builder.Configuration.GetConnectionString("Identity"));
-services.AddDbContext<AppDbContext>(o => o.UseNpgsql(identityDataSource));
+// Use Entra (managed-identity) auth only when there is a host but no password — i.e.
+// Azure. Local dev + the Testcontainers integration tests supply a password and keep
+// plain password auth; when the connection string is unset, defer to EF / the test's
+// own override rather than eagerly validating it. See WebApp.IdentityDataSource.
+var identityConn = builder.Configuration.GetConnectionString("Identity");
+var identityDataSource = !string.IsNullOrEmpty(identityConn)
+    && string.IsNullOrEmpty(new Npgsql.NpgsqlConnectionStringBuilder(identityConn).Password)
+        ? WebApp.IdentityDataSource.BuildEntra(identityConn)
+        : null;
+services.AddDbContext<AppDbContext>(o =>
+{
+    if (identityDataSource is not null)
+        o.UseNpgsql(identityDataSource);
+    else
+        o.UseNpgsql(identityConn);
+});
 
 // Readiness checks for the two backing services (tagged "ready"); liveness runs none.
 services.AddHealthChecks()
