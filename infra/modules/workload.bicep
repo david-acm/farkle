@@ -163,6 +163,10 @@ module containerEnv 'br/public:avm/res/app/managed-environment:0.13.3' = {
   params: {
     name: '${resourceAbbreviations.containerAppsEnvironment}-${namePrefix}-${environmentName}'
     location: location
+    // Explicitly public: the WebApp uses external ingress. The AVM module otherwise
+    // defaults publicNetworkAccess to Disabled (with no VNet), making the app
+    // unreachable ("public network access on this managed environment is disabled").
+    publicNetworkAccess: 'Enabled'
     zoneRedundant: false
     appLogsConfiguration: {
       destination: 'log-analytics'
