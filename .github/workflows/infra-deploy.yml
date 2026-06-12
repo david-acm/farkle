@@ -101,7 +101,7 @@ jobs:
         run: |
           az bicep install
           fqdn=$(az deployment sub create \
-            --name "farkle-workload-${IMAGE_TAG}" \
+            --name "hotdice-workload-${{ github.run_id }}" \
             --location "$AZURE_LOCATION" \
             --template-file infra/main.bicep \
             --parameters infra/env/dev.bicepparam \
