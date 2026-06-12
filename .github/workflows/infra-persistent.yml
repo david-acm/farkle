@@ -22,7 +22,7 @@ permissions:
 
 jobs:
   deploy:
-    name: Deploy persistent stack (ACR + KV + identity)
+    name: Deploy infra
     runs-on: ubuntu-latest
     timeout-minutes: 20
     if: ${{ vars.DEPLOY_ENABLED == 'true' }}

@@ -19,20 +19,31 @@ param environmentName string
 @description('Naming prefix for all resources.')
 param namePrefix string
 
+@description('Microsoft Cloud Adoption Framework resource-type abbreviations used to build resource names. Defaults follow https://learn.microsoft.com/azure/cloud-adoption-framework/ready/azure-best-practices/resource-abbreviations — override in the .bicepparam to use your own.')
+param resourceAbbreviations object = {
+  containerRegistry: 'cr'
+  keyVault: 'kv'
+  managedIdentity: 'id'
+}
+
 @secure()
 @description('JWT signing key (Auth:JwtSecret) stored in Key Vault.')
 param jwtSecret string
 
-// Registry / vault names must be globally unique; derive a short deterministic
-// suffix from the (persistent) resource group + environment.
+// Resource names follow the CAF convention "<abbreviation>-<workload>-<env>",
+// dropping the hyphens for the two globally-unique resources whose name rules
+// forbid them / are length-capped (ACR: 5-50 alphanumerics; Key Vault: <=24).
+// A short deterministic suffix off the (persistent) RG + environment keeps the
+// globally-unique names collision-free.
 var suffix = take(uniqueString(resourceGroup().id, environmentName), 8)
-var acrName = toLower('${namePrefix}acr${suffix}')
-var keyVaultName = take(toLower('${namePrefix}kv${suffix}'), 24)
+var acrName = toLower('${resourceAbbreviations.containerRegistry}${namePrefix}${suffix}')
+var keyVaultName = take(toLower('${resourceAbbreviations.keyVault}${namePrefix}${suffix}'), 24)
+var identityName = '${resourceAbbreviations.managedIdentity}-${namePrefix}-${environmentName}'
 
 module identity 'br/public:avm/res/managed-identity/user-assigned-identity:0.5.1' = {
   name: 'identity'
   params: {
-    name: '${namePrefix}-id-${environmentName}'
+    name: identityName
     location: location
   }
 }
