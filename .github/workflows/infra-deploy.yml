@@ -81,23 +81,30 @@ jobs:
         run: |
           acr=$(az acr list -g "$AZURE_PERSISTENT_RESOURCE_GROUP" --query '[0].loginServer' -o tsv)
           kv=$(az keyvault list -g "$AZURE_PERSISTENT_RESOURCE_GROUP" --query '[0].properties.vaultUri' -o tsv)
-          mi=$(az identity list -g "$AZURE_PERSISTENT_RESOURCE_GROUP" --query '[0].id' -o tsv)
-          if [ -z "$acr" ] || [ -z "$kv" ] || [ -z "$mi" ]; then
+          read -r mi mi_principal mi_client mi_name <<< "$(az identity list -g "$AZURE_PERSISTENT_RESOURCE_GROUP" \
+            --query '[0].[id, principalId, clientId, name]' -o tsv)"
+          if [ -z "$acr" ] || [ -z "$kv" ] || [ -z "$mi" ] || [ -z "$mi_principal" ] || [ -z "$mi_name" ]; then
             echo "::error::Persistent stack not found in '$AZURE_PERSISTENT_RESOURCE_GROUP'. Deploy infra-persistent.yml first."
             exit 1
           fi
-          echo "acr=$acr" >> "$GITHUB_OUTPUT"
-          echo "kv=$kv"   >> "$GITHUB_OUTPUT"
-          echo "mi=$mi"   >> "$GITHUB_OUTPUT"
+          echo "acr=$acr"                >> "$GITHUB_OUTPUT"
+          echo "kv=$kv"                  >> "$GITHUB_OUTPUT"
+          echo "mi=$mi"                  >> "$GITHUB_OUTPUT"
+          echo "mi_principal=$mi_principal" >> "$GITHUB_OUTPUT"
+          echo "mi_client=$mi_client"    >> "$GITHUB_OUTPUT"
+          echo "mi_name=$mi_name"        >> "$GITHUB_OUTPUT"
 
       - name: Deploy Bicep
         # The .bicepparam reads PG_ADMIN_PASSWORD / IMAGE_TAG / AZURE_RESOURCE_GROUP /
-        # ACR_LOGIN_SERVER / KEY_VAULT_URI / IDENTITY_RESOURCE_ID from the environment.
+        # ACR_LOGIN_SERVER / KEY_VAULT_URI / IDENTITY_* from the environment.
         env:
           PG_ADMIN_PASSWORD: ${{ secrets.PG_ADMIN_PASSWORD }}
           ACR_LOGIN_SERVER: ${{ steps.persistent.outputs.acr }}
           KEY_VAULT_URI: ${{ steps.persistent.outputs.kv }}
           IDENTITY_RESOURCE_ID: ${{ steps.persistent.outputs.mi }}
+          IDENTITY_PRINCIPAL_ID: ${{ steps.persistent.outputs.mi_principal }}
+          IDENTITY_CLIENT_ID: ${{ steps.persistent.outputs.mi_client }}
+          IDENTITY_NAME: ${{ steps.persistent.outputs.mi_name }}
         run: |
           az bicep install
           fqdn=$(az deployment sub create \
