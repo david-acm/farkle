@@ -22,9 +22,15 @@ public static class IdentityDataSource
     {
         var builder = new NpgsqlDataSourceBuilder(connectionString);
 
-        // DefaultAzureCredential picks the user-assigned managed identity when the
-        // container sets AZURE_CLIENT_ID to that identity's client id.
-        var credential = new DefaultAzureCredential();
+        // Use ManagedIdentityCredential directly (not DefaultAzureCredential): we know
+        // this runs as a user-assigned managed identity, so go straight to the identity
+        // endpoint. DefaultAzureCredential would walk a chain and can hang on the later
+        // CLI/PowerShell providers (which time out) inside a container.
+        var clientId = Environment.GetEnvironmentVariable("AZURE_CLIENT_ID");
+        var managedIdentityId = string.IsNullOrEmpty(clientId)
+            ? ManagedIdentityId.SystemAssigned
+            : ManagedIdentityId.FromUserAssignedClientId(clientId);
+        TokenCredential credential = new ManagedIdentityCredential(managedIdentityId);
         builder.UsePeriodicPasswordProvider(
             async (_, ct) =>
             {
