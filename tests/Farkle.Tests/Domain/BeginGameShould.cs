@@ -50,16 +50,27 @@ public class BeginGameShould
   }
 
   [Fact]
-  public void RejectBeginWithFewerThanTwoPlayers()
+  public void AllowHostToBeginWithASinglePlayer()
   {
     var game = LobbyWith(1);
 
     game.BeginGame(new BeginGame(1, 1));
 
+    game.State.GameStage.Should().Be(Rolling);
+    game.Changes.Should().ContainSingleEvent<GamePlayStarted>();
+  }
+
+  [Fact]
+  public void RejectBeginWithNoPlayers()
+  {
+    var game = LobbyWith(0);
+
+    game.BeginGame(new BeginGame(1, 1));
+
     game.State.GameStage.Should().Be(WaitingForPlayers);
     var error = game.Changes.Should().ContainSingleEvent<NotEnoughPlayers>();
-    error!.PlayerCount.Should().Be(1);
-    error.Minimum.Should().Be(2);
+    error!.PlayerCount.Should().Be(0);
+    error.Minimum.Should().Be(1);
   }
 
   [Fact]

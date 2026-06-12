@@ -19,13 +19,13 @@
   }
 
   [Fact]
-  public void DisableStart_ForHost_UntilTwoPlayersHaveJoined()
+  public void EnableStart_ForHost_WithASinglePlayer()
   {
     var cut = Render(@<Game></Game>);
     JoinLobby(cut, "Alice", assignedPlayerId: 1, hostPlayerId: 1);
 
     var start = cut.Find("[data-testid='start-game-button']");
-    start.HasAttribute("disabled").Should().BeTrue();
+    start.HasAttribute("disabled").Should().BeFalse();
   }
 
   [Fact]
