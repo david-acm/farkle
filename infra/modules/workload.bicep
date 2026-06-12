@@ -137,6 +137,15 @@ module storage 'br/public:avm/res/storage/storage-account:0.32.1' = {
     name: storageName
     location: location
     skuName: 'Standard_LRS'
+    // The AVM module firewalls the account by default (networkAcls.defaultAction =
+    // Deny), which blocks the Container Apps environment from mounting the Azure Files
+    // share (CIFS "mount error(13): Permission denied") so ESDB never starts. Allow
+    // access so the file mount works.
+    publicNetworkAccess: 'Enabled'
+    networkAcls: {
+      defaultAction: 'Allow'
+      bypass: 'AzureServices'
+    }
     fileServices: {
       shares: [ { name: fileShareName } ]
     }
