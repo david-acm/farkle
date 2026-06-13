@@ -1,0 +1,75 @@
+@inherits BunitContext
+@using System.IO
+@using System.Text.RegularExpressions
+
+@code {
+  // Issue #140 — the die being dragged is hidden behind the drop zones.
+  //
+  // MudBlazor's drop zones use NATIVE HTML5 drag-and-drop, so the browser
+  // generates the drag-feedback image itself. Chromium crops that image to the
+  // visible region of the dragged element, which means an ancestor's
+  // `overflow: hidden` clips the dragged die — it appears cut off / hidden
+  // behind the zones. On top of that the in-flow dragged item must stack above
+  // the sibling zone's opaque background.
+  //
+  // bUnit has no layout engine and does not apply scoped CSS, so (mirroring the
+  // StableZoneHeight guard) we assert on the scoped CSS the component ships and
+  // on the component wiring its dragging-class hook, rather than on pixels.
+
+  [Fact]
+  public void NotClipTheDraggedDie_WithZoneOverflowHidden()
+  {
+    var css = File.ReadAllText(LocateScopedCss());
+
+    // The `.zone` rule must not clip its contents: `overflow: hidden` crops the
+    // native HTML5 drag image of the die being dragged (#140). `.zone--aside`
+    // and `.zone-title` are separate selectors and are unaffected by this regex.
+    Regex.IsMatch(css, @"\.zone\s*\{[^}]*overflow:\s*hidden")
+      .Should().BeFalse(
+        "overflow:hidden on the zone clips the dragged die's native drag image");
+  }
+
+  [Fact]
+  public void LiftTheDraggedDieAboveTheZones_InScopedCss()
+  {
+    var css = File.ReadAllText(LocateScopedCss());
+
+    // A rule must target the dragging item and give it a positive stacking order
+    // (with a positioning context) so it renders above the sibling drop zone.
+    Regex.IsMatch(css, @"\.die-dragging\b[^}]*z-index:\s*[1-9]")
+      .Should().BeTrue("the dragged die must be lifted above the drop zones");
+    Regex.IsMatch(css, @"\.die-dragging\b[^}]*position:\s*(relative|absolute|fixed)")
+      .Should().BeTrue("z-index needs a positioning context to take effect");
+  }
+
+  [Fact]
+  public void WireTheDraggingClassHook_FromComponentToCss()
+  {
+    var razor = File.ReadAllText(LocateComponentRazor());
+
+    // The component must hand MudBlazor the class to apply while an item is
+    // dragged, so the scoped CSS above actually has something to hook onto.
+    razor.Should().Contain("ItemDraggingClass=\"die-dragging\"",
+      "the drop container must apply the dragging class the CSS targets");
+  }
+
+  private static string LocateScopedCss() => Locate("DragabbleDice.razor.css");
+
+  private static string LocateComponentRazor() => Locate("DragabbleDice.razor");
+
+  // The component sources live next to each other in the source tree. Walk up
+  // from the test output directory until we find them.
+  private static string Locate(string fileName)
+  {
+    var dir = new DirectoryInfo(AppContext.BaseDirectory);
+    while (dir is not null)
+    {
+      var candidate = Path.Join(dir.FullName,
+        "src", "WebApp.Client", "Pages", "Game", "Components", fileName);
+      if (File.Exists(candidate)) return candidate;
+      dir = dir.Parent;
+    }
+    throw new FileNotFoundException(
+      "Could not locate " + fileName + " by walking up from " + AppContext.BaseDirectory);
+  }
+}
