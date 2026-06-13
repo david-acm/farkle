@@ -314,6 +314,8 @@ Runs **in parallel** with the `CI - Tests` workflow. It builds `Farkle.E2eTests`
 
 `generate-pages.sh` is **dual-mode** (`MODE=videos` default | `screenshots`); the e2e and storyboard publishers both write into the same `runs/{id}/` tree and share a `concurrency: gh-pages-publish` group so they don't race on `gh-pages` (its generator logic is covered by `tests/scripts/generate-pages.test.sh`, run manually).
 
+> **`gh-pages` is kept to a single commit.** Each publisher re-roots the branch to one orphan commit and force-pushes (`git checkout --orphan publish-root … git push --force`), so the large `.webm`/screenshot blobs never accumulate in history (videos also live as `e2e-videos-<run_id>` artifacts). Because the publishers are serialised by the concurrency group and each clones the latest `gh-pages` first, collapsing preserves both publishers' run directories. This is what keeps the repo from ballooning — a prior incremental-commit approach grew `.git` to ~4.6 GB of dead video blobs. **Do not** switch these steps back to an incremental `git commit … && git push`.
+
 ### `.github/workflows/codeql.yml` (name: **CI - CodeQL**)
 Runs on push/PR to `main` and weekly (Mon 08:00 UTC). Builds the solution and runs CodeQL C# analysis.
 

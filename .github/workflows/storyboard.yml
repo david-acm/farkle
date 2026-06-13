@@ -145,24 +145,28 @@ jobs:
           REPO: ${{ github.repository }}
         run: bash .github/scripts/generate-pages.sh
 
-      - name: Commit and push to gh-pages
+      - name: Commit and push to gh-pages (single-commit history)
         working-directory: gh-pages
-        # Another publisher may have pushed between our clone and push; rebase and retry.
+        # Re-root gh-pages to ONE orphan commit each publish so screenshot/video blobs
+        # never accumulate in branch history. The shared `gh-pages-publish` concurrency
+        # group serialises this with the e2e publisher (no overlap), and we clone the
+        # latest gh-pages first, so collapsing preserves both publishers' run dirs.
         run: |
           git add -A
           if git diff --cached --quiet; then
             echo "No changes to publish."
             exit 0
           fi
+          git checkout --orphan publish-root
+          git add -A
           git commit --quiet -m "ci: publish storyboard screenshots for run ${{ github.run_id }}"
-          for attempt in 1 2 3 4 5; do
-            if git push origin HEAD:gh-pages; then
-              echo "Pushed on attempt $attempt."
+          for attempt in 1 2 3; do
+            if git push --force origin publish-root:gh-pages; then
+              echo "Published (history squashed) on attempt $attempt."
               exit 0
             fi
-            echo "Push failed (attempt $attempt) — rebasing on latest gh-pages."
-            git fetch origin gh-pages
-            git rebase origin/gh-pages || { git rebase --abort; sleep 3; }
+            echo "Force-push failed (attempt $attempt) — retrying."
+            sleep 5
           done
           echo "Failed to push after retries." >&2
           exit 1
