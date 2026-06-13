@@ -40,12 +40,19 @@ public partial class Die
 
   protected override void OnParametersSet()
   {
-    // A settled or moved die (not a fresh roll) renders its face immediately, with
-    // no spin and nothing to animate (the first render already holds the final
-    // rotation, so the CSS transition has no prior state to animate from). A rolling
-    // die is left at its neutral orientation here and rotated after the first render
-    // (OnAfterRender), which is what produces the visible roll spin.
-    if (!_animate && (!_rotated || _number != DieValue)) RotateToValue();
+    // Already showing this value → do nothing, so an unrelated re-render (e.g. a
+    // sibling die being moved) never re-triggers a spin.
+    if (_rotated && _number == DieValue) return;
+
+    // First paint of a freshly rolled die: stay at the neutral orientation and let
+    // OnAfterRender rotate to the face, so the CSS transition animates the roll.
+    if (!_rotated && _animate) return;
+
+    // Settled/moved die's first paint (face shown instantly, no prior state to
+    // animate from → no spin), OR a new value landing on an existing die (a
+    // re-roll on a reused instance) → rotate now; the transition animates it,
+    // and RotateToValue only adds spin when this die animates.
+    RotateToValue();
   }
 
   protected override void OnAfterRender(bool firstRender)
