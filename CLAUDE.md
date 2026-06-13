@@ -300,22 +300,31 @@ Migrations are applied automatically on startup (outside the `NSwag` environment
 
 ## Continuous Integration
 
-### `.github/workflows/e2e-happy-path.yml` (name: **CI**) — runs on PRs to `main`
+### `.github/workflows/e2e-happy-path.yml` (name: **CI - Tests**) — runs on PRs to `main`
 Four jobs:
 1. **`test` (Unit & Integration Tests)** — restores/builds `Farkle.sln`, runs unit → integration (pulls `eventstore:23.10.0` + `postgres:16-alpine` for Testcontainers) → SPA component tests, with coverage uploaded to Codecov and TRX artifacts.
 2. **`verify-generated`** — regenerates `swagger.json` (`-p:GenerateSwagger=true`) and the Kiota client, then **fails if the committed generated files differ**. Installs both .NET 8 and 10 SDKs + `wasm-tools`.
 3. **`e2e`** — installs Playwright Chromium, runs the `GameHappyPath` E2E test (two players, Alice + Bob), and uploads videos/screenshots/logs/TRX. On failure it parses failing test names + messages from the TRX into job outputs (`fail_names`/`fail_msgs`) for the `deploy-pages` job to surface.
 4. **`deploy-pages`** (`needs: e2e`, `if: always()`) — publishes the E2E videos to GitHub Pages so reviewers can **watch recordings inline**, and **upserts** a PR comment (marker `<!-- e2e-video-report -->`) linking `runs/{run_id}/`. Runs `.github/scripts/generate-pages.sh`, which writes per-run pages + a newest-first root table and prunes runs >90 days / beyond the newest 50 (generator covered by `tests/scripts/generate-pages.test.sh`); uses only `GITHUB_TOKEN`. **One-time setup:** a repo admin must enable Pages (Settings → Pages → branch `gh-pages` / `/`).
 
-### `.github/workflows/storyboard.yml` (name: **Storyboard**) — runs on PRs to `main`
-Runs **in parallel** with the `CI` workflow. It builds `Farkle.E2eTests` and runs only the storyboard-tagged tests (`--filter "Category=Storyboard"`), which boot an **in-memory backend (no Testcontainers / Docker)** and capture multi-viewport screenshots of the opening flow. Two jobs:
+### `.github/workflows/storyboard.yml` (name: **CI - Storyboard**) — runs on PRs to `main`
+Runs **in parallel** with the `CI - Tests` workflow. It builds `Farkle.E2eTests` and runs only the storyboard-tagged tests (`--filter "Category=Storyboard"`), which boot an **in-memory backend (no Testcontainers / Docker)** and capture multi-viewport screenshots of the opening flow. Two jobs:
 1. **`storyboard`** — installs Playwright Chromium, runs the capture, uploads `storyboard-screenshots-<run_id>` + TRX.
 2. **`deploy-screenshots`** — publishes the frames to GitHub Pages via `generate-pages.sh` (`MODE=screenshots`) and **upserts** a PR comment (marker `<!-- e2e-storyboard-report -->`) linking `runs/{run_id}/storyboard.html`.
 
 `generate-pages.sh` is **dual-mode** (`MODE=videos` default | `screenshots`); the e2e and storyboard publishers both write into the same `runs/{id}/` tree and share a `concurrency: gh-pages-publish` group so they don't race on `gh-pages` (its generator logic is covered by `tests/scripts/generate-pages.test.sh`, run manually).
 
-### `.github/workflows/codeql.yml` (name: **CodeQL**)
+> **`gh-pages` is kept to a single commit.** Each publisher re-roots the branch to one orphan commit and force-pushes (`git checkout --orphan publish-root … git push --force`), so the large `.webm`/screenshot blobs never accumulate in history (videos also live as `e2e-videos-<run_id>` artifacts). Because the publishers are serialised by the concurrency group and each clones the latest `gh-pages` first, collapsing preserves both publishers' run directories. This is what keeps the repo from ballooning — a prior incremental-commit approach grew `.git` to ~4.6 GB of dead video blobs. **Do not** switch these steps back to an incremental `git commit … && git push`.
+
+### `.github/workflows/codeql.yml` (name: **CI - CodeQL**)
 Runs on push/PR to `main` and weekly (Mon 08:00 UTC). Builds the solution and runs CodeQL C# analysis.
+
+### Deployment (CD) — two paths
+Deploys to Azure run on push to `main` (full runbook in [`infra/OPERATIONS.md`](../infra/OPERATIONS.md)). The line is *resource topology/config vs. just the running app version*:
+- **`CD - App Release` (`app-release.yml`)** — the everyday path. A `src/**` change triggers **`CI - Image`** (`build-image.yml`), which builds/pushes `webapp:<sha>` + `:latest` to the persistent ACR, then chains App Release: a fast `az containerapp update --image …:<sha>` (no ARM, seconds). It is **ungated** (auto-deploys; gated only by `DEPLOY_ENABLED`), so its OIDC ids come from **repository** variables, not the gated `production` environment.
+- **`CD - Infra Deploy (workload)` (`infra-deploy.yml`)** — full-stack ARM (`az deployment sub create`) for `infra/**` changes and the scheduled re-provision. Stays **gated** on `production` (required reviewer) and keeps the real secrets (`JWT_SECRET`, `PG_ADMIN_PASSWORD`).
+
+Both share a `concurrency: cd-deploy` lock so they never run at once; since `:<sha>` and `:latest` are pushed together and full deploys use `:latest`, the two never diverge (an infra deploy never reverts an app release).
 
 ### Diagnosing E2E Failures
 The `e2e` job uploads:

@@ -1,5 +1,4 @@
-name: Infra What-If
-
+name: CI - Infra What-If
 # On-demand preview of what a deploy would change, via OIDC. Runs as a manual
 # dispatch (not on PRs) because it needs the `production` environment to read the
 # Azure config, and PR head branches generally can't enter a protected environment.

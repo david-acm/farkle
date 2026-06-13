@@ -1,4 +1,4 @@
-name: CI
+name: CI - Tests
 
 on:
   pull_request:
@@ -300,16 +300,33 @@ jobs:
           REPO: ${{ github.repository }}
         run: bash .github/scripts/generate-pages.sh
 
-      - name: Commit and push to gh-pages
+      - name: Commit and push to gh-pages (single-commit history)
         working-directory: gh-pages
+        # Re-root gh-pages to ONE orphan commit each publish so the large .webm video
+        # blobs never accumulate in branch history (they're also kept as run artifacts,
+        # and the generator already prunes old run *files*). The shared
+        # `gh-pages-publish` concurrency group serialises this with the storyboard
+        # publisher, and both clone the latest gh-pages first, so collapsing to a single
+        # commit preserves both publishers' run directories + the root table.
         run: |
           git add -A
           if git diff --cached --quiet; then
             echo "No changes to publish."
-          else
-            git commit --quiet -m "ci: publish e2e videos for run ${{ github.run_id }}"
-            git push origin HEAD:gh-pages
+            exit 0
           fi
+          git checkout --orphan publish-root
+          git add -A
+          git commit --quiet -m "ci: publish e2e videos for run ${{ github.run_id }}"
+          for attempt in 1 2 3; do
+            if git push --force origin publish-root:gh-pages; then
+              echo "Published (history squashed) on attempt $attempt."
+              exit 0
+            fi
+            echo "Force-push failed (attempt $attempt) — retrying."
+            sleep 5
+          done
+          echo "Failed to push after retries." >&2
+          exit 1
 
       - name: Upsert PR comment with GitHub Pages link
         uses: actions/github-script@v7

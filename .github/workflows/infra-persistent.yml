@@ -1,5 +1,4 @@
-name: Infra Platform (persistent)
-
+name: CD - Infra Platform (persistent)
 # Deploys the persistent platform stack (ACR + Key Vault + managed identity) into a
 # resource group the nightly teardown never touches. Rarely changes — runs on edits
 # to the persistent templates or on demand. Via OIDC; no stored cloud credentials.

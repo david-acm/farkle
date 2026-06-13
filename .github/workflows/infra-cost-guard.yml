@@ -1,5 +1,4 @@
-name: Infra Cost Guard
-
+name: Ops - Infra Cost Guard
 # Polls the resource-group cost budget and tears the environment down if spend has
 # reached the budget amount. This is the "all GitHub Actions" realization of an
 # on-overspend teardown: Azure budget action-group webhooks can't authenticate to
