@@ -21,13 +21,13 @@ Two resource groups in **East US 2** (`eastus2`):
 
 | Workflow | Role | Trigger |
 |---|---|---|
-| `infra-persistent.yml` — *Infra Platform (persistent)* | Deploy ACR/KV/identity | `infra/persistent.*` change, manual |
-| `build-image.yml` — *CI · Image* | Build WebApp image → push to ACR → **chain** workload CD | push to `main` (`src/**`), manual |
-| `infra-deploy.yml` — *Infra Deploy (workload)* | Deploy the disposable workload (reusable) | chained from CI, `infra/main.bicep`/`workload.bicep`/`*.bicepparam` push, manual, `workflow_call` |
-| `infra-validate.yml` | PR-time Bicep build+lint+PSRule (credential-free) | PR touching `infra/**` |
-| `infra.yml` | `what-if` preview | manual |
-| `infra-teardown.yml` | `az group delete` the workload RG | manual, `workflow_call` |
-| `infra-schedule.yml` / `infra-cost-guard.yml` | Cron provision/teardown + budget guard | hourly |
+| `infra-persistent.yml` — *CD - Infra Platform (persistent)* | Deploy ACR/KV/identity | `infra/persistent.*` change, manual |
+| `build-image.yml` — *CI - Image* | Build WebApp image → push to ACR → **chain** workload CD | push to `main` (`src/**`), manual |
+| `infra-deploy.yml` — *CD - Infra Deploy (workload)* | Deploy the disposable workload (reusable) | chained from CI, `infra/main.bicep`/`workload.bicep`/`*.bicepparam` push, manual, `workflow_call` |
+| `infra-validate.yml` — *CI - Infra Validate* | PR-time Bicep build+lint+PSRule (credential-free) | PR touching `infra/**` |
+| `infra.yml` — *CI - Infra What-If* | `what-if` preview | manual |
+| `infra-teardown.yml` — *Ops - Infra Teardown* | `az group delete` the workload RG | manual, `workflow_call` |
+| `infra-schedule.yml` / `infra-cost-guard.yml` — *Ops - Infra Schedule* / *Ops - Infra Cost Guard* | Cron provision/teardown + budget guard | hourly |
 
 **Build-once / deploy-many:** CI builds one image and chains the workload deploy in the
 **same run** (`needs:` + `workflow_call`, not `workflow_run`). App CI (`CI`/storyboard)

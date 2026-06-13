@@ -1,5 +1,4 @@
-name: Storyboard
-
+name: CI - Storyboard
 # Multi-viewport storyboard screenshots (issue #98). Runs as its own workflow so the
 # infra-light capture executes in parallel with the e2e job rather than behind it. The
 # storyboard tests live in the same project as the happy-path E2E (tests/Farkle.E2eTests)

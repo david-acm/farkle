@@ -1,5 +1,4 @@
-name: Infra Teardown
-
+name: Ops - Infra Teardown
 # Deletes the workload resource group via OIDC. Exposed as a reusable workflow so
 # the scheduled lifecycle automation (infra-schedule.yml) and the budget cost-guard
 # (infra-cost-guard.yml) can call it. Manual runs are also supported.

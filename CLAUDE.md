@@ -300,21 +300,21 @@ Migrations are applied automatically on startup (outside the `NSwag` environment
 
 ## Continuous Integration
 
-### `.github/workflows/e2e-happy-path.yml` (name: **CI**) — runs on PRs to `main`
+### `.github/workflows/e2e-happy-path.yml` (name: **CI - Tests**) — runs on PRs to `main`
 Four jobs:
 1. **`test` (Unit & Integration Tests)** — restores/builds `Farkle.sln`, runs unit → integration (pulls `eventstore:23.10.0` + `postgres:16-alpine` for Testcontainers) → SPA component tests, with coverage uploaded to Codecov and TRX artifacts.
 2. **`verify-generated`** — regenerates `swagger.json` (`-p:GenerateSwagger=true`) and the Kiota client, then **fails if the committed generated files differ**. Installs both .NET 8 and 10 SDKs + `wasm-tools`.
 3. **`e2e`** — installs Playwright Chromium, runs the `GameHappyPath` E2E test (two players, Alice + Bob), and uploads videos/screenshots/logs/TRX. On failure it parses failing test names + messages from the TRX into job outputs (`fail_names`/`fail_msgs`) for the `deploy-pages` job to surface.
 4. **`deploy-pages`** (`needs: e2e`, `if: always()`) — publishes the E2E videos to GitHub Pages so reviewers can **watch recordings inline**, and **upserts** a PR comment (marker `<!-- e2e-video-report -->`) linking `runs/{run_id}/`. Runs `.github/scripts/generate-pages.sh`, which writes per-run pages + a newest-first root table and prunes runs >90 days / beyond the newest 50 (generator covered by `tests/scripts/generate-pages.test.sh`); uses only `GITHUB_TOKEN`. **One-time setup:** a repo admin must enable Pages (Settings → Pages → branch `gh-pages` / `/`).
 
-### `.github/workflows/storyboard.yml` (name: **Storyboard**) — runs on PRs to `main`
-Runs **in parallel** with the `CI` workflow. It builds `Farkle.E2eTests` and runs only the storyboard-tagged tests (`--filter "Category=Storyboard"`), which boot an **in-memory backend (no Testcontainers / Docker)** and capture multi-viewport screenshots of the opening flow. Two jobs:
+### `.github/workflows/storyboard.yml` (name: **CI - Storyboard**) — runs on PRs to `main`
+Runs **in parallel** with the `CI - Tests` workflow. It builds `Farkle.E2eTests` and runs only the storyboard-tagged tests (`--filter "Category=Storyboard"`), which boot an **in-memory backend (no Testcontainers / Docker)** and capture multi-viewport screenshots of the opening flow. Two jobs:
 1. **`storyboard`** — installs Playwright Chromium, runs the capture, uploads `storyboard-screenshots-<run_id>` + TRX.
 2. **`deploy-screenshots`** — publishes the frames to GitHub Pages via `generate-pages.sh` (`MODE=screenshots`) and **upserts** a PR comment (marker `<!-- e2e-storyboard-report -->`) linking `runs/{run_id}/storyboard.html`.
 
 `generate-pages.sh` is **dual-mode** (`MODE=videos` default | `screenshots`); the e2e and storyboard publishers both write into the same `runs/{id}/` tree and share a `concurrency: gh-pages-publish` group so they don't race on `gh-pages` (its generator logic is covered by `tests/scripts/generate-pages.test.sh`, run manually).
 
-### `.github/workflows/codeql.yml` (name: **CodeQL**)
+### `.github/workflows/codeql.yml` (name: **CI - CodeQL**)
 Runs on push/PR to `main` and weekly (Mon 08:00 UTC). Builds the solution and runs CodeQL C# analysis.
 
 ### Diagnosing E2E Failures

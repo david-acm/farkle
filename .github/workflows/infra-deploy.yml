@@ -1,5 +1,4 @@
-name: Infra Deploy (workload)
-
+name: CD - Infra Deploy (workload)
 # Deploys the disposable workload (Postgres + EventStore + Container Apps env +
 # WebApp + budget) to Azure via OIDC. The WebApp image is built and pushed to the
 # PERSISTENT ACR separately by CI (build-image.yml) — this workflow only *deploys*

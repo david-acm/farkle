@@ -1,5 +1,4 @@
-name: Infra Validate
-
+name: CI - Infra Validate
 # Credential-free static validation of the Bicep IaC: compile + lint (fails on the
 # error-level rules in infra/bicepconfig.json) and PSRule for Azure best-practice
 # analysis. No Azure login — runs on every PR that touches infra/.

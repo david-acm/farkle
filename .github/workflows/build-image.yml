@@ -1,4 +1,4 @@
-name: CI · Image
+name: CI - Image
 
 # Builds the WebApp image and pushes it to the PERSISTENT ACR (private), then
 # chains the CD deploy of that exact image via `workflow_call` — build-once,

@@ -1,5 +1,4 @@
-name: Infra Schedule
-
+name: Ops - Infra Schedule
 # Provisions the environment in the morning and tears it down at night, on a
 # configurable UTC schedule, to keep the dev environment cheap. Runs hourly and
 # acts only when the current hour matches the configured provision/teardown hour.
