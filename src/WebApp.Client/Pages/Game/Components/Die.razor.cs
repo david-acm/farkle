@@ -17,7 +17,7 @@ public partial class Die
   
   [Parameter] public string? Class { get; set; }
   
-  [Parameter] public bool IsDragging { get; set; }
+  [Parameter] public bool Animate { get; set; }
   
   [Inject] public ILogger<Die> Logger { get; set; } = null!;
   
@@ -33,7 +33,7 @@ public partial class Die
   
   protected override async Task OnInitializedAsync()
   {
-    if (IsDragging)
+    if (Animate)
       RotateToValue();
     await base.OnInitializedAsync();
   }
@@ -64,7 +64,7 @@ public partial class Die
   private void RotateToValue()
   {
     _number = DieValue;
-    var rotation = RotationCalculator.CalculateFor(_number, IsDragging);
+    var rotation = RotationCalculator.CalculateFor(_number, Animate);
     SetRotationTo(rotation);
     Logger.LogDebug("Rotating to: {x}, {y}, {z}", _rotation.Item1, _rotation.Item2, _rotation.Item3);
   }
