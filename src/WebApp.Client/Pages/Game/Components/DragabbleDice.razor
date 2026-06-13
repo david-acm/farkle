@@ -3,6 +3,7 @@
 <div class="dice-area">
   <MudDropContainer Class="drop-zones"
                     ItemDropped="ItemUpdatedAsync"
+                    ItemDraggingClass="die-dragging"
                     Items="GameState.DiceInPlay"
                     ItemsSelector="@((item, dropzone) => item.Identifier == dropzone)"
                     T="DraggableDie">
