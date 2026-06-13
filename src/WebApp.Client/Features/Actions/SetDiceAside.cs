@@ -22,9 +22,11 @@ public partial class GameState
       public override Task Handle(Action action, CancellationToken aCancellationToken)
       {
         // DiceInPlay is the single source of truth; the set-aside payload is
-        // derived from it. Just sync the dropped die's zone identifier.
+        // derived from it. Sync the dropped die's zone identifier, and clear its
+        // Animate flag — a move is not a roll, so the die must not spin (#139).
         var die = State.DiceInPlay.First(d => d.Index == action.Die.Index);
         die.Identifier = action.Identifier;
+        die.Animate    = false;
         return Task.CompletedTask;
       }
     }

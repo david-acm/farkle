@@ -17,12 +17,17 @@ public partial class Die
   
   [Parameter] public string? Class { get; set; }
   
-  [Parameter] public bool IsDragging { get; set; }
-  
+  // True only for a freshly rolled die: it plays the roll (spin) animation once.
+  // Captured at init so a later model change can't retrigger the animation.
+  [Parameter] public bool Animate { get; set; }
+
+  private bool _animate;
+  private bool _rotated;
+
   [Inject] public ILogger<Die> Logger { get; set; } = null!;
-  
+
   [Inject] public IRotationCalculator RotationCalculator { get; set; } = null!;
-  
+
   private double AngleFor(char a) => a switch
   {
     'x' => _rotation.Item1,
@@ -30,41 +35,30 @@ public partial class Die
     'z' => _rotation.Item3,
     _   => 0
   };
-  
-  protected override async Task OnInitializedAsync()
+
+  protected override void OnInitialized() => _animate = Animate;
+
+  protected override void OnParametersSet()
   {
-    if (IsDragging)
-      RotateToValue();
-    await base.OnInitializedAsync();
+    // A settled or moved die (not a fresh roll) renders its face immediately, with
+    // no spin and nothing to animate (the first render already holds the final
+    // rotation, so the CSS transition has no prior state to animate from). A rolling
+    // die is left at its neutral orientation here and rotated after the first render
+    // (OnAfterRender), which is what produces the visible roll spin.
+    if (!_animate && (!_rotated || _number != DieValue)) RotateToValue();
   }
-  
-  protected override Task OnParametersSetAsync()
+
+  protected override void OnAfterRender(bool firstRender)
   {
-    if (_number != DieValue.None && _number != DieValue) RotateToValue();
-    
-    return base.OnParametersSetAsync();
+    if (firstRender && _animate) { RotateToValue(); StateHasChanged(); }
   }
-  
-  protected override async Task OnAfterRenderAsync(bool firstRender)
-  {
-    if (firstRender)  DelayedRotateToValueAsync();
-    // RotateToValue();
-    await base.OnAfterRenderAsync(firstRender);
-  }
-  
-  private void DelayedRotateToValueAsync()
-  {
-      _ = new Timer(_ =>
-      {
-        RotateToValue();
-        InvokeAsync(StateHasChanged);
-      }, null, 0, -1);
-  }
-  
+
   private void RotateToValue()
   {
-    _number = DieValue;
-    var rotation = RotationCalculator.CalculateFor(_number, IsDragging);
+    _number  = DieValue;
+    _rotated = true;
+    // randomSpin == _animate: only a freshly rolled die gets the random full-turn spins.
+    var rotation = RotationCalculator.CalculateFor(_number, _animate);
     SetRotationTo(rotation);
     Logger.LogDebug("Rotating to: {x}, {y}, {z}", _rotation.Item1, _rotation.Item2, _rotation.Item3);
   }
