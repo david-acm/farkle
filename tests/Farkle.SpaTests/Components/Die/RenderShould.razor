@@ -1,5 +1,6 @@
 @using System.Text.RegularExpressions
 @using AutoFixture.Xunit2
+@using Bunit
 @using Moq
 @using WebApp.Client.Pages.Game.Components
 @using WebApp.Client.Services
@@ -28,6 +29,32 @@ Learn more at https://bunit.dev/docs/getting-started/writing-tests.html#creating
       .Add(d => d.Animate,  true));
 
     cut.WaitForAssertion(RotationShouldMatch(xExpected, yExpected, zExpected, cut),
+      TimeSpan.FromMilliseconds(400));
+  }
+
+  [Fact]
+  public void ReRollRotatesToTheNewFace()
+  {
+    // A re-roll lands a new value on an already-rendered die (its instance is
+    // reused). It must rotate to the new face — otherwise rolls stop animating
+    // and the die shows a stale face.
+    var mock = Mock.Of<IRotationCalculator>();
+    Mock.Get(mock).Setup(c => c.CalculateFor(DieValue.One, true)).Returns((10, 20, 30));
+    Mock.Get(mock).Setup(c => c.CalculateFor(DieValue.Six, true)).Returns((40, 50, 60));
+    Services.AddScoped<IRotationCalculator>(_ => mock);
+
+    var cut = Render<Die>(c => c
+      .Add(d => d.DieValue, DieValue.One)
+      .Add(d => d.Animate,  true));
+    cut.WaitForAssertion(RotationShouldMatch(10, 20, 30, cut),
+      TimeSpan.FromMilliseconds(400));
+
+    // Re-roll: same die instance, new value.
+    cut.Render(c => c
+      .Add(d => d.DieValue, DieValue.Six)
+      .Add(d => d.Animate,  true));
+
+    cut.WaitForAssertion(RotationShouldMatch(40, 50, 60, cut),
       TimeSpan.FromMilliseconds(400));
   }
 
