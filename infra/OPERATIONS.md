@@ -22,42 +22,60 @@ Two resource groups in **East US 2** (`eastus2`):
 | Workflow | Role | Trigger |
 |---|---|---|
 | `infra-persistent.yml` — *CD - Infra Platform (persistent)* | Deploy ACR/KV/identity | `infra/persistent.*` change, manual |
-| `build-image.yml` — *CI - Image* | Build WebApp image → push to ACR → **chain** workload CD | push to `main` (`src/**`), manual |
-| `infra-deploy.yml` — *CD - Infra Deploy (workload)* | Deploy the disposable workload (reusable) | chained from CI, `infra/main.bicep`/`workload.bicep`/`*.bicepparam` push, manual, `workflow_call` |
+| `build-image.yml` — *CI - Image* | Build WebApp image → push to ACR → **chain** App Release | push to `main` (`src/**`), manual |
+| `app-release.yml` — *CD - App Release* | Fast image roll (`az containerapp update`, no ARM, **ungated**) | chained from CI, manual, `workflow_call` |
+| `infra-deploy.yml` — *CD - Infra Deploy (workload)* | Full-stack ARM deploy of the disposable workload (gated) | `infra/main.bicep`/`workload.bicep`/`*.bicepparam` push, scheduled re-provision, manual, `workflow_call` |
 | `infra-validate.yml` — *CI - Infra Validate* | PR-time Bicep build+lint+PSRule (credential-free) | PR touching `infra/**` |
 | `infra.yml` — *CI - Infra What-If* | `what-if` preview | manual |
 | `infra-teardown.yml` — *Ops - Infra Teardown* | `az group delete` the workload RG | manual, `workflow_call` |
 | `infra-schedule.yml` / `infra-cost-guard.yml` — *Ops - Infra Schedule* / *Ops - Infra Cost Guard* | Cron provision/teardown + budget guard | hourly |
 
-**Build-once / deploy-many:** CI builds one image and chains the workload deploy in the
-**same run** (`needs:` + `workflow_call`, not `workflow_run`). App CI (`CI`/storyboard)
-skips infra/docs-only PRs via a `paths` filter.
+**Two deploy paths.** Draw the line at *"resource topology/config, or just the running app version?"*:
+- **App release (fast, everyday):** a `src/**` push → `CI - Image` builds/pushes the image →
+  chains `CD - App Release`, which does only `az containerapp update --image …:<sha>` (seconds,
+  no ARM, **no gate**). This is the common case.
+- **Infra deploy (full ARM, gated):** an `infra/**` push (and the scheduled morning re-provision)
+  → `CD - Infra Deploy (workload)` re-evaluates the whole workload via `az deployment sub create`.
+
+**Build-once / deploy-many:** CI builds one image (tagged `:<sha>` + `:latest`) and chains the
+release in the **same run** (`needs:` + `workflow_call`). `App Release` and `Infra Deploy` share a
+`concurrency: cd-deploy` lock so they never run at once. Because both tags are pushed together and
+every full-ARM deploy uses `:latest`, the running `:<sha>` and `:latest` stay in lockstep — an infra
+deploy never reverts an app release.
 
 ## Deploying
 
-1. Merge to `main` (or `gh workflow run infra-deploy.yml --ref main -f image_tag=latest`).
-2. **Approve the gate.** The `production` environment has a **required reviewer** (`david-acm`),
-   so every deploy job waits. The terminal `!` prompt truncates multi-word commands and the
-   GitHub iOS app doesn't reliably show deployment approvals — approve via API:
-   ```bash
-   RUN=<run-id>
-   EID=$(gh api repos/david-acm/farkle/actions/runs/$RUN/pending_deployments --jq '.[0].environment.id')
-   gh api repos/david-acm/farkle/actions/runs/$RUN/pending_deployments \
-     -X POST -F "environment_ids[]=$EID" -f state=approved -f comment="deploy"
-   ```
-   > This gate also stalls the unattended `infra-schedule`/`cost-guard` cron jobs — drop the
-   > reviewer if you want those to run automatically.
+**App change** (`src/**`): merge to `main` → `CI - Image` builds → `CD - App Release` rolls it
+**automatically** (no approval). Roll back by re-running App Release with a prior SHA:
+`gh workflow run app-release.yml --ref main -f image_tag=<sha>`. If the workload RG is currently
+torn down, App Release skips with a notice — the image is in ACR and the next provision deploys it.
+
+**Infra change** (`infra/**`) or full re-provision: triggers `CD - Infra Deploy (workload)`, which
+is **gated** on the `production` environment (required reviewer `david-acm`). The terminal `!` prompt
+truncates multi-word commands and the GitHub iOS app doesn't reliably show approvals — approve via API:
+```bash
+RUN=<run-id>
+EID=$(gh api repos/david-acm/farkle/actions/runs/$RUN/pending_deployments --jq '.[0].environment.id')
+gh api repos/david-acm/farkle/actions/runs/$RUN/pending_deployments \
+  -X POST -F "environment_ids[]=$EID" -f state=approved -f comment="deploy"
+```
+> This gate also stalls the unattended `infra-schedule`/`cost-guard` cron jobs — drop the
+> reviewer if you want those to run automatically.
 
 ## Required configuration
 
 **Repository variables:** `DEPLOY_ENABLED=true`, `LIFECYCLE_ENABLED`, `AZURE_LOCATION=eastus`
 *(note: the bicepparam reads this; the persistent stack RG name is set separately)*,
 `AZURE_RESOURCE_GROUP=rg-hotdice-eus2-prod`, `AZURE_PERSISTENT_RESOURCE_GROUP=rg-hotdice-eus2-shared`,
-`AZURE_BUDGET_NAME=hotdice-budget-dev`, `PROVISION_HOUR_UTC`/`TEARDOWN_HOUR_UTC`/`ACTIVE_WEEKDAYS`.
+`AZURE_BUDGET_NAME=hotdice-budget-dev`, `PROVISION_HOUR_UTC`/`TEARDOWN_HOUR_UTC`/`ACTIVE_WEEKDAYS`,
+and the OIDC identifiers `AZURE_CLIENT_ID`/`AZURE_TENANT_ID`/`AZURE_SUBSCRIPTION_ID` (non-secret;
+repo-level so the **ungated** `CI - Image` build and `CD - App Release` can authenticate without the
+`production` environment).
 
-**`production` environment:** vars `AZURE_CLIENT_ID`/`AZURE_TENANT_ID`/`AZURE_SUBSCRIPTION_ID`;
-secrets `JWT_SECRET`, `PG_ADMIN_PASSWORD` (keep it **alphanumeric** — special chars break the
-unquoted Npgsql connection string).
+**`production` environment:** the required-reviewer gate (used only by `CD - Infra Deploy` /
+`CD - Infra Platform`) plus secrets `JWT_SECRET`, `PG_ADMIN_PASSWORD` (keep it **alphanumeric** —
+special chars break the unquoted Npgsql connection string). It also still carries env-level copies of
+the `AZURE_*` OIDC ids (harmless; gated jobs resolve either scope).
 
 ## Bootstrap order (fresh)
 

@@ -1,9 +1,12 @@
 name: CD - Infra Deploy (workload)
-# Deploys the disposable workload (Postgres + EventStore + Container Apps env +
-# WebApp + budget) to Azure via OIDC. The WebApp image is built and pushed to the
-# PERSISTENT ACR separately by CI (build-image.yml) — this workflow only *deploys*
-# it (build-once, deploy-many). The persistent ACR / Key Vault / identity are
-# resolved from the persistent resource group and passed into the deploy.
+# Full-stack workload deploy (Postgres + EventStore + Container Apps env + WebApp +
+# budget) via ARM/OIDC. Runs for INFRA changes (infra/** paths) and the scheduled
+# morning re-provision (infra-schedule.yml) — NOT for everyday image rolls, which go
+# through the fast CD - App Release (app-release.yml). Stays gated on `production`.
+#
+# The WebApp image is built and pushed to the PERSISTENT ACR separately by CI
+# (build-image.yml) — this workflow only *deploys* it (build-once, deploy-many). The
+# persistent ACR / Key Vault / identity are resolved from the persistent RG.
 #
 # image_tag defaults to `latest` (the most recent image CI published); pass a
 # specific git SHA to roll back to an exact build.

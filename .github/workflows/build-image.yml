@@ -1,15 +1,20 @@
 name: CI - Image
 
-# Builds the WebApp image and pushes it to the PERSISTENT ACR (private), then
-# chains the CD deploy of that exact image via `workflow_call` — build-once,
-# deploy-many. Using `needs:`/`workflow_call` (not `workflow_run`) means CD runs
-# in the same logical run, shares context, deploys the exact <sha> just built, and
-# shows up under this run rather than detached on the default branch.
+# Builds the WebApp image and pushes it to the PERSISTENT ACR (private), then chains
+# the fast CD - App Release of that exact image via `workflow_call` — build-once,
+# deploy-many. App Release does only `az containerapp update` (no ARM), so this path
+# is fast and cannot touch the database / networking. Topology/config changes go
+# through CD - Infra Deploy (workload) on infra/** changes instead.
+#
+# Using `needs:`/`workflow_call` (not `workflow_run`) means the release runs in the
+# same logical run, shares context, rolls the exact <sha> just built, and shows up
+# under this run rather than detached on the default branch.
 #
 # The image survives the nightly RG teardown (the ACR is in the persistent RG), so
 # the scheduled morning re-provision redeploys an existing image without rebuilding.
 #
-# No-ops until enabled: gated on the repository variable DEPLOY_ENABLED == 'true'.
+# Auto-deploy: no approval gate (so OIDC ids come from REPOSITORY variables, not the
+# gated `production` environment). No-ops until enabled: gated on DEPLOY_ENABLED.
 on:
   push:
     branches: [main]
@@ -29,7 +34,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     if: ${{ vars.DEPLOY_ENABLED == 'true' }}
-    environment: production
+    # No environment → no approval gate. Building/pushing an image is harmless (it
+    # doesn't affect the running app); OIDC ids are read from repository variables.
     env:
       AZURE_PERSISTENT_RESOURCE_GROUP: ${{ vars.AZURE_PERSISTENT_RESOURCE_GROUP }}
       IMAGE_TAG: ${{ github.sha }}
@@ -58,11 +64,10 @@ jobs:
           docker push "${login}/webapp:latest"
           echo "### Image published: \`${login}/webapp:${IMAGE_TAG}\` (+ :latest)" >> "$GITHUB_STEP_SUMMARY"
 
-  # CD: deploy the exact image just built. Reusable CD is itself gated on
-  # DEPLOY_ENABLED and reads Azure config from the production environment.
-  deploy:
+  # CD: roll the live WebApp to the exact image just built (fast, no ARM, ungated).
+  release:
     needs: build
-    uses: ./.github/workflows/infra-deploy.yml
+    uses: ./.github/workflows/app-release.yml
     with:
       image_tag: ${{ github.sha }}
     secrets: inherit

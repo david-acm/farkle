@@ -317,6 +317,13 @@ Runs **in parallel** with the `CI - Tests` workflow. It builds `Farkle.E2eTests`
 ### `.github/workflows/codeql.yml` (name: **CI - CodeQL**)
 Runs on push/PR to `main` and weekly (Mon 08:00 UTC). Builds the solution and runs CodeQL C# analysis.
 
+### Deployment (CD) — two paths
+Deploys to Azure run on push to `main` (full runbook in [`infra/OPERATIONS.md`](../infra/OPERATIONS.md)). The line is *resource topology/config vs. just the running app version*:
+- **`CD - App Release` (`app-release.yml`)** — the everyday path. A `src/**` change triggers **`CI - Image`** (`build-image.yml`), which builds/pushes `webapp:<sha>` + `:latest` to the persistent ACR, then chains App Release: a fast `az containerapp update --image …:<sha>` (no ARM, seconds). It is **ungated** (auto-deploys; gated only by `DEPLOY_ENABLED`), so its OIDC ids come from **repository** variables, not the gated `production` environment.
+- **`CD - Infra Deploy (workload)` (`infra-deploy.yml`)** — full-stack ARM (`az deployment sub create`) for `infra/**` changes and the scheduled re-provision. Stays **gated** on `production` (required reviewer) and keeps the real secrets (`JWT_SECRET`, `PG_ADMIN_PASSWORD`).
+
+Both share a `concurrency: cd-deploy` lock so they never run at once; since `:<sha>` and `:latest` are pushed together and full deploys use `:latest`, the two never diverge (an infra deploy never reverts an app release).
+
 ### Diagnosing E2E Failures
 The `e2e` job uploads:
 

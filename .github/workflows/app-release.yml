@@ -1,0 +1,96 @@
+name: CD - App Release
+
+# Fast app-version roll: points the already-provisioned WebApp container app at a
+# newly built image via `az containerapp update` (seconds, tiny blast radius). This
+# is the everyday deploy for src/** changes — it does NOT run ARM, so it cannot touch
+# Postgres / EventStore / networking. Full-stack changes go through CD - Infra Deploy
+# (workload) instead.
+#
+# Ungated by design (auto-deploy on push, gated only by DEPLOY_ENABLED). It reads the
+# OIDC identifiers from REPOSITORY variables (not the gated `production` environment),
+# so it needs no manual approval. Rolling back = re-run with a prior image_tag (SHA).
+#
+# Assumes the workload is already provisioned. If the disposable RG was torn down for
+# cost-saving, it skips cleanly — the image is in ACR (:<sha> + :latest) and the next
+# Ops - Infra Schedule provision picks it up.
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Image tag to roll to (a git SHA, or latest)'
+        required: false
+        default: 'latest'
+  workflow_call:
+    inputs:
+      image_tag:
+        description: 'Image tag to roll to (a git SHA, or latest)'
+        required: false
+        type: string
+        default: 'latest'
+
+permissions:
+  id-token: write
+  contents: read
+
+# Share the CD lock with infra-deploy so an app release never races a full infra deploy.
+concurrency:
+  group: cd-deploy
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Roll WebApp image
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: ${{ vars.DEPLOY_ENABLED == 'true' }}
+    env:
+      AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+      AZURE_PERSISTENT_RESOURCE_GROUP: ${{ vars.AZURE_PERSISTENT_RESOURCE_GROUP }}
+      IMAGE_TAG: ${{ inputs.image_tag || 'latest' }}
+
+    steps:
+      - name: Validate required configuration
+        run: |
+          : "${AZURE_RESOURCE_GROUP:?Set the AZURE_RESOURCE_GROUP variable (the disposable RG) in repo settings}"
+          : "${AZURE_PERSISTENT_RESOURCE_GROUP:?Set the AZURE_PERSISTENT_RESOURCE_GROUP variable (e.g. rg-hotdice-eus2-shared) in repo settings}"
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Roll the WebApp container to the new image
+        run: |
+          set -euo pipefail
+
+          # Resolve the persistent ACR (image source) and the live WebApp container app.
+          acr=$(az acr list -g "$AZURE_PERSISTENT_RESOURCE_GROUP" --query '[0].loginServer' -o tsv)
+          if [ -z "$acr" ]; then
+            echo "::error::Persistent ACR not found in '$AZURE_PERSISTENT_RESOURCE_GROUP'. Deploy infra-persistent.yml first."
+            exit 1
+          fi
+
+          app=$(az containerapp list -g "$AZURE_RESOURCE_GROUP" \
+            --query "[?contains(name,'web')].name | [0]" -o tsv 2>/dev/null || true)
+          if [ -z "$app" ]; then
+            echo "::notice::Workload not provisioned in '$AZURE_RESOURCE_GROUP' — nothing to roll. The image is in ACR as ${acr}/webapp:${IMAGE_TAG} (+ :latest) and will be picked up on the next provision."
+            echo "### Skipped: workload not provisioned. Image \`${acr}/webapp:${IMAGE_TAG}\` is in ACR; next provision will deploy it." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          # Unique revision suffix → a fresh single-active revision that re-pulls the image.
+          short="${IMAGE_TAG:0:7}"
+          suffix="r${short}-${{ github.run_id }}"
+
+          az containerapp update \
+            --name "$app" \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --image "${acr}/webapp:${IMAGE_TAG}" \
+            --revision-suffix "$suffix" \
+            --output none
+
+          fqdn=$(az containerapp show -n "$app" -g "$AZURE_RESOURCE_GROUP" \
+            --query 'properties.configuration.ingress.fqdn' -o tsv)
+          echo "### WebApp rolled: https://${fqdn} → image tag \`${IMAGE_TAG}\` (revision \`${suffix}\`)" >> "$GITHUB_STEP_SUMMARY"
