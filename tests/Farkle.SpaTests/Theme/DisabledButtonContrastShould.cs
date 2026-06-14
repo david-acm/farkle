@@ -1,6 +1,5 @@
 using FluentAssertions;
 using MudBlazor;
-using MudBlazor.Utilities;
 using WebApp.Client.Layout;
 using Xunit;
 
@@ -25,10 +24,10 @@ public class DisabledButtonContrastShould
   public void KeepDisabledLabelLegible_AgainstItsDisabledBackground()
   {
     var pageBackground = Palette.Background;
-    var disabledBackground = CompositeOver(Palette.ActionDisabledBackground, pageBackground);
-    var disabledText = CompositeOver(Palette.ActionDisabled, disabledBackground);
+    var disabledBackground = ContrastMath.CompositeOver(Palette.ActionDisabledBackground, pageBackground);
+    var disabledText = ContrastMath.CompositeOver(Palette.ActionDisabled, disabledBackground);
 
-    ContrastRatio(disabledText, disabledBackground)
+    ContrastMath.Ratio(disabledText, disabledBackground)
       .Should().BeGreaterThanOrEqualTo(4.5,
         "a disabled button's label/icon must stay readable on the dark theme");
   }
@@ -37,41 +36,10 @@ public class DisabledButtonContrastShould
   public void KeepDisabledButtonVisible_AgainstThePageBackground()
   {
     var pageBackground = Palette.Background;
-    var disabledBackground = CompositeOver(Palette.ActionDisabledBackground, pageBackground);
+    var disabledBackground = ContrastMath.CompositeOver(Palette.ActionDisabledBackground, pageBackground);
 
-    ContrastRatio(disabledBackground, pageBackground)
+    ContrastMath.Ratio(disabledBackground, pageBackground)
       .Should().BeGreaterThanOrEqualTo(1.2,
         "a disabled button must still be distinguishable from the page background");
-  }
-
-  // Alpha-composite `foreground` (which may be semi-transparent) over an opaque
-  // `background`, returning an opaque colour.
-  private static MudColor CompositeOver(MudColor foreground, MudColor background)
-  {
-    var a = foreground.A / 255.0;
-    var r = (foreground.R * a) + (background.R * (1 - a));
-    var g = (foreground.G * a) + (background.G * (1 - a));
-    var b = (foreground.B * a) + (background.B * (1 - a));
-    return new MudColor((byte)Math.Round(r), (byte)Math.Round(g), (byte)Math.Round(b), (byte)255);
-  }
-
-  private static double ContrastRatio(MudColor a, MudColor b)
-  {
-    var la = RelativeLuminance(a);
-    var lb = RelativeLuminance(b);
-    var (lighter, darker) = la >= lb ? (la, lb) : (lb, la);
-    return (lighter + 0.05) / (darker + 0.05);
-  }
-
-  // WCAG 2.x relative luminance.
-  private static double RelativeLuminance(MudColor c)
-  {
-    double Channel(double v)
-    {
-      v /= 255.0;
-      return v <= 0.03928 ? v / 12.92 : Math.Pow((v + 0.055) / 1.055, 2.4);
-    }
-
-    return (0.2126 * Channel(c.R)) + (0.7152 * Channel(c.G)) + (0.0722 * Channel(c.B));
   }
 }
