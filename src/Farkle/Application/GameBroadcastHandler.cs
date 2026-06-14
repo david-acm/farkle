@@ -38,7 +38,17 @@ internal sealed class GameBroadcastHandler : Eventuous.Subscriptions.EventHandle
     On<GameEvents.V1.TurnPassed>(ctx =>
       BroadcastAsync(ctx, (s, ct) =>
         _broadcaster.BroadcastTurnChangedAsync(PassTurnMapper.ToPassTurnResponse(s, ctx.Message.PlayerId), ct)));
+
+    // Rolls and keeps push the full table snapshot to everyone so off-turn players see the
+    // in-turn player's dice live (#157). Both V1 and V2 of each event (the app rolls V2).
+    On<GameEvents.V2.DiceRolled>(ctx => BroadcastTable(ctx));
+    On<GameEvents.V1.DiceRolled>(ctx => BroadcastTable(ctx));
+    On<GameEvents.V2.DiceKept>(ctx => BroadcastTable(ctx));
+    On<GameEvents.V1.DiceKept>(ctx => BroadcastTable(ctx));
   }
+
+  private ValueTask BroadcastTable<T>(MessageConsumeContext<T> ctx) where T : class =>
+    BroadcastAsync(ctx, (s, ct) => _broadcaster.BroadcastTableChangedAsync(GameStateMapper.ToGameState(s), ct));
 
   // Seam: load current state by replaying the aggregate, then run the broadcast. A future
   // GameView read model would replace LoadStateAsync here without touching the wiring (#88).
