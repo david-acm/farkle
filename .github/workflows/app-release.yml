@@ -33,8 +33,10 @@ permissions:
   contents: read
 
 # Share the CD lock with infra-deploy so an app release never races a full infra deploy.
+# (Renamed from "cd-deploy": that group got wedged on GitHub's side when two CI - Image
+# runs raced it and one was cancelled mid-queue, after which it stopped dispatching.)
 concurrency:
-  group: cd-deploy
+  group: workload-deploy
   cancel-in-progress: false
 
 jobs:

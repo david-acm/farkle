@@ -41,9 +41,10 @@ permissions:
   id-token: write
   contents: read
 
-# Serialise deploys so a CI-triggered deploy and an infra push don't race on the RG.
+# Serialise deploys (shared with app-release) so a workload deploy and an app-image roll
+# never race on the RG. Renamed from "cd-deploy" after that group wedged on GitHub's side.
 concurrency:
-  group: cd-deploy
+  group: workload-deploy
   cancel-in-progress: false
 
 jobs:
