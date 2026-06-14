@@ -9,7 +9,7 @@ using WebApp.Auth;
 
 namespace Farkle.WebTests;
 
-public class GameApiWebAppFactory : WebApplicationFactory<Program>
+public class GameApiWebAppFactory : FarkleWebApplicationFactory
 {
   private static Dictionary<string, string> Variables => new()
   {

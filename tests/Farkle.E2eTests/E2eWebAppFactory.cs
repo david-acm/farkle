@@ -115,12 +115,15 @@ public class E2EWebAppFactory : WebApplicationFactory<Program>
 
     public override async ValueTask DisposeAsync()
     {
+        // Both hosts run the broadcast subscription, whose shutdown trips a known Eventuous
+        // 0.15.0-beta bug (CheckpointCommitHandler double-disposes a CancellationTokenSource).
+        // Harmless at teardown — swallow just that so it doesn't fail fixture cleanup.
         if (_kestrelHost != null)
         {
-            await _kestrelHost.StopAsync();
+            try { await _kestrelHost.StopAsync(); } catch (ObjectDisposedException) { }
             _kestrelHost.Dispose();
         }
 
-        await base.DisposeAsync();
+        try { await base.DisposeAsync(); } catch (ObjectDisposedException) { }
     }
 }
