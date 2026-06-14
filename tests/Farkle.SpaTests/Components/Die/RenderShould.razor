@@ -33,6 +33,27 @@ Learn more at https://bunit.dev/docs/getting-started/writing-tests.html#creating
   }
 
   [Fact]
+  public async Task ConsumeAnimateFlagOnceRolled_SoItCannotReSpin()
+  {
+    // After playing the roll animation the die raises OnAnimated, letting the owner
+    // clear the model flag. This one-shot is what prevents a re-spin when the drop
+    // container recreates the component on a later (e.g. sibling-move) re-render.
+    var mock = Mock.Of<IRotationCalculator>();
+    Mock.Get(mock).Setup(c => c.CalculateFor(It.IsAny<DieValue>(), true)).Returns((1, 2, 3));
+    Services.AddScoped<IRotationCalculator>(_ => mock);
+
+    var signalled = new TaskCompletionSource();
+    Render<Die>(c => c
+      .Add(d => d.DieValue, DieValue.One)
+      .Add(d => d.Animate,  true)
+      .Add(d => d.AnimationDurationMs, 10)
+      .Add(d => d.OnAnimated, EventCallback.Factory.Create(this, () => signalled.TrySetResult())));
+
+    var done = await Task.WhenAny(signalled.Task, Task.Delay(1000));
+    done.Should().Be(signalled.Task, "a rolled die must raise OnAnimated so the flag is consumed");
+  }
+
+  [Fact]
   public void ReRollRotatesToTheNewFace()
   {
     // A re-roll lands a new value on an already-rendered die (its instance is
