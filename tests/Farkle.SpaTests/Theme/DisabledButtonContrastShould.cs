@@ -1,6 +1,5 @@
 using FluentAssertions;
 using MudBlazor;
-using MudBlazor.Utilities;
 using WebApp.Client.Layout;
 using Xunit;
 
@@ -24,7 +23,7 @@ public class DisabledButtonContrastShould
   [Fact]
   public void KeepDisabledLabelLegible_AgainstItsDisabledBackground()
   {
-    var pageBackground = (MudColor)Palette.Background;
+    var pageBackground = Palette.Background;
     var disabledBackground = ContrastMath.CompositeOver(Palette.ActionDisabledBackground, pageBackground);
     var disabledText = ContrastMath.CompositeOver(Palette.ActionDisabled, disabledBackground);
 
@@ -36,7 +35,7 @@ public class DisabledButtonContrastShould
   [Fact]
   public void KeepDisabledButtonVisible_AgainstThePageBackground()
   {
-    var pageBackground = (MudColor)Palette.Background;
+    var pageBackground = Palette.Background;
     var disabledBackground = ContrastMath.CompositeOver(Palette.ActionDisabledBackground, pageBackground);
 
     ContrastMath.Ratio(disabledBackground, pageBackground)
