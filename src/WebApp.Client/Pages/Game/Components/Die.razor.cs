@@ -1,15 +1,18 @@
+using System.Threading;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using WebApp.Client.Services;
 
 namespace WebApp.Client.Pages.Game.Components;
 
-public partial class Die
+public partial class Die : IDisposable
 {
   private string          _id     = new(Guid.NewGuid().ToString().Where(c => !char.IsDigit(c)).ToArray());
   private DieValue       _number = DieValue.None;
   private (int, int, int) _rotation;
   private double          _scale = 1;
+  private Timer?          _spinTimer;
+  private Timer?          _consumeTimer;
   
   [Parameter] public DieValue DieValue { get; set; } = null!;
   
@@ -78,14 +81,24 @@ public partial class Die
     if (!firstRender || !_animate || _rotated) return;
 
     // 1) After the neutral paint, rotate to the face → the CSS transition animates the roll.
-    _ = new Timer(_ => InvokeAsync(() => { RotateToValue(); StateHasChanged(); }), null, 0, -1);
+    _spinTimer = new Timer(_ => InvokeAsync(() => { RotateToValue(); StateHasChanged(); }),
+      null, 0, Timeout.Infinite);
 
     // 2) After the transition finishes, ask the owner to clear the model's Animate flag
     //    (a one-shot), so a later recreation of this component renders statically. Doing
     //    this only once the spin is done means the clear-driven re-render can't cut it.
-    _ = new Timer(_ => InvokeAsync(() =>
+    _consumeTimer = new Timer(_ => InvokeAsync(() =>
       OnAnimated.HasDelegate ? OnAnimated.InvokeAsync() : Task.CompletedTask),
-      null, AnimationDurationMs, -1);
+      null, AnimationDurationMs, Timeout.Infinite);
+  }
+
+  // Blazor disposes the component when it is removed (e.g. recreated for a zone move).
+  // Dispose the one-shot timers so they don't leak — important because a die's
+  // component is recreated whenever it is dragged to another zone.
+  public void Dispose()
+  {
+    _spinTimer?.Dispose();
+    _consumeTimer?.Dispose();
   }
 
   private void RotateToValue()
