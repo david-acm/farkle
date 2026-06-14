@@ -57,7 +57,14 @@ public partial class Die
 
   protected override void OnAfterRender(bool firstRender)
   {
-    if (firstRender && _animate) { RotateToValue(); StateHasChanged(); }
+    // A freshly rolled die rendered at its neutral orientation. Rotate to the face on
+    // a *later* tick (Timer) so the browser paints the neutral state first — the CSS
+    // transition then has a "from" state and animates the roll. Doing this inline
+    // (synchronous StateHasChanged) renders the final rotation in the same frame, so
+    // no transition fires and the roll looks static. Gated on _animate, so settled or
+    // moved dice (which set their face synchronously in OnParametersSet) never spin.
+    if (firstRender && _animate && !_rotated)
+      _ = new Timer(_ => { RotateToValue(); InvokeAsync(StateHasChanged); }, null, 0, -1);
   }
 
   private void RotateToValue()
