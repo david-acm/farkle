@@ -11,6 +11,7 @@ public sealed class GameHubService(HttpClient http) : IGameHubService
     public event Action<PassTurnResponse>? OnTurnChanged;
     public event Action<LobbyStateResponse>? OnPlayerJoined;
     public event Action<LobbyStateResponse>? OnGameBegan;
+    public event Action<GameStateResponse>? OnTableChanged;
 
     public async Task ConnectAsync(int gameId)
     {
@@ -27,6 +28,8 @@ public sealed class GameHubService(HttpClient http) : IGameHubService
             payload => OnPlayerJoined?.Invoke(payload));
         _connection.On<LobbyStateResponse>("GameBegan",
             payload => OnGameBegan?.Invoke(payload));
+        _connection.On<GameStateResponse>("TableChanged",
+            payload => OnTableChanged?.Invoke(payload));
 
         // After an automatic reconnect the connection has a *new* connection id, so
         // the server-side group membership (game-{gameId}) is lost. Re-join the game

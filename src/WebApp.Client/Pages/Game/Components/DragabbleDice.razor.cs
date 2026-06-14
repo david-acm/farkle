@@ -15,6 +15,10 @@ public partial class DragabbleDice : BlazorStateComponent
 
   private async Task ItemUpdatedAsync(MudItemDropInfo<DraggableDie> dropItem)
   {
+    // Off-turn players see the live table read-only (#158); their drags are spectator
+    // noise and must never reach the store — RemoteTableChanged owns their dice.
+    if (!GameState.IsMyTurn) return;
+
     var item       = Guard.Against.Null(dropItem.Item);
     var identifier = dropItem.DropzoneIdentifier;
 
