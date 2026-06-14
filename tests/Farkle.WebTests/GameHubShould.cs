@@ -101,6 +101,43 @@ public class GameHubShould : IClassFixture<GameApiWebAppFactory>
     }
 
     [Fact]
+    public async Task BroadcastsTableChangedWhenTheInTurnPlayerRolls()
+    {
+        // Any player in the game group (here, a spectator-style connection) should receive the
+        // in-turn player's rolls live via the TableChanged snapshot (#157).
+        var gameId = (await _client.Api.Games.PostAsync())!.Id!.Value;
+
+        var connection = new HubConnectionBuilder()
+            .WithUrl("http://localhost/hubs/game",
+                o => o.HttpMessageHandlerFactory = _ => _factory.Server.CreateHandler())
+            .Build();
+
+        var tcs = new TaskCompletionSource<GameStateResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
+        connection.On<GameStateResponse>("TableChanged", payload => tcs.TrySetResult(payload));
+
+        await connection.StartAsync();
+        await connection.InvokeAsync("JoinGame", gameId);
+
+        var player1 = (await _client.Api.Games[gameId].Players.PostAsync(
+            new FarkleContractsHttpRequests_JoinPlayerRequest { PlayerName = "David" }))?.Id ?? 0;
+        await _client.Api.Games[gameId].Players.PostAsync(
+            new FarkleContractsHttpRequests_JoinPlayerRequest { PlayerName = "Allison" });
+        await _client.Api.Games[gameId].Start.PostAsync(
+            new FarkleContractsHttpRequests_BeginGameRequest { PlayerId = 1 });
+
+        await _client.Api.Games[gameId].Players[player1].Rolls.PostAsync();
+
+        var completed = await Task.WhenAny(tcs.Task, Task.Delay(5_000));
+        Assert.True(completed == tcs.Task, "Hub did not broadcast TableChanged within 5 seconds");
+
+        var table = await tcs.Task;
+        Assert.Equal(gameId, table.GameId);
+        Assert.Equal(6, table.TableCenter.Count); // a fresh roll puts all six dice in the centre
+
+        await connection.DisposeAsync();
+    }
+
+    [Fact]
     public async Task BroadcastsPlayerJoinedWhenAPlayerJoins()
     {
         var gameId = (await _client.Api.Games.PostAsync())!.Id!.Value;
