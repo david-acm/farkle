@@ -39,7 +39,12 @@
     align-items: flex-end;
     justify-content: center;
     gap: 0.5rem;
-    overflow: hidden;
+    /* Do NOT clip the zone: MudBlazor uses native HTML5 drag-and-drop, and the
+       browser crops the dragged die's drag-feedback image to the visible region
+       of its ancestors. Clipping the overflow here cut the dragged die off so it
+       looked hidden behind the zones (#140). The six dice are sized to fit the
+       reserved height, so nothing spills in the resting state. */
+    overflow: visible;
 
     border-radius: 8px;
     background: #111128;
@@ -47,6 +52,14 @@
 
 .dice-area ::deep .zone--aside {
     border: 2px dashed #FFE600;
+}
+
+/* While a die is being dragged, lift it above the sibling drop zone's opaque
+   background so the in-flow item is never obscured. MudBlazor applies this class
+   to the dragged item via the container's ItemDraggingClass (#140). */
+.dice-area ::deep .die-dragging {
+    position: relative;
+    z-index: 1000;
 }
 
 /* Title pinned to the top of the zone, out of the dice flex flow, so it stays
