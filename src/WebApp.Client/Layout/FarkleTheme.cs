@@ -27,6 +27,12 @@ public static class FarkleTheme
       TextSecondary    = "#8888BB",
       TableLines       = "#222244",
       Divider          = "#222244",
+      // Dark-theme disabled colours. Without these MudBlazor falls back to its
+      // near-black light-theme defaults, which vanish on the dark background
+      // (#146). A muted slate background keeps the disabled button visible, and
+      // the lighter slate text/icon stays legible on it (~5:1 contrast).
+      ActionDisabledBackground = "#2A2A45",
+      ActionDisabled           = "#9A9AC8",
     },
     Typography = new Typography
     {
