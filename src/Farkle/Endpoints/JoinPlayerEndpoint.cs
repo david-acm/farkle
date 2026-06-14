@@ -8,8 +8,7 @@ namespace Farkle.Endpoints;
 
 internal class JoinPlayerEndpoint(
   ILogger<JoinPlayerEndpoint> logger,
-  IGameService                service,
-  IGameEventBroadcaster       broadcaster)
+  IGameService                service)
   : TypedEndpoint<JoinPlayerRequest, JoinPlayerResponse>
 {
   public override void Configure()
@@ -22,13 +21,14 @@ internal class JoinPlayerEndpoint(
     logger.LogInformation("ℹ️ Game: {gameId}. Joining player with name: {playerName}", req.GameId, req.PlayerName);
     var command = new Command.JoinPlayer(req.GameId, req.PlayerName);
 
-    // Capture the lobby snapshot via closure — set only on success (mapper not called on error).
-    LobbyStateResponse? lobby = null;
+    // The PlayerJoined broadcast now fires from the Eventuous subscription
+    // (GameBroadcastHandler) after the event is committed — the endpoint only returns
+    // the HTTP response (#88).
     var result = await service
       .HandleAsync<Command.JoinPlayer, JoinPlayerResponse>(command, ct,
         s =>
         {
-          lobby = LobbyMapper.ToLobbyState(s);
+          var lobby = LobbyMapper.ToLobbyState(s);
           return new JoinPlayerResponse(
             s.Players.Last().Id,
             s.PlayerInTurn,
@@ -36,18 +36,6 @@ internal class JoinPlayerEndpoint(
             lobby.Stage,
             lobby.Roster);
         });
-
-    if (lobby is not null)
-    {
-      try
-      {
-        await broadcaster.BroadcastPlayerJoinedAsync(lobby, ct);
-      }
-      catch (Exception ex)
-      {
-        logger.LogWarning(ex, "Failed to broadcast PlayerJoined for game {GameId}", req.GameId);
-      }
-    }
 
     await SendResultAsync(result);
   }

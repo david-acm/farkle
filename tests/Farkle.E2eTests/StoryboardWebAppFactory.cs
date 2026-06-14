@@ -36,6 +36,9 @@ public sealed class StoryboardWebAppFactory : WebApplicationFactory<Program>
                 ["Storyboard:SkipIdentitySeed"] = "true",
                 // Keep the game endpoints anonymous so the UI renders without logging in.
                 ["Auth:RequireAuthorization"]   = "false",
+                // No EventStore here (in-memory aggregate store), so disable the broadcast
+                // subscription — it needs the EventStoreClient and would fail host startup.
+                ["Farkle:RealtimeBroadcastEnabled"] = "false",
                 // Dummy connection strings: present so option binding succeeds, never contacted.
                 ["ConnectionStrings:Identity"]  = "Host=localhost;Database=storyboard;Username=u;Password=p",
                 ["ConnectionStrings:Esdb"]      = "esdb://localhost:2113?tls=false",
@@ -53,6 +56,19 @@ public sealed class StoryboardWebAppFactory : WebApplicationFactory<Program>
             RemoveAll(services, typeof(IEventStore));
             RemoveAll(services, typeof(EsdbEventStore));
             RemoveAll(services, typeof(EventStoreClient));
+
+            // Drop the broadcast subscription's hosted service — with no EventStoreClient it
+            // would NRE on startup. Eventuous registers it as the only *factory-based*
+            // IHostedService (no ImplementationType); the framework's own hosted services
+            // (health-check publisher, data protection, the web host) all have concrete types.
+            // (A config gate can't reach here: AddFarkleModuleServices reads config before the
+            // test's ConfigureAppConfiguration is merged.)
+            foreach (var hosted in services
+                         .Where(d => d.ServiceType == typeof(IHostedService)
+                                     && d.ImplementationFactory is not null
+                                     && d.ImplementationType is null)
+                         .ToList())
+                services.Remove(hosted);
 
             services.AddSingleton<IAggregateStore, InMemoryAggregateStore>();
         });

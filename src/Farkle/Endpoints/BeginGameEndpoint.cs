@@ -8,8 +8,7 @@ namespace Farkle.Endpoints;
 
 internal class BeginGameEndpoint(
   ILogger<BeginGameEndpoint> logger,
-  IGameService               service,
-  IGameEventBroadcaster      broadcaster)
+  IGameService               service)
   : TypedEndpoint<BeginGameRequest, LobbyStateResponse>
 {
   public override void Configure()
@@ -22,27 +21,12 @@ internal class BeginGameEndpoint(
     logger.LogInformation("ℹ️ Game {gameId}. Player {playerId} starting play", req.GameId, req.PlayerId);
     var command = new Command.BeginGame(req.GameId, req.PlayerId);
 
-    // Capture the mapped lobby via closure — set only on success (mapper not called on error).
-    LobbyStateResponse? began = null;
+    // The GameBegan broadcast now fires from the Eventuous subscription
+    // (GameBroadcastHandler) after the event is committed — the endpoint only returns
+    // the HTTP response (#88).
     var result = await service
       .HandleAsync<Command.BeginGame, LobbyStateResponse>(command, ct,
-        s =>
-        {
-          began = LobbyMapper.ToLobbyState(s);
-          return began;
-        });
-
-    if (began is not null)
-    {
-      try
-      {
-        await broadcaster.BroadcastGameBeganAsync(began, ct);
-      }
-      catch (Exception ex)
-      {
-        logger.LogWarning(ex, "Failed to broadcast GameBegan for game {GameId}", req.GameId);
-      }
-    }
+        LobbyMapper.ToLobbyState);
 
     await SendResultAsync(result);
   }

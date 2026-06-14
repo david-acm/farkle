@@ -31,7 +31,7 @@ public sealed class ScriptedGameIdGenerator : IGameIdGenerator
 // Factory variant that overrides IGameIdGenerator with a scripted sequence:
 // [424242, 424242, 424243] — the second create collides on 424242 and must
 // retry, landing on 424243.
-public sealed class ScriptedIdGameApiWebAppFactory : WebApplicationFactory<Program>
+public sealed class ScriptedIdGameApiWebAppFactory : FarkleWebApplicationFactory
 {
     private static readonly ScriptedGameIdGenerator Scripted =
         new(424242, 424242, 424243);
