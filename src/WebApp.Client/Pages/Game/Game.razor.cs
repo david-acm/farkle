@@ -119,6 +119,7 @@ public partial class Game : BlazorStateComponent, IAsyncDisposable
     GameHubService.OnTurnChanged  += HandleTurnChanged;
     GameHubService.OnPlayerJoined += HandlePlayerJoined;
     GameHubService.OnGameBegan    += HandleGameBegan;
+    GameHubService.OnTableChanged += HandleTableChanged;
     await GameHubService.ConnectAsync(ParameterGameId);
   }
 
@@ -194,11 +195,25 @@ public partial class Game : BlazorStateComponent, IAsyncDisposable
     }
   }
 
+  private async void HandleTableChanged(GameStateResponse payload)
+  {
+    try
+    {
+      await InvokeAsync(async () =>
+        await Mediator.Send(new GameState.RemoteTableChanged.Action(payload)));
+    }
+    catch (Exception ex)
+    {
+      Logger.LogWarning(ex, "RemoteTableChanged failed for game {GameId}", GameId);
+    }
+  }
+
   public async ValueTask DisposeAsync()
   {
     GameHubService.OnTurnChanged -= HandleTurnChanged;
     GameHubService.OnPlayerJoined -= HandlePlayerJoined;
     GameHubService.OnGameBegan -= HandleGameBegan;
+    GameHubService.OnTableChanged -= HandleTableChanged;
     await GameHubService.DisconnectAsync();
   }
 }

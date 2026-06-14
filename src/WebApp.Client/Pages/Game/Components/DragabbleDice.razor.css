@@ -11,6 +11,13 @@
     height: 100%;
 }
 
+/* Off-turn spectators (#158) see the live table but can't drag — the dice are a
+   read-only mirror of the in-turn player's board (the drop handler also no-ops). */
+.dice-area--readonly ::deep .mud-drop-item {
+    pointer-events: none;
+    cursor: default;
+}
+
 .dice-area ::deep .drop-zones {
     display: flex;
     flex-direction: column;

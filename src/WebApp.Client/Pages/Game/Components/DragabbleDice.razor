@@ -1,6 +1,6 @@
 @inherits BlazorState.BlazorStateComponent
 
-<div class="dice-area">
+<div class="dice-area @(GameState.IsMyTurn ? "" : "dice-area--readonly")">
   <MudDropContainer Class="drop-zones"
                     ItemDropped="ItemUpdatedAsync"
                     ItemDraggingClass="die-dragging"
