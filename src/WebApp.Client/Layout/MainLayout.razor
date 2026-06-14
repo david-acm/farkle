@@ -27,31 +27,5 @@
         _drawerOpen = !_drawerOpen;
     }
 
-    private static readonly MudTheme _theme = new()
-    {
-        PaletteLight = new PaletteLight
-        {
-            Primary          = "#FFE600",
-            PrimaryContrastText = "#0A0A1A",
-            PrimaryDarken    = "#CCB800",
-            PrimaryLighten   = "#FFF280",
-            Secondary        = "#FF2D6B",
-            Background       = "#0A0A1A",
-            Surface          = "#111128",
-            AppbarBackground = "#050510",
-            AppbarText       = "#FFFFFF",
-            DrawerBackground = "#070718",
-            DrawerText       = "#AAAACC",
-            TextPrimary      = "#E8E8FF",
-            TextSecondary    = "#8888BB",
-            TableLines       = "#222244",
-            Divider          = "#222244",
-        },
-        Typography = new Typography
-        {
-            H3 = new H3Typography { FontFamily = ["Press Start 2P", "monospace"] },
-            H5 = new H5Typography { FontFamily = ["Press Start 2P", "monospace"] },
-            H6 = new H6Typography { FontFamily = ["Press Start 2P", "monospace"] },
-        }
-    };
+    private static readonly MudTheme _theme = FarkleTheme.Theme;
 }
