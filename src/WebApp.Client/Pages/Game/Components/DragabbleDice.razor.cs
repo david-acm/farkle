@@ -23,4 +23,14 @@ public partial class DragabbleDice : BlazorStateComponent
 
     Logger.LogDebug("Dropped item with identifier: {identifier}", identifier);
   }
+
+  // A die finished its roll animation. Clear the one-shot Animate flag (via the
+  // handler) so dice render statically on later re-renders/zone moves. All dice
+  // finish ~together, so guard on "is there anything left to consume" to dispatch
+  // once instead of once per die.
+  private async Task ConsumeRollAnimationAsync()
+  {
+    if (!GameState.DiceInPlay.Any(d => d.Animate)) return;
+    await Mediator.Send(new GameState.ConsumeRollAnimation.Action());
+  }
 }

@@ -1,15 +1,18 @@
+using System.Threading;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using WebApp.Client.Services;
 
 namespace WebApp.Client.Pages.Game.Components;
 
-public partial class Die
+public partial class Die : IDisposable
 {
   private string          _id     = new(Guid.NewGuid().ToString().Where(c => !char.IsDigit(c)).ToArray());
   private DieValue       _number = DieValue.None;
   private (int, int, int) _rotation;
   private double          _scale = 1;
+  private Timer?          _spinTimer;
+  private Timer?          _consumeTimer;
   
   [Parameter] public DieValue DieValue { get; set; } = null!;
   
@@ -20,6 +23,18 @@ public partial class Die
   // True only for a freshly rolled die: it plays the roll (spin) animation once.
   // Captured at init so a later model change can't retrigger the animation.
   [Parameter] public bool Animate { get; set; }
+
+  // Raised once the roll animation has *finished*, so the owner can dispatch an
+  // action that clears the model's Animate flag — making the spin a one-shot. This is
+  // what stops a die from re-spinning when the drop container recreates its component
+  // on a later re-render (e.g. when a sibling die is moved between zones). Fired after
+  // the transition completes so clearing the flag (and the resulting re-render) cannot
+  // cut the animation short.
+  [Parameter] public EventCallback OnAnimated { get; set; }
+
+  // Roll animation length; matches the `.die { transition: 1.4s }` in Die.razor.css.
+  // Exposed as a parameter so component tests can shrink the consume delay.
+  [Parameter] public int AnimationDurationMs { get; set; } = 1400;
 
   private bool _animate;
   private bool _rotated;
@@ -63,8 +78,27 @@ public partial class Die
     // (synchronous StateHasChanged) renders the final rotation in the same frame, so
     // no transition fires and the roll looks static. Gated on _animate, so settled or
     // moved dice (which set their face synchronously in OnParametersSet) never spin.
-    if (firstRender && _animate && !_rotated)
-      _ = new Timer(_ => { RotateToValue(); InvokeAsync(StateHasChanged); }, null, 0, -1);
+    if (!firstRender || !_animate || _rotated) return;
+
+    // 1) After the neutral paint, rotate to the face → the CSS transition animates the roll.
+    _spinTimer = new Timer(_ => InvokeAsync(() => { RotateToValue(); StateHasChanged(); }),
+      null, 0, Timeout.Infinite);
+
+    // 2) After the transition finishes, ask the owner to clear the model's Animate flag
+    //    (a one-shot), so a later recreation of this component renders statically. Doing
+    //    this only once the spin is done means the clear-driven re-render can't cut it.
+    _consumeTimer = new Timer(_ => InvokeAsync(() =>
+      OnAnimated.HasDelegate ? OnAnimated.InvokeAsync() : Task.CompletedTask),
+      null, AnimationDurationMs, Timeout.Infinite);
+  }
+
+  // Blazor disposes the component when it is removed (e.g. recreated for a zone move).
+  // Dispose the one-shot timers so they don't leak — important because a die's
+  // component is recreated whenever it is dragged to another zone.
+  public void Dispose()
+  {
+    _spinTimer?.Dispose();
+    _consumeTimer?.Dispose();
   }
 
   private void RotateToValue()
