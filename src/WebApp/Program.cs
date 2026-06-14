@@ -76,7 +76,9 @@ services
   });
 
 services.AddSignalR();
-services.AddScoped<Farkle.Application.IGameEventBroadcaster, WebApp.Hubs.SignalRGameEventBroadcaster>();
+// Singleton: it only wraps the singleton IHubContext<GameHub>, and it's now consumed by
+// the singleton Eventuous broadcast subscription (GameBroadcastHandler), not per-request.
+services.AddSingleton<Farkle.Application.IGameEventBroadcaster, WebApp.Hubs.SignalRGameEventBroadcaster>();
 
 // CORS: allow only the origins listed in Cors:AllowedOrigins (empty by default, so
 // no cross-origin access until configured). Never combine AllowAnyOrigin with
