@@ -143,7 +143,11 @@ public class GameHubShould : IClassFixture<GameApiWebAppFactory>
     {
         // #159 — set aside is a first-class command/event, so spectators see the in-turn
         // player's keep selection live via the TableChanged snapshot.
-        var gameId = (await _client.Api.Games.PostAsync())!.Id!.Value;
+        //
+        // The roll uses real randomness, so retry the setup until the first roll yields a
+        // scoring die (a 1 or 5) to set aside — an all-2/3/4/6 "Farkle" roll has nothing
+        // keepable and previously flaked this test (~9% of rolls).
+        var (gameId, player1, die) = await StartGameAndRollAScoringDieAsync();
 
         var connection = new HubConnectionBuilder()
             .WithUrl("http://localhost/hubs/game",
@@ -153,17 +157,7 @@ public class GameHubShould : IClassFixture<GameApiWebAppFactory>
         await connection.StartAsync();
         await connection.InvokeAsync("JoinGame", gameId);
 
-        var player1 = (await _client.Api.Games[gameId].Players.PostAsync(
-            new FarkleContractsHttpRequests_JoinPlayerRequest { PlayerName = "David" }))?.Id ?? 0;
-        await _client.Api.Games[gameId].Players.PostAsync(
-            new FarkleContractsHttpRequests_JoinPlayerRequest { PlayerName = "Allison" });
-        await _client.Api.Games[gameId].Start.PostAsync(
-            new FarkleContractsHttpRequests_BeginGameRequest { PlayerId = 1 });
-
-        var roll = await _client.Api.Games[gameId].Players[player1].Rolls.PostAsync();
-        var die  = (roll!.DiceValues ?? []).First(v => v == 1 || v == 5) ?? 0;
-
-        // Listen only after the roll so we capture the set-aside snapshot specifically.
+        // Listen for the set-aside snapshot specifically.
         var tcs = new TaskCompletionSource<GameStateResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
         connection.On<GameStateResponse>("TableChanged", payload =>
         {
@@ -181,6 +175,31 @@ public class GameHubShould : IClassFixture<GameApiWebAppFactory>
         Assert.Contains(die, table.DiceSetAside);
 
         await connection.DisposeAsync();
+    }
+
+    // Starts a two-player game and rolls once, retrying the whole setup until the roll
+    // contains a scoring die (a 1 or 5). Rolls use real randomness, so a fresh roll has
+    // no scoring die ~(4/6)^6 ≈ 9% of the time; ten attempts makes that astronomically
+    // unlikely while keeping the dice (and thus the assertions) real.
+    private async Task<(int gameId, int player1, int die)> StartGameAndRollAScoringDieAsync()
+    {
+        for (var attempt = 0; attempt < 10; attempt++)
+        {
+            var gameId = (await _client.Api.Games.PostAsync())!.Id!.Value;
+
+            var player1 = (await _client.Api.Games[gameId].Players.PostAsync(
+                new FarkleContractsHttpRequests_JoinPlayerRequest { PlayerName = "David" }))?.Id ?? 0;
+            await _client.Api.Games[gameId].Players.PostAsync(
+                new FarkleContractsHttpRequests_JoinPlayerRequest { PlayerName = "Allison" });
+            await _client.Api.Games[gameId].Start.PostAsync(
+                new FarkleContractsHttpRequests_BeginGameRequest { PlayerId = 1 });
+
+            var roll = await _client.Api.Games[gameId].Players[player1].Rolls.PostAsync();
+            var die = (roll!.DiceValues ?? []).FirstOrDefault(v => v == 1 || v == 5);
+            if (die is 1 or 5) return (gameId, player1, die.Value);
+        }
+
+        throw new InvalidOperationException("No scoring die (1 or 5) was rolled after 10 attempts.");
     }
 
     [Fact]
