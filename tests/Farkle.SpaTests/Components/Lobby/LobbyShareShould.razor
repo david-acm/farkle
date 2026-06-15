@@ -1,0 +1,65 @@
+@inherits GameBunitContext
+@using Moq
+@using WebApp.Client.Pages.Game
+@using WebApp.Client.Services
+
+@code {
+  // Issue #163 — the lobby offers a Share button and a join QR code.
+  //
+  // The share button uses the Web Share API when available and otherwise copies
+  // the join link. We drive the lobby through the real Game component and assert
+  // on the IShareService the component talks to (a mock), and on the rendered QR.
+
+  [Fact]
+  public void ShowTheJoinQrCode_InTheLobby()
+  {
+    Services.AddScoped(_ => Mock.Of<IShareService>());
+
+    var cut = Render(@<Game></Game>);
+    JoinLobby(cut, "Alice");
+
+    cut.FindAll("img[data-testid='join-qr']")
+      .Should().NotBeEmpty("the lobby should display a QR code to join");
+  }
+
+  [Fact]
+  public void ShareTheJoinLink_WhenNativeShareIsAvailable()
+  {
+    var share = new Mock<IShareService>();
+    share.Setup(s => s.ShareAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+         .ReturnsAsync(true); // native share handled it
+    Services.AddScoped(_ => share.Object);
+
+    var cut = Render(@<Game></Game>);
+    JoinLobby(cut, "Alice");
+
+    ClickShare(cut);
+
+    share.Verify(s => s.ShareAsync(
+        It.IsAny<string>(), It.IsAny<string>(), It.Is<string>(u => u.Contains("/games/"))),
+      Times.Once);
+    share.Verify(s => s.CopyAsync(It.IsAny<string>()), Times.Never,
+      "no clipboard fallback when the native share sheet handled it");
+  }
+
+  [Fact]
+  public void FallBackToCopy_WhenNativeShareIsUnavailable()
+  {
+    var share = new Mock<IShareService>();
+    share.Setup(s => s.ShareAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+         .ReturnsAsync(false); // no Web Share API
+    share.Setup(s => s.CopyAsync(It.IsAny<string>())).ReturnsAsync(true);
+    Services.AddScoped(_ => share.Object);
+
+    var cut = Render(@<Game></Game>);
+    JoinLobby(cut, "Alice");
+
+    ClickShare(cut);
+
+    share.Verify(s => s.CopyAsync(It.Is<string>(u => u.Contains("/games/"))), Times.Once,
+      "the join link must be copied when native sharing isn't available");
+  }
+
+  private static void ClickShare<T>(IRenderedComponent<T> cut) where T : Microsoft.AspNetCore.Components.IComponent =>
+    cut.FindAll("button").First(b => b.TextContent.Contains("Share")).Click();
+}
