@@ -7,6 +7,16 @@
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+
+    /* No-scroll (#176): cap the in-play screen to the *dynamic* viewport height so it never
+       grows past what's actually visible. `dvh` (not `vh`) excludes the mobile browser
+       chrome — on iPhone Safari/Edge `vh` counts the area behind the address/tool bars, so a
+       100vh layout overflows and the page becomes scrollable, which is what lets a drag get
+       interpreted as a scroll. The offset accounts for the app bar (~4rem) + MudMainContent
+       padding (~1rem). overflow:hidden + overscroll-behavior:none kill any residual scroll. */
+    max-height: calc(100dvh - 5rem);
+    overflow: hidden;
+    overscroll-behavior: none;
 }
 
 .play-header {

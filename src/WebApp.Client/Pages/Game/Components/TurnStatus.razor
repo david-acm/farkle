@@ -1,26 +1,11 @@
 @inherits BlazorState.BlazorStateComponent
 @using WebApp.Client.Features
 
+@* Whose turn it is is signalled by the 🎲 emoji next to the player in the Scoreboard
+   (#179); this just identifies the local player. *@
 <MudText Typo="Typo.subtitle2" Class="mb-1">
   Playing as: <strong>@GameState.PlayerName.Value</strong>
 </MudText>
-@{
-  var waitingFor = GameState.Scoreboard
-      .FirstOrDefault(p => p.PlayerId == GameState.CurrentPlayerId)?.Name
-      ?? $"Player {GameState.CurrentPlayerId}";
-}
-@if (GameState.IsMyTurn)
-{
-  <MudAlert Severity="Severity.Success" Dense="true" data-testid="my-turn-indicator">
-    It's your turn!
-  </MudAlert>
-}
-else
-{
-  <MudAlert Severity="Severity.Info" Dense="true" data-testid="waiting-indicator">
-    Waiting for @waitingFor…
-  </MudAlert>
-}
 
 @code {
   private GameState GameState => GetState<GameState>();
