@@ -7,6 +7,9 @@ namespace Farkle.Domain.GameAggregate;
 
 internal class Game : Aggregate<GameState>
 {
+  // A player wins once their banked total reaches this on a pass (#178).
+  private const int WinningScore = 5_000;
+
   private readonly IRandom _randomProvider;
 
   public Game() : this(default!)
@@ -67,7 +70,7 @@ internal class Game : Aggregate<GameState>
       GetPlayerOrder(passTurn.PlayerId),
       newScore));
 
-    if (newScore >= 10_000)
+    if (newScore >= WinningScore)
       base.Apply(new GameEvents.V1.GameWon(passTurn.PlayerId, newScore));
   }
 
@@ -151,7 +154,10 @@ internal class Game : Aggregate<GameState>
         new DiceAreStraight(dice), 1000
       },
       {
-        new DiceAreTrips(dice), (dice.DiceValues.FirstOrDefault()?.Value ?? 0) * 100
+        // Three of a kind = face value × 100, except three 1s = 1000 (standard Farkle, #177).
+        new DiceAreTrips(dice), (dice.DiceValues.FirstOrDefault()?.Value ?? 0) is 1
+          ? 1000
+          : (dice.DiceValues.FirstOrDefault()?.Value ?? 0) * 100
       },
       {
         new DiceAreOnesOrFives(dice), (dice.DiceValues.Count(d => d == DieValue.One)  * 100) +

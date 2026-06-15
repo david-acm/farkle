@@ -401,6 +401,12 @@ public class KeepDiceShould : GameWithThreePlayersTest
     yield return new object[] { "1 should add 100", new[] { 1, 2, 2, 3, 4, 4 }, new[] { DieValue.One }, 100 };
     yield return new object[]
     {
+      // Three 1s are special-cased to 1000 (not face*100 = 100) — standard Farkle. (#177)
+      "three 1s should add 1000", new[] { 1, 1, 1, 2, 3, 4 },
+      new[] { DieValue.One, DieValue.One, DieValue.One }, 1000
+    };
+    yield return new object[]
+    {
       "1 and 5 should add 150", new[] { 1, 1, 2, 3, 4, 5 }, new[] { DieValue.One, DieValue.Five, DieValue.One },
       250
     };
