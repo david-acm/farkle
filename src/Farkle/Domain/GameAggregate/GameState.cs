@@ -43,6 +43,35 @@ internal record GameState : State<GameState>
 
   internal int PlayerInTurn => Players.IsEmpty ? 0 : Players[0].Id;
 
+  // #156 — the single sanctioned seam for rebuilding a state from a persisted read-model
+  // snapshot, so the incremental projector can fold the next event onto it via When(). Keeps
+  // the init-properties private (the aggregate is still the only thing that mutates state
+  // through events) while letting the read-side serializer reconstruct a value object.
+  internal static GameState FromSnapshot(
+    GameId?                          id,
+    GameStage                        gameStage,
+    Player?                          winner,
+    Score                            turnScore,
+    ImmutableArray<Player>           players,
+    ImmutableArray<DieValue>         tableCenter,
+    ImmutableArray<DieValue>         diceKept,
+    ImmutableArray<DieValue>         diceSetAside,
+    int                              straightsKeptThisTurn,
+    ImmutableDictionary<int, int>    scoreTable) =>
+    new()
+    {
+      Id                    = id,
+      GameStage             = gameStage,
+      Winner                = winner,
+      TurnScore             = turnScore,
+      Players               = players,
+      TableCenter           = tableCenter,
+      DiceKept              = diceKept,
+      DiceSetAside          = diceSetAside,
+      StraightsKeptThisTurn = straightsKeptThisTurn,
+      ScoreTable            = scoreTable
+    };
+
   public Score GameScoreFor(PlayerId playerId)
   {
     return new Score(ScoreTable.GetValueOrDefault(playerId, 0));

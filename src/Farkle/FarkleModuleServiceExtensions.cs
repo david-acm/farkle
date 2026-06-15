@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using ILogger=Serilog.ILogger;
 
 namespace Farkle;
@@ -28,6 +29,11 @@ public static class FarkleModuleServiceExtensions
     services.AddSingleton<IGameService, GameService>();
     services.AddSingleton<IGameIdGenerator, RandomGameIdGenerator>();
     services.AddSingleton<IGameCreator, GameCreator>();
+
+    // Read-side (#156): default to the no-op store so GetGameStateEndpoint always resolves
+    // IGameViewStore and falls back to replay. WebApp registers the real EfGameViewStore +
+    // the projector subscription when the read model is enabled (it owns the Postgres infra).
+    services.TryAddSingleton<IGameViewStore, NullGameViewStore>();
     // services.AddRazorComponents();
     
     // TODO: Use Guard clause instead
