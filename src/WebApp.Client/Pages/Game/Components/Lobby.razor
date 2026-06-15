@@ -1,6 +1,10 @@
 @inherits BlazorState.BlazorStateComponent
 @using WebApp.Client.Features
+@using WebApp.Client.Services
 @inject IJSRuntime JS
+@inject NavigationManager Nav
+@inject IShareService Share
+@inject ISnackbar Snackbar
 
 <MudCard Class="mt-4" data-testid="lobby" Style="max-width: 520px">
   <MudCardContent>
@@ -16,6 +20,16 @@
                      OnClick="CopyGameId" />
     </div>
     <MudText Typo="Typo.body2" Class="mb-3">Share this code so friends can join.</MudText>
+
+    <div class="d-flex flex-column align-center mb-4" data-testid="join-share">
+      <JoinQrCode JoinUrl="@JoinUrl" />
+      <MudButton Variant="Variant.Filled"
+                 Color="Color.Primary"
+                 StartIcon="@Icons.Material.Filled.Share"
+                 Class="mt-2"
+                 data-testid="share-join-link"
+                 OnClick="ShareAsync">Share</MudButton>
+    </div>
 
     <MudText Typo="Typo.subtitle2" Class="mb-1">Players (@GameState.Roster.Count)</MudText>
     @foreach (var p in GameState.Roster)
@@ -51,8 +65,23 @@
 @code {
   private GameState GameState => GetState<GameState>();
 
+  private string JoinUrl => JoinLink.For(Nav.BaseUri, GameState.GameId.Value);
+
   private async Task StartGameAsync() =>
     await Mediator.Send(new GameState.BeginGame.Action());
+
+  private async Task ShareAsync()
+  {
+    var url = JoinUrl;
+    var shared = await Share.ShareAsync("Join my Farkle game", "Tap to join my Farkle game", url);
+    if (shared) return;
+
+    // No Web Share API (most desktops) — copy the link instead.
+    var copied = await Share.CopyAsync(url);
+    Snackbar.Add(
+      copied ? "Join link copied to clipboard" : "Couldn't share the join link",
+      copied ? Severity.Success : Severity.Warning);
+  }
 
   private async Task CopyGameId()
   {

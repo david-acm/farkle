@@ -1,5 +1,25 @@
-@* Issue #163 — stub; real QR rendering is added in the implementation commit. *@
+@using QRCoder
+
+@* Issue #163 — a scannable QR code encoding the deep-link join URL. Generated
+   client-side with QRCoder's PngByteQRCode (no System.Drawing, so it runs under
+   Blazor WebAssembly) and emitted as a base64 data URI. *@
+
+<img class="join-qr"
+     data-testid="join-qr"
+     data-join-url="@JoinUrl"
+     src="@_dataUri"
+     alt="QR code — scan to join this Farkle game" />
 
 @code {
   [Parameter] public string JoinUrl { get; set; } = string.Empty;
+
+  private string _dataUri = string.Empty;
+
+  protected override void OnParametersSet()
+  {
+    using var generator = new QRCodeGenerator();
+    using var data = generator.CreateQrCode(JoinUrl, QRCodeGenerator.ECCLevel.M);
+    var png = new PngByteQRCode(data).GetGraphic(8);
+    _dataUri = $"data:image/png;base64,{Convert.ToBase64String(png)}";
+  }
 }

@@ -20,6 +20,23 @@
     <Routes />
     <script src="_framework/blazor.web.js"></script>
 	<script src="_content/MudBlazor/MudBlazor.min.js"></script>
+    <script>
+        // Issue #163 — share the join link via the Web Share API, with a
+        // clipboard fallback. share() returns false only when the API is
+        // unavailable so the caller can fall back to copy().
+        window.farkleShare = {
+            share: async function (title, text, url) {
+                if (!navigator.share) return false;
+                try { await navigator.share({ title: title, text: text, url: url }); }
+                catch (e) { /* user cancelled or share failed — nothing to do */ }
+                return true;
+            },
+            copy: async function (text) {
+                try { await navigator.clipboard.writeText(text); return true; }
+                catch (e) { return false; }
+            }
+        };
+    </script>
 </body>
 
 </html>

@@ -6,5 +6,6 @@ namespace WebApp.Client.Services;
 /// </summary>
 public static class JoinLink
 {
-  public static string For(string baseUri, int gameId) => string.Empty; // stub — see #163
+  public static string For(string baseUri, int gameId) =>
+    $"{baseUri.TrimEnd('/')}/games/{gameId}";
 }

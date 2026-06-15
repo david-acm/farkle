@@ -27,6 +27,7 @@ public class GameBunitContext : BunitContext, Xunit.IAsyncLifetime
     Services.AddScoped<IGameService>(_ => GameService);
     Services.AddScoped<IGameHubService>(_ => HubService);
     Services.AddScoped<IRotationCalculator>(_ => Mock.Of<IRotationCalculator>());
+    Services.AddScoped<IShareService>(_ => Mock.Of<IShareService>());
     Services.AddMudServices();
     Services.AddBlazorState(o => o.Assemblies = [typeof(Program).Assembly]);
   }
