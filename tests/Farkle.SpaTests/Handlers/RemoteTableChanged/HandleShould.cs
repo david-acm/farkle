@@ -60,6 +60,26 @@ public class HandleShould : HandlerTestContext
   }
 
   [Fact]
+  public async Task KeepDiceInStableTableOrder_WhenADieIsSetAside()
+  {
+    // #186 — a set-aside must only flip the die's highlight, not reorder the board. The
+    // dice stay in TableCenter order at their original index (so the grid never relocates
+    // dice or re-spins them); the selected die is marked in place, not moved to the end.
+    SeedIdentity(playerId: 1, currentPlayerId: 2);
+    await Sender.Send(new GameState.RestoreGameState.Action(1, "Alice"));
+
+    await Sender.Send(new GameState.RemoteTableChanged.Action(
+      Snapshot(center: [1, 2, 3, 4, 5, 6], setAside: [3])));
+
+    State.DiceInPlay.Select(d => (int)d.Value).Should().Equal(1, 2, 3, 4, 5, 6);
+    State.DiceInPlay.Select(d => d.Index).Should().Equal(0, 1, 2, 3, 4, 5);
+    var three = State.DiceInPlay.Single(d => (int)d.Value == 3);
+    three.Identifier.Should().Be("SetAside");
+    three.Index.Should().Be(2, "the selected die stays in its original position");
+    State.DiceInPlay.Should().OnlyContain(d => !d.Animate);
+  }
+
+  [Fact]
   public async Task AnimateRolledDice_OnARollSnapshot()
   {
     // #167 — a roll snapshot (Animate: true) spins the in-play dice for spectators too.
