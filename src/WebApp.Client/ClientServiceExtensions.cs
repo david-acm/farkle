@@ -26,6 +26,7 @@ public static class ClientServiceExtensions
     });
     services.AddScoped<IGameService, GameService>();
     services.AddScoped<IGameHubService, GameHubService>();
+    services.AddScoped<IShareService, ShareService>();
 
     var assembly = typeof(Program).Assembly;
     services.AddBlazorState(o => o.Assemblies = [assembly]);

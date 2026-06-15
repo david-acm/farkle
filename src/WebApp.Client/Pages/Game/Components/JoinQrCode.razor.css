@@ -1,0 +1,14 @@
+/* The generated PNG uses the game palette (dark ink modules on a brand-yellow
+   background, with a matching yellow quiet zone). The frame background matches
+   that yellow so the padding blends into the quiet zone, and the size is capped
+   so the lobby still fits the viewport (no-scroll) on mobile. */
+.join-qr {
+    display: block;
+    width: 140px;
+    height: 140px;
+    max-width: 40vw;
+    border-radius: 8px;
+    background: #FFE600;
+    padding: 6px;
+    box-sizing: border-box;
+}
