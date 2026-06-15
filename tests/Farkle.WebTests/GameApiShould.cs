@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using Farkle.ApiClient;
 using Farkle.ApiClient.Models;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Kiota.Abstractions;
 using Microsoft.Kiota.Abstractions.Authentication;
 using Microsoft.Kiota.Http.HttpClientLibrary;
@@ -11,11 +12,13 @@ namespace Farkle.WebTests;
 
 public class GameApiShould : IClassFixture<GameApiWebAppFactory>
 {
-    private readonly HttpClient      _httpClient;
-    private readonly FarkleApiClient _client;
+    private readonly HttpClient            _httpClient;
+    private readonly FarkleApiClient       _client;
+    private readonly GameApiWebAppFactory  _factory;
 
     public GameApiShould(GameApiWebAppFactory factory)
     {
+        _factory = factory;
         // FastEndpoints requires Content-Type: application/json even on bodyless POSTs.
         // Wrap the factory client's handler to inject an empty JSON body when none is present,
         // mirroring the EmptyBodyJsonHandler used by the WASM client in production.
@@ -282,7 +285,15 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
         // Player 1 rolls — the game is now mid-turn (stage Keeping, dice on the table).
         await RollDiceAsync(gameId, player1);
 
-        var snapshot = await _client.Api.Games[gameId].GetAsync();
+        // GET reads the GameView projection (#156), which is updated asynchronously by the
+        // $all subscription — so poll until it reflects the roll (eventual consistency).
+        FarkleContractsHttpResponses_GameStateResponse? snapshot = null;
+        for (var attempt = 0; attempt < 50; attempt++)
+        {
+            snapshot = await _client.Api.Games[gameId].GetAsync();
+            if (snapshot?.Stage == "Keeping") break;
+            await Task.Delay(100);
+        }
 
         Assert.NotNull(snapshot);
         Assert.Equal(gameId, snapshot!.GameId);
@@ -310,6 +321,36 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
             () => _client.Api.Games[999_999].GetAsync());
 
         Assert.Equal(404, ex.ResponseStatusCode);
+    }
+
+    [Fact]
+    public async Task ProjectGameEventsIntoTheGameViewReadModelAsync()
+    {
+        // #156 — the $all subscription folds events into a Postgres GameView row. Drive a
+        // game, then assert the projection persisted a snapshot reflecting the latest events.
+        var gameId  = await StartGameAsync();
+        var player1 = await JoinGameAsync(gameId, "David");
+        await JoinGameAsync(gameId, "Allison");
+        await BeginGameAsync(gameId);
+        await RollDiceAsync(gameId, player1);
+
+        // The projection is updated asynchronously — poll the read model directly.
+        WebApp.ReadModel.GameView? row = null;
+        for (var attempt = 0; attempt < 50; attempt++)
+        {
+            using (var scope = _factory.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<WebApp.ReadModel.ReadModelDbContext>();
+                row = await db.GameViews.FindAsync(gameId);
+                if (row is not null && row.StateJson.Contains("\"Stage\":2")) break; // 2 = Keeping
+            }
+            await Task.Delay(100);
+        }
+
+        Assert.NotNull(row);
+        Assert.Equal(gameId, row!.GameId);
+        Assert.Contains("\"Stage\":2", row.StateJson); // GameStage.Keeping after a roll
+        Assert.True(row.Position > 0, "the folded $all position is recorded");
     }
 
     // The server now generates the game id; the POST is body-less and returns the id.

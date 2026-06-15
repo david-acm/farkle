@@ -100,6 +100,12 @@ public sealed class ScriptedIdGameApiWebAppFactory : FarkleWebApplicationFactory
             var pgConnectionString = $"Host=localhost;Port={pgPort};Database=farkle_test;Username=farkle_test;Password=farkle_test";
             s.AddDbContext<AppDbContext>(o => o.UseNpgsql(pgConnectionString));
 
+            // Read model (#156) shares the same Postgres — point it at the Testcontainer too.
+            var readDescriptor = s.SingleOrDefault(d => d.ServiceType == typeof(DbContextOptions<WebApp.ReadModel.ReadModelDbContext>));
+            if (readDescriptor != null) s.Remove(readDescriptor);
+            s.AddDbContext<WebApp.ReadModel.ReadModelDbContext>(o =>
+                o.UseNpgsql(pgConnectionString, b => b.MigrationsHistoryTable(WebApp.ReadModel.ReadModelMigrations.HistoryTable)));
+
             // Override the id generator with the scripted sequence to drive a collision.
             s.RemoveAll<IGameIdGenerator>();
             s.AddSingleton<IGameIdGenerator>(Scripted);

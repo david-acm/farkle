@@ -77,6 +77,13 @@ public class GameApiWebAppFactory : FarkleWebApplicationFactory
 
       var pgConnectionString = $"Host=localhost;Port={pgPort};Database=farkle_test;Username=farkle_test;Password=farkle_test";
       s.AddDbContext<AppDbContext>(o => o.UseNpgsql(pgConnectionString));
+
+      // The read model (#156) shares the same Postgres — point it at the Testcontainer too
+      // (own history table), so its migration applies and the projector can write.
+      var readDescriptor = s.SingleOrDefault(d => d.ServiceType == typeof(DbContextOptions<WebApp.ReadModel.ReadModelDbContext>));
+      if (readDescriptor != null) s.Remove(readDescriptor);
+      s.AddDbContext<WebApp.ReadModel.ReadModelDbContext>(o =>
+        o.UseNpgsql(pgConnectionString, b => b.MigrationsHistoryTable(WebApp.ReadModel.ReadModelMigrations.HistoryTable)));
     });
   }
 }
