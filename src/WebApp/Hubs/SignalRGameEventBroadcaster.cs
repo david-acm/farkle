@@ -25,4 +25,9 @@ public class SignalRGameEventBroadcaster(IHubContext<GameHub> hub) : IGameEventB
         hub.Clients
            .Group($"game-{state.GameId}")
            .SendAsync("TableChanged", state, ct);
+
+    public Task BroadcastDiceRolledAsync(GameStateResponse state, CancellationToken ct) =>
+        hub.Clients
+           .Group($"game-{state.GameId}")
+           .SendAsync("DiceRolled", state, ct);
 }

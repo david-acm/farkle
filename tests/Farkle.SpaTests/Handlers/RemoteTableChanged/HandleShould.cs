@@ -60,6 +60,20 @@ public class HandleShould : HandlerTestContext
   }
 
   [Fact]
+  public async Task AnimateRolledDice_OnARollSnapshot()
+  {
+    // #167 — a roll snapshot (Animate: true) spins the in-play dice for spectators too.
+    SeedIdentity(playerId: 1, currentPlayerId: 2);
+    await Sender.Send(new GameState.RestoreGameState.Action(1, "Alice"));
+
+    await Sender.Send(new GameState.RemoteTableChanged.Action(
+      Snapshot(center: [1, 2, 3, 4, 5, 6], setAside: []), Animate: true));
+
+    State.DiceInPlay.Where(d => d.Identifier == "Rolled")
+      .Should().OnlyContain(d => d.Animate, "a roll spins for spectators");
+  }
+
+  [Fact]
   public async Task IgnoreTheSnapshot_WhenItIsMyTurn()
   {
     // We are player 2 and it's our turn — our local drag state must not be clobbered.
