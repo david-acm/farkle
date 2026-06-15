@@ -71,9 +71,31 @@ jobs:
 
           # Resolve the persistent ACR (image source) and the live WebApp container app.
           acr=$(az acr list -g "$AZURE_PERSISTENT_RESOURCE_GROUP" --query '[0].loginServer' -o tsv)
-          if [ -z "$acr" ]; then
+          acrName=$(az acr list -g "$AZURE_PERSISTENT_RESOURCE_GROUP" --query '[0].name' -o tsv)
+          if [ -z "$acr" ] || [ -z "$acrName" ]; then
             echo "::error::Persistent ACR not found in '$AZURE_PERSISTENT_RESOURCE_GROUP'. Deploy infra-persistent.yml first."
             exit 1
+          fi
+
+          # Validate the requested tag exists in ACR before rolling — a manual dispatch with a
+          # short SHA (e.g. 7cca761) points at a tag that was never pushed (the build tags the
+          # full SHA + :latest), which otherwise produces a slow, easy-to-miss ImagePullBackOff
+          # while the old revision keeps serving (#154). If the exact tag is missing, try to
+          # resolve it as a unique prefix of a real tag (short SHA -> full SHA); else fail fast.
+          if ! az acr repository show --name "$acrName" --image "webapp:${IMAGE_TAG}" --output none 2>/dev/null; then
+            mapfile -t matches < <(az acr repository show-tags --name "$acrName" --repository webapp -o tsv 2>/dev/null \
+              | grep -E "^${IMAGE_TAG}" || true)
+            if [ "${#matches[@]}" -eq 1 ]; then
+              echo "::notice::Resolved image tag '${IMAGE_TAG}' -> '${matches[0]}'."
+              IMAGE_TAG="${matches[0]}"
+            elif [ "${#matches[@]}" -eq 0 ]; then
+              echo "::error::No image 'webapp:${IMAGE_TAG}' in ACR '${acrName}', and no tag starts with it. Recent tags:"
+              az acr repository show-tags --name "$acrName" --repository webapp --orderby time_desc --top 10 -o tsv || true
+              exit 1
+            else
+              echo "::error::Ambiguous tag prefix '${IMAGE_TAG}' matches ${#matches[@]} tags: ${matches[*]}"
+              exit 1
+            fi
           fi
 
           app=$(az containerapp list -g "$AZURE_RESOURCE_GROUP" \
