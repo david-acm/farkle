@@ -1,14 +1,24 @@
-/* The generated PNG uses the game palette (dark ink modules on a brand-yellow
-   background, with a matching yellow quiet zone). The frame background matches
-   that yellow so the padding blends into the quiet zone, and the size is capped
-   so the lobby still fits the viewport (no-scroll) on mobile. */
+/* The generated PNG uses the game palette (brand-yellow modules on the dark ink
+   background, with a matching dark quiet zone). A thin yellow border defines the
+   tile against the slightly-lighter card. `image-rendering: pixelated` keeps the
+   modules crisp when the PNG is scaled up. Sized to fill the available width
+   while still fitting the viewport (no-scroll) — larger on mobile. */
 .join-qr {
     display: block;
-    width: 140px;
-    height: 140px;
-    max-width: 40vw;
+    width: 200px;
+    height: 200px;
     border-radius: 8px;
-    background: #FFE600;
-    padding: 6px;
+    background: #0A0A1A;
+    border: 2px solid #FFE600;
+    padding: 8px;
     box-sizing: border-box;
+    image-rendering: pixelated;
+}
+
+@media (max-width: 599px) {
+    .join-qr {
+        width: 64vw;
+        height: 64vw;
+        max-width: 300px;
+    }
 }
