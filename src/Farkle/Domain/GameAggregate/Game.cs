@@ -86,6 +86,19 @@ internal class Game : Aggregate<GameState>
       GameStage.Rolling));
   }
 
+  // #159 — set aside / put back. Transient selection only: these never score or keep
+  // dice (that stays Keep's job) and leave the table center untouched, so Keep continues
+  // to validate against the full roll.
+  public void SetDiceAside(Command.SetDiceAside cmd)
+  {
+    Apply(new V1.DiceSetAside(cmd.PlayerId, cmd.Die.Value));
+  }
+
+  public void ReturnDice(Command.ReturnDice cmd)
+  {
+    Apply(new V1.DiceReturned(cmd.PlayerId, cmd.Die.Value));
+  }
+
   private int[] GetTableCenterDice(Command.KeepDice keepDice)
   {
     var tableCenter = State.TableCenter.RemoveRange(keepDice.DiceValues);

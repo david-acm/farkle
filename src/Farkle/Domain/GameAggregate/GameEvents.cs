@@ -54,6 +54,21 @@ internal static class GameEvents
     [EventType("V1.DiceKept")]
     internal record DiceKept(int PlayerId, int[] Dice, int[] TableCenter, int NewTurnScore);
 
+    // #159 — set aside / put back: a transient, non-scoring selection of which rolled
+    // dice the player intends to keep. First-class so they can be persisted and broadcast
+    // to spectators; Keep remains the commit. Each event carries a single die (a UI drag).
+    [EventType("V1.DiceSetAside")]
+    internal record DiceSetAside(int PlayerId, int Die);
+
+    [EventType("V1.DiceReturned")]
+    internal record DiceReturned(int PlayerId, int Die);
+
+    [EventType("V1.DieNotAvailableToSetAside")]
+    internal record DieNotAvailableToSetAside(int PlayerId, int Die) : IErrorEvent;
+
+    [EventType("V1.DieNotSetAside")]
+    internal record DieNotSetAside(int PlayerId, int Die) : IErrorEvent;
+
     [EventType("V1.TurnPassed")]
     internal record TurnPassed(int PlayerId, ImmutableArray<Player> PlayerOrder, int GameScore);
 

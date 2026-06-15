@@ -4,6 +4,10 @@ internal static class Command
 {
   internal record KeepDice(GameId GameId, PlayerId PlayerId, IEnumerable<DieValue> DiceValues);
 
+  internal record SetDiceAside(GameId GameId, PlayerId PlayerId, DieValue Die);
+
+  internal record ReturnDice(GameId GameId, PlayerId PlayerId, DieValue Die);
+
   internal record StartGame(GameId GameId)
   {
     public static implicit operator int(StartGame startGame)
