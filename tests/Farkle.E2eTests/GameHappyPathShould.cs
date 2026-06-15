@@ -212,6 +212,67 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
         }
     });
 
+    // Proves the per-player colour pipeline (#170): the in-turn player's identity colour
+    // drives the shared dice/turn UI, every player (in-turn or spectating) sees the same
+    // colour, and it flips for everyone when the turn changes — over SignalR, no refresh.
+    [Fact]
+    public Task ActivePlayerColourDrivesTheSharedUi() => WithVideoAsync(async alicePage =>
+    {
+        var gameId = await GameFlow.StartNewGameFromLandingAsync(alicePage, "Alice");
+        await alicePage.WaitForSelectorAsync("[data-testid='lobby']", new() { Timeout = 10_000 });
+
+        var bobContext = await fixture.NewContextWithVideoAsync(VideoDir);
+        var bobPage    = await bobContext.NewPageAsync();
+        try
+        {
+            await GameFlow.JoinExistingGameFromLandingAsync(bobPage, "Bob", gameId);
+            await bobPage.WaitForSelectorAsync("[data-testid='lobby']", new() { Timeout = 10_000 });
+
+            await alicePage.WaitForSelectorAsync("[data-testid='start-game-button']:not([disabled])",
+                new() { Timeout = 10_000 });
+            await alicePage.ClickAsync("[data-testid='start-game-button']");
+
+            // Alice is in turn; Bob waits. Both views must show Alice's colour.
+            await alicePage.WaitForSelectorAsync("[data-testid='my-turn-indicator']", new() { Timeout = 10_000 });
+            await bobPage.WaitForSelectorAsync("[data-testid='waiting-indicator']", new() { Timeout = 10_000 });
+
+            var aliceColourOnAlice = await ActivePlayerColourAsync(alicePage);
+            var aliceColourOnBob   = await ActivePlayerColourAsync(bobPage);
+            aliceColourOnAlice.Should().NotBeNullOrWhiteSpace("the in-turn player's colour drives the UI");
+            aliceColourOnBob.Should().Be(aliceColourOnAlice,
+                "an off-turn spectator sees the in-turn player's colour, not their own");
+
+            // Alice rolls then passes — flips the turn to Bob over SignalR.
+            await alicePage.ClickAsync("button:has-text('Roll')");
+            await alicePage.WaitForSelectorAsync(".die-container", new() { Timeout = 10_000 });
+            await alicePage.ClickAsync("button:has-text('Pass Turn')");
+
+            await bobPage.WaitForSelectorAsync("[data-testid='my-turn-indicator']", new() { Timeout = 10_000 });
+
+            // The colour flips for everyone, and the two players' colours are distinct.
+            var bobColourOnBob   = await ActivePlayerColourAsync(bobPage);
+            var bobColourOnAlice = await ActivePlayerColourAsync(alicePage);
+            bobColourOnBob.Should().Be(bobColourOnAlice,
+                "the active-player colour flips for both players when the turn changes");
+            bobColourOnBob.Should().NotBe(aliceColourOnAlice, "each player has a distinct colour");
+
+            await alicePage.WaitForTimeoutAsync(StepDelayMs); // hold the flipped colour on video
+        }
+        finally
+        {
+            var bobRawPath = await bobPage.Video!.PathAsync();
+            await bobContext.CloseAsync();
+            if (File.Exists(bobRawPath))
+                File.Move(bobRawPath, Path.Combine(VideoDir, "ActivePlayerColour-Bob.webm"), overwrite: true);
+        }
+    });
+
+    // Reads the resolved --active-player-color custom property off the in-play container.
+    private static async Task<string> ActivePlayerColourAsync(IPage page) =>
+        (await page.EvaluateAsync<string>(
+            "() => getComputedStyle(document.querySelector('.play-area'))" +
+            ".getPropertyValue('--active-player-color').trim()"))!;
+
     // Proves the refresh/reconnect restore pipeline: a player who reloads mid-turn
     // is put back into the game (no join form), with their turn indicator, scoreboard
     // and rolled dice restored from the server snapshot + the session-stored identity.
