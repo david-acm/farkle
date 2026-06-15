@@ -89,10 +89,18 @@ public class E2EWebAppFactory : WebApplicationFactory<Program>
             s.Remove(esClient);
             s.AddEventStoreClient($"esdb://{EsdbUser}:{EsdbPassword}@localhost:{esdbPort}?tls=false");
 
+            var pgConnectionString = $"Host=localhost;Port={pgPort};Database=farkle_e2e;Username=farkle_e2e;Password=farkle_e2e";
+
             var dbDescriptor = s.SingleOrDefault(d => d.ServiceType == typeof(DbContextOptions<AppDbContext>));
             if (dbDescriptor != null) s.Remove(dbDescriptor);
-            s.AddDbContext<AppDbContext>(o =>
-                o.UseNpgsql($"Host=localhost;Port={pgPort};Database=farkle_e2e;Username=farkle_e2e;Password=farkle_e2e"));
+            s.AddDbContext<AppDbContext>(o => o.UseNpgsql(pgConnectionString));
+
+            // Read model (#156) shares the same Postgres — point it at the e2e container too
+            // (own history table), so its migration applies and the projector can write.
+            var readDescriptor = s.SingleOrDefault(d => d.ServiceType == typeof(DbContextOptions<WebApp.ReadModel.ReadModelDbContext>));
+            if (readDescriptor != null) s.Remove(readDescriptor);
+            s.AddDbContext<WebApp.ReadModel.ReadModelDbContext>(o =>
+                o.UseNpgsql(pgConnectionString, b => b.MigrationsHistoryTable(WebApp.ReadModel.ReadModelMigrations.HistoryTable)));
         });
     }
 

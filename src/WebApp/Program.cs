@@ -12,6 +12,12 @@ using WebApp.Components;
 using MudBlazor.Services;
 using Serilog;
 using WebApp.Client;
+using Eventuous;
+using Eventuous.EventStore.Subscriptions;
+using Eventuous.Subscriptions.Checkpoints;
+using EventStore.Client;
+using Farkle.Application;
+using WebApp.ReadModel;
 
 var logger = Log.Logger = new LoggerConfiguration()
   .Enrich.FromLogContext()
@@ -91,6 +97,36 @@ services.AddCors(o =>
 
 // Add module services
 services.AddFarkleModuleServices(builder.Configuration, logger, new List<Assembly>());
+
+// CQRS read side (#156): a GameView projection in Postgres, kept current by a $all catch-up
+// subscription, that GET reads instead of replaying the stream. Disabled for hosts without
+// Postgres/ESDB (NSwag spec extraction, the in-memory storyboard capture). It reuses the
+// Identity Postgres database (own migrations-history table) — see ReadModelDbContext.
+var readModelEnabled = !builder.Environment.IsEnvironment("NSwag")
+    && !builder.Configuration.GetValue<bool>("Storyboard:SkipIdentitySeed")
+    && builder.Configuration.GetValue("Farkle:ReadModelEnabled", true);
+if (readModelEnabled)
+{
+    services.AddDbContext<ReadModelDbContext>(o =>
+    {
+        if (identityDataSource is not null)
+            o.UseNpgsql(identityDataSource, b => b.MigrationsHistoryTable(ReadModelMigrations.HistoryTable));
+        else
+            o.UseNpgsql(identityConn, b => b.MigrationsHistoryTable(ReadModelMigrations.HistoryTable));
+    });
+
+    // The subscription + GET resolve these from singleton scopes, so the stores open their
+    // own DI scope per call (see EfGameViewStore / PostgresCheckpointStore).
+    services.AddSingleton<IGameViewStore, EfGameViewStore>();
+    services.AddSingleton<PostgresCheckpointStore>();
+
+    services.AddSubscription<AllStreamSubscription, AllStreamSubscriptionOptions>(
+        "GameViewProjector",
+        b => b
+            .Configure(o => o.EventFilter = StreamFilter.Prefix("Game-"))
+            .UseCheckpointStore<PostgresCheckpointStore>()
+            .AddEventHandler<GameViewProjector>());
+}
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
@@ -173,6 +209,10 @@ if (!app.Environment.IsEnvironment("NSwag") && !skipIdentitySeed)
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.Migrate();
+
+    // Apply the read-model schema alongside Identity (same database, separate history table).
+    if (readModelEnabled)
+        scope.ServiceProvider.GetRequiredService<ReadModelDbContext>().Database.Migrate();
 
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
     const string seedEmail = "player1@email.com";
