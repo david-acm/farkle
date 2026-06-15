@@ -64,6 +64,20 @@ public class GameService : IGameService
     return new KeepDiceResponse(response?.Id ?? 0, response?.TurnScore ?? 0);
   }
 
+  public async Task SetDiceAsideAsync(int gameId, int playerId, int dieValue)
+  {
+    await _client.Api.Games[gameId].Players[playerId].Setasides.PostAsync(
+      new KiotaModels.FarkleContractsHttpRequests_SetDiceAsideRequest { DieValue = dieValue });
+    _logger.LogDebug("SetDiceAside: game={GameId} player={PlayerId} die={Die}", gameId, playerId, dieValue);
+  }
+
+  public async Task ReturnDiceAsync(int gameId, int playerId, int dieValue)
+  {
+    await _client.Api.Games[gameId].Players[playerId].Putbacks.PostAsync(
+      new KiotaModels.FarkleContractsHttpRequests_ReturnDiceRequest { DieValue = dieValue });
+    _logger.LogDebug("ReturnDice: game={GameId} player={PlayerId} die={Die}", gameId, playerId, dieValue);
+  }
+
   public async Task<int> CreateGameAsync()
   {
     var response = await _client.Api.Games.PostAsync();
@@ -108,7 +122,8 @@ public class GameService : IGameService
         ? null
         : new WinnerResponse(r.Winner.PlayerId ?? 0, r.Winner.Name ?? "", r.Winner.Score ?? 0),
       TableCenter: (r.TableCenter ?? []).Select(v => v ?? 0).ToArray(),
-      DiceKept: (r.DiceKept ?? []).Select(v => v ?? 0).ToArray());
+      DiceKept: (r.DiceKept ?? []).Select(v => v ?? 0).ToArray(),
+      DiceSetAside: (r.DiceSetAside ?? []).Select(v => v ?? 0).ToArray());
   }
 
   private static PassTurnResponse ToPassTurnResponse(KiotaModels.FarkleContractsHttpResponses_PassTurnResponse? r)

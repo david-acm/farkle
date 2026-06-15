@@ -1,6 +1,8 @@
 using FluentAssertions;
+using Moq;
 using WebApp.Client.Features;
 using WebApp.Client.Pages.Game.Components;
+using WebApp.Client.Services;
 
 namespace Farkle.SpaTests.Handlers.SetDiceAside;
 
@@ -44,5 +46,34 @@ public class HandleShould : HandlerTestContext
 
     State.DiceInPlay[0].Identifier.Should().Be("Rolled",  "first Five must remain in play");
     State.DiceInPlay[1].Identifier.Should().Be("SetAside", "only the targeted Five moves");
+  }
+
+  [Fact]
+  public async Task SyncSetAsideToTheServer_WhenMovedIntoTheSetAsideZone()
+  {
+    // #159 — promoting the selection to a domain command so it persists and broadcasts.
+    var die = new DraggableDie(0, DieValue.Five, "Rolled");
+    State.DiceInPlay.Add(die);
+
+    await Sender.Send(new GameState.SetDiceAside.Action(die, "SetAside"));
+
+    Mock.Get(GameService).Verify(
+      s => s.SetDiceAsideAsync(It.IsAny<int>(), It.IsAny<int>(), 5), Times.Once);
+    Mock.Get(GameService).Verify(
+      s => s.ReturnDiceAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>()), Times.Never);
+  }
+
+  [Fact]
+  public async Task SyncPutBackToTheServer_WhenMovedBackIntoPlay()
+  {
+    var die = new DraggableDie(0, DieValue.Five, "SetAside");
+    State.DiceInPlay.Add(die);
+
+    await Sender.Send(new GameState.SetDiceAside.Action(die, "Rolled"));
+
+    Mock.Get(GameService).Verify(
+      s => s.ReturnDiceAsync(It.IsAny<int>(), It.IsAny<int>(), 5), Times.Once);
+    Mock.Get(GameService).Verify(
+      s => s.SetDiceAsideAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>()), Times.Never);
   }
 }

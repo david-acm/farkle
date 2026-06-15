@@ -15,7 +15,8 @@ public class HandleShould : HandlerTestContext
     int currentPlayerId = 2,
     int turnScore = 150,
     IReadOnlyList<int>? center = null,
-    IReadOnlyList<int>? kept = null) =>
+    IReadOnlyList<int>? kept = null,
+    IReadOnlyList<int>? setAside = null) =>
     new(
       GameId:          0,
       Stage:           "Keeping",
@@ -25,7 +26,8 @@ public class HandleShould : HandlerTestContext
       Scoreboard:      [new PlayerScore(1, "Alice", 0), new PlayerScore(2, "Bob", 150)],
       Winner:          null,
       TableCenter:     center ?? [2, 3, 4],
-      DiceKept:        kept ?? [1, 5]);
+      DiceKept:        kept ?? [],
+      DiceSetAside:    setAside ?? []);
 
   // Seeds our identity (PlayerId) via RestoreGameState, which reads a mocked snapshot.
   private void SeedIdentity(int playerId, int currentPlayerId)
@@ -42,7 +44,10 @@ public class HandleShould : HandlerTestContext
     SeedIdentity(playerId: 1, currentPlayerId: 2);
     await Sender.Send(new GameState.RestoreGameState.Action(1, "Alice"));
 
-    await Sender.Send(new GameState.RemoteTableChanged.Action(Snapshot()));
+    // Set-aside is a non-destructive overlay: the centre still contains the set-aside dice,
+    // so the spectator's "Rolled" zone is centre minus selection, "SetAside" is the selection.
+    await Sender.Send(new GameState.RemoteTableChanged.Action(
+      Snapshot(center: [1, 2, 3, 4, 5], setAside: [1, 5])));
 
     State.CurrentPlayerId.Should().Be(2);
     State.TurnScore.Value.Should().Be(150);

@@ -45,6 +45,11 @@ internal sealed class GameBroadcastHandler : Eventuous.Subscriptions.EventHandle
     On<GameEvents.V1.DiceRolled>(ctx => BroadcastTable(ctx));
     On<GameEvents.V2.DiceKept>(ctx => BroadcastTable(ctx));
     On<GameEvents.V1.DiceKept>(ctx => BroadcastTable(ctx));
+
+    // Set aside / put back are transient keep selections — broadcasting the table snapshot
+    // lets off-turn players watch the in-turn player decide which dice to keep, live (#159).
+    On<GameEvents.V1.DiceSetAside>(ctx => BroadcastTable(ctx));
+    On<GameEvents.V1.DiceReturned>(ctx => BroadcastTable(ctx));
   }
 
   private ValueTask BroadcastTable<T>(MessageConsumeContext<T> ctx) where T : class =>

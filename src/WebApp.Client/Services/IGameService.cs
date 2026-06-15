@@ -13,6 +13,10 @@ public interface IGameService
   public Task<KeepDiceResponse> KeepDiceAsync(int     gameId, int playerId, IEnumerable<int> diceToKeep);
   public Task<PassTurnResponse> PassTurnAsync(int     gameId, int playerId);
 
+  // #159 — transient keep selection: set a single die aside / put it back.
+  public Task SetDiceAsideAsync(int gameId, int playerId, int dieValue);
+  public Task ReturnDiceAsync(int   gameId, int playerId, int dieValue);
+
   // Full-state snapshot for restoring the view on refresh / reconnect.
   // Returns null when the game does not exist (HTTP 404).
   public Task<GameStateResponse?> GetGameStateAsync(int gameId);

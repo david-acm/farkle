@@ -21,6 +21,9 @@ public static class HttpResponses
   public record PlayerScore(int PlayerId, string Name, int Score);
   
   public record KeepDiceResponse(int Id, int TurnScore);
+
+  // #159 — the in-turn player's current transient set-aside selection after the change.
+  public record SetAsideResponse(int Id, IReadOnlyList<int> DiceSetAside);
   
   public record RollDiceResponse(int Id, int[] DiceValues);
   
@@ -41,5 +44,8 @@ public static class HttpResponses
     IReadOnlyList<PlayerScore> Scoreboard,
     WinnerResponse? Winner,
     IReadOnlyList<int> TableCenter,
-    IReadOnlyList<int> DiceKept);
+    IReadOnlyList<int> DiceKept,
+    // #159 — the in-turn player's transient set-aside selection (overlays TableCenter),
+    // so spectators can render the live keep selection and a refresh restores it.
+    IReadOnlyList<int> DiceSetAside);
 }

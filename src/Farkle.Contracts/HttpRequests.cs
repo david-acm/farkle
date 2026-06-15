@@ -15,6 +15,11 @@ public static class HttpRequests
   // [HttpCommand(Route = "diceKeeps")]
   public record KeepDiceRequest(int GameId, int PlayerId, IEnumerable<int> DiceValues);
 
+  // #159 — transient keep selection: set a single rolled die aside / put it back.
+  public record SetDiceAsideRequest(int GameId, int PlayerId, int DieValue);
+
+  public record ReturnDiceRequest(int GameId, int PlayerId, int DieValue);
+
   // [HttpCommand(Route = "turnPasses")]
   public record PassTurnHttp(int GameId, int PlayerId);
 

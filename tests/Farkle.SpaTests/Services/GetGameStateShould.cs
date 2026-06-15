@@ -25,7 +25,8 @@ public class GetGameStateShould
         Scoreboard:      [new PlayerScore(1, "Alice", 0), new PlayerScore(2, "Bob", 150)],
         Winner:          null,
         TableCenter:     [1, 2, 3],
-        DiceKept:        [5]));
+        DiceKept:        [5],
+        DiceSetAside:    [2]));
 
     var sut = new GameService(mock.ToFarkleApiClient(), Mock.Of<ILogger<GameService>>());
 
@@ -41,6 +42,7 @@ public class GetGameStateShould
     Assert.Equal(2, result.Scoreboard.Count);
     Assert.Equal([1, 2, 3], result.TableCenter);
     Assert.Equal([5], result.DiceKept);
+    Assert.Equal([2], result.DiceSetAside);
     mock.VerifyNoOutstandingExpectation();
   }
 
