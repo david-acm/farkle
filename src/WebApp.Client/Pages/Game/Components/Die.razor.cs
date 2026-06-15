@@ -19,7 +19,11 @@ public partial class Die : IDisposable
   [Parameter] public int Size { get; set; } = 50;
   
   [Parameter] public string? Class { get; set; }
-  
+
+  // #182 — a selected (tapped) die: yellow face + dark pips, applied by Die.razor.css off
+  // the `.selected` class. The ×1.2 scale is applied by the tray wrapper (DiceTray.razor.css).
+  [Parameter] public bool Selected { get; set; }
+
   // True only for a freshly rolled die: it plays the roll (spin) animation once.
   // Captured at init so a later model change can't retrigger the animation.
   [Parameter] public bool Animate { get; set; }
