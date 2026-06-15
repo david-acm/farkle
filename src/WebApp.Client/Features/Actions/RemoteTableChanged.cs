@@ -10,7 +10,9 @@ public partial class GameState
     // or keeps dice, so off-turn players watch the shared table update in real time.
     public static class RemoteTableChanged
     {
-        public record Action(GameStateResponse Payload) : IAction;
+        // Animate is true only for a roll snapshot (#167) so spectators see the dice spin;
+        // keeps / set-aside / put-back update the table without re-spinning.
+        public record Action(GameStateResponse Payload, bool Animate = false) : IAction;
 
         public class Handler(IStore store) : ActionHandler<Action>(store)
         {
@@ -31,10 +33,12 @@ public partial class GameState
                     inPlay.Remove(v);
 
                 // Rebuild the read-only table from the snapshot: still-in-play dice in
-                // "Rolled", the live set-aside selection in "SetAside". Animate=false — a
-                // spectator sees a settled snapshot, not a re-roll spin.
+                // "Rolled", the live set-aside selection in "SetAside". Spin the in-play dice
+                // only on a roll (#167) — set-aside / keep updates settle without re-spinning.
+                // The set-aside dice never animate (they were placed deliberately). The
+                // existing ConsumeRollAnimation one-shot clears the flag after the spin.
                 var dice = inPlay
-                    .Select((v, i) => new DraggableDie(i, DieValue.FromValue(v), "Rolled") { Animate = false })
+                    .Select((v, i) => new DraggableDie(i, DieValue.FromValue(v), "Rolled") { Animate = action.Animate })
                     .Concat(p.DiceSetAside
                         .Select((v, i) => new DraggableDie(p.TableCenter.Count + i, DieValue.FromValue(v), "SetAside") { Animate = false }))
                     .ToList();

@@ -120,6 +120,7 @@ public partial class Game : BlazorStateComponent, IAsyncDisposable
     GameHubService.OnPlayerJoined += HandlePlayerJoined;
     GameHubService.OnGameBegan    += HandleGameBegan;
     GameHubService.OnTableChanged += HandleTableChanged;
+    GameHubService.OnDiceRolled   += HandleDiceRolled;
     await GameHubService.ConnectAsync(ParameterGameId);
   }
 
@@ -208,12 +209,27 @@ public partial class Game : BlazorStateComponent, IAsyncDisposable
     }
   }
 
+  // A roll snapshot — same table update as TableChanged but animate the dice (#167).
+  private async void HandleDiceRolled(GameStateResponse payload)
+  {
+    try
+    {
+      await InvokeAsync(async () =>
+        await Mediator.Send(new GameState.RemoteTableChanged.Action(payload, Animate: true)));
+    }
+    catch (Exception ex)
+    {
+      Logger.LogWarning(ex, "RemoteDiceRolled failed for game {GameId}", GameId);
+    }
+  }
+
   public async ValueTask DisposeAsync()
   {
     GameHubService.OnTurnChanged -= HandleTurnChanged;
     GameHubService.OnPlayerJoined -= HandlePlayerJoined;
     GameHubService.OnGameBegan -= HandleGameBegan;
     GameHubService.OnTableChanged -= HandleTableChanged;
+    GameHubService.OnDiceRolled -= HandleDiceRolled;
     await GameHubService.DisconnectAsync();
   }
 }
