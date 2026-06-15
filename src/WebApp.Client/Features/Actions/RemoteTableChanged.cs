@@ -43,7 +43,7 @@ public partial class GameState
                 State.TurnScore       = new(p.TurnScore);
                 State.CurrentPlayerId = p.CurrentPlayerId;
                 State.Scoreboard = (p.Scoreboard ?? [])
-                    .Select(s => new PlayerStanding(s.PlayerId, s.Name, s.Score))
+                    .Select(s => new PlayerStanding(s.PlayerId, s.Name, s.Score, s.Color))
                     .ToList();
 
                 return Task.CompletedTask;

@@ -22,7 +22,7 @@ public partial class GameState
         State.CurrentPlayerId = lobby.CurrentPlayerId;
         State.HostPlayerId    = lobby.HostPlayerId;
         State.Scoreboard      = lobby.Roster
-          .Select(p => new PlayerStanding(p.PlayerId, p.Name, 0))
+          .Select(p => new PlayerStanding(p.PlayerId, p.Name, 0, p.Color))
           .ToList();
       }
     }

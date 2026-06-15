@@ -58,7 +58,9 @@
 }
 
 .dice-area ::deep .zone--aside {
-    border: 2px dashed #FFE600;
+    /* Match the in-turn player's colour (cascaded from .play-area) so the set-aside
+       zone border hints at whose turn it is, like the dice. */
+    border: 2px dashed var(--active-player-color, #FFE600);
 }
 
 /* While a die is being dragged, lift it above the sibling drop zone's opaque

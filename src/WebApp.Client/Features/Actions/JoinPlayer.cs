@@ -23,7 +23,7 @@ public partial class GameState
         State.HostPlayerId    = response.HostPlayerId;
         State.GameStage       = response.Stage;
         State.Roster          = (response.Roster ?? [])
-          .Select(p => new PlayerStanding(p.PlayerId, p.Name, 0))
+          .Select(p => new PlayerStanding(p.PlayerId, p.Name, 0, p.Color))
           .ToList();
         // Seed scoreboard from the lobby roster; PassTurn responses replace it with authoritative data.
         State.Scoreboard = State.Roster.Count > 0

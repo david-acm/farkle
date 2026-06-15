@@ -49,7 +49,7 @@ public class PlayerColorShould
   public void WrapThePaletteWhenMorePlayersThanColors()
   {
     // The palette wraps so a game with more players than colours still assigns a colour.
-    PlayerColors.For(1).Should().Be(PlayerColors.For(1 + PlayerColors.Palette.Count));
-    PlayerColors.For(PlayerColors.Palette.Count + 2).Should().Be(PlayerColors.For(2));
+    PlayerColors.For(1).Should().Be(PlayerColors.For(1 + PlayerColors.Palette.Length));
+    PlayerColors.For(PlayerColors.Palette.Length + 2).Should().Be(PlayerColors.For(2));
   }
 }

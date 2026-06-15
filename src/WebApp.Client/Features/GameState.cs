@@ -12,6 +12,21 @@ public partial class GameState : State<GameState>
   public int        CurrentPlayerId { get; internal set; } = 0;
   public bool       IsMyTurn        => CurrentPlayerId == PlayerId.Value;
   public IReadOnlyList<PlayerStanding> Scoreboard  { get; internal set; } = [];
+
+  // The identity colour of the player whose turn it is. Drives the dice/turn UI so every
+  // player (in-turn or spectating) sees whose turn it is. Falls back to the default accent
+  // before any colour is known (e.g. mid-join). Looks in the scoreboard first, then the
+  // lobby roster.
+  public const string DefaultColor = "#FFE600";
+  public string ActivePlayerColor =>
+    PlayerColorFor(CurrentPlayerId);
+
+  public string PlayerColorFor(int playerId)
+  {
+    var color = Scoreboard.FirstOrDefault(p => p.PlayerId == playerId)?.Color
+                ?? Roster.FirstOrDefault(p => p.PlayerId == playerId)?.Color;
+    return string.IsNullOrWhiteSpace(color) ? DefaultColor : color;
+  }
   public string?    WinnerName      { get; internal set; }
   public bool       IsGameOver      => WinnerName is not null;
   public bool      Error     { get; private set; }
@@ -57,7 +72,7 @@ public partial class GameState : State<GameState>
   }
 }
 
-public record PlayerStanding(int PlayerId, string Name, int Score);
+public record PlayerStanding(int PlayerId, string Name, int Score, string Color = "");
 
 public record TurnScore(int Value);
 

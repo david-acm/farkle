@@ -20,7 +20,7 @@ public partial class GameState
         State.CurrentPlayerId = p.CurrentPlayerId;
         State.HostPlayerId    = p.HostPlayerId;
         State.Scoreboard      = p.Roster
-          .Select(lp => new PlayerStanding(lp.PlayerId, lp.Name, 0))
+          .Select(lp => new PlayerStanding(lp.PlayerId, lp.Name, 0, lp.Color))
           .ToList();
         return Task.CompletedTask;
       }

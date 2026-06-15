@@ -9,7 +9,7 @@ public static class HttpResponses
     string Stage = "",
     IReadOnlyList<LobbyPlayer>? Roster = null);
 
-  public record LobbyPlayer(int PlayerId, string Name);
+  public record LobbyPlayer(int PlayerId, string Name, string Color = "");
 
   public record LobbyStateResponse(
     int GameId,
@@ -18,7 +18,7 @@ public static class HttpResponses
     int HostPlayerId,
     int CurrentPlayerId);
 
-  public record PlayerScore(int PlayerId, string Name, int Score);
+  public record PlayerScore(int PlayerId, string Name, int Score, string Color = "");
   
   public record KeepDiceResponse(int Id, int TurnScore);
 

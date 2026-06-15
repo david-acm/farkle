@@ -19,16 +19,22 @@
     <tbody>
       @foreach (var p in state.Scoreboard.OrderByDescending(p => p.Score))
       {
-        var isLeader = leader is not null && p.PlayerId == leader.PlayerId && leader.Score > 0;
-        <tr data-testid="@(isLeader ? "scoreboard-leader" : "scoreboard-row")">
+        var isLeader  = leader is not null && p.PlayerId == leader.PlayerId && leader.Score > 0;
+        var isCurrent = p.PlayerId == state.CurrentPlayerId;
+        // Each player's name and score wear their own identity colour; the in-turn player
+        // is additionally emphasised (bold) so it's clear whose turn it is.
+        var colorStyle = string.IsNullOrWhiteSpace(p.Color) ? null : $"color: {p.Color};";
+        var emphasise  = isCurrent || isLeader;
+        <tr data-testid="@(isLeader ? "scoreboard-leader" : "scoreboard-row")"
+            data-current="@(isCurrent ? "true" : null)">
           <td>
-            <MudText Color="@(isLeader ? Color.Primary : Color.Default)" Typo="Typo.body2">
-              @if (isLeader) { <strong>@p.Name</strong> } else { @p.Name }
+            <MudText Typo="Typo.body2" Style="@colorStyle">
+              @if (emphasise) { <strong>@p.Name</strong> } else { @p.Name }
             </MudText>
           </td>
           <td class="scoreboard-score">
-            <MudText Color="@(isLeader ? Color.Primary : Color.Default)" Typo="Typo.body2">
-              @if (isLeader) { <strong>@p.Score</strong> } else { @p.Score }
+            <MudText Typo="Typo.body2" Style="@colorStyle">
+              @if (emphasise) { <strong>@p.Score</strong> } else { @p.Score }
             </MudText>
           </td>
         </tr>

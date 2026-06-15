@@ -96,6 +96,12 @@ internal static class GameEvents
 
   internal static class V2
   {
+    // V2 of PlayerJoined adds the player's identity Color (assigned from PlayerColors by
+    // join order). V1.PlayerJoined is left untouched; GameState handles both, deriving the
+    // colour from the id for V1 so older streams still render a consistent colour.
+    [EventType("V2.PlayerJoined")]
+    internal record PlayerJoined(int Id, string Name, string Color);
+
     [EventType("V2.DiceRolled")]
     internal record DiceRolled(int PlayerId, int[] Dice, Score TurnScore, GameStage Stage);
 

@@ -15,7 +15,7 @@ internal static class GameStateMapper
       HostPlayerId: s.Players.IsEmpty ? 0 : s.Players.Min(p => p.Id),
       TurnScore: s.TurnScore.Value,
       Scoreboard: s.Players
-        .Select(p => new PlayerScore(p.Id, p.Name, s.ScoreTable.GetValueOrDefault(p.Id, 0)))
+        .Select(p => new PlayerScore(p.Id, p.Name, s.ScoreTable.GetValueOrDefault(p.Id, 0), p.Color))
         .ToArray(),
       Winner: s.Winner is null
         ? null

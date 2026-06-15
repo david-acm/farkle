@@ -33,7 +33,7 @@ public partial class GameState
         State.WinnerName      = snapshot.Winner?.Name;
 
         var standings = snapshot.Scoreboard
-          .Select(p => new PlayerStanding(p.PlayerId, p.Name, p.Score))
+          .Select(p => new PlayerStanding(p.PlayerId, p.Name, p.Score, p.Color))
           .ToList();
         State.Scoreboard = standings;
         State.Roster     = standings;

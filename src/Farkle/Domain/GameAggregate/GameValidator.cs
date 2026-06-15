@@ -16,6 +16,9 @@ internal static class GameValidator
       PlayerJoined => Validate(
         state.GameStage == GameStage.WaitingForPlayers,
         new GameHasNotStarted(state.GameStage)),
+      GameEvents.V2.PlayerJoined => Validate(
+        state.GameStage == GameStage.WaitingForPlayers,
+        new GameHasNotStarted(state.GameStage)),
       GamePlayStarted e =>
         new GameIsWaitingForPlayers(state)
           .And(new HasMinimumPlayers(state))
