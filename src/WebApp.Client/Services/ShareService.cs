@@ -15,7 +15,7 @@ public sealed class ShareService(IJSRuntime js) : IShareService
     {
       return await js.InvokeAsync<bool>("farkleShare.share", title, text, url);
     }
-    catch
+    catch (JSException)
     {
       return false;
     }
@@ -27,7 +27,7 @@ public sealed class ShareService(IJSRuntime js) : IShareService
     {
       return await js.InvokeAsync<bool>("farkleShare.copy", text);
     }
-    catch
+    catch (JSException)
     {
       return false;
     }
