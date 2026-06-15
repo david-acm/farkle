@@ -35,6 +35,14 @@ internal static class GameValidator
         new PlayerIsInTurn(state, e.PlayerId).And(new PlayerHasThoseDice(GetDice(e), state))
           .And(new CanKeepDice(GetDice(e)))
           .IsSatisfied(),
+      GameEvents.V1.DiceSetAside e =>
+        new PlayerIsInTurn(state, e.PlayerId)
+          .And(new DieIsAvailableToSetAside(state, e.PlayerId, e.Die))
+          .IsSatisfied(),
+      GameEvents.V1.DiceReturned e =>
+        new PlayerIsInTurn(state, e.PlayerId)
+          .And(new DieIsSetAside(state, e.PlayerId, e.Die))
+          .IsSatisfied(),
 
       _ => Validate(false, $"No validation performed for event {@event}")
     };
@@ -97,6 +105,52 @@ internal class PlayerHasThoseDice : Validator
       new DiceNotAllowedToBeKept(
         $"Player Does not have die/dice: {string.Join(',', unavailable)}. Dice found: {string.Join(", ", _state.TableCenter)}",
         unavailable.ToPrimitiveArray()));
+  }
+}
+
+// #159 — a die can be set aside only if a not-yet-set-aside copy is still on the table
+// (multiset semantics: setting aside is a non-destructive overlay on TableCenter).
+internal class DieIsAvailableToSetAside : Validator
+{
+  private readonly GameState _state;
+  private readonly int       _playerId;
+  private readonly int       _die;
+
+  public DieIsAvailableToSetAside(GameState state, int playerId, int die)
+  {
+    _state    = state;
+    _playerId = playerId;
+    _die      = die;
+  }
+
+  public override ValidationResult IsSatisfied()
+  {
+    var die        = DieValue.FromValue(_die);
+    var onTable    = _state.TableCenter.Count(d => d == die);
+    var alreadySet = _state.DiceSetAside.Count(d => d == die);
+    return new ValidationResult(onTable > alreadySet,
+      new DieNotAvailableToSetAside(_playerId, _die));
+  }
+}
+
+// #159 — a die can be put back only if it is currently set aside.
+internal class DieIsSetAside : Validator
+{
+  private readonly GameState _state;
+  private readonly int       _playerId;
+  private readonly int       _die;
+
+  public DieIsSetAside(GameState state, int playerId, int die)
+  {
+    _state    = state;
+    _playerId = playerId;
+    _die      = die;
+  }
+
+  public override ValidationResult IsSatisfied()
+  {
+    return new ValidationResult(_state.DiceSetAside.Contains(DieValue.FromValue(_die)),
+      new DieNotSetAside(_playerId, _die));
   }
 }
 

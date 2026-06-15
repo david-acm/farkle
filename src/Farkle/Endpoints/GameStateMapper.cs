@@ -21,5 +21,6 @@ internal static class GameStateMapper
         ? null
         : new WinnerResponse(s.Winner.Id, s.Winner.Name, s.ScoreTable.GetValueOrDefault(s.Winner.Id, 0)),
       TableCenter: s.TableCenter.Select(d => d.Value).ToArray(),
-      DiceKept: s.DiceKept.Select(d => d.Value).ToArray());
+      DiceKept: s.DiceKept.Select(d => d.Value).ToArray(),
+      DiceSetAside: s.DiceSetAside.Select(d => d.Value).ToArray());
 }

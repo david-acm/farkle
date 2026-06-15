@@ -24,12 +24,18 @@ public partial class GameState
 
                 var p = action.Payload;
 
-                // Rebuild the read-only table from the snapshot: centre dice in "Rolled",
-                // kept dice in "SetAside". Animate=false — a spectator sees a settled snapshot,
-                // not a re-roll spin.
-                var dice = p.TableCenter
+                // Set-aside is a non-destructive overlay on TableCenter (#159), so the
+                // dice still in play are the centre minus the current selection (multiset).
+                var inPlay = p.TableCenter.ToList();
+                foreach (var v in p.DiceSetAside)
+                    inPlay.Remove(v);
+
+                // Rebuild the read-only table from the snapshot: still-in-play dice in
+                // "Rolled", the live set-aside selection in "SetAside". Animate=false — a
+                // spectator sees a settled snapshot, not a re-roll spin.
+                var dice = inPlay
                     .Select((v, i) => new DraggableDie(i, DieValue.FromValue(v), "Rolled") { Animate = false })
-                    .Concat(p.DiceKept
+                    .Concat(p.DiceSetAside
                         .Select((v, i) => new DraggableDie(p.TableCenter.Count + i, DieValue.FromValue(v), "SetAside") { Animate = false }))
                     .ToList();
 

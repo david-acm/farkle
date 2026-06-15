@@ -21,7 +21,8 @@ public class HandleShould : HandlerTestContext
       Scoreboard:      [new PlayerScore(1, "Host", 500), new PlayerScore(7, "Alice", 150)],
       Winner:          null,
       TableCenter:     [1, 2, 3],
-      DiceKept:        [5, 5]);
+      DiceKept:        [5, 5],
+      DiceSetAside:    []);
 
   [Fact]
   public async Task RestoreIdentityScoreboardAndDice_WhenItIsMyTurn()
@@ -89,7 +90,8 @@ public class HandleShould : HandlerTestContext
         Scoreboard:      [new PlayerScore(7, "Alice", 10_000)],
         Winner:          new WinnerResponse(7, "Alice", 10_000),
         TableCenter:     [],
-        DiceKept:        []));
+        DiceKept:        [],
+        DiceSetAside:    []));
 
     await Sender.Send(new GameState.RestoreGameState.Action(PlayerId: 7, PlayerName: "Alice"));
 

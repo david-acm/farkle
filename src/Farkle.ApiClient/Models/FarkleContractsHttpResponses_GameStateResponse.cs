@@ -22,6 +22,14 @@ namespace Farkle.ApiClient.Models
 #else
         public List<int?> DiceKept { get; set; }
 #endif
+        /// <summary>The diceSetAside property</summary>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
+#nullable enable
+        public List<int?>? DiceSetAside { get; set; }
+#nullable restore
+#else
+        public List<int?> DiceSetAside { get; set; }
+#endif
         /// <summary>The gameId property</summary>
         public int? GameId { get; set; }
         /// <summary>The hostPlayerId property</summary>
@@ -80,6 +88,7 @@ namespace Farkle.ApiClient.Models
             {
                 { "currentPlayerId", n => { CurrentPlayerId = n.GetIntValue(); } },
                 { "diceKept", n => { DiceKept = n.GetCollectionOfPrimitiveValues<int?>()?.AsList(); } },
+                { "diceSetAside", n => { DiceSetAside = n.GetCollectionOfPrimitiveValues<int?>()?.AsList(); } },
                 { "gameId", n => { GameId = n.GetIntValue(); } },
                 { "hostPlayerId", n => { HostPlayerId = n.GetIntValue(); } },
                 { "scoreboard", n => { Scoreboard = n.GetCollectionOfObjectValues<global::Farkle.ApiClient.Models.FarkleContractsHttpResponses_PlayerScore>(global::Farkle.ApiClient.Models.FarkleContractsHttpResponses_PlayerScore.CreateFromDiscriminatorValue)?.AsList(); } },
@@ -98,6 +107,7 @@ namespace Farkle.ApiClient.Models
             if(ReferenceEquals(writer, null)) throw new ArgumentNullException(nameof(writer));
             writer.WriteIntValue("currentPlayerId", CurrentPlayerId);
             writer.WriteCollectionOfPrimitiveValues<int?>("diceKept", DiceKept);
+            writer.WriteCollectionOfPrimitiveValues<int?>("diceSetAside", DiceSetAside);
             writer.WriteIntValue("gameId", GameId);
             writer.WriteIntValue("hostPlayerId", HostPlayerId);
             writer.WriteCollectionOfObjectValues<global::Farkle.ApiClient.Models.FarkleContractsHttpResponses_PlayerScore>("scoreboard", Scoreboard);

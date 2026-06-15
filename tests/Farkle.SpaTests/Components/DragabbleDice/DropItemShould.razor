@@ -13,6 +13,10 @@
     JSInterop.Mode = JSRuntimeMode.Loose;
     Services.AddScoped<IRotationCalculator>(
       _ => Mock.Of<IRotationCalculator>());
+    // SetDiceAside now promotes the selection to a domain command (#159), so its handler
+    // needs IGameService; the drag itself is what this test exercises.
+    Services.AddScoped<IGameService>(_ => Mock.Of<IGameService>());
+    Services.AddLogging();
     Services.AddBlazorState(o => o.Assemblies = [typeof(Program).Assembly]);
     var die = new DraggableDie(index: 1, value: DieValue.One, identifier: "Rolled");
 

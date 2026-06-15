@@ -41,6 +41,16 @@ internal class GameService
       .GetId(cmd => new GameId(cmd.GameId))
       .Execute((game, cmd) => game.KeepDice(cmd));
 
+    On<Command.SetDiceAside>()
+      .InState(Existing)
+      .GetId(cmd => new GameId(cmd.GameId))
+      .Execute((game, cmd) => game.SetDiceAside(cmd));
+
+    On<Command.ReturnDice>()
+      .InState(Existing)
+      .GetId(cmd => new GameId(cmd.GameId))
+      .Execute((game, cmd) => game.ReturnDice(cmd));
+
     On<Command.PassTurn>()
       .InState(Existing)
       .GetId(cmd => new GameId(cmd.GameId))

@@ -233,6 +233,62 @@
         }
       }
     },
+    "/api/games/{gameId}/players/{playerId}/putbacks": {
+      "post": {
+        "tags": [
+          "Api"
+        ],
+        "operationId": "FarkleEndpointsReturnDiceEndpoint",
+        "parameters": [
+          {
+            "name": "gameId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "playerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "x-name": "ReturnDiceRequest",
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FarkleContractsHttpRequests_ReturnDiceRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FarkleContractsHttpResponses_SetAsideResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
     "/api/games/{gameId}/players/{playerId}/rolls": {
       "post": {
         "tags": [
@@ -266,6 +322,62 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/FarkleContractsHttpResponses_RollDiceResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/games/{gameId}/players/{playerId}/setasides": {
+      "post": {
+        "tags": [
+          "Api"
+        ],
+        "operationId": "FarkleEndpointsSetDiceAsideEndpoint",
+        "parameters": [
+          {
+            "name": "gameId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "playerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "x-name": "SetDiceAsideRequest",
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FarkleContractsHttpRequests_SetDiceAsideRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FarkleContractsHttpResponses_SetAsideResponse"
                 }
               }
             }
@@ -461,6 +573,13 @@
               "type": "integer",
               "format": "int32"
             }
+          },
+          "diceSetAside": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
           }
         }
       },
@@ -607,6 +726,33 @@
         "type": "object",
         "additionalProperties": false
       },
+      "FarkleContractsHttpResponses_SetAsideResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "diceSetAside": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        }
+      },
+      "FarkleContractsHttpRequests_ReturnDiceRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "dieValue": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "FarkleContractsHttpResponses_RollDiceResponse": {
         "type": "object",
         "additionalProperties": false,
@@ -627,6 +773,16 @@
       "FarkleContractsHttpRequests_RollDiceRequest": {
         "type": "object",
         "additionalProperties": false
+      },
+      "FarkleContractsHttpRequests_SetDiceAsideRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "dieValue": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
       },
       "FarkleContractsHttpResponses_StartGameResponse": {
         "type": "object",
