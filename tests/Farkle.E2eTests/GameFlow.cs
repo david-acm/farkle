@@ -5,7 +5,7 @@ namespace Farkle.E2eTests;
 
 /// <summary>
 /// Shared Playwright helpers that drive a player through the opening stages of a game
-/// (landing → start/join → roll → drag). Extracted from the happy-path test so the
+/// (landing → start/join → roll → tap-to-select). Extracted from the happy-path test so the
 /// infra-light storyboard capture can reuse the exact same flow against a different
 /// (in-memory) backend without duplicating the selectors/timing logic.
 /// </summary>
@@ -64,22 +64,10 @@ internal static class GameFlow
         await page.WaitForURLAsync(new Regex(@"/games/\d+"), new() { Timeout = WasmTimeoutMs });
     }
 
-    // MudBlazor's MudDropZone uses HTML5 drag events. Playwright's DragToAsync fires
-    // mouse events which don't reliably trigger the HTML5 drag API in headless Chrome,
-    // so we dispatch the events directly via JS.
-    public static Task DragDieAsync(IPage page, int index) =>
-        page.EvaluateAsync($@"() => {{
-            const dice   = document.querySelectorAll('.mud-drop-zone')[0]
-                                   .querySelectorAll('.mud-drop-item-draggable');
-            const source = dice[{index}];
-            const target = document.querySelectorAll('.mud-drop-zone')[1];
-            const dt     = new DataTransfer();
-            source.dispatchEvent(new DragEvent('dragstart', {{ bubbles: true, cancelable: true, dataTransfer: dt }}));
-            target.dispatchEvent(new DragEvent('dragenter', {{ bubbles: true, cancelable: true, dataTransfer: dt }}));
-            target.dispatchEvent(new DragEvent('dragover',  {{ bubbles: true, cancelable: true, dataTransfer: dt }}));
-            target.dispatchEvent(new DragEvent('drop',      {{ bubbles: true, cancelable: true, dataTransfer: dt }}));
-            source.dispatchEvent(new DragEvent('dragend',   {{ bubbles: true, cancelable: true, dataTransfer: dt }}));
-        }}");
+    // Tap-to-select (#182): tapping the n-th die in the tray toggles its selection. The
+    // tray order matches the roll order, so `index` is the die's roll index.
+    public static Task TapDieAsync(IPage page, int index) =>
+        page.Locator(".dice-tray-die").Nth(index).ClickAsync();
 
     public static int[] ParseDiceValues(string json)
     {

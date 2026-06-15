@@ -8,25 +8,26 @@ namespace Farkle.SpaTests.Theme;
 
 // Issue #150 — non-text contrast (WCAG 1.4.11, AA).
 //
-// UI elements that convey meaning through a border/outline must clear 3:1
-// against the colour they sit on. These read the literals from the component
-// CSS so the guard tracks the source: the dashed "Set Aside" drop-zone border
-// (which marks the drop target) and the die's outline.
+// UI elements that convey meaning through a border/outline or colour must clear 3:1
+// against the colour they sit on. These read the literals from the component CSS so the
+// guard tracks the source: the selected (tapped) die's dark pips on its yellow face
+// (#182, the selection cue) and the die's outline.
 public class NonTextContrastShould
 {
   private const double NonText = 3.0; // WCAG 1.4.11
 
   [Fact]
-  public void KeepTheSetAsideDropZoneBorderVisible()
+  public void KeepTheSelectedDiePipsVisible()
   {
-    var css = ReadComponentCss("DragabbleDice.razor.css");
+    var css = ReadComponentCss("Die.razor.css");
 
-    var border = Hex(css, @"border:\s*[\d.]+px\s+dashed\s+(#[0-9A-Fa-f]{6})");
-    var zoneBackground = Hex(css, @"\.zone\b[^{}]*\{[^}]*background:\s*(#[0-9A-Fa-f]{6})");
+    // A selected die inverts to a yellow face with dark pips — the pips must stay legible.
+    var selectedFace = Hex(css, @"\.die-container\.selected[^{}]*\.side\s*\{[^}]*background-color:\s*(#[0-9A-Fa-f]{6})");
+    var selectedPip  = Hex(css, @"\.die-container\.selected\s+\.pip\s*\{[^}]*background-color:\s*(#[0-9A-Fa-f]{6})");
 
-    ContrastMath.Ratio(border, zoneBackground)
+    ContrastMath.Ratio(selectedPip, selectedFace)
       .Should().BeGreaterThanOrEqualTo(NonText,
-        "the dashed drop-target border must be distinguishable from the zone fill");
+        "a selected die's pips must stay distinguishable from its (inverted) face");
   }
 
   [Fact]
