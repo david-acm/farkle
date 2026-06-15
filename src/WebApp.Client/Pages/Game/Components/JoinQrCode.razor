@@ -13,6 +13,12 @@
 @code {
   [Parameter] public string JoinUrl { get; set; } = string.Empty;
 
+  // Game palette: dark "ink" modules on a brand-yellow background. Keeping the
+  // dark-on-light orientation with ~15:1 contrast (the same pairing as the
+  // yellow buttons) means the code stays reliably scannable while on-brand.
+  private static readonly byte[] DarkRgba = [0x0A, 0x0A, 0x1A, 0xFF]; // #0A0A1A
+  private static readonly byte[] LightRgba = [0xFF, 0xE6, 0x00, 0xFF]; // #FFE600
+
   private string _dataUri = string.Empty;
 
   protected override void OnParametersSet()
@@ -20,7 +26,7 @@
     using var generator = new QRCodeGenerator();
     using var data = generator.CreateQrCode(JoinUrl, QRCodeGenerator.ECCLevel.M);
     using var qr = new PngByteQRCode(data);
-    var png = qr.GetGraphic(8);
+    var png = qr.GetGraphic(8, DarkRgba, LightRgba);
     _dataUri = $"data:image/png;base64,{Convert.ToBase64String(png)}";
   }
 }
