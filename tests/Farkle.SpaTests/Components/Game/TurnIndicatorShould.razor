@@ -7,8 +7,9 @@
 @using static Farkle.Contracts.HttpResponses
 
 @code {
-  // B3 — Turn indicator: my-turn-indicator when IsMyTurn,
-  //                      waiting-indicator with opponent name otherwise.
+  // B3 — Turn indicator (#179): the 🎲 marker sits next to the in-turn player in the
+  // scoreboard, tagged my-turn-indicator in the local player's browser and
+  // waiting-indicator otherwise.
 
   [Fact]
   public void ShowMyTurnIndicator_AfterJoining()
@@ -17,7 +18,7 @@
     JoinGame(cut, "Alice", assignedPlayerId: 1);
 
     cut.Find("[data-testid='my-turn-indicator']")
-      .TextContent.Should().Contain("your turn");
+      .TextContent.Should().Contain("🎲");
     cut.FindAll("[data-testid='waiting-indicator']").Should().BeEmpty();
   }
 
@@ -37,8 +38,10 @@
         CurrentPlayerId: 2,
         Scoreboard:      [new PlayerScore(1, "Alice", 0), new PlayerScore(2, "Bob", 0)])));
 
+    // The marker sits in the in-turn player's scoreboard row — the cell holds 🎲 + the name.
     var waiting = cut.Find("[data-testid='waiting-indicator']");
-    waiting.TextContent.Should().Contain("Bob");
+    waiting.TextContent.Should().Contain("🎲");
+    waiting.ParentElement!.TextContent.Should().Contain("Bob");
     cut.FindAll("[data-testid='my-turn-indicator']").Should().BeEmpty();
   }
 }

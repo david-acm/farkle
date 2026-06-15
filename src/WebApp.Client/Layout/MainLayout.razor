@@ -1,4 +1,5 @@
 @inherits LayoutComponentBase
+@inject NavigationManager Navigation
 
 <MudThemeProvider Theme="_theme" />
 <MudPopoverProvider />
@@ -8,7 +9,8 @@
 <MudLayout>
     <MudAppBar Elevation="1">
         <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" aria-label="Toggle navigation menu" OnClick="@((e) => DrawerToggle())" />
-        <MudText Typo="Typo.h5" Class="ml-3">🎲 Farkle</MudText>
+        <MudText Typo="Typo.h5" Class="ml-3" Style="cursor: pointer;"
+                 @onclick='() => Navigation.NavigateTo("/")'>🎲 Farkle</MudText>
         <MudSpacer />
     </MudAppBar>
     <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
