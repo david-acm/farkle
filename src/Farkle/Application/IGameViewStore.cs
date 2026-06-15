@@ -14,8 +14,9 @@ public interface IGameViewStore
 // Default no-op store for hosts without the read model (e.g. the in-memory storyboard
 // capture, which has no Postgres). Get returns null so GetGameStateEndpoint falls back to
 // replaying the aggregate; Upsert is a no-op. Registered via TryAddSingleton so the real
-// EfGameViewStore (WebApp) takes precedence whenever it is registered.
-internal sealed class NullGameViewStore : IGameViewStore
+// EfGameViewStore (WebApp) takes precedence whenever it is registered. Public so a test host
+// that registered the EF store before its config gate was visible can swap back to it.
+public sealed class NullGameViewStore : IGameViewStore
 {
   public Task<string?> GetAsync(int gameId, CancellationToken ct) => Task.FromResult<string?>(null);
 

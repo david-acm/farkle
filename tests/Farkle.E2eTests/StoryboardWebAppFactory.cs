@@ -71,6 +71,14 @@ public sealed class StoryboardWebAppFactory : WebApplicationFactory<Program>
                 services.Remove(hosted);
 
             services.AddSingleton<IAggregateStore, InMemoryAggregateStore>();
+
+            // The read model (#156) is gated on config that isn't merged yet at registration
+            // time (same limitation as the broadcast subscription above), so Program registers
+            // the Postgres-backed EfGameViewStore here too. Swap it for the no-op store so GET
+            // falls back to the in-memory replay instead of hitting the dummy Postgres. The
+            // projector's subscription was already dropped by the hosted-service removal above.
+            RemoveAll(services, typeof(Farkle.Application.IGameViewStore));
+            services.AddSingleton<Farkle.Application.IGameViewStore, Farkle.Application.NullGameViewStore>();
         });
     }
 
