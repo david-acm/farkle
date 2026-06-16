@@ -11,7 +11,8 @@ internal class GameService
 {
   private readonly IEventStore _store;
 
-  public GameService(IEventStore store) : base(store)
+  public GameService(IEventStore store, IRandom random)
+    : base(store, factoryRegistry: CreateAggregateFactory(random))
   {
     _store = store;
 
@@ -56,6 +57,17 @@ internal class GameService
       .Execute((game, cmd) => game.PassTurn(cmd));
   }
 
+  // #93: a per-service aggregate factory so Eventuous builds Game with the DI-provided
+  // IRandom (the dice seam) on the command/write path, instead of the parameterless ctor's
+  // DefaultRandomProvider. The read path (LoadAggregate, below) only replays events and never
+  // rolls, so it can keep using the default global factory.
+  private static AggregateFactoryRegistry CreateAggregateFactory(IRandom random)
+  {
+    var registry = new AggregateFactoryRegistry();
+    registry.CreateAggregateUsing<Game, GameState>(() => new Game(random));
+    return registry;
+  }
+
   // Attempts to start a brand-new game with the supplied id. Reports whether the id
   // was free (Created) or already in use (IdAlreadyInUse) so the caller can decide on a
   // retry policy; genuine failures are thrown. The retry/id-allocation policy lives in
@@ -73,16 +85,16 @@ internal class GameService
   }
 
   // Read-only load of the current state by replaying the aggregate's event stream.
-  // Returns null when the game stream doesn't exist yet (LoadOrNew yields an empty
-  // aggregate whose State.Id is still null because no GameStarted event was applied).
+  // Returns null when the game stream doesn't exist yet (LoadAggregate yields an empty
+  // aggregate whose State.Id is still the GameId.None sentinel — no GameStarted applied).
   public async Task<GameState?> LoadStateAsync(GameId gameId, CancellationToken cancellationToken)
   {
     // 0.15.1 retires IAggregateStore.LoadOrNew in favour of the IEventReader.LoadAggregate
-    // extension. failIfNotFound:false yields an empty aggregate (whose State.Id is still null)
-    // when the game stream doesn't exist yet, preserving the previous null-on-missing contract.
+    // extension. failIfNotFound:false yields an empty aggregate (State.Id == GameId.None) when
+    // the game stream doesn't exist yet, preserving the previous null-on-missing contract.
     var game = await _store.LoadAggregate<Game, GameState, GameId>(
       gameId, failIfNotFound: false, cancellationToken: cancellationToken);
-    return game.State.Id is null ? null : game.State;
+    return game.State.Id == GameId.None ? null : game.State;
   }
 
   // TODO: Generalize this method

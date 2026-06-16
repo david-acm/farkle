@@ -79,12 +79,12 @@ public sealed class StoryboardWebAppFactory : WebApplicationFactory<Program>
             services.AddSingleton<IEventReader>(inMemoryStore);
             services.AddSingleton<IEventWriter>(inMemoryStore);
 
-            // 0.15.1 builds aggregates via AggregateFactoryRegistry rather than the store's own
-            // factory. Register Game with the deterministic ScriptedRandom on the global registry
-            // (the default the CommandService + LoadAggregate use) so every roll yields scoring
-            // dice and the storyboard stages stay reproducible.
-            AggregateFactoryRegistry.Instance
-                .CreateAggregateUsing<Game, GameState>(() => new Game(new ScriptedRandom()));
+            // Deterministic dice via the DI seam (#93): swap the default IRandom for
+            // ScriptedRandom (always rolls the minimum → six 1s) so every roll yields a scoring
+            // die and the storyboard stages stay reproducible. GameService's aggregate factory
+            // resolves this when constructing Game on the command path.
+            RemoveAll(services, typeof(IRandom));
+            services.AddSingleton<IRandom, ScriptedRandom>();
 
             // The read model (#156) is gated on config that isn't merged yet at registration
             // time (same limitation as the broadcast subscription above), so Program registers

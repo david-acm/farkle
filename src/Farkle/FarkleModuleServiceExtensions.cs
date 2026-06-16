@@ -22,6 +22,10 @@ public static class FarkleModuleServiceExtensions
     services.AddSingleton<IGameService, GameService>();
     services.AddSingleton<IGameIdGenerator, RandomGameIdGenerator>();
     services.AddSingleton<IGameCreator, GameCreator>();
+    // Dice source seam (#93): the default RNG, injected into the Game aggregate via
+    // GameService's aggregate factory. Hosts/tests can replace it (e.g. a deterministic
+    // ScriptedRandom) by registering their own IRandom.
+    services.AddSingleton<IRandom, DefaultRandomProvider>();
 
     // Read-side (#156): default to the no-op store so GetGameStateEndpoint always resolves
     // IGameViewStore and falls back to replay. Farkle.Infrastructure registers the real
