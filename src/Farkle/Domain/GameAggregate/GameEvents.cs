@@ -30,10 +30,11 @@ internal record Dice(IEnumerable<DieValue> DiceValues)
   }
 }
 
-// Public, DI-registered seam for the dice source (#93), mirroring IGameIdGenerator. The
-// default implementation (DefaultRandomProvider) is registered in the Farkle module; hosts
-// and tests can substitute a deterministic provider (e.g. ScriptedRandom) via DI.
-public interface IRandom
+// DI-registered seam for the dice source (#93). Stays internal — it's a domain type, and the
+// DomainPurityShould guardrail keeps Farkle.Domain types internal. The default implementation
+// (DefaultRandomProvider) is registered in the Farkle module; tests substitute a deterministic
+// provider (e.g. ScriptedRandom) via DI through InternalsVisibleTo.
+internal interface IRandom
 {
   int Next(int minValue, int maxValue);
 }
