@@ -1,6 +1,6 @@
 using Ardalis.SmartEnum;
 
-namespace WebApp.Client.Pages.Game.Components;
+namespace Blazor.Dice;
 
 public sealed class DieValue : SmartEnum<DieValue, int>
 {

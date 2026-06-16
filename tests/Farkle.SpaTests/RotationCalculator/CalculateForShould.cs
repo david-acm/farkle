@@ -26,7 +26,7 @@ public class CalculateForShould
     int zExpected)
   {
     // Arrange
-    var sut = new WebApp.Client.Services.RotationCalculator();
+    var sut = new Blazor.Dice.RotationCalculator();
 
     // Act
     var (x, y, z) = sut.CalculateFor(DieValue.FromValue(value));

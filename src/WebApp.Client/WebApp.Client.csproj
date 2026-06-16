@@ -24,7 +24,15 @@
     <AdditionalFiles Include="Features\Actions\Components\ErrorModal.razor" />
   </ItemGroup>
 
+  <!-- Dice UI primitives (Die, DieValue, DraggableDie, rotation calculator) live in
+       this reusable Razor Class Library; exposed app-wide as a global using so the
+       many DieValue/DraggableDie/IRotationCalculator references need no per-file using. -->
   <ItemGroup>
+    <Using Include="Blazor.Dice" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Blazor.Dice\Blazor.Dice.csproj" />
     <ProjectReference Include="..\Farkle.ApiClient\Farkle.ApiClient.csproj" />
     <ProjectReference Include="..\Farkle.Contracts\Farkle.Contracts.csproj" />
     <!-- Thin, infra-free shared kernel: the ScoreCalculator for the live turn-score preview. -->

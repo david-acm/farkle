@@ -52,12 +52,22 @@ public class NonTextContrastShould
 
   private static string ReadComponentCss(string fileName)
   {
+    // The dice scoped CSS lives in the Blazor.Dice library; other game components
+    // keep theirs under WebApp.Client. Search both relative to the repo root.
+    string[] roots =
+    [
+      Path.Join("src", "Blazor.Dice"),
+      Path.Join("src", "WebApp.Client", "Pages", "Game", "Components"),
+    ];
+
     var dir = new DirectoryInfo(AppContext.BaseDirectory);
     while (dir is not null)
     {
-      var candidate = Path.Join(dir.FullName,
-        "src", "WebApp.Client", "Pages", "Game", "Components", fileName);
-      if (File.Exists(candidate)) return File.ReadAllText(candidate);
+      foreach (var root in roots)
+      {
+        var candidate = Path.Join(dir.FullName, root, fileName);
+        if (File.Exists(candidate)) return File.ReadAllText(candidate);
+      }
       dir = dir.Parent;
     }
 

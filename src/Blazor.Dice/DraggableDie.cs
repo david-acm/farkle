@@ -1,4 +1,4 @@
-﻿namespace WebApp.Client.Pages.Game.Components;
+﻿namespace Blazor.Dice;
 
 public class DraggableDie(int index, DieValue value, string identifier)
 {

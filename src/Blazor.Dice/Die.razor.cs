@@ -1,9 +1,9 @@
 using System.Threading;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
-using WebApp.Client.Services;
+using Microsoft.Extensions.Logging;
 
-namespace WebApp.Client.Pages.Game.Components;
+namespace Blazor.Dice;
 
 public partial class Die : IDisposable
 {

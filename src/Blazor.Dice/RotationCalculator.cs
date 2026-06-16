@@ -1,6 +1,5 @@
-using WebApp.Client.Pages.Game.Components;
 
-namespace WebApp.Client.Services;
+namespace Blazor.Dice;
 
 public class RotationCalculator : IRotationCalculator
 {
