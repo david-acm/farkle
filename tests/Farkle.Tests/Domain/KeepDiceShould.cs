@@ -123,6 +123,38 @@ public class KeepDiceShould : GameWithThreePlayersTest
   }
 
   [Fact]
+  public void AllowAndScoreThreePairs()
+  {
+    // Arrange — a full six-dice three-pairs hand (no 1s/5s, no triplet).
+    SetupDiceToRoll(new List<int> { 2, 2, 4, 4, 6, 6 });
+    Game.RollDiceV2(new Command.RollDice(1, 1));
+
+    // Act
+    Game.KeepDice(new Command.KeepDice(1, 1,
+      new[] { DieValue.Two, DieValue.Two, DieValue.Four, DieValue.Four, DieValue.Six, DieValue.Six }));
+
+    // Assert — keepable (the new keep-gate clause) and worth 1500.
+    Changes.Should().NotContainAnyEvent<DiceNotAllowedToBeKept>();
+    State.TurnScore.Should().Be(new Score(1500));
+  }
+
+  [Fact]
+  public void AllowAndScoreTwoTriplets()
+  {
+    // Arrange — two three-of-a-kinds in one roll.
+    SetupDiceToRoll(new List<int> { 2, 2, 2, 5, 5, 5 });
+    Game.RollDiceV2(new Command.RollDice(1, 1));
+
+    // Act
+    Game.KeepDice(new Command.KeepDice(1, 1,
+      new[] { DieValue.Two, DieValue.Two, DieValue.Two, DieValue.Five, DieValue.Five, DieValue.Five }));
+
+    // Assert — two triplets scores 2500 (beats the per-triplet values).
+    Changes.Should().NotContainAnyEvent<DiceNotAllowedToBeKept>();
+    State.TurnScore.Should().Be(new Score(2500));
+  }
+
+  [Fact]
   public void AllowToKeepOnlyDiceThatWereRolled()
   {
     // Arrange
@@ -399,6 +431,12 @@ public class KeepDiceShould : GameWithThreePlayersTest
   public static IEnumerable<object[]> TricksAndScore()
   {
     yield return new object[] { "1 should add 100", new[] { 1, 2, 2, 3, 4, 4 }, new[] { DieValue.One }, 100 };
+    yield return new object[]
+    {
+      // Three 1s are special-cased to 1000 (not face*100 = 100) — standard Farkle. (#177)
+      "three 1s should add 1000", new[] { 1, 1, 1, 2, 3, 4 },
+      new[] { DieValue.One, DieValue.One, DieValue.One }, 1000
+    };
     yield return new object[]
     {
       "1 and 5 should add 150", new[] { 1, 1, 2, 3, 4, 5 }, new[] { DieValue.One, DieValue.Five, DieValue.One },

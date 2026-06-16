@@ -12,8 +12,8 @@ public class HandleShould : HandlerTestContext
   [Fact]
   public async Task ClearAnimateOnEveryDie()
   {
-    State.DiceInPlay.Add(new DraggableDie(0, DieValue.Five, "Rolled")  { Animate = true });
-    State.DiceInPlay.Add(new DraggableDie(1, DieValue.Two,  "SetAside") { Animate = true });
+    State.DiceInPlay.Add(new TrayDie(0, DieValue.Five, "Rolled")  { Animate = true });
+    State.DiceInPlay.Add(new TrayDie(1, DieValue.Two,  "SetAside") { Animate = true });
 
     await Sender.Send(new GameState.ConsumeRollAnimation.Action());
 

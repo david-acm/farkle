@@ -1,0 +1,51 @@
+<h3>ReturnDieToRolledShould</h3>
+@using Ardalis.Result
+@using BlazorState
+@using Farkle.Contracts
+@using MediatR
+@using Moq
+@using MudBlazor.Services
+@using WebApp.Client.Features
+@using WebApp.Client.Pages.Game
+@using WebApp.Client.Pages.Game.Components
+@using WebApp.Client.Services
+@inherits GameBunitContext
+
+@code {
+  [Fact]
+  public async Task NotSendDieToServer_WhenReturnedToRolled()
+  {
+    // Given — roll returns a single Five
+    var gameId = new GameId(10);
+    Mock.Get(GameService)
+      .Setup(s => s.RollDiceAsync(It.IsAny<int>(), It.IsAny<int>()))
+      .ReturnsAsync(Result<IList<DieValue>>.Success(new List<DieValue> { DieValue.Five }));
+
+    // Capture dice argument as a snapshot before the handler clears DiceSetAside.
+    // Moq captures the list reference; without ToList() the assertion would see the
+    // already-cleared list and pass even when the bug is present.
+    List<int>? capturedDice = null;
+    Mock.Get(GameService)
+      .Setup(s => s.KeepDiceAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<IEnumerable<int>>()))
+      .Callback<int, int, IEnumerable<int>>((_, _, d) => capturedDice = d.ToList())
+      .ReturnsAsync(new HttpResponses.KeepDiceResponse(gameId, 0));
+
+    var game = Render<Game>(@<Game ParameterGameId="gameId"/>);
+    JoinGame(game);
+
+    // Roll to populate DiceInPlay with [Five]
+    await game.FindComponent<RollDiceButton>().Find("button").ClickAsync(new MouseEventArgs());
+
+    // Select Five (→ SetAside), then return it (→ Rolled)
+    var sender = Services.GetRequiredService<ISender>();
+    await sender.Send(new GameState.SetDiceAside.Action(new TrayDie(0, DieValue.Five, "SetAside")));
+    await sender.Send(new GameState.SetDiceAside.Action(new TrayDie(0, DieValue.Five, "Rolled")));
+
+    // When — player clicks "Set Dice Aside"
+    await game.FindComponent<KeepButton>().Find("button").ClickAsync(new MouseEventArgs());
+
+    // Then — the die returned to Rolled must NOT appear in the server call
+    capturedDice.Should().NotBeNull("KeepDiceAsync should have been called");
+    capturedDice!.Should().BeEmpty("a die returned to Rolled must not be sent to the server");
+  }
+}

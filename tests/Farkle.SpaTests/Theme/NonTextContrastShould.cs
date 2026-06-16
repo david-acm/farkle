@@ -9,31 +9,28 @@ namespace Farkle.SpaTests.Theme;
 
 // Issue #150 — non-text contrast (WCAG 1.4.11, AA).
 //
-// UI elements that convey meaning through a border/outline must clear 3:1
-// against the colour they sit on. The die outline and the dashed "Set Aside"
-// drop-zone border now recolour to the in-turn player's colour
-// (--active-player-color), so the guard checks two things from the source:
-// (1) the CSS uses the player-colour custom property, and (2) EVERY colour in
-// PlayerColors.Palette stays distinguishable from the surface it sits on.
+// UI elements that convey meaning through a border/outline or colour must clear 3:1
+// against the colour they sit on. These read the literals from the component CSS so the
+// guard tracks the source:
+// (1) the selected (tapped) die's dark pips on its yellow face (#182, the selection cue), and
+// (2) the die outline recolours to the in-turn player's colour (--active-player-color, #170),
+//     so EVERY colour in PlayerColors.Palette must stay distinguishable from the die face.
 public class NonTextContrastShould
 {
   private const double NonText = 3.0; // WCAG 1.4.11
 
   [Fact]
-  public void KeepTheSetAsideDropZoneBorderVisible()
+  public void KeepTheSelectedDiePipsVisible()
   {
-    var css = ReadComponentCss("DragabbleDice.razor.css");
+    var css = ReadComponentCss("Die.razor.css");
 
-    css.Should().MatchRegex(
-      @"\.zone--aside[^{}]*\{[^}]*border:\s*[\d.]+px\s+dashed\s+var\(--active-player-color",
-      "the drop-target border must recolour to the in-turn player's colour");
+    // A selected die inverts to a yellow face with dark pips — the pips must stay legible.
+    var selectedFace = Hex(css, @"\.die-container\.selected[^{}]*\.side\s*\{[^}]*background-color:\s*(#[0-9A-Fa-f]{6})");
+    var selectedPip  = Hex(css, @"\.die-container\.selected\s+\.pip\s*\{[^}]*background-color:\s*(#[0-9A-Fa-f]{6})");
 
-    var zoneBackground = Hex(css, @"\.zone\b[^{}]*\{[^}]*background:\s*(#[0-9A-Fa-f]{6})");
-
-    foreach (var color in PlayerColors.Palette)
-      ContrastMath.Ratio(new MudColor(color), zoneBackground)
-        .Should().BeGreaterThanOrEqualTo(NonText,
-          $"player colour {color} must stay distinguishable as the drop-target border");
+    ContrastMath.Ratio(selectedPip, selectedFace)
+      .Should().BeGreaterThanOrEqualTo(NonText,
+        "a selected die's pips must stay distinguishable from its (inverted) face");
   }
 
   [Fact]
@@ -62,13 +59,12 @@ public class NonTextContrastShould
 
   private static string ReadComponentCss(string fileName)
   {
-    var dir = new DirectoryInfo(AppContext.BaseDirectory);
-    while (dir is not null)
+    // The dice scoped CSS lives in the Blazor.Dice library; walk up from the test
+    // output dir to the repo root and read it from there.
+    for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir is not null; dir = dir.Parent)
     {
-      var candidate = Path.Join(dir.FullName,
-        "src", "WebApp.Client", "Pages", "Game", "Components", fileName);
+      var candidate = Path.Join(dir.FullName, "src", "Blazor.Dice", fileName);
       if (File.Exists(candidate)) return File.ReadAllText(candidate);
-      dir = dir.Parent;
     }
 
     throw new FileNotFoundException($"Could not locate {fileName} from {AppContext.BaseDirectory}");

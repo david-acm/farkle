@@ -68,6 +68,7 @@ public class GameBunitContext : BunitContext, Xunit.IAsyncLifetime
     public event Action<LobbyStateResponse>? OnPlayerJoined;
     public event Action<LobbyStateResponse>? OnGameBegan;
     public event Action<GameStateResponse>? OnTableChanged;
+    public event Action<GameStateResponse>? OnDiceRolled;
     public Task ConnectAsync(int gameId) => Task.CompletedTask;
     public Task DisconnectAsync() => Task.CompletedTask;
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;
@@ -76,5 +77,6 @@ public class GameBunitContext : BunitContext, Xunit.IAsyncLifetime
     public void RaisePlayerJoined(LobbyStateResponse payload) => OnPlayerJoined?.Invoke(payload);
     public void RaiseGameBegan(LobbyStateResponse payload) => OnGameBegan?.Invoke(payload);
     public void RaiseTableChanged(GameStateResponse payload) => OnTableChanged?.Invoke(payload);
+    public void RaiseDiceRolled(GameStateResponse payload) => OnDiceRolled?.Invoke(payload);
   }
 }

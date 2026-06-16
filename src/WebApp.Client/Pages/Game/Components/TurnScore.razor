@@ -3,4 +3,23 @@
 <div class="turn-score">
   <MudText Typo="Typo.subtitle2">Turn score</MudText>
   <MudText Typo="Typo.h5" Color="Color.Primary" data-testid="turn-score">@Value</MudText>
+
+  @* Live preview of the current selection's value (#182): the matched trick and the points
+     it would add, updating as dice are tapped. Muted when the selection isn't a scoring keep. *@
+  @if (HasSelection)
+  {
+    <MudText Typo="Typo.caption"
+             Class="turn-score-preview"
+             Color="@(PreviewScores ? Color.Primary : Color.Default)"
+             data-testid="selection-preview">
+      @if (PreviewScores)
+      {
+        <text>@PreviewLabel +@Preview.Points</text>
+      }
+      else
+      {
+        <text>No score yet</text>
+      }
+    </MudText>
+  }
 </div>

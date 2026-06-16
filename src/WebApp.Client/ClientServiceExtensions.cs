@@ -1,4 +1,5 @@
 using BlazorState;
+using Blazor.Dice;
 using Microsoft.Kiota.Abstractions.Authentication;
 using Microsoft.Kiota.Http.HttpClientLibrary;
 using MudBlazor.Services;
@@ -12,7 +13,7 @@ public static class ClientServiceExtensions
   public static void RegisterClientServices(this IServiceCollection services)
   {
     services.AddMudServices();
-    services.AddSingleton<IRotationCalculator, RotationCalculator>();
+    services.AddBlazorDice();
     services.AddScoped<FarkleApiClient>(sp =>
     {
       var baseAddress = sp.GetRequiredService<HttpClient>().BaseAddress;

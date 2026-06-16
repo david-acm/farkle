@@ -7,6 +7,20 @@
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+
+    /* No-scroll (#176): cap the in-play screen to the *dynamic* viewport height so it never
+       grows past what's actually visible. `dvh` (not `vh`) excludes the mobile browser
+       chrome — on iPhone Safari/Edge `vh` counts the area behind the address/tool bars, so a
+       100vh layout overflows and the page becomes scrollable, which is what lets a drag get
+       interpreted as a scroll. The offset accounts for the app bar (~4rem) + MudMainContent
+       padding (~1rem). overflow:hidden + overscroll-behavior:none kill any residual scroll.
+
+       Use `height` (not `max-height`) so the column always fills the viewport: that gives the
+       dice area (flex:1) real slack to absorb, so the dice spread into the middle of the
+       screen instead of piling at the top with empty space below. */
+    height: calc(100dvh - 5rem);
+    overflow: hidden;
+    overscroll-behavior: none;
 }
 
 .play-header {

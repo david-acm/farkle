@@ -1,0 +1,63 @@
+/* #182 — single tap-to-select dice grid (replaces the two drop zones). All rolled dice sit
+   in one centred wrap grid; a selected die highlights in place and scales ×1.2. */
+
+.dice-tray {
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+    display: flex;
+    flex-wrap: wrap;
+    /* Three rows of two, spaced evenly so every die is equidistant from its neighbours
+       and from the panel edges (space-evenly distributes the gaps around items too). */
+    align-content: space-evenly;
+    align-items: center;
+    justify-content: space-evenly;
+
+    /* Frame the play area as a "table" panel (the single tray replaced the two zones, #182).
+       It fills the slack the column now hands it, so the dice sit centred in a clear central
+       surface instead of floating at the top of an empty screen. */
+    background: #111128;
+    border-radius: 12px;
+    padding: 1.25rem;
+
+    /* No-scroll (#176): claim touch gestures so a tap/drag never scrolls the page. */
+    touch-action: none;
+    overscroll-behavior: contain;
+}
+
+/* Each die sits in a tap target. The Die sizes itself from --die-size; overriding it here
+   (closer than the Die's own :root) resizes the die and reserves the tilted 3D footprint,
+   which is wider than the layout box. */
+.dice-tray-die {
+    --die-size: 44px;
+    /* Two per row → three rows of two. The wrapper takes just under half the width so a
+       pair fits with even space-evenly gutters; the die centres within it. */
+    width: 42%;
+    box-sizing: border-box;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.15s ease;
+}
+
+/* Selected die grows ×1.2 (the colour change lives in Die.razor.css). Scaling the plain
+   wrapper rather than the 3D die keeps the perspective intact. */
+.dice-tray-die.selected {
+    transform: scale(1.2);
+    z-index: 2;
+}
+
+/* Off-turn spectators see the selection but can't tap it. */
+.dice-tray--readonly .dice-tray-die {
+    cursor: default;
+    pointer-events: none;
+}
+
+@media (max-width: 599px) {
+    /* Smaller dice on phones; the 42% width (base) still gives two per row → three rows. */
+    .dice-tray-die {
+        --die-size: 30px;
+    }
+}

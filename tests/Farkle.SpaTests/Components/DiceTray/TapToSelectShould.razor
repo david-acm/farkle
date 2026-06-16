@@ -1,0 +1,84 @@
+@inherits BunitContext
+@using BlazorState
+@using Moq
+@using WebApp.Client.Features
+@using WebApp.Client.Pages.Game.Components
+@using WebApp.Client.Services
+
+@code {
+  // #182 — tap-to-select dice tray (replaces the drag-and-drop zones). Tapping a die
+  // toggles its selection in place via the SetDiceAside action; spectators are read-only.
+
+  private IStore SetUp()
+  {
+    JSInterop.Mode = JSRuntimeMode.Loose;
+    Services.AddScoped<IRotationCalculator>(_ => Mock.Of<IRotationCalculator>());
+    Services.AddScoped<IGameService>(_ => Mock.Of<IGameService>());
+    Services.AddLogging();
+    Services.AddBlazorState(o => o.Assemblies = [typeof(GameState).Assembly]);
+    return Services.GetRequiredService<IStore>();
+  }
+
+  [Fact]
+  public void RenderOneTappableDiePerDieInPlay()
+  {
+    var store = SetUp();
+    var state = store.GetState<GameState>();
+    state.DiceInPlay.Clear();
+    state.DiceInPlay.Add(new TrayDie(0, DieValue.One, "Rolled"));
+    state.DiceInPlay.Add(new TrayDie(1, DieValue.Five, "SetAside"));
+
+    var cut = Render(@<DiceTray></DiceTray>);
+
+    cut.FindAll(".dice-tray-die").Should().HaveCount(2);
+    // The set-aside (selected) die carries the .selected class; the rolled one doesn't.
+    cut.FindAll(".dice-tray-die.selected").Should().HaveCount(1);
+  }
+
+  [Fact]
+  public void SelectADie_OnTap()
+  {
+    var store = SetUp();
+    var state = store.GetState<GameState>();
+    state.DiceInPlay.Clear();
+    state.DiceInPlay.Add(new TrayDie(0, DieValue.Five, "Rolled"));
+
+    var cut = Render(@<DiceTray></DiceTray>);
+    cut.Find(".dice-tray-die").Click();
+
+    store.GetState<GameState>().DiceInPlay[0].Identifier
+      .Should().Be("SetAside", "tapping a rolled die selects it");
+    cut.FindAll(".dice-tray-die.selected").Should().HaveCount(1);
+  }
+
+  [Fact]
+  public void DeselectADie_OnSecondTap()
+  {
+    var store = SetUp();
+    var state = store.GetState<GameState>();
+    state.DiceInPlay.Clear();
+    state.DiceInPlay.Add(new TrayDie(0, DieValue.Five, "SetAside"));
+
+    var cut = Render(@<DiceTray></DiceTray>);
+    cut.Find(".dice-tray-die").Click();
+
+    store.GetState<GameState>().DiceInPlay[0].Identifier
+      .Should().Be("Rolled", "tapping a selected die deselects it");
+  }
+
+  [Fact]
+  public void IgnoreTaps_WhenItIsNotMyTurn()
+  {
+    var store = SetUp();
+    var state = store.GetState<GameState>();
+    state.CurrentPlayerId = 1; // PlayerId is 0 → not my turn (spectator)
+    state.DiceInPlay.Clear();
+    state.DiceInPlay.Add(new TrayDie(0, DieValue.Five, "Rolled"));
+
+    var cut = Render(@<DiceTray></DiceTray>);
+    cut.Find(".dice-tray-die").Click();
+
+    store.GetState<GameState>().DiceInPlay[0].Identifier
+      .Should().Be("Rolled", "spectators can't change the selection");
+  }
+}

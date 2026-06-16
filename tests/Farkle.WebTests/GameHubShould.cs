@@ -101,10 +101,11 @@ public class GameHubShould : IClassFixture<GameApiWebAppFactory>
     }
 
     [Fact]
-    public async Task BroadcastsTableChangedWhenTheInTurnPlayerRolls()
+    public async Task BroadcastsDiceRolledWhenTheInTurnPlayerRolls()
     {
         // Any player in the game group (here, a spectator-style connection) should receive the
-        // in-turn player's rolls live via the TableChanged snapshot (#157).
+        // in-turn player's roll live via the DiceRolled snapshot — a distinct message from the
+        // generic TableChanged so spectators animate the dice on a roll (#157, #167).
         var gameId = (await _client.Api.Games.PostAsync())!.Id!.Value;
 
         var connection = new HubConnectionBuilder()
@@ -113,7 +114,7 @@ public class GameHubShould : IClassFixture<GameApiWebAppFactory>
             .Build();
 
         var tcs = new TaskCompletionSource<GameStateResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
-        connection.On<GameStateResponse>("TableChanged", payload => tcs.TrySetResult(payload));
+        connection.On<GameStateResponse>("DiceRolled", payload => tcs.TrySetResult(payload));
 
         await connection.StartAsync();
         await connection.InvokeAsync("JoinGame", gameId);
@@ -128,7 +129,7 @@ public class GameHubShould : IClassFixture<GameApiWebAppFactory>
         await _client.Api.Games[gameId].Players[player1].Rolls.PostAsync();
 
         var completed = await Task.WhenAny(tcs.Task, Task.Delay(5_000));
-        Assert.True(completed == tcs.Task, "Hub did not broadcast TableChanged within 5 seconds");
+        Assert.True(completed == tcs.Task, "Hub did not broadcast DiceRolled within 5 seconds");
 
         var table = await tcs.Task;
         Assert.Equal(gameId, table.GameId);

@@ -157,29 +157,6 @@ internal class DieIsSetAside : Validator
   }
 }
 
-internal class DiceAreStair : Validator
-{
-  private readonly IEnumerable<DieValue> _dice;
-
-  public DiceAreStair(Dice dice)
-  {
-    _dice = dice.DiceValues;
-  }
-
-  public override ValidationResult IsSatisfied()
-  {
-    return new ValidationResult(_dice.Count() == 6              &&
-                                _dice.Contains(DieValue.One)   &&
-                                _dice.Contains(DieValue.Two)   &&
-                                _dice.Contains(DieValue.Three) &&
-                                _dice.Contains(DieValue.Four)  &&
-                                _dice.Contains(DieValue.Five)  &&
-                                _dice.Contains(DieValue.Six),
-      new DiceNotAllowedToBeKept("Dice are not a stair", _dice.ToPrimitiveArray())
-    );
-  }
-}
-
 [EventType("V1.GameAlreadyStarted")]
 internal record GameAlreadyStarted(int Id);
 
@@ -188,22 +165,6 @@ internal record GameHasNotStarted(GameStage GameStage);
 
 [EventType("V1.DiceNotAllowedToBeKept")]
 internal record DiceNotAllowedToBeKept(string Reason, IEnumerable<int> Dice) : IErrorEvent;
-
-internal class DiceAreOnesOrFives : Validator
-{
-  private readonly IEnumerable<DieValue> _dice;
-
-  public DiceAreOnesOrFives(Dice dice)
-  {
-    _dice = dice.DiceValues;
-  }
-
-  public override ValidationResult IsSatisfied()
-  {
-    return new ValidationResult(_dice.All(d => d == DieValue.One || d == DieValue.Five),
-      new DiceNotAllowedToBeKept("Dice are not ones or fives", _dice.ToPrimitiveArray()));
-  }
-}
 
 internal class CanKeepDice : Validator
 {
@@ -216,59 +177,11 @@ internal class CanKeepDice : Validator
 
   public override ValidationResult IsSatisfied()
   {
-    var diceContainOnesOrFives          = _dice.Any(d => d == DieValue.One || d == DieValue.Five);
-    var thereAreThreeOrMoreRepeatedDice = _dice.GroupBy(d => d).MaxBy(d => d.Count())?.Count() >= 3;
-
+    // Delegates to the shared ScoreCalculator so "what's keepable" has one definition.
     return new ValidationResult(
-      diceContainOnesOrFives || thereAreThreeOrMoreRepeatedDice,
+      Farkle.SharedKernel.Scoring.ScoreCalculator.CanKeep(_dice.Select(d => d.Value).ToList()),
       new DiceNotAllowedToBeKept("Dice are not ones or fives",
         _dice.ToPrimitiveArray()));
-  }
-}
-
-internal class DiceAreTrips : Validator
-{
-  private readonly IEnumerable<DieValue> _dice;
-
-  public DiceAreTrips(Dice dice)
-  {
-    _dice = dice.DiceValues;
-  }
-
-  public override ValidationResult IsSatisfied()
-  {
-    return new ValidationResult(AreThree(_dice) && AllDiceHaveTheSameValue(_dice), $"The dice {_dice} are not trips.");
-  }
-
-  private static bool AreThree(IEnumerable<DieValue> destination)
-  {
-    return destination.Count() == 3;
-  }
-
-  private static bool AllDiceHaveTheSameValue(IEnumerable<DieValue> destination)
-  {
-    return destination.GroupBy(v => v).Count() == 1;
-  }
-}
-
-internal class DiceAreStraight : Validator
-{
-  private readonly IEnumerable<DieValue> _dice;
-
-  public DiceAreStraight(Dice dice)
-  {
-    _dice = dice.DiceValues;
-  }
-
-  public override ValidationResult IsSatisfied()
-  {
-    return new ValidationResult(_dice.Count() == 4 && AllDiceHaveTheSameValue(_dice),
-      "Dice are not a straight");
-  }
-
-  private static bool AllDiceHaveTheSameValue(IEnumerable<DieValue> destination)
-  {
-    return destination.GroupBy(v => v).Count() == 1;
   }
 }
 

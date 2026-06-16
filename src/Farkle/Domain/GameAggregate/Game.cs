@@ -1,5 +1,6 @@
 ﻿using System.Collections.Immutable;
 using Eventuous;
+using Farkle.SharedKernel.Scoring;
 using V1 = Farkle.Domain.GameAggregate.GameEvents.V1;
 using V2 = Farkle.Domain.GameAggregate.GameEvents.V2;
 
@@ -7,6 +8,9 @@ namespace Farkle.Domain.GameAggregate;
 
 internal class Game : Aggregate<GameState>
 {
+  // A player wins once their banked total reaches this on a pass (#178).
+  private const int WinningScore = 5_000;
+
   private readonly IRandom _randomProvider;
 
   public Game() : this(default!)
@@ -67,7 +71,7 @@ internal class Game : Aggregate<GameState>
       GetPlayerOrder(passTurn.PlayerId),
       newScore));
 
-    if (newScore >= 10_000)
+    if (newScore >= WinningScore)
       base.Apply(new GameEvents.V1.GameWon(passTurn.PlayerId, newScore));
   }
 
@@ -144,31 +148,14 @@ internal class Game : Aggregate<GameState>
 
   private static int GetNewTurnScore(IEnumerable<DieValue> diceKept, int currentScore, GameState state)
   {
-    var dice = new Dice(diceKept);
-    var tricks = new Dictionary<Validator, int>
-    {
-      {
-        new DiceAreStraight(dice), 1000
-      },
-      {
-        new DiceAreTrips(dice), (dice.DiceValues.FirstOrDefault()?.Value ?? 0) * 100
-      },
-      {
-        new DiceAreOnesOrFives(dice), (dice.DiceValues.Count(d => d == DieValue.One)  * 100) +
-                                      (dice.DiceValues.Count(d => d == DieValue.Five) * 50)
-      },
-      {
-        new DiceAreStair(dice), 1500
-      }
-    };
+    // Scoring is now the shared, infra-free ScoreCalculator (single source of truth, reused
+    // by the UI's live preview). The aggregate keeps only the turn-level combo rule: a second
+    // four-of-a-kind ("straight") in the same turn doubles the running total.
+    var breakdown = ScoreCalculator.Evaluate(diceKept.Select(d => d.Value).ToList());
+    var turnScore = breakdown.Points;
 
-    var turnScore = tricks.FirstOrDefault(v => v.Key.IsSatisfied()).Value;
-    
-    var isStraight = new DiceAreStraight(dice).IsSatisfied().IsValid;
-    if (isStraight && state.StraightsKeptThisTurn > 0)
-    {
-        return new Score((currentScore + turnScore) * 2);
-    }
+    if (breakdown.Trick == ScoringTrick.FourOfAKind && state.StraightsKeptThisTurn > 0)
+      return new Score((currentScore + turnScore) * 2);
 
     return new Score(currentScore + turnScore);
   }

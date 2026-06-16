@@ -8,6 +8,7 @@ public interface IGameHubService : IAsyncDisposable
     event Action<LobbyStateResponse>? OnPlayerJoined;
     event Action<LobbyStateResponse>? OnGameBegan;
     event Action<GameStateResponse>? OnTableChanged;
+    event Action<GameStateResponse>? OnDiceRolled;
     Task ConnectAsync(int gameId);
     Task DisconnectAsync();
 }

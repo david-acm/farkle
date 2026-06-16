@@ -14,8 +14,8 @@ public class HandleShould : HandlerTestContext
   public async Task UpdateCurrentPlayer_ResetDice_AndPublishScoreboard()
   {
     // Pre-populate: we had dice in play and a turn score going.
-    State.DiceInPlay.Add(new DraggableDie(0, DieValue.Five, "Rolled"));
-    State.DiceInPlay.Add(new DraggableDie(1, DieValue.One,  "SetAside"));
+    State.DiceInPlay.Add(new TrayDie(0, DieValue.Five, "Rolled"));
+    State.DiceInPlay.Add(new TrayDie(1, DieValue.One,  "SetAside"));
 
     Mock.Get(GameService)
       .Setup(s => s.PassTurnAsync(It.IsAny<int>(), It.IsAny<int>()))
