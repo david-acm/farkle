@@ -37,6 +37,6 @@ internal class JoinPlayerEndpoint(
             lobby.Roster);
         });
 
-    await SendResultAsync(result);
+    await Send.ResultAsync(result);
   }
 }

@@ -30,7 +30,7 @@ internal class GetGameStateEndpoint(
     var json = await viewStore.GetAsync(req.GameId, ct);
     if (json is not null)
     {
-      await SendOkAsync(GameStateMapper.ToGameState(GameStateSerializer.Deserialize(json)), ct);
+      await Send.OkAsync(GameStateMapper.ToGameState(GameStateSerializer.Deserialize(json)), ct);
       return;
     }
 
@@ -39,10 +39,10 @@ internal class GetGameStateEndpoint(
     var state = await service.LoadStateAsync(new GameId(req.GameId), ct);
     if (state is null)
     {
-      await SendNotFoundAsync(ct);
+      await Send.NotFoundAsync(ct);
       return;
     }
 
-    await SendOkAsync(GameStateMapper.ToGameState(state), ct);
+    await Send.OkAsync(GameStateMapper.ToGameState(state), ct);
   }
 }

@@ -27,6 +27,6 @@ internal class KeepDiceEndpoint(
       .HandleAsync<Command.KeepDice, KeepDiceResponse>(command, ct,
         (s) => new KeepDiceResponse(s.Id ?? 0, s.TurnScore));
     
-    await SendResultAsync(result);
+    await Send.ResultAsync(result);
   }
 }
