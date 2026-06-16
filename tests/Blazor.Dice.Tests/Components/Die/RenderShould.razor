@@ -84,7 +84,7 @@ Learn more at https://bunit.dev/docs/getting-started/writing-tests.html#creating
   {
     // A settled / moved die (Animate=false) must NOT spin: it asks the calculator
     // for the plain face rotation (randomSpin: false) and never the spun variant,
-    // so dragging a die between zones never looks like a re-roll.
+    // so moving a die between zones never looks like a re-roll.
     var mock = Mock.Of<IRotationCalculator>();
     Mock.Get(mock)
       .Setup(c => c.CalculateFor(It.IsAny<DieValue>(), false))

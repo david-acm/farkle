@@ -1,4 +1,4 @@
-<h3>DragDieBackShould</h3>
+<h3>ReturnDieToRolledShould</h3>
 @using Ardalis.Result
 @using BlazorState
 @using Farkle.Contracts
@@ -13,7 +13,7 @@
 
 @code {
   [Fact]
-  public async Task NotSendDieToServer_WhenDraggedBackToRolled()
+  public async Task NotSendDieToServer_WhenReturnedToRolled()
   {
     // Given — roll returns a single Five
     var gameId = new GameId(10);
@@ -36,16 +36,16 @@
     // Roll to populate DiceInPlay with [Five]
     await game.FindComponent<RollDiceButton>().Find("button").ClickAsync(new MouseEventArgs());
 
-    // Simulate drag Five → SetAside, then Five → back to Rolled
+    // Select Five (→ SetAside), then return it (→ Rolled)
     var sender = Services.GetRequiredService<ISender>();
-    await sender.Send(new GameState.SetDiceAside.Action(new DraggableDie(0, DieValue.Five, "SetAside")));
-    await sender.Send(new GameState.SetDiceAside.Action(new DraggableDie(0, DieValue.Five, "Rolled")));
+    await sender.Send(new GameState.SetDiceAside.Action(new TrayDie(0, DieValue.Five, "SetAside")));
+    await sender.Send(new GameState.SetDiceAside.Action(new TrayDie(0, DieValue.Five, "Rolled")));
 
     // When — player clicks "Set Dice Aside"
     await game.FindComponent<KeepButton>().Find("button").ClickAsync(new MouseEventArgs());
 
-    // Then — the die that was dragged back must NOT appear in the server call
+    // Then — the die returned to Rolled must NOT appear in the server call
     capturedDice.Should().NotBeNull("KeepDiceAsync should have been called");
-    capturedDice!.Should().BeEmpty("a die dragged back to Rolled must not be sent to the server");
+    capturedDice!.Should().BeEmpty("a die returned to Rolled must not be sent to the server");
   }
 }

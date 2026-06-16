@@ -12,11 +12,11 @@ public partial class DiceTray : BlazorStateComponent
   private GameState GameState => GetState<GameState>();
 
   // Tap toggles the die between selected (SetAside) and unselected (Rolled). This drives
-  // the same SetDiceAside action the drag used to (#159): it flips the identifier locally
+  // the same SetDiceAside action selection uses (#159): it flips the identifier locally
   // and syncs to the server, so the selection is persisted + broadcast. Off-turn players
   // see the tray read-only, so their taps are ignored here (the server would reject them
   // anyway, but this avoids flipping their local view).
-  private async Task ToggleAsync(DraggableDie die)
+  private async Task ToggleAsync(TrayDie die)
   {
     if (!GameState.IsMyTurn) return;
 

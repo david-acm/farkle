@@ -98,7 +98,7 @@ public partial class Die : IDisposable
 
   // Blazor disposes the component when it is removed (e.g. recreated for a zone move).
   // Dispose the one-shot timers so they don't leak — important because a die's
-  // component is recreated whenever it is dragged to another zone.
+  // component is recreated whenever it moves between the rolled/set-aside zones.
   public void Dispose()
   {
     _spinTimer?.Dispose();

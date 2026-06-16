@@ -25,8 +25,8 @@
     var store = SetUp();
     var state = store.GetState<GameState>();
     state.DiceInPlay.Clear();
-    state.DiceInPlay.Add(new DraggableDie(0, DieValue.One, "Rolled"));
-    state.DiceInPlay.Add(new DraggableDie(1, DieValue.Five, "SetAside"));
+    state.DiceInPlay.Add(new TrayDie(0, DieValue.One, "Rolled"));
+    state.DiceInPlay.Add(new TrayDie(1, DieValue.Five, "SetAside"));
 
     var cut = Render(@<DiceTray></DiceTray>);
 
@@ -41,7 +41,7 @@
     var store = SetUp();
     var state = store.GetState<GameState>();
     state.DiceInPlay.Clear();
-    state.DiceInPlay.Add(new DraggableDie(0, DieValue.Five, "Rolled"));
+    state.DiceInPlay.Add(new TrayDie(0, DieValue.Five, "Rolled"));
 
     var cut = Render(@<DiceTray></DiceTray>);
     cut.Find(".dice-tray-die").Click();
@@ -57,7 +57,7 @@
     var store = SetUp();
     var state = store.GetState<GameState>();
     state.DiceInPlay.Clear();
-    state.DiceInPlay.Add(new DraggableDie(0, DieValue.Five, "SetAside"));
+    state.DiceInPlay.Add(new TrayDie(0, DieValue.Five, "SetAside"));
 
     var cut = Render(@<DiceTray></DiceTray>);
     cut.Find(".dice-tray-die").Click();
@@ -73,7 +73,7 @@
     var state = store.GetState<GameState>();
     state.CurrentPlayerId = 1; // PlayerId is 0 → not my turn (spectator)
     state.DiceInPlay.Clear();
-    state.DiceInPlay.Add(new DraggableDie(0, DieValue.Five, "Rolled"));
+    state.DiceInPlay.Add(new TrayDie(0, DieValue.Five, "Rolled"));
 
     var cut = Render(@<DiceTray></DiceTray>);
     cut.Find(".dice-tray-die").Click();

@@ -56,7 +56,7 @@ internal static class GameEvents
 
     // #159 — set aside / put back: a transient, non-scoring selection of which rolled
     // dice the player intends to keep. First-class so they can be persisted and broadcast
-    // to spectators; Keep remains the commit. Each event carries a single die (a UI drag).
+    // to spectators; Keep remains the commit. Each event carries a single die (a UI selection).
     [EventType("V1.DiceSetAside")]
     internal record DiceSetAside(int PlayerId, int Die);
 
