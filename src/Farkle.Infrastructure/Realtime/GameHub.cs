@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.SignalR;
 
-namespace WebApp.Hubs;
+namespace Farkle.Infrastructure.Realtime;
 
 public class GameHub : Hub
 {

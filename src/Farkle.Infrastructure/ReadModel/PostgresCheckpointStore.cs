@@ -1,6 +1,7 @@
 using Eventuous.Subscriptions.Checkpoints;
+using Microsoft.Extensions.DependencyInjection;
 
-namespace WebApp.ReadModel;
+namespace Farkle.Infrastructure.ReadModel;
 
 // #156 — durable checkpoint store for the GameView projector. Eventuous 0.15-beta ships no
 // first-party EF/Postgres checkpoint store, so this persists the last committed $all position

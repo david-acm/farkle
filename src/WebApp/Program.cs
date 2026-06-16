@@ -12,13 +12,9 @@ using WebApp.Components;
 using MudBlazor.Services;
 using Serilog;
 using WebApp.Client;
-using Eventuous;
-using Eventuous.EventStore.Subscriptions;
-using Eventuous.Subscriptions.Checkpoints;
-using EventStore.Client;
-using Farkle.Application;
 using Farkle.Infrastructure.Persistence;
-using WebApp.ReadModel;
+using Farkle.Infrastructure.ReadModel;
+using Farkle.Infrastructure.Realtime;
 
 var logger = Log.Logger = new LoggerConfiguration()
   .Enrich.FromLogContext()
@@ -82,10 +78,8 @@ services
       o.DisableAutoDiscovery = true;
   });
 
-services.AddSignalR();
-// Singleton: it only wraps the singleton IHubContext<GameHub>, and it's now consumed by
-// the singleton Eventuous broadcast subscription (GameBroadcastHandler), not per-request.
-services.AddSingleton<Farkle.Application.IGameEventBroadcaster, WebApp.Hubs.SignalRGameEventBroadcaster>();
+// Real-time delivery (SignalR + the IGameEventBroadcaster) lives in Farkle.Infrastructure.
+services.AddFarkleRealtime();
 
 // CORS: allow only the origins listed in Cors:AllowedOrigins (empty by default, so
 // no cross-origin access until configured). Never combine AllowAnyOrigin with
@@ -109,25 +103,7 @@ var readModelEnabled = !builder.Environment.IsEnvironment("NSwag")
     && builder.Configuration.GetValue("Farkle:ReadModelEnabled", true);
 if (readModelEnabled)
 {
-    services.AddDbContext<ReadModelDbContext>(o =>
-    {
-        if (identityDataSource is not null)
-            o.UseNpgsql(identityDataSource, b => b.MigrationsHistoryTable(ReadModelMigrations.HistoryTable));
-        else
-            o.UseNpgsql(identityConn, b => b.MigrationsHistoryTable(ReadModelMigrations.HistoryTable));
-    });
-
-    // The subscription + GET resolve these from singleton scopes, so the stores open their
-    // own DI scope per call (see EfGameViewStore / PostgresCheckpointStore).
-    services.AddSingleton<IGameViewStore, EfGameViewStore>();
-    services.AddSingleton<PostgresCheckpointStore>();
-
-    services.AddSubscription<AllStreamSubscription, AllStreamSubscriptionOptions>(
-        "GameViewProjector",
-        b => b
-            .Configure(o => o.EventFilter = StreamFilter.Prefix("Game-"))
-            .UseCheckpointStore<PostgresCheckpointStore>()
-            .AddEventHandler<GameViewProjector>());
+    services.AddFarkleReadModel(identityConn, identityDataSource);
 }
 
 // Add services to the container.
@@ -192,7 +168,7 @@ app.UseFastEndpoints(c =>
   })
    .UseSwaggerGen();
 
-app.MapHub<WebApp.Hubs.GameHub>("/hubs/game");
+app.MapFarkleRealtime();
 
 app.UseAntiforgery();
 

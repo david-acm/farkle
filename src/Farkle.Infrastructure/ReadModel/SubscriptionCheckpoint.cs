@@ -1,4 +1,4 @@
-namespace WebApp.ReadModel;
+namespace Farkle.Infrastructure.ReadModel;
 
 // #156 — persisted checkpoint for the GameView projector subscription, so it resumes from
 // where it left off across restarts (unlike the broadcaster's NoOpCheckpointStore, which

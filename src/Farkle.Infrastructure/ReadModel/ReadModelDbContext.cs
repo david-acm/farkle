@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 
-namespace WebApp.ReadModel;
+namespace Farkle.Infrastructure.ReadModel;
 
 // #156 — the CQRS read-model store (Postgres). Shares the same database as Identity but uses
 // its own migrations-history table (configured at registration) so the two DbContexts never

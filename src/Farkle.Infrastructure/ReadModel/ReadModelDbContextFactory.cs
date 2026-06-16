@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 
-namespace WebApp.ReadModel;
+namespace Farkle.Infrastructure.ReadModel;
 
 // #156 — design-time factory so `dotnet ef migrations add ... -c ReadModelDbContext` works
 // without booting the full host (which would connect to ESDB / start subscriptions). The

@@ -1,6 +1,7 @@
+using Microsoft.Extensions.DependencyInjection;
 using Farkle.Application;
 
-namespace WebApp.ReadModel;
+namespace Farkle.Infrastructure.ReadModel;
 
 // #156 — Postgres-backed IGameViewStore. The projector (and GET) are resolved from singleton
 // scopes (the subscription is a singleton hosted service), so each operation opens its own

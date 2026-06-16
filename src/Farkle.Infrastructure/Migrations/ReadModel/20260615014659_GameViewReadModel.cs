@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace WebApp.Migrations.ReadModel
+namespace Farkle.Infrastructure.Migrations.ReadModel
 {
     /// <inheritdoc />
     public partial class GameViewReadModel : Migration

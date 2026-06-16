@@ -4,11 +4,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
-using WebApp.ReadModel;
+using Farkle.Infrastructure.ReadModel;
 
 #nullable disable
 
-namespace WebApp.Migrations.ReadModel
+namespace Farkle.Infrastructure.Migrations.ReadModel
 {
     [DbContext(typeof(ReadModelDbContext))]
     partial class ReadModelDbContextModelSnapshot : ModelSnapshot
