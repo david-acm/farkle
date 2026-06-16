@@ -12,6 +12,8 @@ using WebApp.Components;
 using MudBlazor.Services;
 using Serilog;
 using WebApp.Client;
+using Farkle.Infrastructure;
+using Farkle.Infrastructure.Identity;
 using Farkle.Infrastructure.Persistence;
 using Farkle.Infrastructure.ReadModel;
 using Farkle.Infrastructure.Realtime;
@@ -32,34 +34,13 @@ var services = builder.Services;
 services.AddEndpointsApiExplorer();
 services.AddSwaggerGen();
 
-// Use Entra (managed-identity) auth only when there is a host but no password — i.e.
-// Azure. Local dev + the Testcontainers integration tests supply a password and keep
-// plain password auth; when the connection string is unset, defer to EF / the test's
-// own override rather than eagerly validating it. See WebApp.IdentityDataSource.
+// Identity persistence (DbContext + stores + the Entra/managed-identity data-source decision)
+// lives in Farkle.Infrastructure; it returns the data source so the read model reuses it.
 var identityConn = builder.Configuration.GetConnectionString("Identity");
-var identityDataSource = !string.IsNullOrEmpty(identityConn)
-    && string.IsNullOrEmpty(new Npgsql.NpgsqlConnectionStringBuilder(identityConn).Password)
-        ? WebApp.IdentityDataSource.BuildEntra(identityConn)
-        : null;
-services.AddDbContext<AppDbContext>(o =>
-{
-    if (identityDataSource is not null)
-        o.UseNpgsql(identityDataSource);
-    else
-        o.UseNpgsql(identityConn);
-});
+var identityDataSource = services.AddFarkleIdentity(identityConn);
 
 // Readiness checks for the two backing services (tagged "ready"); liveness runs none.
-services.AddHealthChecks()
-    .AddDbContextCheck<AppDbContext>("postgres", tags: ["ready"])
-    .AddCheck<WebApp.Health.EventStoreHealthCheck>("eventstore", tags: ["ready"]);
-
-services
-    .AddIdentityCore<AppUser>()
-    .AddRoles<IdentityRole>()
-    .AddEntityFrameworkStores<AppDbContext>()
-    .AddSignInManager()
-    .AddDefaultTokenProviders();
+services.AddFarkleHealthChecks();
 
 services
   .AddAuthenticationJwtBearer(s =>

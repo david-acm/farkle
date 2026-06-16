@@ -1,7 +1,7 @@
 using EventStore.Client;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
-namespace WebApp.Health;
+namespace Farkle.Infrastructure.Persistence;
 
 // Readiness check for EventStore.
 //

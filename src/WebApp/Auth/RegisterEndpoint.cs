@@ -1,4 +1,5 @@
 using FastEndpoints;
+using Farkle.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
 
 namespace WebApp.Auth;

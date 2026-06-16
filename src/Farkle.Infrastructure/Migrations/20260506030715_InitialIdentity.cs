@@ -4,7 +4,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace WebApp.Migrations
+namespace Farkle.Infrastructure.Migrations
 {
     /// <inheritdoc />
     public partial class InitialIdentity : Migration
