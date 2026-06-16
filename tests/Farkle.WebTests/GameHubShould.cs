@@ -2,6 +2,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using Farkle.ApiClient;
 using Farkle.ApiClient.Models;
+using Farkle.SharedKernel.Scoring;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Kiota.Abstractions.Authentication;
 using Microsoft.Kiota.Http.HttpClientLibrary;
@@ -144,10 +145,11 @@ public class GameHubShould : IClassFixture<GameApiWebAppFactory>
         // #159 — set aside is a first-class command/event, so spectators see the in-turn
         // player's keep selection live via the TableChanged snapshot.
         //
-        // The roll uses real randomness, so retry the setup until the first roll yields a
-        // scoring die (a 1 or 5) to set aside — an all-2/3/4/6 "Farkle" roll has nothing
-        // keepable and previously flaked this test (~9% of rolls).
-        var (gameId, player1, die) = await StartGameAndRollAScoringDieAsync();
+        // The roll uses real randomness. A greedy MachinePlayer keeps the best-scoring trick
+        // of the roll (via the shared ScoreCalculator); the setup retries only on a true
+        // Farkle (nothing scores at all), so the test sets aside a realistic, best-possible
+        // selection rather than a single hand-picked 1/5.
+        var (gameId, player1, bestKeep) = await StartGameAndRollBestKeepAsync();
 
         var connection = new HubConnectionBuilder()
             .WithUrl("http://localhost/hubs/game",
@@ -157,31 +159,34 @@ public class GameHubShould : IClassFixture<GameApiWebAppFactory>
         await connection.StartAsync();
         await connection.InvokeAsync("JoinGame", gameId);
 
-        // Listen for the set-aside snapshot specifically.
+        // Capture the broadcast once the whole best-trick selection has been set aside.
         var tcs = new TaskCompletionSource<GameStateResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
         connection.On<GameStateResponse>("TableChanged", payload =>
         {
-            if (payload.DiceSetAside.Count > 0) tcs.TrySetResult(payload);
+            if (payload.DiceSetAside.Count >= bestKeep.Count) tcs.TrySetResult(payload);
         });
 
-        await _client.Api.Games[gameId].Players[player1].Setasides.PostAsync(
-            new FarkleContractsHttpRequests_SetDiceAsideRequest { DieValue = die });
+        // Set aside the best trick — one die per command (SetDiceAside takes a single die).
+        foreach (var die in bestKeep)
+            await _client.Api.Games[gameId].Players[player1].Setasides.PostAsync(
+                new FarkleContractsHttpRequests_SetDiceAsideRequest { DieValue = die });
 
         var completed = await Task.WhenAny(tcs.Task, Task.Delay(5_000));
         Assert.True(completed == tcs.Task, "Hub did not broadcast the set-aside TableChanged within 5 seconds");
 
         var table = await tcs.Task;
         Assert.Equal(gameId, table.GameId);
-        Assert.Contains(die, table.DiceSetAside);
+        // The broadcast carries the full best-trick selection (compare as a multiset).
+        Assert.Equal(bestKeep.OrderBy(d => d), table.DiceSetAside.OrderBy(d => d));
 
         await connection.DisposeAsync();
     }
 
-    // Starts a two-player game and rolls once, retrying the whole setup until the roll
-    // contains a scoring die (a 1 or 5). Rolls use real randomness, so a fresh roll has
-    // no scoring die ~(4/6)^6 ≈ 9% of the time; ten attempts makes that astronomically
-    // unlikely while keeping the dice (and thus the assertions) real.
-    private async Task<(int gameId, int player1, int die)> StartGameAndRollAScoringDieAsync()
+    // Starts a two-player game and rolls once, retrying until the roll has a scoring trick,
+    // then returns the dice the greedy MachinePlayer would keep (the highest-scoring trick).
+    // Rolls use real randomness; a full Farkle (nothing scores) is uncommon, so a few attempts
+    // makes the setup reliable while keeping the dice — and the assertions — real.
+    private async Task<(int gameId, int player1, IReadOnlyList<int> bestKeep)> StartGameAndRollBestKeepAsync()
     {
         for (var attempt = 0; attempt < 10; attempt++)
         {
@@ -195,11 +200,12 @@ public class GameHubShould : IClassFixture<GameApiWebAppFactory>
                 new FarkleContractsHttpRequests_BeginGameRequest { PlayerId = 1 });
 
             var roll = await _client.Api.Games[gameId].Players[player1].Rolls.PostAsync();
-            var die = (roll!.DiceValues ?? []).FirstOrDefault(v => v == 1 || v == 5);
-            if (die is 1 or 5) return (gameId, player1, die.Value);
+            var dice = (roll!.DiceValues ?? []).Select(v => v ?? 0).ToList();
+            var bestKeep = MachinePlayer.ChooseBestKeep(dice);
+            if (bestKeep.Count > 0) return (gameId, player1, bestKeep);
         }
 
-        throw new InvalidOperationException("No scoring die (1 or 5) was rolled after 10 attempts.");
+        throw new InvalidOperationException("No scoring trick was rolled after 10 attempts.");
     }
 
     [Fact]
