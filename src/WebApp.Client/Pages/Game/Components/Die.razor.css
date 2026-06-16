@@ -81,11 +81,13 @@
     box-shadow: 0 0 4px #FFE600;
 }
 
-/* #182 — selected (tapped) die: the face takes the edge colour (yellow) and the pips go
-   dark, inverting the resting look so a selected die reads as "picked". :not(.solid) leaves
-   the grey 3D depth body untouched. The ×1.2 size bump is on the tray wrapper. */
+/* #182 — selected (tapped) die: the face takes the edge colour (yellow), and the pips and
+   the border invert to dark so they stay visible against the now-yellow face (the border
+   would otherwise disappear, blending yellow-on-yellow). :not(.solid) leaves the grey 3D
+   depth body untouched. The ×1.2 size bump is on the tray wrapper. */
 .die-container.selected .die:not(.solid) .side {
     background-color: #FFE600;
+    border-color: #0D0D2E;
 }
 
 .die-container.selected .pip {
