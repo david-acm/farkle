@@ -172,7 +172,7 @@ jobs:
           exit 1
 
       - name: Upsert PR comment with storyboard link
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         env:
           STORYBOARD_RESULT: ${{ needs.storyboard.result }}
         with:
