@@ -80,7 +80,7 @@ jobs:
 
       - name: Upload TRX results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-trx-${{ github.run_id }}
           path: test-results/*.trx
@@ -88,7 +88,7 @@ jobs:
 
       - name: Upload coverage reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-${{ github.run_id }}
           path: test-results/**/coverage.cobertura.xml
@@ -206,7 +206,7 @@ jobs:
 
       - name: Upload test videos
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: e2e-videos-${{ github.run_id }}
           path: test-results/videos/
@@ -215,7 +215,7 @@ jobs:
 
       - name: Upload screenshots
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: e2e-screenshots-${{ github.run_id }}
           path: test-results/screenshots/
@@ -224,7 +224,7 @@ jobs:
 
       - name: Upload TRX results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: e2e-trx-${{ github.run_id }}
           path: test-results/e2e-results.trx
@@ -232,7 +232,7 @@ jobs:
 
       - name: Upload failure logs
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: e2e-logs-${{ github.run_id }}
           path: test-results/logs/
