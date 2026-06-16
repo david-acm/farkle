@@ -7,14 +7,14 @@ namespace Farkle.E2eTests;
 /// drives the host's view through the opening of a game and screenshots the page
 /// immediately before each user interaction:
 ///
-///   01-landing → 02-lobby → 03-roll → 04-drag → 05-keep → 06-pass
+///   01-landing → 02-lobby → 03-roll → 04-select → 05-keep → 06-pass
 ///
 /// Frames are written to <c>test-results/storyboard/{step}-{viewport}.png</c> so they
 /// sort in interaction order and group by viewport. The backend is the in-memory
 /// <see cref="InMemoryAggregateStore"/> (no Testcontainers); a deterministic dice source
 /// guarantees a scoring die so the keep/pass stages render every time.
 ///
-/// The player-advancing steps (landing nav, start game, drag die) are reused from the
+/// The player-advancing steps (landing nav, start game, tap die) are reused from the
 /// shared <see cref="GameFlow"/> helpers that the happy-path E2E also uses.
 /// </summary>
 [Collection(StoryboardCollection.Name)]
@@ -22,7 +22,7 @@ namespace Farkle.E2eTests;
 public class GameStoryboardShould(StoryboardFixture fixture)
 {
     private static readonly string[] Steps =
-        ["01-landing", "02-lobby", "03-roll", "04-drag", "05-keep", "06-pass"];
+        ["01-landing", "02-lobby", "03-roll", "04-select", "05-keep", "06-pass"];
 
     private static string StoryboardDir =>
         Path.GetFullPath(Path.Join(AppContext.BaseDirectory, "..", "..", "..", "..", "..",
@@ -67,15 +67,15 @@ public class GameStoryboardShould(StoryboardFixture fixture)
             await page.ClickAsync("button:has-text('Roll')");
             await page.WaitForSelectorAsync(".die-container", new() { Timeout = 15_000 });
 
-            // 4. Drag — before dragging a scoring die into the set-aside zone.
-            await CaptureAsync(page, "04-drag", viewport);
-            await GameFlow.DragDieAsync(page, 0);
-            await page.Locator("[identifier='SetAside']").Locator(".mud-drop-item").First
+            // 4. Select — before tapping a scoring die to select it.
+            await CaptureAsync(page, "04-select", viewport);
+            await GameFlow.TapDieAsync(page, 0);
+            await page.Locator(".dice-tray-die.selected").First
                 .WaitForAsync(new() { Timeout = 10_000 });
 
-            // 5. Keep — before committing the set-aside dice.
+            // 5. Keep — before committing the selected dice.
             await CaptureAsync(page, "05-keep", viewport);
-            await page.ClickAsync("button:has-text('Set Dice Aside')");
+            await page.ClickAsync("button:has-text('Keep')");
             await page.WaitForTimeoutAsync(300);
 
             // 6. Pass — before passing the turn.

@@ -9,7 +9,7 @@ public class ComponentArchitectureShould
   [Fact]
   public void NotHaveMutableListFieldsOnBlazorStateComponents()
   {
-    var componentTypes = typeof(DragabbleDice).Assembly
+    var componentTypes = typeof(DiceTray).Assembly
       .GetTypes()
       .Where(t => !t.IsAbstract && InheritsBlazorStateComponent(t));
 

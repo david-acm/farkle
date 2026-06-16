@@ -1,0 +1,60 @@
+@inherits BunitContext
+@using BlazorState
+@using MudBlazor.Services
+@using WebApp.Client.Features
+@using WebApp.Client.Pages.Game.Components
+
+@code {
+  // #182 — TurnScore shows a live preview of the current selection's value (trick + points)
+  // via the shared ScoreCalculator, before the player commits with Keep.
+
+  private IStore SetUp()
+  {
+    JSInterop.Mode = JSRuntimeMode.Loose;
+    Services.AddMudServices();
+    Services.AddBlazorState(o => o.Assemblies = [typeof(GameState).Assembly]);
+    return Services.GetRequiredService<IStore>();
+  }
+
+  [Fact]
+  public void ShowTheTrickAndPoints_ForAScoringSelection()
+  {
+    var store = SetUp();
+    var state = store.GetState<GameState>();
+    state.DiceInPlay.Clear();
+    state.DiceInPlay.Add(new TrayDie(0, DieValue.Four, "SetAside"));
+    state.DiceInPlay.Add(new TrayDie(1, DieValue.Four, "SetAside"));
+    state.DiceInPlay.Add(new TrayDie(2, DieValue.Four, "SetAside"));
+
+    var cut = Render(@<TurnScore></TurnScore>);
+
+    cut.Find("[data-testid='selection-preview']").TextContent
+      .Should().Contain("Three of a kind").And.Contain("+400"); // three 4s = 4×100
+  }
+
+  [Fact]
+  public void ShowNoScore_ForANonScoringSelection()
+  {
+    var store = SetUp();
+    var state = store.GetState<GameState>();
+    state.DiceInPlay.Clear();
+    state.DiceInPlay.Add(new TrayDie(0, DieValue.Two, "SetAside")); // a lone 2 isn't keepable
+
+    var cut = Render(@<TurnScore></TurnScore>);
+
+    cut.Find("[data-testid='selection-preview']").TextContent.Should().Contain("No score");
+  }
+
+  [Fact]
+  public void HideThePreview_WhenNothingIsSelected()
+  {
+    var store = SetUp();
+    var state = store.GetState<GameState>();
+    state.DiceInPlay.Clear();
+    state.DiceInPlay.Add(new TrayDie(0, DieValue.Four, "Rolled"));
+
+    var cut = Render(@<TurnScore></TurnScore>);
+
+    cut.FindAll("[data-testid='selection-preview']").Should().BeEmpty();
+  }
+}

@@ -20,9 +20,18 @@
       @foreach (var p in state.Scoreboard.OrderByDescending(p => p.Score))
       {
         var isLeader = leader is not null && p.PlayerId == leader.PlayerId && leader.Score > 0;
+        var isInTurn = !state.IsGameOver && p.PlayerId == state.CurrentPlayerId;
         <tr data-testid="@(isLeader ? "scoreboard-leader" : "scoreboard-row")">
           <td>
-            <MudText Color="@(isLeader ? Color.Primary : Color.Default)" Typo="Typo.body2">
+            @* Turn marker (#179): 🎲 sits next to whoever is in turn, for everyone. Its
+               test id reflects the local perspective so the e2e can still tell "my turn"
+               (this browser) from "waiting" (someone else's turn). *@
+            @if (isInTurn)
+            {
+              <span class="turn-emoji" title="Current turn"
+                    data-testid="@(state.IsMyTurn ? "my-turn-indicator" : "waiting-indicator")">🎲</span>
+            }
+            <MudText Color="@(isLeader ? Color.Primary : Color.Default)" Typo="Typo.body2" Class="d-inline">
               @if (isLeader) { <strong>@p.Name</strong> } else { @p.Name }
             </MudText>
           </td>

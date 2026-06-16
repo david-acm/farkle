@@ -1,6 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using WebApp.Health;
+using Farkle.Infrastructure.Persistence;
 
 namespace Farkle.WebTests;
 

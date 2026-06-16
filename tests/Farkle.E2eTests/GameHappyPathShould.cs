@@ -83,7 +83,7 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
             ExceptionDispatchInfo.Capture(failure).Throw();
     }
 
-    // Player-advancing helpers (landing nav, start/join, drag die, parse roll) live in
+    // Player-advancing helpers (landing nav, start/join, tap die, parse roll) live in
     // the shared GameFlow class so the storyboard capture reuses the exact same flow.
 
     // ── test ─────────────────────────────────────────────────
@@ -160,8 +160,9 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
                 // Farkle (no scoring dice) is valid: just pass with 0 turn score.
                 if (scoringIdx >= 0)
                 {
-                    await GameFlow.DragDieAsync(currentPage, scoringIdx);
-                    await currentPage.Locator("[identifier='SetAside']").Locator(".mud-drop-item")
+                    // Tap the scoring die to select it (#182), then wait for the selected look.
+                    await GameFlow.TapDieAsync(currentPage, scoringIdx);
+                    await currentPage.Locator(".dice-tray-die.selected")
                         .First.WaitForAsync(new() { Timeout = 5_000 });
 
                     if (aliceTurn && !screenshotTaken)
@@ -175,7 +176,7 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
                         screenshotTaken = true;
                     }
 
-                    await currentPage.ClickAsync("button:has-text('Set Dice Aside')");
+                    await currentPage.ClickAsync("button:has-text('Keep')");
                     await currentPage.WaitForTimeoutAsync(200);
                 }
 

@@ -6,7 +6,6 @@
 
 @if (!HasJoined)
 {
-  <MudText Typo="Typo.h3">Farkle!</MudText>
   <GameTitle></GameTitle>
 
   <MudCard Class="mt-4" Style="max-width: 400px">
@@ -28,7 +27,6 @@
 }
 else if (GameState.IsInLobby)
 {
-  <MudText Typo="Typo.h3">Farkle!</MudText>
   <GameTitle></GameTitle>
   <Lobby />
 }
@@ -36,7 +34,6 @@ else
 {
   <div class="play-area">
     <header class="play-header">
-      <MudText Typo="Typo.h4" Class="play-heading">Farkle!</MudText>
       <div class="play-id"><GameTitle></GameTitle></div>
     </header>
 
@@ -53,8 +50,8 @@ else
     </MudGrid>
 
     <div class="play-dice">
-      <DragabbleDice>
-      </DragabbleDice>
+      <DiceTray>
+      </DiceTray>
     </div>
 
     <div class="play-controls">

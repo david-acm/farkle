@@ -20,27 +20,29 @@ public partial class GameState
 
             public override Task Handle(Action action, CancellationToken aCancellationToken)
             {
-                // Never clobber the active player's local drag state — they are the source of
+                // Never clobber the active player's local selection state — they are the source of
                 // truth for their own turn and already see their own rolls/keeps locally.
                 if (State.IsMyTurn) return Task.CompletedTask;
 
                 var p = action.Payload;
 
-                // Set-aside is a non-destructive overlay on TableCenter (#159), so the
-                // dice still in play are the centre minus the current selection (multiset).
-                var inPlay = p.TableCenter.ToList();
-                foreach (var v in p.DiceSetAside)
-                    inPlay.Remove(v);
-
-                // Rebuild the read-only table from the snapshot: still-in-play dice in
-                // "Rolled", the live set-aside selection in "SetAside". Spin the in-play dice
-                // only on a roll (#167) — set-aside / keep updates settle without re-spinning.
-                // The set-aside dice never animate (they were placed deliberately). The
-                // existing ConsumeRollAnimation one-shot clears the flag after the spin.
-                var dice = inPlay
-                    .Select((v, i) => new DraggableDie(i, DieValue.FromValue(v), "Rolled") { Animate = action.Animate })
-                    .Concat(p.DiceSetAside
-                        .Select((v, i) => new DraggableDie(p.TableCenter.Count + i, DieValue.FromValue(v), "SetAside") { Animate = false }))
+                // TableCenter is the full roll in a stable order and is NOT changed by a
+                // set-aside (it's a non-destructive overlay, #159). Render it in place, with a
+                // stable index = position, marking each die selected ("SetAside") by consuming
+                // the set-aside multiset. A selection then only flips a die's highlight — every
+                // die keeps its grid cell and component identity (stable @key), so the
+                // spectator's board never reorders, relocates or re-spins on a select (#186).
+                // Only a fresh roll animates (#167); selected dice never do.
+                var setAside = new List<int>(p.DiceSetAside);
+                var dice = p.TableCenter
+                    .Select((v, i) =>
+                    {
+                        var isSet = setAside.Remove(v);
+                        return new TrayDie(i, DieValue.FromValue(v), isSet ? "SetAside" : "Rolled")
+                        {
+                            Animate = action.Animate && !isSet
+                        };
+                    })
                     .ToList();
 
                 State.DiceInPlay = dice;

@@ -40,8 +40,8 @@
     // Drop the same Five onto SetAside twice (MudDropContainer fires
     // ItemDropped even when the target zone equals the source zone).
     var sender = Services.GetRequiredService<ISender>();
-    await sender.Send(new GameState.SetDiceAside.Action(new DraggableDie(0, DieValue.Five, "SetAside")));
-    await sender.Send(new GameState.SetDiceAside.Action(new DraggableDie(0, DieValue.Five, "SetAside")));
+    await sender.Send(new GameState.SetDiceAside.Action(new TrayDie(0, DieValue.Five, "SetAside")));
+    await sender.Send(new GameState.SetDiceAside.Action(new TrayDie(0, DieValue.Five, "SetAside")));
 
     var state = Services.GetRequiredService<IStore>().GetState<GameState>();
     state.DiceInPlay.Count(d => d.Identifier == "SetAside")
@@ -74,11 +74,11 @@
     var game = Render<Game>(@<Game ParameterGameId="gameId"/>);
     JoinGame(game);
 
-    // Turn 1 (ours): roll, drag the die aside, then the turn rotates remotely
+    // Turn 1 (ours): roll, select the die, then the turn rotates remotely
     // before we click Keep.
     await game.FindComponent<RollDiceButton>().Find("button").ClickAsync(new MouseEventArgs());
     var sender = Services.GetRequiredService<ISender>();
-    await sender.Send(new GameState.SetDiceAside.Action(new DraggableDie(0, DieValue.Five, "SetAside")));
+    await sender.Send(new GameState.SetDiceAside.Action(new TrayDie(0, DieValue.Five, "SetAside")));
 
     await sender.Send(new GameState.RemoteTurnChanged.Action(
       new HttpResponses.PassTurnResponse(gameId, PlayerId: 1, NewScore: 0, Winner: null, CurrentPlayerId: 2)));
@@ -93,7 +93,7 @@
       .ReturnsAsync(Result<IList<DieValue>>.Success(new List<DieValue> { DieValue.One }));
 
     await game.FindComponent<RollDiceButton>().Find("button").ClickAsync(new MouseEventArgs());
-    await sender.Send(new GameState.SetDiceAside.Action(new DraggableDie(0, DieValue.One, "SetAside")));
+    await sender.Send(new GameState.SetDiceAside.Action(new TrayDie(0, DieValue.One, "SetAside")));
     await game.FindComponent<KeepButton>().Find("button").ClickAsync(new MouseEventArgs());
 
     capturedDice.Should().NotBeNull("KeepDiceAsync should have been called");

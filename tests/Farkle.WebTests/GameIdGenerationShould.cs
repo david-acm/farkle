@@ -13,7 +13,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Kiota.Abstractions.Authentication;
 using Microsoft.Kiota.Http.HttpClientLibrary;
-using WebApp.Auth;
+using Farkle.Infrastructure.Identity;
 
 namespace Farkle.WebTests;
 
@@ -101,10 +101,10 @@ public sealed class ScriptedIdGameApiWebAppFactory : FarkleWebApplicationFactory
             s.AddDbContext<AppDbContext>(o => o.UseNpgsql(pgConnectionString));
 
             // Read model (#156) shares the same Postgres — point it at the Testcontainer too.
-            var readDescriptor = s.SingleOrDefault(d => d.ServiceType == typeof(DbContextOptions<WebApp.ReadModel.ReadModelDbContext>));
+            var readDescriptor = s.SingleOrDefault(d => d.ServiceType == typeof(DbContextOptions<Farkle.Infrastructure.ReadModel.ReadModelDbContext>));
             if (readDescriptor != null) s.Remove(readDescriptor);
-            s.AddDbContext<WebApp.ReadModel.ReadModelDbContext>(o =>
-                o.UseNpgsql(pgConnectionString, b => b.MigrationsHistoryTable(WebApp.ReadModel.ReadModelMigrations.HistoryTable)));
+            s.AddDbContext<Farkle.Infrastructure.ReadModel.ReadModelDbContext>(o =>
+                o.UseNpgsql(pgConnectionString, b => b.MigrationsHistoryTable(Farkle.Infrastructure.ReadModel.ReadModelMigrations.HistoryTable)));
 
             // Override the id generator with the scripted sequence to drive a collision.
             s.RemoveAll<IGameIdGenerator>();

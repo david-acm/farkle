@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using WebApp.Auth;
+using Farkle.Infrastructure.Identity;
 
 namespace Farkle.WebTests;
 
@@ -80,10 +80,10 @@ public class GameApiWebAppFactory : FarkleWebApplicationFactory
 
       // The read model (#156) shares the same Postgres — point it at the Testcontainer too
       // (own history table), so its migration applies and the projector can write.
-      var readDescriptor = s.SingleOrDefault(d => d.ServiceType == typeof(DbContextOptions<WebApp.ReadModel.ReadModelDbContext>));
+      var readDescriptor = s.SingleOrDefault(d => d.ServiceType == typeof(DbContextOptions<Farkle.Infrastructure.ReadModel.ReadModelDbContext>));
       if (readDescriptor != null) s.Remove(readDescriptor);
-      s.AddDbContext<WebApp.ReadModel.ReadModelDbContext>(o =>
-        o.UseNpgsql(pgConnectionString, b => b.MigrationsHistoryTable(WebApp.ReadModel.ReadModelMigrations.HistoryTable)));
+      s.AddDbContext<Farkle.Infrastructure.ReadModel.ReadModelDbContext>(o =>
+        o.UseNpgsql(pgConnectionString, b => b.MigrationsHistoryTable(Farkle.Infrastructure.ReadModel.ReadModelMigrations.HistoryTable)));
     });
   }
 }

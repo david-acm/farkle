@@ -39,15 +39,19 @@ src/
 │   ├── Domain/GameAggregate/  # Aggregate root, events, validators, scoring
 │   ├── Application/           # GameService (command service), IGameEventBroadcaster
 │   ├── Endpoints/             # FastEndpoints (StartGame, RollDice, KeepDice, PassTurn, JoinPlayer)
-│   └── FarkleModuleServiceExtensions.cs  # DI registration + Eventuous/ESDB setup
+│   └── FarkleModuleServiceExtensions.cs  # DI registration (domain/application only — infra-free)
 ├── Farkle.Contracts/          # HTTP request/response DTOs (no dependencies)
 ├── Farkle.SharedKernel/       # Shared utilities (Result extensions, TypedEndpoint base)
+├── Farkle.Infrastructure/     # All server infrastructure (depends on Farkle; implements its ports)
+│   ├── Persistence/           # ESDB event store + AddFarkleEventStore + EventStoreHealthCheck
+│   ├── ReadModel/             # EF/Postgres GameView store, projector subscription, checkpoints
+│   ├── Realtime/              # GameHub + SignalRGameEventBroadcaster (AddFarkleRealtime)
+│   ├── Identity/              # AppUser, AppDbContext, Entra data source (AddFarkleIdentity)
+│   └── Migrations/            # EF Core Identity + ReadModel migrations (PostgreSQL)
 ├── Farkle.ApiClient/          # GENERATED Kiota client (do not hand-edit) — shared client
-├── WebApp/                    # Blazor Server host
-│   ├── Auth/                  # Identity (AppUser, AppDbContext), register/login endpoints (JWT)
-│   ├── Hubs/                  # GameHub + SignalRGameEventBroadcaster (real-time turn updates)
-│   ├── Migrations/            # EF Core Identity migrations (PostgreSQL)
-│   └── Program.cs             # Composition root (wires Farkle module, SignalR, Identity, WASM)
+├── WebApp/                    # Blazor Server host (thin composition root)
+│   ├── Auth/                  # Register/login endpoints + JWT (DTOs); persistence lives in Farkle.Infrastructure
+│   └── Program.cs             # Composition root (wires Farkle module + Farkle.Infrastructure, WASM)
 ├── WebApp.Client/             # Blazor WASM client
 │   ├── Features/              # BlazorState GameState + Actions/ (Redux-like reducers)
 │   ├── Pages/Game/Components/ # Dice, Scoreboard, buttons, drag-and-drop UI
@@ -60,7 +64,8 @@ tests/
 ├── Farkle.Tests/              # Unit tests for the domain (Game, validators, state)
 ├── Farkle.WebTests/           # Integration tests (API + SignalR via WebApplicationFactory + Testcontainers)
 ├── Farkle.E2eTests/           # End-to-end tests (Playwright, two-player happy path, video + screenshots)
-└── Farkle.SpaTests/           # Component tests (bUnit) for WASM components
+├── Farkle.SpaTests/           # Component tests (bUnit) for WASM components
+└── Farkle.ArchitectureTests/  # ArchUnitNET guardrails for solution organization + dependency rules
 ```
 
 Two solution files exist: **`Farkle.sln`** (full solution — use this) and `src/WebApp.sln` (web-only subset).
@@ -284,8 +289,8 @@ dotnet run --project src/WebApp/WebApp.csproj
 
 ### Database Migrations (EF Core / PostgreSQL Identity)
 ```bash
-dotnet ef migrations add <MigrationName> -p src/WebApp/WebApp.csproj
-dotnet ef database update -p src/WebApp/WebApp.csproj
+dotnet ef migrations add <MigrationName> -p src/Farkle.Infrastructure/Farkle.Infrastructure.csproj -s src/WebApp/WebApp.csproj
+dotnet ef database update -p src/Farkle.Infrastructure/Farkle.Infrastructure.csproj -s src/WebApp/WebApp.csproj
 ```
 Migrations are applied automatically on startup (outside the `NSwag` environment); the app also re-seeds the default user.
 
@@ -496,8 +501,8 @@ EventStore must be running: `docker-compose up esdb`.
 
 ### Database Migration Issues
 ```bash
-dotnet ef database drop -p src/WebApp/WebApp.csproj -f
-dotnet ef database update -p src/WebApp/WebApp.csproj
+dotnet ef database drop -p src/Farkle.Infrastructure/Farkle.Infrastructure.csproj -s src/WebApp/WebApp.csproj -f
+dotnet ef database update -p src/Farkle.Infrastructure/Farkle.Infrastructure.csproj -s src/WebApp/WebApp.csproj
 ```
 The app re-seeds `player1@email.com` on startup if missing.
 
