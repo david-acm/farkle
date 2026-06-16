@@ -41,7 +41,7 @@ internal static class ArchitectureModel
   {
     var dir = System.AppContext.BaseDirectory;
     var assemblies = AssemblyDlls
-      .Select(dll => Path.Combine(dir, dll))
+      .Select(dll => Path.Join(dir, dll))
       .Where(File.Exists)
       .Select(System.Reflection.Assembly.LoadFrom)
       .ToArray();
