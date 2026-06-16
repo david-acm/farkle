@@ -77,10 +77,9 @@ internal class GameService
   // aggregate whose State.Id is still null because no GameStarted event was applied).
   public async Task<GameState?> LoadStateAsync(GameId gameId, CancellationToken cancellationToken)
   {
-    // Resolve the stream name the same way the command path does — via StreamNameFactory
-    // (yields "Game-{id}") — so a hand-built string can never drift from how events were stored.
-    var streamName = StreamNameFactory.For<Game, GameState, GameId>(gameId);
-    var game = await _store.LoadOrNew<Game>(streamName, cancellationToken);
+    // rc.1's LoadOrNew takes the typed id directly (it resolves the stream via the same
+    // StreamNameFactory internally), so a hand-built stream name can't drift from storage.
+    var game = await _store.LoadOrNew<Game, GameState, GameId>(gameId, cancellationToken);
     return game.State.Id is null ? null : game.State;
   }
 

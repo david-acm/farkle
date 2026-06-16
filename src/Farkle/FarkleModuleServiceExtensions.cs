@@ -18,7 +18,7 @@ public static class FarkleModuleServiceExtensions
   {
     mediatrAssemblies.Add(typeof(FarkleModuleServiceExtensions).Assembly);
 
-    services.AddCommandService<GameService, Game>();
+    services.AddCommandService<GameService, GameState>();
     services.AddSingleton<IGameService, GameService>();
     services.AddSingleton<IGameIdGenerator, RandomGameIdGenerator>();
     services.AddSingleton<IGameCreator, GameCreator>();

@@ -6,7 +6,7 @@ public static class CommandHandlerBuilderExtensions
 {
   public static CommandHandlerBuilder<TCommand, TAggregate, TState, TId> Execute<TCommand, TAggregate, TState, TId>(
     this CommandHandlerBuilder<TCommand, TAggregate, TState, TId> builder,
-    CommandServiceDelegates.ActOnAggregate<TAggregate, TCommand>  action)
+    CommandServiceDelegates.ActOnAggregate<TAggregate, TState, TCommand>  action)
     where TCommand : class
     where TAggregate : Aggregate<TState>, new()
     where TState : State<TState>, new()

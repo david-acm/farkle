@@ -15,18 +15,19 @@
     <PackageReference Include="Azure.Identity" Version="1.21.0" />
     <PackageReference Include="Azure.Messaging.EventGrid" Version="5.0.0" />
     <PackageReference Include="Azure.Messaging.ServiceBus" Version="7.20.1" />
-    <!-- Eventuous: pinned to last beta compatible with current application code.
-         Migration to stable 0.16.x requires API updates tracked in a separate issue.
-         Only the *abstractions* live here (command service, aggregate/state base types,
-         subscription handler base, type map). The concrete EventStoreDB transport
-         (Eventuous.EventStore + EventStore.Client.*) lives in Farkle.Infrastructure. -->
-    <PackageReference Include="Eventuous.Application" Version="0.15.0-beta.10" />
-    <PackageReference Include="Eventuous.AspNetCore" Version="0.15.0-beta.7" />
-    <PackageReference Include="Eventuous.AspNetCore.Web" Version="0.15.0-beta.10" />
-    <PackageReference Include="Eventuous.Extensions.DependencyInjection" Version="0.15.0-beta.10" />
-    <PackageReference Include="Eventuous.Persistence" Version="0.15.0-beta.10" />
-    <PackageReference Include="Eventuous.Subscriptions" Version="0.15.0-beta.10" />
-    <PackageReference Include="Eventuous.Shared" Version="0.15.0-beta.10" />
+    <!-- Eventuous: pinned to 0.15.0-rc.1 (the 0.15 release candidate). Migration to stable
+         0.16.x requires API updates tracked in a separate issue. Only the *abstractions* live
+         here (command service, aggregate/state base types, subscription handler base, type
+         map). The concrete EventStoreDB transport (Eventuous.EventStore + EventStore.Client.*)
+         lives in Farkle.Infrastructure.
+         Note: Eventuous.AspNetCore was dropped — it had no rc.1 release and was unused (the
+         command-mapping it provides is replaced by FastEndpoints; MapCommands is not used). -->
+    <PackageReference Include="Eventuous.Application" Version="0.15.0-rc.1" />
+    <PackageReference Include="Eventuous.AspNetCore.Web" Version="0.15.0-rc.1" />
+    <PackageReference Include="Eventuous.Extensions.DependencyInjection" Version="0.15.0-rc.1" />
+    <PackageReference Include="Eventuous.Persistence" Version="0.15.0-rc.1" />
+    <PackageReference Include="Eventuous.Subscriptions" Version="0.15.0-rc.1" />
+    <PackageReference Include="Eventuous.Shared" Version="0.15.0-rc.1" />
     <!-- FastEndpoints: pinned to 5.x — migration to 8.x requires API updates tracked separately. -->
     <PackageReference Include="FastEndpoints" Version="5.34.0" />
     <PackageReference Include="Mapster" Version="10.0.7" />
