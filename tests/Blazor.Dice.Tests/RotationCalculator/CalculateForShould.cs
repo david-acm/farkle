@@ -1,7 +1,6 @@
-using WebApp.Client.Pages.Game.Components;
 using Xunit.Abstractions;
 
-namespace Farkle.SpaTests.RotationCalculator;
+namespace Blazor.Dice.Tests.RotationCalculator;
 
 public class CalculateForShould
 {

@@ -63,6 +63,14 @@ jobs:
           --logger "trx;LogFileName=spa-results.trx"
           --results-directory test-results
 
+      - name: Dice library tests
+        run: >
+          dotnet test tests/Blazor.Dice.Tests/Blazor.Dice.Tests.csproj
+          --no-build
+          --collect:"XPlat Code Coverage"
+          --logger "trx;LogFileName=dice-results.trx"
+          --results-directory test-results
+
       - name: Upload TRX results
         if: always()
         uses: actions/upload-artifact@v4
