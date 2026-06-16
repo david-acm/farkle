@@ -36,17 +36,14 @@ public class RollShould : GameWithThreePlayersTest
   public void V1AllowPlayerToRoll()
   {
     // Arrange
-    var rollEvent = new V1.DiceRolled(1, new[] { 1, 2, 3, 4, 5, 6 }, new Score(0));
-    var events    = Game.Current.ToList();
-    events.Add(rollEvent);
-    Game.Load(events);
-    
+    Game.RollDiceV1(new RollDice(1, 1));
+
     // Act
     Game.PassTurn(new PassTurn(1, 1));
 
     // Assert
     State.TableCenter.Should().HaveCount(6);
-    var diceRolled = Current.Where(e => e is V1.DiceRolled).Should().HaveCount(1).And.Subject;
+    var diceRolled = Changes.Where(e => e is V1.DiceRolled).Should().HaveCount(1).And.Subject;
     diceRolled.Should()
       .ContainSingle(e =>
         ((V1.DiceRolled)e).PlayerId == 1);
