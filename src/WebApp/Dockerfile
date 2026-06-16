@@ -25,7 +25,13 @@ RUN dotnet build "src/WebApp/WebApp.csproj" -c $BUILD_CONFIGURATION -o /app/buil
 
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "src/WebApp/WebApp.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+# Version stamped from the host's MinVer (the build can't read .git — it's .dockerignore'd).
+# /p:Version is a global property, so it stamps the whole graph (WebApp + WebApp.Client),
+# so the WASM UI footer gets the version too. Defaults keep local image builds working.
+ARG VERSION=0.0.0-local
+ARG INFORMATIONAL=0.0.0-local
+RUN dotnet publish "src/WebApp/WebApp.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false \
+    /p:Version="$VERSION" /p:InformationalVersion="$INFORMATIONAL"
 
 FROM base AS final
 WORKDIR /app

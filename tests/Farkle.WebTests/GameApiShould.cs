@@ -315,6 +315,20 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
     }
 
     [Fact]
+    public async Task ExposeTheBuildVersionAnonymouslyAsync()
+    {
+        // /version answers anonymously even though the factory requires authorization
+        // (it's mapped before auth, like the health checks) and returns a non-empty version.
+        using var client = _factory.CreateClient();
+
+        var response = await client.GetAsync("/version");
+
+        Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
+        using var doc = System.Text.Json.JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.False(string.IsNullOrWhiteSpace(doc.RootElement.GetProperty("version").GetString()));
+    }
+
+    [Fact]
     public async Task ReturnNotFoundForUnknownGameAsync()
     {
         var ex = await Assert.ThrowsAsync<ApiException>(

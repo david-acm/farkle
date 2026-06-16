@@ -24,7 +24,7 @@ var logger = Log.Logger = new LoggerConfiguration()
   .WriteTo.Console()
   .CreateLogger();
 
-logger.Information("Starting web host");
+logger.Information("Starting Farkle WebApp {Version}", WebApp.AppVersion.Current);
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -148,6 +148,10 @@ var app = builder.Build();
 // checks. These are minimal-API endpoints, so they're absent from the Swagger doc.
 app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false });
 app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = c => c.Tags.Contains("ready") });
+
+// Anonymous build-version endpoint, mapped here (before CORS/auth) so it always answers —
+// lets testers confirm exactly which build they're on.
+app.MapGet("/version", () => Results.Json(new { version = WebApp.AppVersion.Current }));
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
