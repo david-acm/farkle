@@ -1,0 +1,31 @@
+@inherits BunitContext
+@using MudBlazor.Services
+@using WebApp.Client.Pages
+
+@code {
+  // The scoring reference page lists each combination with a score computed by the shared
+  // ScoreCalculator (not hardcoded), so this guards that the page reflects the real rules.
+
+  private void SetUp()
+  {
+    JSInterop.Mode = JSRuntimeMode.Loose;
+    Services.AddMudServices();
+  }
+
+  [Fact]
+  public void ListEachTrickWithItsComputedScore()
+  {
+    SetUp();
+
+    var cut = Render(@<Scoring></Scoring>);
+
+    var table = cut.Find("[data-testid='scoring-table']").TextContent;
+    table.Should().Contain("Three pairs").And.Contain("1500");
+    table.Should().Contain("Two triplets").And.Contain("2500");
+    table.Should().Contain("Four of a kind").And.Contain("1000");
+    table.Should().Contain("Run (1-6)");
+
+    // One row per example hand.
+    cut.FindAll("[data-testid='scoring-row']").Should().HaveCount(8);
+  }
+}

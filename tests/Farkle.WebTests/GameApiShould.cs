@@ -315,6 +315,20 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
     }
 
     [Fact]
+    public async Task ExposeTheBuildVersionAnonymouslyAsync()
+    {
+        // /version answers anonymously even though the factory requires authorization
+        // (it's mapped before auth, like the health checks) and returns a non-empty version.
+        using var client = _factory.CreateClient();
+
+        var response = await client.GetAsync("/version");
+
+        Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
+        using var doc = System.Text.Json.JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.False(string.IsNullOrWhiteSpace(doc.RootElement.GetProperty("version").GetString()));
+    }
+
+    [Fact]
     public async Task ReturnNotFoundForUnknownGameAsync()
     {
         var ex = await Assert.ThrowsAsync<ApiException>(
@@ -335,12 +349,12 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
         await RollDiceAsync(gameId, player1);
 
         // The projection is updated asynchronously — poll the read model directly.
-        WebApp.ReadModel.GameView? row = null;
+        Farkle.Infrastructure.ReadModel.GameView? row = null;
         for (var attempt = 0; attempt < 50; attempt++)
         {
             using (var scope = _factory.Services.CreateScope())
             {
-                var db = scope.ServiceProvider.GetRequiredService<WebApp.ReadModel.ReadModelDbContext>();
+                var db = scope.ServiceProvider.GetRequiredService<Farkle.Infrastructure.ReadModel.ReadModelDbContext>();
                 row = await db.GameViews.FindAsync(gameId);
                 if (row is not null && row.StateJson.Contains("\"Stage\":2")) break; // 2 = Keeping
             }
