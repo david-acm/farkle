@@ -36,6 +36,7 @@
     <ProjectReference Include="..\..\src\Farkle.ApiClient\Farkle.ApiClient.csproj" />
     <ProjectReference Include="..\..\src\WebApp\WebApp.csproj" />
     <ProjectReference Include="..\..\src\WebApp.Client\WebApp.Client.csproj" />
+    <ProjectReference Include="..\..\src\Farkle.Infrastructure\Farkle.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

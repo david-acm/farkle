@@ -1,14 +1,8 @@
 ﻿using System.Reflection;
 using Eventuous;
-using Eventuous.EventStore;
-using Eventuous.EventStore.Subscriptions;
-using Eventuous.Subscriptions.Checkpoints;
-using EventStore.Client;
 using Farkle.Application;
-using Farkle.Contracts;
 using Farkle.Domain.GameAggregate;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -23,44 +17,20 @@ public static class FarkleModuleServiceExtensions
     ILogger logger, List<Assembly> mediatrAssemblies)
   {
     mediatrAssemblies.Add(typeof(FarkleModuleServiceExtensions).Assembly);
-    
+
     services.AddCommandService<GameService, Game>();
-    services.AddAggregateStore<EsdbEventStore>();
     services.AddSingleton<IGameService, GameService>();
     services.AddSingleton<IGameIdGenerator, RandomGameIdGenerator>();
     services.AddSingleton<IGameCreator, GameCreator>();
 
     // Read-side (#156): default to the no-op store so GetGameStateEndpoint always resolves
-    // IGameViewStore and falls back to replay. WebApp registers the real EfGameViewStore +
-    // the projector subscription when the read model is enabled (it owns the Postgres infra).
+    // IGameViewStore and falls back to replay. Farkle.Infrastructure registers the real
+    // EfGameViewStore + the projector subscription when the read model is enabled.
     services.TryAddSingleton<IGameViewStore, NullGameViewStore>();
-    // services.AddRazorComponents();
-    
-    // TODO: Use Guard clause instead
-    // TODO: Use configuration instead. Check the best way to configure the cors url
-    var esdbConnString = configuration.GetConnectionString("Esdb") ?? "esdb://localhost:2113?tls=false";
-    services.AddEventStoreClient(esdbConnString);
-    logger.Information($"Using esdb connection string: {esdbConnString}");
 
-    // Real-time broadcasting: a $all catch-up subscription reacts to persisted Game
-    // events and pushes the matching SignalR message (issue #88) — instead of firing
-    // the broadcast from inside the HTTP endpoints. NoOpCheckpointStore: on restart it
-    // re-reads from the start, which is harmless because no SignalR clients are
-    // connected then (broadcasts land in empty groups).
-    //
-    // Gated so hosts without an EventStore (the in-memory storyboard capture) can turn
-    // it off — the subscription needs the EventStoreClient to run.
-    if (configuration.GetValue("Farkle:RealtimeBroadcastEnabled", true))
-    {
-      services.AddSubscription<AllStreamSubscription, AllStreamSubscriptionOptions>(
-        "GameBroadcasts",
-        builder => builder
-          // Server-side filter $all down to the Game aggregate streams ("Game-{id}"), so
-          // ESDB system events and other categories never reach the handler.
-          .Configure(o => o.EventFilter = StreamFilter.Prefix("Game-"))
-          .UseCheckpointStore<NoOpCheckpointStore>()
-          .AddEventHandler<GameBroadcastHandler>());
-    }
+    // The concrete event-store transport (ESDB client, aggregate store, broadcast subscription)
+    // lives in Farkle.Infrastructure and is wired by the host via AddFarkleEventStore — the core
+    // depends only on Eventuous' IAggregateStore abstraction (resolved at runtime).
 
     logger.Information("{Module} module services registered", "Farkle.Domain");
 

@@ -12,6 +12,9 @@ namespace Farkle.Application;
 /// SignalR broadcast. This is the single place real-time updates fire — after the event is
 /// committed — replacing the per-endpoint broadcasting (issue #88).
 /// </summary>
+// Internal, but visible to Farkle.Infrastructure (via InternalsVisibleTo) which registers it as
+// a subscription event handler (AddEventHandler<GameBroadcastHandler>()). It can't be made public
+// because its IGameService dependency transitively exposes the internal GameState.
 internal sealed class GameBroadcastHandler : Eventuous.Subscriptions.EventHandler
 {
   private readonly IGameService                   _service;

@@ -44,15 +44,14 @@
     </PackageReference>
   </ItemGroup>
 
-  <Target Name="GenerateSwaggerJson" AfterTargets="Build"
-          Condition="'$(GenerateSwagger)' == 'true'">
-    <Exec Command="$(NSwagExe_Net80) run nswag.json /variables:Configuration=$(Configuration)"
-          EnvironmentVariables="ASPNETCORE_ENVIRONMENT=NSwag" />
+  <Target Name="GenerateSwaggerJson" AfterTargets="Build" Condition="'$(GenerateSwagger)' == 'true'">
+    <Exec Command="$(NSwagExe_Net80) run nswag.json /variables:Configuration=$(Configuration)" EnvironmentVariables="ASPNETCORE_ENVIRONMENT=NSwag" />
   </Target>
 
   <ItemGroup>
     <ProjectReference Include="..\Farkle\Farkle.csproj" />
     <ProjectReference Include="..\WebApp.Client\WebApp.Client.csproj" />
+    <ProjectReference Include="..\Farkle.Infrastructure\Farkle.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

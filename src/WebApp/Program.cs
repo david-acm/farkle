@@ -17,6 +17,7 @@ using Eventuous.EventStore.Subscriptions;
 using Eventuous.Subscriptions.Checkpoints;
 using EventStore.Client;
 using Farkle.Application;
+using Farkle.Infrastructure.Persistence;
 using WebApp.ReadModel;
 
 var logger = Log.Logger = new LoggerConfiguration()
@@ -95,8 +96,9 @@ services.AddCors(o =>
     .AllowAnyHeader()
     .AllowAnyMethod()));
 
-// Add module services
+// Add module services (domain + application) and the EventStoreDB infrastructure plug-in.
 services.AddFarkleModuleServices(builder.Configuration, logger, new List<Assembly>());
+services.AddFarkleEventStore(builder.Configuration, logger);
 
 // CQRS read side (#156): a GameView projection in Postgres, kept current by a $all catch-up
 // subscription, that GET reads instead of replaying the stream. Disabled for hosts without
