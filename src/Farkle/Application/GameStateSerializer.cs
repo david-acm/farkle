@@ -23,7 +23,7 @@ internal static class GameStateSerializer
 
   private static GameStateDto ToDto(GameState s) =>
     new(
-      Id:                    s.Id?.Id,
+      Id:                    s.Id.Id,
       Stage:                 (int)s.GameStage,
       Winner:                s.Winner is null ? null : new PlayerDto(s.Winner.Id, s.Winner.Name),
       TurnScore:             s.TurnScore.Value,
@@ -36,7 +36,7 @@ internal static class GameStateSerializer
 
   private static GameState FromDto(GameStateDto d) =>
     GameState.FromSnapshot(
-      id:                    d.Id is null ? null : new GameId(d.Id.Value),
+      id:                    new GameId(d.Id ?? 0),
       gameStage:             (GameStage)d.Stage,
       // Colour is derived from the id (PlayerColors), so it survives a snapshot round-trip
       // without bloating the persisted DTO with a redundant, id-derivable field.

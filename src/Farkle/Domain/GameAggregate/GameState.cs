@@ -24,8 +24,9 @@ internal record GameState : State<GameState>
     On<V1.GameWon>(HandleGameWon);
   }
 
-  // TODO: Remove nullable
-  public GameId?   Id        { get; private init; }
+  // Non-nullable (#32): the empty initial state carries the GameId.None sentinel until a
+  // GameStarted event assigns the real id. "Does this game exist?" is GameId.None vs a real id.
+  public GameId    Id        { get; private init; } = GameId.None;
   public GameStage GameStage { get; private init; }
   public Player?   Winner    { get; private init; }
   public Score     TurnScore { get; private init; } = new(0);
@@ -50,7 +51,7 @@ internal record GameState : State<GameState>
   // the init-properties private (the aggregate is still the only thing that mutates state
   // through events) while letting the read-side serializer reconstruct a value object.
   internal static GameState FromSnapshot(
-    GameId?                          id,
+    GameId                           id,
     GameStage                        gameStage,
     Player?                          winner,
     Score                            turnScore,
@@ -220,6 +221,11 @@ internal record Score(int Value)
 
 internal record GameId(int Id) : Id($"{Id}")
 {
+  // Sentinel for "no game yet" — the empty GameState's default before a GameStarted event.
+  // Real game ids are generated in [100_000, 1_000_000) (RandomGameIdGenerator), so 0 never
+  // collides with a live game. (#32 — replaces the former nullable GameState.Id.)
+  public static readonly GameId None = new(0);
+
   public static implicit operator GameId(int id)
   {
     return new GameId(id);
