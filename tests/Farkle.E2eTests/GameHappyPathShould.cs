@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
+using Farkle.SharedKernel.Scoring;
 
 namespace Farkle.E2eTests;
 
@@ -132,36 +133,36 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
             // ── Two-player winning loop ──────────────────────────────────
             // Alice and Bob alternate turns. After each pass the SignalR hub broadcasts
             // TurnChanged so the other player's indicator flips without a page refresh.
-            // The loop continues until one player reaches 10 000 points.
+            // The loop continues until one player reaches the winning score.
             var won             = false;
             var aliceTurn       = true;
             var screenshotTaken = false;
-            // Each turn keeps one scoring die (~50-100 pts), so reaching 10 000 by
-            // legitimate play takes a few hundred turns. The loop breaks the moment
-            // someone wins, so this cap only guards against a never-ending game — it
-            // does not add runtime. (It was 300 when a now-fixed scoring bug inflated
-            // turn scores; see issue #87.)
+            // Each turn keeps the best-scoring trick (MachinePlayer), so the winning score is
+            // reached in a modest number of turns. The loop breaks the moment someone wins, so
+            // this cap only guards against a never-ending game — it does not add runtime.
             const int maxTurns  = 1000;
 
             for (var turn = 0; turn < maxTurns && !won; turn++)
             {
                 var (currentPage, waitingPage) = aliceTurn ? (alicePage, bobPage) : (bobPage, alicePage);
 
-                // Roll — intercept API response to identify scoring dice by index.
+                // Roll — intercept the API response so the MachinePlayer can pick the best trick.
                 var rollTask = currentPage.WaitForResponseAsync(r => r.Url.Contains("/rolls") && r.Status == 200);
                 await currentPage.ClickAsync("button:has-text('Roll')");
                 var rollResponse = await rollTask;
                 await currentPage.WaitForSelectorAsync(".die-container", new() { Timeout = 10_000 });
 
-                var diceValues = GameFlow.ParseDiceValues(await rollResponse.TextAsync());
-                var scoringIdx = Array.FindIndex(diceValues, v => v == 1 || v == 5);
+                var diceValues  = GameFlow.ParseDiceValues(await rollResponse.TextAsync());
+                // The greedy machine player keeps the best-scoring trick (by tray index, since
+                // the tray renders dice in roll order). A Farkle (nothing scores) is valid:
+                // just pass with 0 turn score.
+                var keepIndices = MachinePlayer.ChooseBestKeepIndices(diceValues);
 
-                // Keep the first scoring die (1 = 100 pts, 5 = 50 pts).
-                // Farkle (no scoring dice) is valid: just pass with 0 turn score.
-                if (scoringIdx >= 0)
+                if (keepIndices.Count > 0)
                 {
-                    // Tap the scoring die to select it (#182), then wait for the selected look.
-                    await GameFlow.TapDieAsync(currentPage, scoringIdx);
+                    // Tap each die of the best trick to select it (#182), then wait for the look.
+                    foreach (var index in keepIndices)
+                        await GameFlow.TapDieAsync(currentPage, index);
                     await currentPage.Locator(".dice-tray-die.selected")
                         .First.WaitForAsync(new() { Timeout = 5_000 });
 
