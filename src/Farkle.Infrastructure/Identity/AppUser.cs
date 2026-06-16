@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Identity;
 
-namespace WebApp.Auth;
+namespace Farkle.Infrastructure.Identity;
 
 public class AppUser : IdentityUser;

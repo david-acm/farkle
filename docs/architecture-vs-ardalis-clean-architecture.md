@@ -10,6 +10,13 @@ A descriptive, side-by-side comparison of Farkle's architecture with the canonic
 > only a handful are flagged as genuine architectural gaps that hold *regardless* of the
 > Event-Sourcing choice. Nothing here recommends a refactor.
 
+> **Update (PR #197).** Several gaps below have since been closed: a dedicated
+> **`Farkle.Infrastructure`** project now owns the event store, EF read model, SignalR and
+> Identity persistence, so the `Farkle` core no longer references the ESDB/EF/SignalR stacks.
+> The 🟡 "partial" rows and the §4 single-project layout describe the state *before* that
+> extraction; ArchUnitNET guardrails (`tests/Farkle.ArchitectureTests`) now enforce the
+> dependency direction.
+
 ---
 
 ## 1. TL;DR verdict

@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using FastEndpoints;
 using FastEndpoints.Security;
+using Farkle.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
 
 namespace WebApp.Auth;

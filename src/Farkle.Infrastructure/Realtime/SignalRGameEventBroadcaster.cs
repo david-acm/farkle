@@ -2,7 +2,7 @@ using Farkle.Application;
 using Microsoft.AspNetCore.SignalR;
 using static Farkle.Contracts.HttpResponses;
 
-namespace WebApp.Hubs;
+namespace Farkle.Infrastructure.Realtime;
 
 public class SignalRGameEventBroadcaster(IHubContext<GameHub> hub) : IGameEventBroadcaster
 {

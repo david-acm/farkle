@@ -2,7 +2,7 @@ using Azure.Core;
 using Azure.Identity;
 using Npgsql;
 
-namespace WebApp;
+namespace Farkle.Infrastructure.Identity;
 
 /// <summary>
 /// Builds an Npgsql data source that authenticates to Postgres with an Entra access

@@ -349,12 +349,12 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
         await RollDiceAsync(gameId, player1);
 
         // The projection is updated asynchronously — poll the read model directly.
-        WebApp.ReadModel.GameView? row = null;
+        Farkle.Infrastructure.ReadModel.GameView? row = null;
         for (var attempt = 0; attempt < 50; attempt++)
         {
             using (var scope = _factory.Services.CreateScope())
             {
-                var db = scope.ServiceProvider.GetRequiredService<WebApp.ReadModel.ReadModelDbContext>();
+                var db = scope.ServiceProvider.GetRequiredService<Farkle.Infrastructure.ReadModel.ReadModelDbContext>();
                 row = await db.GameViews.FindAsync(gameId);
                 if (row is not null && row.StateJson.Contains("\"Stage\":2")) break; // 2 = Keeping
             }

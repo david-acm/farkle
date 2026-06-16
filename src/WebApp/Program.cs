@@ -12,12 +12,11 @@ using WebApp.Components;
 using MudBlazor.Services;
 using Serilog;
 using WebApp.Client;
-using Eventuous;
-using Eventuous.EventStore.Subscriptions;
-using Eventuous.Subscriptions.Checkpoints;
-using EventStore.Client;
-using Farkle.Application;
-using WebApp.ReadModel;
+using Farkle.Infrastructure;
+using Farkle.Infrastructure.Identity;
+using Farkle.Infrastructure.Persistence;
+using Farkle.Infrastructure.ReadModel;
+using Farkle.Infrastructure.Realtime;
 
 var logger = Log.Logger = new LoggerConfiguration()
   .Enrich.FromLogContext()
@@ -35,34 +34,13 @@ var services = builder.Services;
 services.AddEndpointsApiExplorer();
 services.AddSwaggerGen();
 
-// Use Entra (managed-identity) auth only when there is a host but no password — i.e.
-// Azure. Local dev + the Testcontainers integration tests supply a password and keep
-// plain password auth; when the connection string is unset, defer to EF / the test's
-// own override rather than eagerly validating it. See WebApp.IdentityDataSource.
+// Identity persistence (DbContext + stores + the Entra/managed-identity data-source decision)
+// lives in Farkle.Infrastructure; it returns the data source so the read model reuses it.
 var identityConn = builder.Configuration.GetConnectionString("Identity");
-var identityDataSource = !string.IsNullOrEmpty(identityConn)
-    && string.IsNullOrEmpty(new Npgsql.NpgsqlConnectionStringBuilder(identityConn).Password)
-        ? WebApp.IdentityDataSource.BuildEntra(identityConn)
-        : null;
-services.AddDbContext<AppDbContext>(o =>
-{
-    if (identityDataSource is not null)
-        o.UseNpgsql(identityDataSource);
-    else
-        o.UseNpgsql(identityConn);
-});
+var identityDataSource = services.AddFarkleIdentity(identityConn);
 
 // Readiness checks for the two backing services (tagged "ready"); liveness runs none.
-services.AddHealthChecks()
-    .AddDbContextCheck<AppDbContext>("postgres", tags: ["ready"])
-    .AddCheck<WebApp.Health.EventStoreHealthCheck>("eventstore", tags: ["ready"]);
-
-services
-    .AddIdentityCore<AppUser>()
-    .AddRoles<IdentityRole>()
-    .AddEntityFrameworkStores<AppDbContext>()
-    .AddSignInManager()
-    .AddDefaultTokenProviders();
+services.AddFarkleHealthChecks();
 
 services
   .AddAuthenticationJwtBearer(s =>
@@ -81,10 +59,8 @@ services
       o.DisableAutoDiscovery = true;
   });
 
-services.AddSignalR();
-// Singleton: it only wraps the singleton IHubContext<GameHub>, and it's now consumed by
-// the singleton Eventuous broadcast subscription (GameBroadcastHandler), not per-request.
-services.AddSingleton<Farkle.Application.IGameEventBroadcaster, WebApp.Hubs.SignalRGameEventBroadcaster>();
+// Real-time delivery (SignalR + the IGameEventBroadcaster) lives in Farkle.Infrastructure.
+services.AddFarkleRealtime();
 
 // CORS: allow only the origins listed in Cors:AllowedOrigins (empty by default, so
 // no cross-origin access until configured). Never combine AllowAnyOrigin with
@@ -95,8 +71,9 @@ services.AddCors(o =>
     .AllowAnyHeader()
     .AllowAnyMethod()));
 
-// Add module services
+// Add module services (domain + application) and the EventStoreDB infrastructure plug-in.
 services.AddFarkleModuleServices(builder.Configuration, logger, new List<Assembly>());
+services.AddFarkleEventStore(builder.Configuration, logger);
 
 // CQRS read side (#156): a GameView projection in Postgres, kept current by a $all catch-up
 // subscription, that GET reads instead of replaying the stream. Disabled for hosts without
@@ -107,25 +84,7 @@ var readModelEnabled = !builder.Environment.IsEnvironment("NSwag")
     && builder.Configuration.GetValue("Farkle:ReadModelEnabled", true);
 if (readModelEnabled)
 {
-    services.AddDbContext<ReadModelDbContext>(o =>
-    {
-        if (identityDataSource is not null)
-            o.UseNpgsql(identityDataSource, b => b.MigrationsHistoryTable(ReadModelMigrations.HistoryTable));
-        else
-            o.UseNpgsql(identityConn, b => b.MigrationsHistoryTable(ReadModelMigrations.HistoryTable));
-    });
-
-    // The subscription + GET resolve these from singleton scopes, so the stores open their
-    // own DI scope per call (see EfGameViewStore / PostgresCheckpointStore).
-    services.AddSingleton<IGameViewStore, EfGameViewStore>();
-    services.AddSingleton<PostgresCheckpointStore>();
-
-    services.AddSubscription<AllStreamSubscription, AllStreamSubscriptionOptions>(
-        "GameViewProjector",
-        b => b
-            .Configure(o => o.EventFilter = StreamFilter.Prefix("Game-"))
-            .UseCheckpointStore<PostgresCheckpointStore>()
-            .AddEventHandler<GameViewProjector>());
+    services.AddFarkleReadModel(identityConn, identityDataSource);
 }
 
 // Add services to the container.
@@ -196,7 +155,7 @@ app.UseFastEndpoints(c =>
   })
    .UseSwaggerGen();
 
-app.MapHub<WebApp.Hubs.GameHub>("/hubs/game");
+app.MapFarkleRealtime();
 
 app.UseAntiforgery();
 
