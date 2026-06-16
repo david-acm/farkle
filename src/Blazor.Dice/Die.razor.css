@@ -18,14 +18,17 @@
 
 .side {
     background-color: #0D0D2E;
-    color: #FFE600;
+    /* The die recolours to the in-turn player's colour (cascaded from .play-area as
+       --active-player-color) so everyone sees whose turn it is. Falls back to the
+       classic yellow accent when no player colour is in scope (e.g. the /die page). */
+    color: var(--active-player-color, #FFE600);
     height: 100%;
     width: 100%;
     border-radius: 7%;
     display: flex;
     position: absolute;
     justify-content: center;
-    border: #FFE600 2px solid;
+    border: var(--active-player-color, #FFE600) 2px solid;
     z-index: 1;
     transform: translateZ(var(--die-size));
     opacity: 1;
@@ -77,8 +80,8 @@
     height: calc(var(--die-size) / 2.5);
     border-radius: 50%;
     margin: calc(var(--die-size) / 10);
-    background-color: #FFE600;
-    box-shadow: 0 0 4px #FFE600;
+    background-color: var(--active-player-color, #FFE600);
+    box-shadow: 0 0 4px var(--active-player-color, #FFE600);
 }
 
 /* #182 — selected (tapped) die: the face takes the edge colour (yellow), and the pips and

@@ -1,0 +1,42 @@
+@using BlazorState
+@using Moq
+@using MudBlazor.Services
+@using WebApp.Client.Pages.Game
+@using WebApp.Client.Pages.Game.Components
+@using WebApp.Client.Services
+@using static Farkle.Contracts.HttpResponses
+@inherits GameBunitContext
+
+@code {
+
+  [Fact]
+  public async Task RenderEachPlayerNameInItsOwnColor()
+  {
+    // Given — PassTurn returns a scoreboard where each player has a distinct colour.
+    Mock.Get(GameService)
+      .Setup(g => g.PassTurnAsync(It.IsAny<int>(), It.IsAny<int>()))
+      .ReturnsAsync(new PassTurnResponse(
+        GameId:          1,
+        PlayerId:        1,
+        NewScore:        200,
+        Winner:          null,
+        CurrentPlayerId: 2,
+        Scoreboard: [
+          new PlayerScore(1, "David",   200, "#FFE600"),
+          new PlayerScore(2, "Allison", 0,   "#FF2D6B"),
+        ]));
+
+    var cut = Render(@<Game></Game>);
+    JoinGame(cut);
+
+    var passButton = cut.FindComponent<PassTurnButton>().Find("button");
+
+    // When
+    await cut.InvokeAsync(() => passButton.Click());
+
+    // Then — each player's colour is applied in the scoreboard markup.
+    var scoreboard = cut.Find("[data-testid='scoreboard']");
+    scoreboard.InnerHtml.Should().Contain("#FFE600", "David's colour should style his row");
+    scoreboard.InnerHtml.Should().Contain("#FF2D6B", "Allison's colour should style her row");
+  }
+}

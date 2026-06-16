@@ -1,5 +1,6 @@
 using System.IO;
 using System.Text.RegularExpressions;
+using Farkle.Domain.GameAggregate;
 using FluentAssertions;
 using MudBlazor.Utilities;
 using Xunit;
@@ -10,8 +11,10 @@ namespace Farkle.SpaTests.Theme;
 //
 // UI elements that convey meaning through a border/outline or colour must clear 3:1
 // against the colour they sit on. These read the literals from the component CSS so the
-// guard tracks the source: the selected (tapped) die's dark pips on its yellow face
-// (#182, the selection cue) and the die's outline.
+// guard tracks the source:
+// (1) the selected (tapped) die's dark pips on its yellow face (#182, the selection cue), and
+// (2) the die outline recolours to the in-turn player's colour (--active-player-color, #170),
+//     so EVERY colour in PlayerColors.Palette must stay distinguishable from the die face.
 public class NonTextContrastShould
 {
   private const double NonText = 3.0; // WCAG 1.4.11
@@ -35,12 +38,16 @@ public class NonTextContrastShould
   {
     var css = ReadComponentCss("Die.razor.css");
 
-    var border = Hex(css, @"border:\s*(#[0-9A-Fa-f]{6})\s+[\d.]+px\s+solid");
+    css.Should().MatchRegex(
+      @"border:\s*var\(--active-player-color[^)]*\)\s+[\d.]+px\s+solid",
+      "the die outline must recolour to the in-turn player's colour");
+
     var face = Hex(css, @"background-color:\s*(#[0-9A-Fa-f]{6})");
 
-    ContrastMath.Ratio(border, face)
-      .Should().BeGreaterThanOrEqualTo(NonText,
-        "the die outline must be distinguishable from the die face");
+    foreach (var color in PlayerColors.Palette)
+      ContrastMath.Ratio(new MudColor(color), face)
+        .Should().BeGreaterThanOrEqualTo(NonText,
+          $"player colour {color} must stay distinguishable as the die outline");
   }
 
   private static MudColor Hex(string source, string pattern)

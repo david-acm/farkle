@@ -12,6 +12,7 @@ internal record GameState : State<GameState>
   {
     On<V1.GameStarted>(HandleGameStarted);
     On<V1.PlayerJoined>(HandlePlayerJoined);
+    On<V2.PlayerJoined>(HandlePlayerJoinedV2);
     On<V1.GamePlayStarted>(HandleGamePlayStarted);
     On<V1.DiceRolled>(HandleDiceRolled);
     On<V2.DiceRolled>(HandleDiceRolledV2);
@@ -123,7 +124,11 @@ internal record GameState : State<GameState>
   {
     return state with
     {
-      Players = e.PlayerOrder,
+      // Re-derive each player's colour from its id so the rotated order always carries a
+      // colour, even for TurnPassed events serialized before colours existed.
+      Players = e.PlayerOrder
+        .Select(p => p with { Color = PlayerColors.For(p.Id) })
+        .ToImmutableArray(),
       ScoreTable = state.ScoreTable.SetItem(
         e.PlayerId,
         e.GameScore),
@@ -160,9 +165,22 @@ internal record GameState : State<GameState>
 
   private static GameState HandlePlayerJoined(GameState state, GameEvents.V1.PlayerJoined playerJoined)
   {
+    // V1 events predate player colours — derive the colour from the id so old streams still
+    // render the same deterministic palette colour as a freshly joined player would.
     return state with
     {
-      Players = state.Players.Add(new Player(playerJoined.Id, playerJoined.Name)),
+      Players = state.Players.Add(
+        new Player(playerJoined.Id, playerJoined.Name, PlayerColors.For(playerJoined.Id))),
+      ScoreTable = state.ScoreTable.Add(playerJoined.Id, 0)
+    };
+  }
+
+  private static GameState HandlePlayerJoinedV2(GameState state, V2.PlayerJoined playerJoined)
+  {
+    return state with
+    {
+      Players = state.Players.Add(
+        new Player(playerJoined.Id, playerJoined.Name, playerJoined.Color)),
       ScoreTable = state.ScoreTable.Add(playerJoined.Id, 0)
     };
   }

@@ -510,6 +510,9 @@
           },
           "name": {
             "type": "string"
+          },
+          "color": {
+            "type": "string"
           }
         }
       },
@@ -597,6 +600,9 @@
           "score": {
             "type": "integer",
             "format": "int32"
+          },
+          "color": {
+            "type": "string"
           }
         }
       },

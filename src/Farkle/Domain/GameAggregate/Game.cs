@@ -30,7 +30,7 @@ internal class Game : Aggregate<GameState>
   public void JoinPlayer(Command.JoinPlayer joinPlayer)
   {
     var newId = State.Players.Length + 1;
-    Apply(new GameEvents.V1.PlayerJoined(newId, joinPlayer.Name));
+    Apply(new V2.PlayerJoined(newId, joinPlayer.Name, PlayerColors.For(newId)));
   }
 
   public void BeginGame(Command.BeginGame beginGame)
@@ -168,7 +168,10 @@ internal class Game : Aggregate<GameState>
   }
 }
 
-internal record Player(int Id, string Name);
+// Color is the player's identity colour (a hex string), assigned by join order from
+// PlayerColors. It is always derived from the player's id, so it is stable across event
+// replays and snapshot round-trips even for events stored before colours existed.
+internal record Player(int Id, string Name, string Color = "");
 
 internal enum GameStage
 {

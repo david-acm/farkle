@@ -1,7 +1,7 @@
 using Farkle.Domain.GameAggregate;
 using FluentAssertions;
 using static Farkle.Domain.GameAggregate.Command;
-using static Farkle.Domain.GameAggregate.GameEvents.V1;
+using static Farkle.Domain.GameAggregate.GameEvents.V2;
 
 namespace Farkle.Tests.Domain;
 
@@ -21,6 +21,6 @@ public class JoinShould
 
     // Assert
     game.Changes.Where(p => p is PlayerJoined).Should().HaveCount(2);
-    game.State.Players.Should().Contain(new Player(1, "David"));
+    game.State.Players.Should().Contain(new Player(1, "David", PlayerColors.For(1)));
   }
 }

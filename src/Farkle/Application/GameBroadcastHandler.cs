@@ -30,7 +30,12 @@ internal sealed class GameBroadcastHandler : Eventuous.Subscriptions.EventHandle
     _broadcaster = broadcaster;
     _logger      = logger;
 
+    // JoinPlayer now emits V2.PlayerJoined (carrying the colour); V1 stays handled for
+    // any older streams replayed through a subscription.
     On<GameEvents.V1.PlayerJoined>(ctx =>
+      BroadcastAsync(ctx, (s, ct) => _broadcaster.BroadcastPlayerJoinedAsync(LobbyMapper.ToLobbyState(s), ct)));
+
+    On<GameEvents.V2.PlayerJoined>(ctx =>
       BroadcastAsync(ctx, (s, ct) => _broadcaster.BroadcastPlayerJoinedAsync(LobbyMapper.ToLobbyState(s), ct)));
 
     On<GameEvents.V1.GamePlayStarted>(ctx =>

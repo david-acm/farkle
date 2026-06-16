@@ -38,9 +38,11 @@ internal static class GameStateSerializer
     GameState.FromSnapshot(
       id:                    d.Id is null ? null : new GameId(d.Id.Value),
       gameStage:             (GameStage)d.Stage,
-      winner:                d.Winner is null ? null : new Player(d.Winner.Id, d.Winner.Name),
+      // Colour is derived from the id (PlayerColors), so it survives a snapshot round-trip
+      // without bloating the persisted DTO with a redundant, id-derivable field.
+      winner:                d.Winner is null ? null : new Player(d.Winner.Id, d.Winner.Name, PlayerColors.For(d.Winner.Id)),
       turnScore:             new Score(d.TurnScore),
-      players:               d.Players.Select(p => new Player(p.Id, p.Name)).ToImmutableArray(),
+      players:               d.Players.Select(p => new Player(p.Id, p.Name, PlayerColors.For(p.Id))).ToImmutableArray(),
       tableCenter:           d.TableCenter.Select(DieValue.FromValue).ToImmutableArray(),
       diceKept:              d.DiceKept.Select(DieValue.FromValue).ToImmutableArray(),
       diceSetAside:          d.DiceSetAside.Select(DieValue.FromValue).ToImmutableArray(),

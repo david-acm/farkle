@@ -54,7 +54,7 @@ public class GameService : IGameService
 
   private static IReadOnlyList<LobbyPlayer>? ToRoster(
     List<KiotaModels.FarkleContractsHttpResponses_LobbyPlayer>? roster) =>
-    roster?.Select(p => new LobbyPlayer(p.PlayerId ?? 0, p.Name ?? "")).ToArray();
+    roster?.Select(p => new LobbyPlayer(p.PlayerId ?? 0, p.Name ?? "", p.Color ?? "")).ToArray();
 
   public async Task<KeepDiceResponse> KeepDiceAsync(int gameId, int playerId, IEnumerable<int> diceToKeep)
   {
@@ -116,7 +116,7 @@ public class GameService : IGameService
       r.HostPlayerId ?? 0,
       r.TurnScore ?? 0,
       Scoreboard: (r.Scoreboard ?? [])
-        .Select(p => new PlayerScore(p.PlayerId ?? 0, p.Name ?? "", p.Score ?? 0))
+        .Select(p => new PlayerScore(p.PlayerId ?? 0, p.Name ?? "", p.Score ?? 0, p.Color ?? ""))
         .ToArray(),
       Winner: r.Winner is null
         ? null
@@ -129,7 +129,7 @@ public class GameService : IGameService
   private static PassTurnResponse ToPassTurnResponse(KiotaModels.FarkleContractsHttpResponses_PassTurnResponse? r)
   {
     var scoreboard = r?.Scoreboard?
-      .Select(p => new PlayerScore(p.PlayerId ?? 0, p.Name ?? "", p.Score ?? 0))
+      .Select(p => new PlayerScore(p.PlayerId ?? 0, p.Name ?? "", p.Score ?? 0, p.Color ?? ""))
       .ToArray();
     var winner = r?.Winner is null ? null
       : new WinnerResponse(r.Winner.PlayerId ?? 0, r.Winner.Name ?? "", r.Winner.Score ?? 0);

@@ -21,7 +21,12 @@
       {
         var isLeader = leader is not null && p.PlayerId == leader.PlayerId && leader.Score > 0;
         var isInTurn = !state.IsGameOver && p.PlayerId == state.CurrentPlayerId;
-        <tr data-testid="@(isLeader ? "scoreboard-leader" : "scoreboard-row")">
+        // Each player's name and score wear their own identity colour (#170); the in-turn
+        // player and the leader are additionally emphasised (bold).
+        var colorStyle = string.IsNullOrWhiteSpace(p.Color) ? null : $"color: {p.Color};";
+        var emphasise  = isInTurn || isLeader;
+        <tr data-testid="@(isLeader ? "scoreboard-leader" : "scoreboard-row")"
+            data-current="@(isInTurn ? "true" : null)">
           <td>
             @* Turn marker (#179): 🎲 sits next to whoever is in turn, for everyone. Its
                test id reflects the local perspective so the e2e can still tell "my turn"
@@ -31,13 +36,13 @@
               <span class="turn-emoji" title="Current turn"
                     data-testid="@(state.IsMyTurn ? "my-turn-indicator" : "waiting-indicator")">🎲</span>
             }
-            <MudText Color="@(isLeader ? Color.Primary : Color.Default)" Typo="Typo.body2" Class="d-inline">
-              @if (isLeader) { <strong>@p.Name</strong> } else { @p.Name }
+            <MudText Typo="Typo.body2" Class="d-inline" Style="@colorStyle">
+              @if (emphasise) { <strong>@p.Name</strong> } else { @p.Name }
             </MudText>
           </td>
           <td class="scoreboard-score">
-            <MudText Color="@(isLeader ? Color.Primary : Color.Default)" Typo="Typo.body2">
-              @if (isLeader) { <strong>@p.Score</strong> } else { @p.Score }
+            <MudText Typo="Typo.body2" Style="@colorStyle">
+              @if (emphasise) { <strong>@p.Score</strong> } else { @p.Score }
             </MudText>
           </td>
         </tr>

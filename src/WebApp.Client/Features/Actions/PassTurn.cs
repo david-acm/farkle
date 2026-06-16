@@ -19,7 +19,7 @@ public partial class GameState
 
         State.CurrentPlayerId = response.CurrentPlayerId;
         State.Scoreboard = (response.Scoreboard ?? [])
-          .Select(p => new PlayerStanding(p.PlayerId, p.Name, p.Score))
+          .Select(p => new PlayerStanding(p.PlayerId, p.Name, p.Score, p.Color))
           .ToList();
         State.WinnerName = response.Winner?.Name;
         // Reset dice and turn score for the next turn.

@@ -12,6 +12,14 @@ namespace Farkle.ApiClient.Models
     public partial class FarkleContractsHttpResponses_LobbyPlayer : IParsable
     #pragma warning restore CS1591
     {
+        /// <summary>The color property</summary>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
+#nullable enable
+        public string? Color { get; set; }
+#nullable restore
+#else
+        public string Color { get; set; }
+#endif
         /// <summary>The name property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
@@ -40,6 +48,7 @@ namespace Farkle.ApiClient.Models
         {
             return new Dictionary<string, Action<IParseNode>>
             {
+                { "color", n => { Color = n.GetStringValue(); } },
                 { "name", n => { Name = n.GetStringValue(); } },
                 { "playerId", n => { PlayerId = n.GetIntValue(); } },
             };
@@ -51,6 +60,7 @@ namespace Farkle.ApiClient.Models
         public virtual void Serialize(ISerializationWriter writer)
         {
             if(ReferenceEquals(writer, null)) throw new ArgumentNullException(nameof(writer));
+            writer.WriteStringValue("color", Color);
             writer.WriteStringValue("name", Name);
             writer.WriteIntValue("playerId", PlayerId);
         }

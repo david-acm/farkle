@@ -28,6 +28,7 @@ public sealed class GameViewProjector : Eventuous.Subscriptions.EventHandler
     // not projected (skipping them yields the same snapshot as an aggregate replay).
     On<GameEvents.V1.GameStarted>(Project);
     On<GameEvents.V1.PlayerJoined>(Project);
+    On<GameEvents.V2.PlayerJoined>(Project);
     On<GameEvents.V1.GamePlayStarted>(Project);
     On<GameEvents.V1.DiceRolled>(Project);
     On<GameEvents.V2.DiceRolled>(Project);
