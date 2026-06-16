@@ -37,10 +37,17 @@
 Grounded in the current codebase (see file references at the end):
 
 **What the app does today**
-- Full Farkle game loop: start game → players join lobby → roll / keep / pass → first to 10,000 wins.
-- **Real-time multiplayer** via SignalR (`/hubs/game`), turn changes broadcast to all players.
+- Full Farkle game loop: start game → players join lobby → roll / keep / pass → **first to 5,000 wins**.
+  Single-player games are now allowed (minimum players lowered to 1).
+- **Real-time multiplayer** via SignalR (`/hubs/game`): turn changes *and* live rolls/keeps are
+  broadcast to all players, so **off-turn players spectate the live table**.
+- **Share-to-join**: lobby exposes a **QR code + share link/button** (`IShareService`, `JoinQrCode`)
+  for pulling friends into a game — a built-in virality hook (see §6/§9).
+- **Tap-to-select dice** UI (replaced the earlier drag-and-drop); dice still render via CSS-3D with
+  `IRotationCalculator` (the cosmetics surface is intact).
 - **Accounts**: ASP.NET Identity (email/password) + PostgreSQL, JWT bearer tokens (4-hour expiry).
-- **Event-sourced** backend (Eventuous + EventStore) deployed to Azure Container Apps.
+- **Event-sourced** backend (Eventuous + EventStore) with a **CQRS `GameView` read-model projector**
+  (`GameViewProjector`, `IGameViewStore`) deployed to Azure Container Apps.
 
 **What's missing for monetization** (all confirmed absent from the repo)
 | Capability | Present? | Needed for |
@@ -123,8 +130,8 @@ the minority through purchases.
 - One-time **Remove Ads** IAP (~$2.99–4.99) — the single highest-converting purchase in ad-funded
   casual games.
 - Or a **Pro subscription** (~$2.99–3.99/mo) bundling: no ads, private/ranked rooms, persistent
-  stats & match history (your event-sourced backend makes this nearly free to build), custom game
-  rules (target score, table size), and cosmetics.
+  stats & match history (the event sourcing + new **`GameView` CQRS read model** make this nearly
+  free to build), custom game rules (target score, table size), and cosmetics.
 
 ### 5.3 Cosmetic IAP — **good fit, low risk**
 Dice skins, table/felt themes, pip styles, win animations, avatars. The app already renders dice
@@ -153,6 +160,9 @@ destroys the core loop and invites refunds/reviews. Keep purchases cosmetic or c
 > organic only). Treat the *shape* and *ratios* as the takeaway, not the absolute dollars.
 
 **Assumptions (hybrid model):**
+- Organic-only acquisition, but the app now ships a **QR/share-to-join** invite hook, which gives a
+  modest built-in **virality (k-factor)** tailwind on the download assumptions below — multiplayer
+  invites are the cheapest growth channel this app has.
 - Ads: blended **ARPDAU ≈ $0.06** (rewarded-heavy hybrid casual).
 - IAP (cosmetics + remove-ads): **~2%** of MAU pay, **~$8 ARPPU/yr**.
 - Subscription "Pro": **~2%** of MAU at **$3.99/mo**.
@@ -233,7 +243,9 @@ fix this first or the unit economics are negative.
 
 1. **Decide intent.** If this stays a portfolio/learning project, monetization is a *feature
    showcase* (StoreKit + entitlements + ads), not a revenue plan — build the smallest hybrid slice
-   and move on. If it's a real product, the gating factor is **growth/UA**, not the tech.
+   and move on. If it's a real product, the gating factor is **growth/UA**, not the tech — and the
+   existing **QR/share-to-join** invite loop is the cheapest growth asset to lean on first
+   (instrument it, then optimize invite→install conversion).
 2. **Ship the cheap channels first:** PWA for free web reach; MAUI Blazor Hybrid for the iOS binary.
 3. **Monetize in this order:** Remove-Ads IAP + cosmetics → rewarded ads → optional Pro
    subscription. Skip soft currency and real-money tournaments for v1.
@@ -245,11 +257,13 @@ fix this first or the unit economics are negative.
 ---
 
 ### Codebase references
-- Game domain: `src/Farkle/Domain/GameAggregate/`
+- Game domain (winning score = 5,000): `src/Farkle/Domain/GameAggregate/Game.cs`
+- CQRS read model (stats/match-history surface): `src/Farkle/Application/GameViewProjector.cs`, `IGameViewStore.cs`
 - API endpoints: `src/Farkle/Endpoints/`
 - Auth / Identity (extend for entitlements): `src/WebApp/Auth/`
 - WASM client (reuse in MAUI head): `src/WebApp.Client/`
-- Dice rendering (cosmetics surface): `src/WebApp.Client/Pages/Game/Components/` + `Services/RotationCalculator`
+- Dice rendering (cosmetics surface): `src/WebApp.Client/Pages/Game/Components/DiceTray.razor`, `Die.razor` + `Services/RotationCalculator`
+- Share-to-join (virality hook): `src/WebApp.Client/Services/ShareService.cs`, `Pages/Game/Components/JoinQrCode.razor`
 - Infrastructure & hosting cost: `infra/main.bicep`, `infra/modules/workload.bicep`
 
 ### Sources (external, 2026)
