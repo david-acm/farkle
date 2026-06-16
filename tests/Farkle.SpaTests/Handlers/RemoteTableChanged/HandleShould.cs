@@ -80,6 +80,32 @@ public class HandleShould : HandlerTestContext
   }
 
   [Fact]
+  public async Task KeepSurvivorsAtTheirOriginalIndex_WhenTheInTurnPlayerKeeps()
+  {
+    // #204 — a keep removes the kept dice from TableCenter, so the snapshot shrinks and
+    // re-indexes. If survivors are re-indexed from 0, every die *after* a kept one gets a new
+    // @key and Blazor re-mounts its Die — which replays the mount spin for the spectator.
+    // Survivors must keep their ORIGINAL table position as Index (stable @key → reused
+    // component → no re-spin), mirroring how the in-turn player's KeepDice retains its dice.
+    SeedIdentity(playerId: 1, currentPlayerId: 2);
+    await Sender.Send(new GameState.RestoreGameState.Action(1, "Alice"));
+
+    // Roll: six dice at indices 0..5.
+    await Sender.Send(new GameState.RemoteTableChanged.Action(
+      Snapshot(center: [1, 2, 3, 4, 5, 6]), Animate: true));
+    State.DiceInPlay.Select(d => d.Index).Should().Equal(0, 1, 2, 3, 4, 5);
+
+    // The in-turn player keeps the 2 and 4 → TableCenter shrinks to [1, 3, 5, 6].
+    await Sender.Send(new GameState.RemoteTableChanged.Action(Snapshot(center: [1, 3, 5, 6])));
+
+    State.DiceInPlay.Select(d => (int)d.Value).Should().Equal(1, 3, 5, 6);
+    State.DiceInPlay.Select(d => d.Index).Should().Equal(
+      new[] { 0, 2, 4, 5 },
+      "survivors keep their original positions so @key stays stable (no re-mount / re-spin, #204)");
+    State.DiceInPlay.Should().OnlyContain(d => !d.Animate, "a keep is not a roll");
+  }
+
+  [Fact]
   public async Task AnimateRolledDice_OnARollSnapshot()
   {
     // #167 — a roll snapshot (Animate: true) spins the in-play dice for spectators too.
