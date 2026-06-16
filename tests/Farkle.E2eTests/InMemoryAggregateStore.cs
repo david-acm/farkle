@@ -4,60 +4,102 @@ using Farkle.Domain.GameAggregate;
 
 namespace Farkle.E2eTests;
 
-// In-memory implementation of Eventuous' IAggregateStore. It keeps the raw event
-// objects per stream in a dictionary and replays them onto freshly constructed
-// aggregates — preserving the entire real domain (lobby/begin, rolling, scoring,
-// pass) while removing the EventStore (ESDB) dependency.
+// In-memory implementation of Eventuous' IEventStore (IEventReader + IEventWriter). It keeps the
+// raw event payloads per stream in a dictionary; Eventuous' LoadAggregate/StoreAggregate
+// extensions replay them onto freshly constructed aggregates — preserving the entire real domain
+// (lobby/begin, rolling, scoring, pass) while removing the EventStore (ESDB) dependency.
 //
-// Only the StreamName-based members are abstract on IAggregateStore; the {T,TState,TId}
-// overloads are default interface methods that funnel into these. As of Eventuous 0.15-rc.1
-// every member carries the aggregate's TState type parameter (Aggregate<TState>).
+// As of Eventuous 0.15.1 the aggregate store (IAggregateStore) was retired in favour of the
+// lower-level IEventReader/IEventWriter contract, so the store only deals in StreamEvent /
+// NewStreamEvent envelopes here (the Game aggregate is rehydrated by the framework, not us).
 //
-// Game aggregates are built with a deterministic IRandom (ScriptedRandom) so every
-// roll yields a scoring die, making the storyboard stages reproducible.
-internal sealed class InMemoryAggregateStore : IAggregateStore
+// The deterministic IRandom (ScriptedRandom) is supplied via the aggregate factory the host
+// registers, so every roll yields a scoring die and the storyboard stages stay reproducible.
+internal sealed class InMemoryAggregateStore : IEventStore
 {
-    private static readonly IRandom Dice = new ScriptedRandom();
     private readonly ConcurrentDictionary<string, List<object>> _streams = new();
-    private readonly AggregateFactoryRegistry _factories = new();
 
-    public InMemoryAggregateStore()
+    public Task<AppendEventsResult> AppendEvents(
+        StreamName stream,
+        ExpectedStreamVersion expectedVersion,
+        IReadOnlyCollection<NewStreamEvent> events,
+        CancellationToken cancellationToken)
     {
-        // Build Game aggregates with the deterministic dice source; other aggregate
-        // types (none in this app) fall back to their parameterless constructor.
-        _factories.CreateAggregateUsing<Game, GameState>(() => new Game(Dice));
-    }
-
-    public Task<AppendEventsResult> Store<T, TState>(StreamName streamName, T aggregate, CancellationToken cancellationToken)
-        where T : Aggregate<TState> where TState : State<TState>, new()
-    {
-        var stream = _streams.GetOrAdd(streamName.ToString(), _ => new List<object>());
-        lock (stream)
+        var list = _streams.GetOrAdd(stream.ToString(), _ => new List<object>());
+        lock (list)
         {
-            stream.AddRange(aggregate.Changes);
-            return Task.FromResult(new AppendEventsResult((ulong)stream.Count, stream.Count - 1));
+            foreach (var e in events)
+                list.Add(e.Payload!);
+
+            return Task.FromResult(new AppendEventsResult((ulong)list.Count, list.Count - 1));
         }
     }
 
-    public Task<T> Load<T, TState>(StreamName streamName, CancellationToken cancellationToken)
-        where T : Aggregate<TState> where TState : State<TState>, new()
-        => Task.FromResult(Rehydrate<T, TState>(streamName));
-
-    public Task<T> LoadOrNew<T, TState>(StreamName streamName, CancellationToken cancellationToken)
-        where T : Aggregate<TState> where TState : State<TState>, new()
-        => Task.FromResult(Rehydrate<T, TState>(streamName));
-
-    private T Rehydrate<T, TState>(StreamName streamName)
-        where T : Aggregate<TState> where TState : State<TState>, new()
+    public Task<StreamEvent[]> ReadEvents(
+        StreamName stream,
+        StreamReadPosition start,
+        int count,
+        CancellationToken cancellationToken)
     {
-        var aggregate = _factories.CreateInstance<T, TState>();
-        if (_streams.TryGetValue(streamName.ToString(), out var events))
-        {
-            List<object> snapshot;
-            lock (events) snapshot = new List<object>(events);
-            aggregate.Load(snapshot);
-        }
+        if (!_streams.TryGetValue(stream.ToString(), out var list))
+            throw new StreamNotFound(stream);
 
-        return aggregate;
+        List<object> snapshot;
+        lock (list) snapshot = new List<object>(list);
+
+        var events = snapshot
+            .Skip((int)start.Value)
+            .Take(count)
+            .Select((payload, i) => ToStreamEvent(payload, start.Value + i))
+            .ToArray();
+
+        return Task.FromResult(events);
     }
+
+    public Task<StreamEvent[]> ReadEventsBackwards(
+        StreamName stream,
+        StreamReadPosition start,
+        int count,
+        CancellationToken cancellationToken)
+    {
+        if (!_streams.TryGetValue(stream.ToString(), out var list))
+            throw new StreamNotFound(stream);
+
+        List<object> snapshot;
+        lock (list) snapshot = new List<object>(list);
+
+        var events = snapshot
+            .Select((payload, i) => ToStreamEvent(payload, i))
+            .Reverse()
+            .Take(count)
+            .ToArray();
+
+        return Task.FromResult(events);
+    }
+
+    public Task<bool> StreamExists(StreamName stream, CancellationToken cancellationToken) =>
+        Task.FromResult(_streams.ContainsKey(stream.ToString()));
+
+    // The game flow never deletes or truncates streams; implement them faithfully anyway so the
+    // double satisfies the full IEventStore contract.
+    public Task DeleteStream(StreamName stream, ExpectedStreamVersion expectedVersion, CancellationToken cancellationToken)
+    {
+        _streams.TryRemove(stream.ToString(), out _);
+        return Task.CompletedTask;
+    }
+
+    public Task TruncateStream(
+        StreamName stream,
+        StreamTruncatePosition truncatePosition,
+        ExpectedStreamVersion expectedVersion,
+        CancellationToken cancellationToken)
+    {
+        if (_streams.TryGetValue(stream.ToString(), out var list))
+            lock (list) list.RemoveRange(0, Math.Min((int)truncatePosition.Value, list.Count));
+
+        return Task.CompletedTask;
+    }
+
+    private static StreamEvent ToStreamEvent(object payload, long position) =>
+        new(Guid.NewGuid(), payload, new Metadata(), "application/json", position, FromArchive: false);
 }
