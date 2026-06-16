@@ -123,6 +123,38 @@ public class KeepDiceShould : GameWithThreePlayersTest
   }
 
   [Fact]
+  public void AllowAndScoreThreePairs()
+  {
+    // Arrange — a full six-dice three-pairs hand (no 1s/5s, no triplet).
+    SetupDiceToRoll(new List<int> { 2, 2, 4, 4, 6, 6 });
+    Game.RollDiceV2(new Command.RollDice(1, 1));
+
+    // Act
+    Game.KeepDice(new Command.KeepDice(1, 1,
+      new[] { DieValue.Two, DieValue.Two, DieValue.Four, DieValue.Four, DieValue.Six, DieValue.Six }));
+
+    // Assert — keepable (the new keep-gate clause) and worth 1500.
+    Changes.Should().NotContainAnyEvent<DiceNotAllowedToBeKept>();
+    State.TurnScore.Should().Be(new Score(1500));
+  }
+
+  [Fact]
+  public void AllowAndScoreTwoTriplets()
+  {
+    // Arrange — two three-of-a-kinds in one roll.
+    SetupDiceToRoll(new List<int> { 2, 2, 2, 5, 5, 5 });
+    Game.RollDiceV2(new Command.RollDice(1, 1));
+
+    // Act
+    Game.KeepDice(new Command.KeepDice(1, 1,
+      new[] { DieValue.Two, DieValue.Two, DieValue.Two, DieValue.Five, DieValue.Five, DieValue.Five }));
+
+    // Assert — two triplets scores 2500 (beats the per-triplet values).
+    Changes.Should().NotContainAnyEvent<DiceNotAllowedToBeKept>();
+    State.TurnScore.Should().Be(new Score(2500));
+  }
+
+  [Fact]
   public void AllowToKeepOnlyDiceThatWereRolled()
   {
     // Arrange
