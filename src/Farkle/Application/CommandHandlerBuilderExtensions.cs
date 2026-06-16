@@ -4,9 +4,11 @@ namespace Farkle.Application;
 
 public static class CommandHandlerBuilderExtensions
 {
-  public static CommandHandlerBuilder<TCommand, TAggregate, TState, TId> Execute<TCommand, TAggregate, TState, TId>(
-    this CommandHandlerBuilder<TCommand, TAggregate, TState, TId> builder,
-    CommandServiceDelegates.ActOnAggregate<TAggregate, TState, TCommand>  action)
+  // 0.15.1 dropped the CommandServiceDelegates.ActOnAggregate delegate; the fluent terminal is now
+  // IDefineExecution<...>.Act(Action<TAggregate, TCommand>), reached through ICommandHandlerBuilder.
+  public static void Execute<TCommand, TAggregate, TState, TId>(
+    this ICommandHandlerBuilder<TCommand, TAggregate, TState, TId> builder,
+    Action<TAggregate, TCommand> action)
     where TCommand : class
     where TAggregate : Aggregate<TState>, new()
     where TState : State<TState>, new()
@@ -16,14 +18,12 @@ public static class CommandHandlerBuilderExtensions
     {
       try
       {
-        action.Invoke(game, cmd);
+        action(game, cmd);
       }
       catch (DomainException)
       {
         // We ignore the domain exceptions because otherwise the error events would not be persisted to the store. In a future version these events will be handled and will return the appropriate HTTP 400 Bad Request response
       }
     });
-
-    return builder;
   }
 }

@@ -2,6 +2,7 @@ using System.Net;
 using EventStore.Client;
 using Eventuous;
 using Eventuous.EventStore;
+using Farkle.Domain.GameAggregate;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
@@ -52,8 +53,11 @@ public sealed class StoryboardWebAppFactory : WebApplicationFactory<Program>
             // Replace the ESDB persistence with the in-memory store; drop the now-unused
             // EventStore wiring (including the EsdbEventStore singleton, registered as its
             // own concrete type) so DI validation doesn't try to reach a real database.
-            RemoveAll(services, typeof(IAggregateStore));
+            // 0.15.1 registers the store as IEventStore/IEventReader/IEventWriter (AddEventStore)
+            // rather than the retired IAggregateStore.
             RemoveAll(services, typeof(IEventStore));
+            RemoveAll(services, typeof(IEventReader));
+            RemoveAll(services, typeof(IEventWriter));
             RemoveAll(services, typeof(EsdbEventStore));
             RemoveAll(services, typeof(EventStoreClient));
 
@@ -70,7 +74,17 @@ public sealed class StoryboardWebAppFactory : WebApplicationFactory<Program>
                          .ToList())
                 services.Remove(hosted);
 
-            services.AddSingleton<IAggregateStore, InMemoryAggregateStore>();
+            var inMemoryStore = new InMemoryAggregateStore();
+            services.AddSingleton<IEventStore>(inMemoryStore);
+            services.AddSingleton<IEventReader>(inMemoryStore);
+            services.AddSingleton<IEventWriter>(inMemoryStore);
+
+            // 0.15.1 builds aggregates via AggregateFactoryRegistry rather than the store's own
+            // factory. Register Game with the deterministic ScriptedRandom on the global registry
+            // (the default the CommandService + LoadAggregate use) so every roll yields scoring
+            // dice and the storyboard stages stay reproducible.
+            AggregateFactoryRegistry.Instance
+                .CreateAggregateUsing<Game, GameState>(() => new Game(new ScriptedRandom()));
 
             // The read model (#156) is gated on config that isn't merged yet at registration
             // time (same limitation as the broadcast subscription above), so Program registers

@@ -15,14 +15,14 @@ namespace Farkle.Infrastructure.Persistence;
 /// Wires the EventStoreDB write side: the gRPC client, the Eventuous ESDB aggregate store, and
 /// the real-time broadcast subscription. This is the concrete event-store plug-in that the core
 /// (Farkle) deliberately does not reference — the core only depends on Eventuous' abstractions
-/// (<c>IAggregateStore</c>, the <c>CommandService</c> / subscription handler base types).
+/// (<c>IEventStore</c>, the <c>CommandService</c> / subscription handler base types).
 /// </summary>
 public static class EventStorePersistenceExtensions
 {
   public static IServiceCollection AddFarkleEventStore(
     this IServiceCollection services, IConfiguration configuration, ILogger logger)
   {
-    services.AddAggregateStore<EsdbEventStore>();
+    services.AddEventStore<EsdbEventStore>();
 
     var esdbConnString = configuration.GetConnectionString("Esdb") ?? "esdb://localhost:2113?tls=false";
     services.AddEventStoreClient(esdbConnString);

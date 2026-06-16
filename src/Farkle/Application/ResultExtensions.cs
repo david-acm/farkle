@@ -16,14 +16,13 @@ public static class ResultExtensions
   {
     mapper ??= (TState state) => state.Adapt<TResponse>();
 
-    return result switch
-    {
-      ErrorResult<TState> errorResult => ToMinimalApiErrorResult(errorResult),
-      OkResult<TState> okResult       => Results.Ok(mapper(okResult.State!)),
-      _                               => Results.StatusCode(500)
-    };
+    // 0.15.1 replaced the OkResult/ErrorResult subclasses with a single Result<TState> record
+    // carrying nested Ok/Error cases; Match dispatches on success vs. failure.
+    return result.Match(
+      ok    => Results.Ok(mapper(ok.State!)),
+      error => ToMinimalApiErrorResult(error));
 
-    IResult ToMinimalApiErrorResult(ErrorResult<TState> errorResult)
+    IResult ToMinimalApiErrorResult(Eventuous.Result<TState>.Error errorResult)
     {
       return errorResult.Exception switch
       {
@@ -55,7 +54,7 @@ public static class ResultExtensions
       }
     }
 
-    Dictionary<string, string[]> AsErrors(ErrorResult<TState> errorResult)
+    Dictionary<string, string[]> AsErrors(Eventuous.Result<TState>.Error errorResult)
     {
       return new Dictionary<string, string[]>()
       {
