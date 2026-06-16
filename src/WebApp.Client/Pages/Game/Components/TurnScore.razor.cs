@@ -18,14 +18,5 @@ public partial class TurnScore : BlazorStateComponent
   // True when the selection forms a scoring trick worth keeping.
   private bool PreviewScores => Preview.CanKeep && Preview.Points > 0;
 
-  private string PreviewLabel => Preview.Trick switch
-  {
-    ScoringTrick.TwoTriplets  => "Two triplets",
-    ScoringTrick.ThreePairs   => "Three pairs",
-    ScoringTrick.FourOfAKind  => "Four of a kind",
-    ScoringTrick.ThreeOfAKind => "Three of a kind",
-    ScoringTrick.OnesAndFives => "Ones & fives",
-    ScoringTrick.Run          => "Run 1-6",
-    _                         => "No score"
-  };
+  private string PreviewLabel => Preview.Trick.ToDisplayName();
 }

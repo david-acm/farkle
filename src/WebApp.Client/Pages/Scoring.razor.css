@@ -1,0 +1,11 @@
+/* Larger, yellow dice-face glyphs in the example column so the combos read at a glance. */
+.dice-example {
+    font-size: 1.5rem;
+    letter-spacing: 0.1rem;
+    color: #FFE600;
+    white-space: nowrap;
+}
+
+.scoring-table th {
+    font-weight: 600;
+}
