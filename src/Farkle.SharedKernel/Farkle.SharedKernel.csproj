@@ -6,11 +6,8 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
-    <ItemGroup>
-      <PackageReference Include="Ardalis.Result" Version="10.1.0" />
-      <PackageReference Include="Eventuous.AspNetCore" Version="0.15.0-beta.7" />
-      <PackageReference Include="FastEndpoints" Version="5.34.0" />
-      <PackageReference Include="Mapster" Version="10.0.7" />
-    </ItemGroup>
+    <!-- Thin shared kernel: pure shared domain types (e.g. ScoreCalculator), referenced by
+         both the Farkle domain and the WASM client. NO infrastructure dependencies — the
+         FastEndpoints/Eventuous plumbing that used to live here moved into Farkle. -->
 
 </Project>

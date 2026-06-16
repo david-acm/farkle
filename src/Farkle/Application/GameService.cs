@@ -1,7 +1,6 @@
 using Eventuous;
 using Farkle.Domain.GameAggregate;
 using Microsoft.AspNetCore.Http;
-using Farkle.SharedKernel;
 using static Eventuous.ExpectedState;
 
 namespace Farkle.Application;

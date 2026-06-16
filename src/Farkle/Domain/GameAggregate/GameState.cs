@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using Eventuous;
+using Farkle.SharedKernel.Scoring;
 using static Farkle.Domain.GameAggregate.Command;
 using static Farkle.Domain.GameAggregate.GameEvents;
 
@@ -91,7 +92,7 @@ internal record GameState : State<GameState>
       TableCenter = ImmutableArray<DieValue>.Empty.AddRange(e.TableCenter.ToDiceValues()),
       GameStage = GameStage.Rolling,
       DiceSetAside = ImmutableArray<DieValue>.Empty,
-      StraightsKeptThisTurn = new DiceAreStraight(Dice.FromValues(e.Dice)).IsSatisfied().IsValid ? state.StraightsKeptThisTurn + 1 : state.StraightsKeptThisTurn
+      StraightsKeptThisTurn = ScoreCalculator.Evaluate(e.Dice).Trick == ScoringTrick.FourOfAKind ? state.StraightsKeptThisTurn + 1 : state.StraightsKeptThisTurn
     };
   }
 
@@ -104,7 +105,7 @@ internal record GameState : State<GameState>
       TableCenter = ImmutableArray<DieValue>.Empty.AddRange(e.TableCenter.ToDiceValues()),
       GameStage = e.Stage,
       DiceSetAside = ImmutableArray<DieValue>.Empty,
-      StraightsKeptThisTurn = new DiceAreStraight(Dice.FromValues(e.Dice)).IsSatisfied().IsValid ? state.StraightsKeptThisTurn + 1 : state.StraightsKeptThisTurn
+      StraightsKeptThisTurn = ScoreCalculator.Evaluate(e.Dice).Trick == ScoringTrick.FourOfAKind ? state.StraightsKeptThisTurn + 1 : state.StraightsKeptThisTurn
     };
   }
 
