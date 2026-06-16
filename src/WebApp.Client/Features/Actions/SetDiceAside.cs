@@ -11,9 +11,9 @@ public partial class GameState
     // Carries the target zone explicitly so the UI never mutates the dropped
     // die outside an action handler. Backwards-compatible single-arg form is
     // kept for callers (and tests) that already encode the identifier on Die.
-    public record Action(DraggableDie Die, string Identifier) : IAction
+    public record Action(TrayDie Die, string Identifier) : IAction
     {
-      public Action(DraggableDie die) : this(die, die.Identifier) { }
+      public Action(TrayDie die) : this(die, die.Identifier) { }
     }
 
     public class Handler(IStore store, IGameService service, ILogger<Handler> logger)
@@ -32,13 +32,13 @@ public partial class GameState
         // none re-spins when the drop container recreates their components for the
         // zone change (covers a move made before the roll animation's own consume
         // fires). A move is never a roll (#139).
-        foreach (DraggableDie d in State.DiceInPlay)
+        foreach (TrayDie d in State.DiceInPlay)
           d.Animate = false;
 
         // Promote the (formerly UI-only) selection to a domain command so it's persisted
         // and broadcast to spectators (#159). The local move already happened above for
         // instant feedback; the server broadcast won't echo back to us (RemoteTableChanged
-        // is guarded by IsMyTurn). Best-effort: a failed sync must not break the local drag.
+        // is guarded by IsMyTurn). Best-effort: a failed sync must not break the local selection.
         try
         {
           if (action.Identifier == "SetAside")

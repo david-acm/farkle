@@ -1,7 +1,6 @@
-using WebApp.Client.Pages.Game.Components;
 using Xunit.Abstractions;
 
-namespace Farkle.SpaTests.RotationCalculator;
+namespace Blazor.Dice.Tests.RotationCalculator;
 
 public class CalculateForShould
 {
@@ -26,7 +25,7 @@ public class CalculateForShould
     int zExpected)
   {
     // Arrange
-    var sut = new WebApp.Client.Services.RotationCalculator();
+    var sut = new Blazor.Dice.RotationCalculator();
 
     // Act
     var (x, y, z) = sut.CalculateFor(DieValue.FromValue(value));

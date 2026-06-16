@@ -15,6 +15,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Farkle.Contracts", "Farkle.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Farkle.SharedKernel", "Farkle.SharedKernel\Farkle.SharedKernel.csproj", "{177A313C-291B-4B4A-BD2B-EF921997B0B4}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Blazor.Dice", "Blazor.Dice\Blazor.Dice.csproj", "{1B7F738F-481F-4B57-BC57-81E6ECFA6A1C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -97,6 +99,18 @@ Global
 		{177A313C-291B-4B4A-BD2B-EF921997B0B4}.Release|x64.Build.0 = Release|Any CPU
 		{177A313C-291B-4B4A-BD2B-EF921997B0B4}.Release|x86.ActiveCfg = Release|Any CPU
 		{177A313C-291B-4B4A-BD2B-EF921997B0B4}.Release|x86.Build.0 = Release|Any CPU
+		{1B7F738F-481F-4B57-BC57-81E6ECFA6A1C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1B7F738F-481F-4B57-BC57-81E6ECFA6A1C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1B7F738F-481F-4B57-BC57-81E6ECFA6A1C}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{1B7F738F-481F-4B57-BC57-81E6ECFA6A1C}.Debug|x64.Build.0 = Debug|Any CPU
+		{1B7F738F-481F-4B57-BC57-81E6ECFA6A1C}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{1B7F738F-481F-4B57-BC57-81E6ECFA6A1C}.Debug|x86.Build.0 = Debug|Any CPU
+		{1B7F738F-481F-4B57-BC57-81E6ECFA6A1C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1B7F738F-481F-4B57-BC57-81E6ECFA6A1C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1B7F738F-481F-4B57-BC57-81E6ECFA6A1C}.Release|x64.ActiveCfg = Release|Any CPU
+		{1B7F738F-481F-4B57-BC57-81E6ECFA6A1C}.Release|x64.Build.0 = Release|Any CPU
+		{1B7F738F-481F-4B57-BC57-81E6ECFA6A1C}.Release|x86.ActiveCfg = Release|Any CPU
+		{1B7F738F-481F-4B57-BC57-81E6ECFA6A1C}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

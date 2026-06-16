@@ -20,7 +20,7 @@ public partial class GameState
 
             public override Task Handle(Action action, CancellationToken aCancellationToken)
             {
-                // Never clobber the active player's local drag state — they are the source of
+                // Never clobber the active player's local selection state — they are the source of
                 // truth for their own turn and already see their own rolls/keeps locally.
                 if (State.IsMyTurn) return Task.CompletedTask;
 
@@ -38,7 +38,7 @@ public partial class GameState
                     .Select((v, i) =>
                     {
                         var isSet = setAside.Remove(v);
-                        return new DraggableDie(i, DieValue.FromValue(v), isSet ? "SetAside" : "Rolled")
+                        return new TrayDie(i, DieValue.FromValue(v), isSet ? "SetAside" : "Rolled")
                         {
                             Animate = action.Animate && !isSet
                         };

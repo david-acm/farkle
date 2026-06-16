@@ -96,12 +96,12 @@ public class HandleShould : HandlerTestContext
   [Fact]
   public async Task IgnoreTheSnapshot_WhenItIsMyTurn()
   {
-    // We are player 2 and it's our turn — our local drag state must not be clobbered.
+    // We are player 2 and it's our turn — our local selection state must not be clobbered.
     SeedIdentity(playerId: 2, currentPlayerId: 2);
     await Sender.Send(new GameState.RestoreGameState.Action(2, "Bob"));
     State.CurrentPlayerId = 2;
     State.DiceInPlay.Clear();
-    State.DiceInPlay.Add(new DraggableDie(0, DieValue.Six, "SetAside"));
+    State.DiceInPlay.Add(new TrayDie(0, DieValue.Six, "SetAside"));
 
     await Sender.Send(new GameState.RemoteTableChanged.Action(Snapshot(currentPlayerId: 2)));
 

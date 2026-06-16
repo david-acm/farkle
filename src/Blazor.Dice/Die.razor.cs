@@ -1,9 +1,9 @@
 using System.Threading;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
-using WebApp.Client.Services;
+using Microsoft.Extensions.Logging;
 
-namespace WebApp.Client.Pages.Game.Components;
+namespace Blazor.Dice;
 
 public partial class Die : IDisposable
 {
@@ -98,7 +98,7 @@ public partial class Die : IDisposable
 
   // Blazor disposes the component when it is removed (e.g. recreated for a zone move).
   // Dispose the one-shot timers so they don't leak — important because a die's
-  // component is recreated whenever it is dragged to another zone.
+  // component is recreated whenever it moves between the rolled/set-aside zones.
   public void Dispose()
   {
     _spinTimer?.Dispose();
