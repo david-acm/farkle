@@ -20,6 +20,8 @@ public partial class TurnScore : BlazorStateComponent
 
   private string PreviewLabel => Preview.Trick switch
   {
+    ScoringTrick.TwoTriplets  => "Two triplets",
+    ScoringTrick.ThreePairs   => "Three pairs",
     ScoringTrick.FourOfAKind  => "Four of a kind",
     ScoringTrick.ThreeOfAKind => "Three of a kind",
     ScoringTrick.OnesAndFives => "Ones & fives",
