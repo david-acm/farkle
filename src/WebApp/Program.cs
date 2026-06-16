@@ -150,8 +150,10 @@ app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => fa
 app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = c => c.Tags.Contains("ready") });
 
 // Anonymous build-version endpoint, mapped here (before CORS/auth) so it always answers —
-// lets testers confirm exactly which build they're on.
-app.MapGet("/version", () => Results.Json(new { version = WebApp.AppVersion.Current }));
+// lets testers confirm exactly which build they're on. ExcludeFromDescription keeps this ops
+// endpoint out of the OpenAPI doc (and the generated Kiota client), like the health checks.
+app.MapGet("/version", () => Results.Json(new { version = WebApp.AppVersion.Current }))
+   .ExcludeFromDescription();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
