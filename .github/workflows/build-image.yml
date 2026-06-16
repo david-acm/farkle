@@ -41,7 +41,27 @@ jobs:
       IMAGE_TAG: ${{ github.sha }}
 
     steps:
+      # fetch-depth: 0 so MinVer sees the full history + tags (a shallow clone can't compute
+      # the version). MinVer runs on the host — the image is built inside the SDK container
+      # where .git is .dockerignore'd — and the result is passed in as build-args.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Compute version (MinVer)
+        run: |
+          set -euo pipefail
+          dotnet tool restore
+          version=$(dotnet minver -t v 2>/dev/null)
+          informational="${version}+$(git rev-parse --short=7 HEAD)"
+          echo "VERSION=$version"             >> "$GITHUB_ENV"
+          echo "INFORMATIONAL=$informational" >> "$GITHUB_ENV"
+          echo "### Version: \`${informational}\`" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Azure login (OIDC)
         uses: azure/login@v2
@@ -61,10 +81,20 @@ jobs:
             exit 1
           fi
           az acr login --name "$name"
-          docker build -t "${login}/webapp:${IMAGE_TAG}" -t "${login}/webapp:latest" -f src/WebApp/Dockerfile .
+          # Stamp the assemblies with the MinVer version (build-args → /p:Version), and tag
+          # the image with the semver (no '+metadata', invalid in a docker tag) alongside the
+          # git SHA (+ latest). App Release still rolls the deterministic :<sha>.
+          docker build \
+            --build-arg VERSION="$VERSION" \
+            --build-arg INFORMATIONAL="$INFORMATIONAL" \
+            -t "${login}/webapp:${IMAGE_TAG}" \
+            -t "${login}/webapp:${VERSION}" \
+            -t "${login}/webapp:latest" \
+            -f src/WebApp/Dockerfile .
           docker push "${login}/webapp:${IMAGE_TAG}"
+          docker push "${login}/webapp:${VERSION}"
           docker push "${login}/webapp:latest"
-          echo "### Image published: \`${login}/webapp:${IMAGE_TAG}\` (+ :latest)" >> "$GITHUB_STEP_SUMMARY"
+          echo "### Image published: \`${login}/webapp:${VERSION}\` (+ :${IMAGE_TAG}, :latest) — version \`${INFORMATIONAL}\`" >> "$GITHUB_STEP_SUMMARY"
 
   # CD: roll the live WebApp to the exact image just built (fast, no ARM, ungated).
   release:
