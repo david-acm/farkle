@@ -44,7 +44,7 @@ jobs:
       # fetch-depth: 0 so MinVer sees the full history + tags (a shallow clone can't compute
       # the version). MinVer runs on the host — the image is built inside the SDK container
       # where .git is .dockerignore'd — and the result is passed in as build-args.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
