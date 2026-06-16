@@ -27,6 +27,8 @@
   <ItemGroup>
     <ProjectReference Include="..\Farkle.ApiClient\Farkle.ApiClient.csproj" />
     <ProjectReference Include="..\Farkle.Contracts\Farkle.Contracts.csproj" />
+    <!-- Thin, infra-free shared kernel: the ScoreCalculator for the live turn-score preview. -->
+    <ProjectReference Include="..\Farkle.SharedKernel\Farkle.SharedKernel.csproj" />
   </ItemGroup>
 
 </Project>

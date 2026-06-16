@@ -1,4 +1,5 @@
 ﻿using BlazorState;
+using Farkle.SharedKernel.Scoring;
 using WebApp.Client.Pages.Game.Components;
 
 namespace WebApp.Client.Features;
@@ -37,6 +38,10 @@ public partial class GameState : State<GameState>
   // Don't add a parallel field — it leaks across turns and duplicates on re-drop.
   internal IReadOnlyList<int> DiceSetAside =>
     DiceInPlay.Where(d => d.Identifier == "SetAside").Select(d => (int)d.Value).ToList();
+
+  // Live preview of what the current selection would score (matched trick + points), via the
+  // shared ScoreCalculator. Lets the UI show the value before the player commits with Keep.
+  public ScoreBreakdown SelectionPreview => ScoreCalculator.Evaluate(DiceSetAside);
 
   public  string    ErrorMessage     { get; private set; } = string.Empty;
   public  bool      ShowError        { get; private set; }
