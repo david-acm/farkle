@@ -28,6 +28,6 @@ internal class PassTurnEndpoint(
       .HandleAsync<Command.PassTurn, PassTurnResponse>(command, ct,
         s => PassTurnMapper.ToPassTurnResponse(s, req.PlayerId));
 
-    await SendResultAsync(result);
+    await Send.ResultAsync(result);
   }
 }

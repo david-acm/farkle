@@ -21,7 +21,7 @@ public static class StartGame
     {
       var id = await gameCreator.CreateGameAsync(ct);
       logger.LogInformation("ℹ️ Created game: {gameId}", id);
-      await SendAsync(new StartGameResponse(id));
+      await Send.OkAsync(new StartGameResponse(id));
     }
   }
 }

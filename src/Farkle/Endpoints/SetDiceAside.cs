@@ -29,6 +29,6 @@ internal class SetDiceAsideEndpoint(
       .HandleAsync<Command.SetDiceAside, SetAsideResponse>(command, ct,
         s => new SetAsideResponse(s.Id ?? 0, s.DiceSetAside.Select(d => d.Value).ToArray()));
 
-    await SendResultAsync(result);
+    await Send.ResultAsync(result);
   }
 }

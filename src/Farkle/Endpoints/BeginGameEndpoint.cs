@@ -28,6 +28,6 @@ internal class BeginGameEndpoint(
       .HandleAsync<Command.BeginGame, LobbyStateResponse>(command, ct,
         LobbyMapper.ToLobbyState);
 
-    await SendResultAsync(result);
+    await Send.ResultAsync(result);
   }
 }

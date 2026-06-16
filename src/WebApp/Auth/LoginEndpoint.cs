@@ -23,14 +23,14 @@ internal class LoginEndpoint(
         var user = await userManager.FindByEmailAsync(req.Email);
         if (user is null)
         {
-            await SendUnauthorizedAsync(ct);
+            await Send.UnauthorizedAsync(ct);
             return;
         }
 
         var result = await signInManager.CheckPasswordSignInAsync(user, req.Password, lockoutOnFailure: false);
         if (!result.Succeeded)
         {
-            await SendUnauthorizedAsync(ct);
+            await Send.UnauthorizedAsync(ct);
             return;
         }
 
@@ -45,6 +45,6 @@ internal class LoginEndpoint(
                 o.User.Claims.Add(new Claim(ClaimTypes.Email, user.Email!));
             });
 
-        await SendAsync(new LoginResponse(token, expiresAt), cancellation: ct);
+        await Send.OkAsync(new LoginResponse(token, expiresAt), ct);
     }
 }

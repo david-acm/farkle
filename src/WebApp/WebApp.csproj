@@ -16,9 +16,8 @@
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="10.0.7" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.7" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.7" />
-    <!-- FastEndpoints: pinned to 5.x — migration to 8.x requires API updates tracked separately. -->
-    <PackageReference Include="FastEndpoints.Security" Version="5.34.0" />
-    <PackageReference Include="FastEndpoints.Swagger" Version="5.34.0" />
+    <PackageReference Include="FastEndpoints.Security" Version="8.1.0" />
+    <PackageReference Include="FastEndpoints.Swagger" Version="8.1.0" />
     <!-- Persistence (EF/Npgsql/Identity), event store and health checks now live in
          Farkle.Infrastructure; the host references them transitively through that project. -->
   </ItemGroup>

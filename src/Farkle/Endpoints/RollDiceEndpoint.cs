@@ -26,7 +26,7 @@ internal class RollDiceEndpoint(
       .HandleAsync<Command.RollDice, RollDiceResponse>(command, ct, 
         (s) => new RollDiceResponse(s.Id!.Id, s.TableCenter.Select(d => d.Value).ToArray()));
     
-    await SendResultAsync(result);
+    await Send.ResultAsync(result);
   }
   private static int[] ToArrayAsync(GameState s)
   {

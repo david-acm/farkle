@@ -23,10 +23,10 @@ internal class RegisterEndpoint(UserManager<AppUser> userManager)
             foreach (var error in result.Errors)
                 AddError(error.Description);
 
-            await SendErrorsAsync(cancellation: ct);
+            await Send.ErrorsAsync(400, ct);
             return;
         }
 
-        await SendOkAsync(ct);
+        await Send.NoContentAsync(ct);
     }
 }
