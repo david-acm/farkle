@@ -5,8 +5,10 @@ namespace Farkle.SharedKernel.Scoring;
 public enum ScoringTrick
 {
     None,
+    SixOfAKind,    // six dice of the same value             → 3000 (#35)
     TwoTriplets,   // six dice = two three-of-a-kinds (e.g. 2,2,2,5,5,5) → 2500
     ThreePairs,    // six dice that form three pairs (all value-counts even) → 1500
+    FiveOfAKind,   // five dice of the same value            → 2000 (#35)
     FourOfAKind,   // four dice of the same value          → 1000
     ThreeOfAKind,  // three of a kind → face×100, but three 1s → 1000 (#177)
     OnesAndFives,  // any mix of 1s and 5s → 100 per 1 + 50 per 5
@@ -41,9 +43,17 @@ public static class ScoreCalculator
 
     private static (ScoringTrick Trick, int Points) Score(IReadOnlyList<int> dice)
     {
+        // Six of a kind is the top trick (#35). It must be checked before three-pairs, which
+        // would otherwise claim it (a six-of-a-kind has an even count) for only 1500.
+        if (IsAllSame(dice, 6)) return (ScoringTrick.SixOfAKind, 3000);
+
         // Six-dice combos take priority — a qualifying hand always takes the higher combo.
         if (IsTwoTriplets(dice)) return (ScoringTrick.TwoTriplets, 2500);
         if (IsThreePairs(dice))  return (ScoringTrick.ThreePairs, 1500);
+
+        // Five of a kind (#35) before four/three and before ones-and-fives (which would
+        // otherwise score five 1s/5s as a mere 500/250).
+        if (IsAllSame(dice, 5)) return (ScoringTrick.FiveOfAKind, 2000);
 
         if (IsAllSame(dice, 4)) return (ScoringTrick.FourOfAKind, 1000);
 

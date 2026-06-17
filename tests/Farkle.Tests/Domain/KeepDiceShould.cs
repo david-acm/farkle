@@ -452,5 +452,16 @@ public class KeepDiceShould : GameWithThreePlayersTest
       "4, 4, 4, 4 should add 1000", new[] { 3, 3, 4, 4, 4, 4 },
       new[] { DieValue.Four, DieValue.Four, DieValue.Four, DieValue.Four }, 1000
     };
+    // #35 — five and six of a kind, end-to-end through KeepDice (flat 2000 / 3000).
+    yield return new object[]
+    {
+      "five 2s should add 2000", new[] { 2, 2, 2, 2, 2, 3 },
+      new[] { DieValue.Two, DieValue.Two, DieValue.Two, DieValue.Two, DieValue.Two }, 2000
+    };
+    yield return new object[]
+    {
+      "six 2s should add 3000", new[] { 2, 2, 2, 2, 2, 2 },
+      new[] { DieValue.Two, DieValue.Two, DieValue.Two, DieValue.Two, DieValue.Two, DieValue.Two }, 3000
+    };
   }
 }
