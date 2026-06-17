@@ -12,11 +12,11 @@ public class HandleShould : HandlerTestContext
   [Fact]
   public async Task ClearAnimateOnEveryDie()
   {
-    State.DiceInPlay.Add(new TrayDie(0, DieValue.Five, "Rolled")  { Animate = true });
-    State.DiceInPlay.Add(new TrayDie(1, DieValue.Two,  "SetAside") { Animate = true });
+    State.DiceInPlay.Add(TrayDie.Rolled(0, DieValue.Five));
+    State.DiceInPlay.Add(TrayDie.SetAside(1, DieValue.Two));
 
     await Sender.Send(new GameState.ConsumeRollAnimation.Action());
 
-    State.DiceInPlay.Should().OnlyContain(d => d.Animate == false);
+    State.DiceInPlay.Should().OnlyContain(d => d.IsAnimated == false);
   }
 }

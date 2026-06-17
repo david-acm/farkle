@@ -41,18 +41,15 @@ public partial class GameState : State<GameState>
   
   public List<TrayDie> DiceInPlay { get; private set; } =
   [
-    new TrayDie(
-      index: 1,
-      value: DieValue.One,
-      identifier: "Rolled")
+    TrayDie.Rolled(index: 1, value: DieValue.One)
   ];
   
-  public List<TrayDie> KeptDice => DiceInPlay.Where(d => d.Identifier == "SetAside").ToList();
+  public List<TrayDie> KeptDice => DiceInPlay.Where(d => d.IsSelected).ToList();
 
   // Derived from DiceInPlay so the UI and the server payload can never disagree.
   // Don't add a parallel field — it leaks across turns and duplicates on re-drop.
   internal IReadOnlyList<int> DiceSetAside =>
-    DiceInPlay.Where(d => d.Identifier == "SetAside").Select(d => (int)d.Value).ToList();
+    DiceInPlay.Where(d => d.IsSelected).Select(d => (int)d.Value).ToList();
 
   // Live preview of what the current selection would score (matched trick + points), via the
   // shared ScoreCalculator. Lets the UI show the value before the player commits with Keep.

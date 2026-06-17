@@ -409,6 +409,9 @@ Two sub-layers in one project, separated by folder:
 
 ## Important Implementation Notes
 
+### Observability / Telemetry (#33)
+Serilog logs to the console everywhere; the **Application Insights** sink is added programmatically in `Program.cs` only when `APPLICATIONINSIGHTS_CONNECTION_STRING` is set (injected in Azure from the `applicationInsights` component in `infra/modules/workload.bicep`). Local dev/tests have no connection string and fall back to console — **no crash**. Every committed domain event is logged as a structured custom event by `GameTelemetryHandler` (`src/Farkle/Application/`, registered as its own durable subscription in `Farkle.Infrastructure`); the pure `GameTelemetry.Log` shape is unit-tested. Auth endpoints log login/registration success/failure. **Always use structured properties** (`{gameId}`, `{playerId}`, `{@GameEvent}`) — never string interpolation — so they stay queryable in Azure Monitor, and **never log passwords or tokens**.
+
 ### Event Type Registration
 `SetUpFarkleModule()` calls `TypeMap.RegisterKnownEventTypes()` to register the versioned event types with Eventuous for serialization. This runs at startup outside the `NSwag` environment.
 

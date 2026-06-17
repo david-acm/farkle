@@ -14,12 +14,12 @@ public class HandleShould : HandlerTestContext
   [Fact]
   public async Task FlipIdentifierToTargetZone()
   {
-    var die = new TrayDie(0, DieValue.Five, "Rolled");
+    var die = TrayDie.Rolled(0, DieValue.Five);
     State.DiceInPlay.Add(die);
 
-    await Sender.Send(new GameState.SetDiceAside.Action(die, "SetAside"));
+    await Sender.Send(new GameState.SetDiceAside.Action(die, DiceZone.SetAside));
 
-    State.DiceInPlay[0].Identifier.Should().Be("SetAside");
+    State.DiceInPlay[0].IsSelected.Should().BeTrue();
   }
 
   [Fact]
@@ -27,35 +27,35 @@ public class HandleShould : HandlerTestContext
   {
     // Dice spin only when rolled. A die starts animatable (just rolled); moving it
     // between zones must clear that flag so the Die renders its face without spinning.
-    var die = new TrayDie(0, DieValue.Five, "Rolled") { Animate = true };
+    var die = TrayDie.Rolled(0, DieValue.Five);
     State.DiceInPlay.Add(die);
 
-    await Sender.Send(new GameState.SetDiceAside.Action(die, "SetAside"));
+    await Sender.Send(new GameState.SetDiceAside.Action(die, DiceZone.SetAside));
 
-    State.DiceInPlay[0].Animate.Should().BeFalse("a move is not a roll");
+    State.DiceInPlay[0].IsAnimated.Should().BeFalse("a move is not a roll");
   }
 
   [Fact]
   public async Task ResolveByIndex_NotByValue_WhenDuplicateFaces()
   {
-    State.DiceInPlay.Add(new TrayDie(0, DieValue.Five, "Rolled"));
-    State.DiceInPlay.Add(new TrayDie(1, DieValue.Five, "Rolled"));
+    State.DiceInPlay.Add(TrayDie.Rolled(0, DieValue.Five));
+    State.DiceInPlay.Add(TrayDie.Rolled(1, DieValue.Five));
 
     await Sender.Send(new GameState.SetDiceAside.Action(
-      new TrayDie(1, DieValue.Five, "SetAside"), "SetAside"));
+      TrayDie.SetAside(1, DieValue.Five), DiceZone.SetAside));
 
-    State.DiceInPlay[0].Identifier.Should().Be("Rolled",  "first Five must remain in play");
-    State.DiceInPlay[1].Identifier.Should().Be("SetAside", "only the targeted Five moves");
+    State.DiceInPlay[0].IsSelected.Should().BeFalse( "first Five must remain in play");
+    State.DiceInPlay[1].IsSelected.Should().BeTrue("only the targeted Five moves");
   }
 
   [Fact]
   public async Task SyncSetAsideToTheServer_WhenMovedIntoTheSetAsideZone()
   {
     // #159 — promoting the selection to a domain command so it persists and broadcasts.
-    var die = new TrayDie(0, DieValue.Five, "Rolled");
+    var die = TrayDie.Rolled(0, DieValue.Five);
     State.DiceInPlay.Add(die);
 
-    await Sender.Send(new GameState.SetDiceAside.Action(die, "SetAside"));
+    await Sender.Send(new GameState.SetDiceAside.Action(die, DiceZone.SetAside));
 
     Mock.Get(GameService).Verify(
       s => s.SetDiceAsideAsync(It.IsAny<int>(), It.IsAny<int>(), 5), Times.Once);
@@ -66,10 +66,10 @@ public class HandleShould : HandlerTestContext
   [Fact]
   public async Task SyncPutBackToTheServer_WhenMovedBackIntoPlay()
   {
-    var die = new TrayDie(0, DieValue.Five, "SetAside");
+    var die = TrayDie.SetAside(0, DieValue.Five);
     State.DiceInPlay.Add(die);
 
-    await Sender.Send(new GameState.SetDiceAside.Action(die, "Rolled"));
+    await Sender.Send(new GameState.SetDiceAside.Action(die, DiceZone.Rolled));
 
     Mock.Get(GameService).Verify(
       s => s.ReturnDiceAsync(It.IsAny<int>(), It.IsAny<int>(), 5), Times.Once);

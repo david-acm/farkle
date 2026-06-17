@@ -10,6 +10,7 @@ param namePrefix string
 @description('Microsoft Cloud Adoption Framework resource-type abbreviations used to build resource names. Defaults follow https://learn.microsoft.com/azure/cloud-adoption-framework/ready/azure-best-practices/resource-abbreviations — override in the .bicepparam to use your own.')
 param resourceAbbreviations object = {
   logAnalytics: 'log'
+  applicationInsights: 'appi'
   postgreSql: 'psql'
   storageAccount: 'st'
   containerAppsEnvironment: 'cae'
@@ -83,6 +84,18 @@ module logAnalytics 'br/public:avm/res/operational-insights/workspace:0.15.1' = 
   params: {
     name: '${resourceAbbreviations.logAnalytics}-${namePrefix}-${environmentName}'
     location: location
+  }
+}
+
+// #33 — workspace-based Application Insights for distributed tracing + the Serilog sink.
+// Co-located with its Log Analytics workspace (both disposable), so the connection string is a
+// deployment output injected directly into the WebApp env rather than a static Key Vault secret.
+module applicationInsights 'br/public:avm/res/insights/component:0.6.0' = {
+  name: 'application-insights'
+  params: {
+    name: '${resourceAbbreviations.applicationInsights}-${namePrefix}-${environmentName}'
+    location: location
+    workspaceResourceId: logAnalytics.outputs.resourceId
   }
 }
 
@@ -291,6 +304,8 @@ module webApp 'br/public:avm/res/app/container-app:0.22.1' = {
           { name: 'ConnectionStrings__Esdb', secretRef: 'connectionstrings-esdb' }
           // Tells DefaultAzureCredential which user-assigned identity to use for the Postgres token.
           { name: 'AZURE_CLIENT_ID', value: identityClientId }
+          // #33 — Serilog reads this to enable the Application Insights sink (absent locally → console only).
+          { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', value: applicationInsights.outputs.connectionString }
         ]
         // TCP probes (port-open) rather than HTTP /health/*: the health endpoints sit
         // behind auth and return 403, which would fail HTTP probes even when the app is

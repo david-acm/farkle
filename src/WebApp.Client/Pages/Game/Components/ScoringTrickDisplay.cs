@@ -8,8 +8,10 @@ public static class ScoringTrickDisplay
 {
   public static string ToDisplayName(this ScoringTrick trick) => trick switch
   {
+    ScoringTrick.SixOfAKind   => "Six of a kind",
     ScoringTrick.TwoTriplets  => "Two triplets",
     ScoringTrick.ThreePairs   => "Three pairs",
+    ScoringTrick.FiveOfAKind  => "Five of a kind",
     ScoringTrick.FourOfAKind  => "Four of a kind",
     ScoringTrick.ThreeOfAKind => "Three of a kind",
     ScoringTrick.OnesAndFives => "Ones & fives",
