@@ -19,6 +19,17 @@ public class ScoreCalculatorShould
   [InlineData(new[] { 3, 3, 3, 3, 5, 5 }, ScoringTrick.ThreePairs, 1500)]   // quad + pair = three pairs
   [InlineData(new[] { 2, 2, 2, 5, 5, 5 }, ScoringTrick.TwoTriplets, 2500)]  // two three-of-a-kinds
   [InlineData(new[] { 1, 1, 5, 5, 2, 2 }, ScoringTrick.ThreePairs, 1500)]   // beats ones+fives (highest 6-dice)
+  // #35 — six of a kind = 3000 for every value (must beat the three-pairs reading of an
+  // even count); five of a kind = 2000 (must beat ones/fives for 1s and 5s).
+  [InlineData(new[] { 1, 1, 1, 1, 1, 1 }, ScoringTrick.SixOfAKind, 3000)]
+  [InlineData(new[] { 2, 2, 2, 2, 2, 2 }, ScoringTrick.SixOfAKind, 3000)]
+  [InlineData(new[] { 3, 3, 3, 3, 3, 3 }, ScoringTrick.SixOfAKind, 3000)]
+  [InlineData(new[] { 4, 4, 4, 4, 4, 4 }, ScoringTrick.SixOfAKind, 3000)]
+  [InlineData(new[] { 5, 5, 5, 5, 5, 5 }, ScoringTrick.SixOfAKind, 3000)]
+  [InlineData(new[] { 6, 6, 6, 6, 6, 6 }, ScoringTrick.SixOfAKind, 3000)]
+  [InlineData(new[] { 1, 1, 1, 1, 1 },    ScoringTrick.FiveOfAKind, 2000)] // beats five ones (500)
+  [InlineData(new[] { 5, 5, 5, 5, 5 },    ScoringTrick.FiveOfAKind, 2000)] // beats five fives (250)
+  [InlineData(new[] { 3, 3, 3, 3, 3 },    ScoringTrick.FiveOfAKind, 2000)]
   [InlineData(new[] { 2, 3 },          ScoringTrick.None, 0)]
   public void ScoreEachTrick(int[] dice, ScoringTrick expectedTrick, int expectedPoints)
   {

@@ -5,8 +5,10 @@ namespace Farkle.SharedKernel.Scoring;
 public enum ScoringTrick
 {
     None,
+    SixOfAKind,    // six dice of the same value             → 3000 (#35)
     TwoTriplets,   // six dice = two three-of-a-kinds (e.g. 2,2,2,5,5,5) → 2500
     ThreePairs,    // six dice that form three pairs (all value-counts even) → 1500
+    FiveOfAKind,   // five dice of the same value            → 2000 (#35)
     FourOfAKind,   // four dice of the same value          → 1000
     ThreeOfAKind,  // three of a kind → face×100, but three 1s → 1000 (#177)
     OnesAndFives,  // any mix of 1s and 5s → 100 per 1 + 50 per 5
