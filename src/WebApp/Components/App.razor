@@ -1,4 +1,11 @@
-﻿<!DOCTYPE html>
+﻿@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
+@{
+    // #33 — browser/UI telemetry. The App Insights connection string is server config (the
+    // APPLICATIONINSIGHTS_CONNECTION_STRING env var). It is inherently client-visible for
+    // browser telemetry, so rendering it into the page is expected. Absent locally → no script.
+    var appInsightsConnectionString = Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"];
+}
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -20,6 +27,25 @@
     <Routes />
     <script src="_framework/blazor.web.js"></script>
 	<script src="_content/MudBlazor/MudBlazor.min.js"></script>
+    @if (!string.IsNullOrWhiteSpace(appInsightsConnectionString))
+    {
+        // Application Insights JavaScript SDK: captures page views (auto route tracking for the
+        // SPA), browser AJAX (fetch/XHR) as dependencies, and unhandled JS exceptions.
+        <script src="https://js.monitor.azure.com/scripts/b/ai.3.gbl.min.js" crossorigin="anonymous"></script>
+        <script>
+            (function () {
+                var ai = new Microsoft.ApplicationInsights.ApplicationInsights({
+                    config: {
+                        connectionString: "@appInsightsConnectionString",
+                        enableAutoRouteTracking: true,
+                        autoTrackPageVisitTime: true
+                    }
+                });
+                ai.loadAppInsights();
+                ai.trackPageView();
+            })();
+        </script>
+    }
     <script>
         // Issue #163 — share the join link via the Web Share API, with a
         // clipboard fallback. share() returns false only when the API is

@@ -11,8 +11,8 @@ using WebApp.Client.Pages;
 using WebApp.Components;
 using MudBlazor.Services;
 using Serilog;
-using Serilog.Sinks.ApplicationInsights.TelemetryConverters;
 using WebApp.Client;
+using WebApp.Telemetry;
 using Farkle.Infrastructure;
 using Farkle.Infrastructure.Identity;
 using Farkle.Infrastructure.Persistence;
@@ -40,10 +40,20 @@ builder.Host.UseSerilog((context, config) =>
 
   var appInsightsConnectionString = context.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"];
   if (!string.IsNullOrWhiteSpace(appInsightsConnectionString))
-    config.WriteTo.ApplicationInsights(appInsightsConnectionString, new TraceTelemetryConverter());
+    // Domain events → customEvents, everything else → traces (see DomainEventTelemetryConverter).
+    config.WriteTo.ApplicationInsights(appInsightsConnectionString, new DomainEventTelemetryConverter());
 });
 
 var services = builder.Services;
+
+// Application Insights SDK (#33) — collects requests, dependencies, exceptions and performance
+// counters (the Serilog sink only forwards logs). Added only when a connection string is present
+// so local dev/tests don't try to phone home. Logs still flow through Serilog (UseSerilog doesn't
+// write to other providers), so the SDK's own logger isn't wired — no duplicate traces.
+var appInsightsConn = builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"];
+if (!string.IsNullOrWhiteSpace(appInsightsConn))
+  services.AddApplicationInsightsTelemetry(o => o.ConnectionString = appInsightsConn);
+
 services.AddEndpointsApiExplorer();
 services.AddSwaggerGen();
 
