@@ -40,6 +40,17 @@ public static class ReadModelServiceExtensions
         .UseCheckpointStore<PostgresCheckpointStore>()
         .AddEventHandler<GameViewProjector>());
 
+    // #33 — a separate, durable subscription that emits structured telemetry per committed event
+    // (GameTelemetryHandler). Kept isolated from the projector so a logging hiccup can never
+    // affect projection, and durable (its own checkpoint id) so it doesn't re-log the whole
+    // stream on restart.
+    services.AddSubscription<AllStreamSubscription, AllStreamSubscriptionOptions>(
+      "GameTelemetry",
+      b => b
+        .Configure(o => o.EventFilter = StreamFilter.Prefix("Game-"))
+        .UseCheckpointStore<PostgresCheckpointStore>()
+        .AddEventHandler<GameTelemetryHandler>());
+
     return services;
   }
 }

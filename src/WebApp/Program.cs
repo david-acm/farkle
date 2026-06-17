@@ -11,6 +11,7 @@ using WebApp.Client.Pages;
 using WebApp.Components;
 using MudBlazor.Services;
 using Serilog;
+using Serilog.Sinks.ApplicationInsights.TelemetryConverters;
 using WebApp.Client;
 using Farkle.Infrastructure;
 using Farkle.Infrastructure.Identity;
@@ -27,8 +28,20 @@ logger.Information("Starting Farkle WebApp {Version}", WebApp.AppVersion.Current
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Host.UseSerilog((_, config) =>
-  config.ReadFrom.Configuration(builder.Configuration));
+// Serilog reads its sinks/levels from configuration (Console everywhere). The Application
+// Insights sink (#33) is added programmatically only when a connection string is present
+// (APPLICATIONINSIGHTS_CONNECTION_STRING — set in Azure from Key Vault), so local dev and
+// tests fall back gracefully to console with no crash when it's unset.
+builder.Host.UseSerilog((context, config) =>
+{
+  config
+    .ReadFrom.Configuration(context.Configuration)
+    .Enrich.FromLogContext();
+
+  var appInsightsConnectionString = context.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"];
+  if (!string.IsNullOrWhiteSpace(appInsightsConnectionString))
+    config.WriteTo.ApplicationInsights(appInsightsConnectionString, new TraceTelemetryConverter());
+});
 
 var services = builder.Services;
 services.AddEndpointsApiExplorer();
