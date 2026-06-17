@@ -410,7 +410,12 @@ Two sub-layers in one project, separated by folder:
 ## Important Implementation Notes
 
 ### Observability / Telemetry (#33)
-Serilog logs to the console everywhere; the **Application Insights** sink is added programmatically in `Program.cs` only when `APPLICATIONINSIGHTS_CONNECTION_STRING` is set (injected in Azure from the `applicationInsights` component in `infra/modules/workload.bicep`). Local dev/tests have no connection string and fall back to console — **no crash**. Every committed domain event is logged as a structured custom event by `GameTelemetryHandler` (`src/Farkle/Application/`, registered as its own durable subscription in `Farkle.Infrastructure`); the pure `GameTelemetry.Log` shape is unit-tested. Auth endpoints log login/registration success/failure. **Always use structured properties** (`{gameId}`, `{playerId}`, `{@GameEvent}`) — never string interpolation — so they stay queryable in Azure Monitor, and **never log passwords or tokens**.
+Three telemetry channels, all keyed off `APPLICATIONINSIGHTS_CONNECTION_STRING` (injected in Azure from the `applicationInsights` component in `infra/modules/workload.bicep`); all absent locally → console only, **no crash**:
+1. **Logs** — Serilog console everywhere; the **Application Insights** sink is added programmatically in `Program.cs` when the connection string is set. `DomainEventTelemetryConverter` (`src/WebApp/Telemetry/`) routes domain-event logs (those with an `EventType` property, from `GameTelemetryHandler`) to AI **`customEvents`** and everything else to **`traces`** — so the app/core stays AI-agnostic (plain `ILogger`).
+2. **Requests/dependencies** — the AI ASP.NET SDK (`AddApplicationInsightsTelemetry`, also gated on the connection string) auto-collects HTTP requests, dependencies and exceptions. (`UseSerilog` doesn't write to other providers, so logs aren't double-sent.)
+3. **Browser/UI** — the AI JavaScript SDK is rendered into `src/WebApp/Components/App.razor` (page views with SPA route tracking, AJAX, JS exceptions) when the connection string is present.
+
+Every committed domain event is logged by `GameTelemetryHandler` (`src/Farkle/Application/`, its own durable subscription in `Farkle.Infrastructure`); the pure `GameTelemetry.Log` shape is unit-tested. Auth endpoints log login/registration success/failure. **Always use structured properties** (`{gameId}`, `{playerId}`, `{@GameEvent}`) — never string interpolation — so they stay queryable in Azure Monitor, and **never log passwords or tokens**.
 
 ### Event Type Registration
 `SetUpFarkleModule()` calls `TypeMap.RegisterKnownEventTypes()` to register the versioned event types with Eventuous for serialization. This runs at startup outside the `NSwag` environment.
