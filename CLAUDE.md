@@ -17,7 +17,7 @@ The codebase prioritizes architectural patterns and test-driven development:
 
 | Layer | Stack |
 |-------|-------|
-| Backend API | .NET 10, FastEndpoints 5.x, Eventuous 0.15.0-beta |
+| Backend API | .NET 10, FastEndpoints 8.x, Eventuous 0.15.1 |
 | Event Store | EventStore DB (ESDB) via `EventStore.Client.Grpc` |
 | Identity DB | PostgreSQL + EF Core (ASP.NET Identity) |
 | Real-time | ASP.NET Core SignalR (`/hubs/game`) |
@@ -384,7 +384,7 @@ Tests assert on `game.State` and `game.Changes` (emitted events). Domain tests l
 Playwright (`Microsoft.Playwright` 1.50.0) drives two browser contexts (Alice + Bob) through the happy path until a win. `PlaywrightFixture.NewContextWithVideoAsync` records a `.webm` per session; `InMemoryLoggerProvider` captures structured logs into the `e2e-logs` artifact. Waits for WASM hydration (≈30s) before interacting.
 
 #### Storyboard screenshots (`Farkle.E2eTests`, `Category=Storyboard`)
-Multi-viewport screenshots of the opening flow live **in the E2E project** so they reuse the player-advancing helpers (`GameFlow`), but are tagged `[Trait("Category","Storyboard")]` and use a separate, lazy collection fixture (`StoryboardFixture` → in-memory `IAggregateStore`). xUnit instantiates a fixture only when a selected test needs it, so `--filter "Category=Storyboard"` runs **without** booting Testcontainers. Frames land in `test-results/storyboard/{step}-{viewport}.png` (steps `01-landing … 06-pass`; viewports mobile/medium/large).
+Multi-viewport screenshots of the opening flow live **in the E2E project** so they reuse the player-advancing helpers (`GameFlow`), but are tagged `[Trait("Category","Storyboard")]` and use a separate, lazy collection fixture (`StoryboardFixture` → in-memory `IEventStore`; deterministic dice come from a `ScriptedRandom` registered against the `IRandom` DI seam, #93). xUnit instantiates a fixture only when a selected test needs it, so `--filter "Category=Storyboard"` runs **without** booting Testcontainers. Frames land in `test-results/storyboard/{step}-{viewport}.png` (steps `01-landing … 06-pass`; viewports mobile/medium/large).
 
 **This is the loop for iterating on UI changes locally:**
 ```bash
@@ -438,10 +438,10 @@ New infrastructure (stores, clients) should be added in `FarkleModuleServiceExte
 ### NSwag Environment
 NSwag runs the host with `noBuild=true` to extract the OpenAPI spec. In that environment the static-asset manifest and the Farkle module setup are skipped (`!app.Environment.IsEnvironment("NSwag")` guards). Don't break those guards.
 
-### Pinned Versions (upgrades tracked separately)
-- **Eventuous** `0.15.0-beta` (stable 0.16.x changes the command-handler API)
-- **FastEndpoints** `5.x` (8.x requires API updates)
-- **Kiota** `1.31.1` (pinned in `.config/dotnet-tools.json`)
+### Pinned Versions
+- **Eventuous** `0.15.1` (latest 0.15; the next bump to **0.16.x** is a further command-service API change, tracked separately). Note 0.15.1's shape: `CommandService` takes an **`IEventStore`** (the `IAggregateStore` abstraction is retired); load/store go through the `LoadAggregate`/`StoreAggregate` extensions; results are a single `Result<TState>` record (nested `Ok`/`Error`), not `OkResult`/`ErrorResult` subclasses.
+- **FastEndpoints** `8.1.0` (core + `.Security` + `.Swagger`). Response-sending is on the `Send` property — `Send.OkAsync` / `Send.ResultAsync` / `Send.NoContentAsync` (the old endpoint-base `Send*Async` methods are gone). The next major (9.x) is unverified; the project notes FE is heading toward "bugfix-only" mode upstream.
+- **Kiota** `1.31.1` (pinned in `.config/dotnet-tools.json`) — still the one deliberately-pinned tool; needs the .NET 8 SDK to run.
 
 ---
 
