@@ -8,13 +8,13 @@
 <div class="dice-tray @(GameState.IsMyTurn ? null : "dice-tray--readonly")">
   @foreach (var die in GameState.DiceInPlay)
   {
-    var selected = die.Identifier == "SetAside";
+    var selected = die.IsSelected;
     <div class="dice-tray-die @(selected ? "selected" : null)"
          @key="die.Index"
          data-testid="tray-die"
          @onclick="() => ToggleAsync(die)">
       <Die DieValue="die.Value"
-           Animate="die.Animate"
+           Animate="die.IsAnimated"
            OnAnimated="ConsumeRollAnimationAsync"
            Selected="selected"
            Size="32">

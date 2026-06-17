@@ -25,8 +25,8 @@
     var store = SetUp();
     var state = store.GetState<GameState>();
     state.DiceInPlay.Clear();
-    state.DiceInPlay.Add(new TrayDie(0, DieValue.One, "Rolled"));
-    state.DiceInPlay.Add(new TrayDie(1, DieValue.Five, "SetAside"));
+    state.DiceInPlay.Add(TrayDie.Rolled(0, DieValue.One));
+    state.DiceInPlay.Add(TrayDie.SetAside(1, DieValue.Five));
 
     var cut = Render(@<DiceTray></DiceTray>);
 
@@ -41,13 +41,13 @@
     var store = SetUp();
     var state = store.GetState<GameState>();
     state.DiceInPlay.Clear();
-    state.DiceInPlay.Add(new TrayDie(0, DieValue.Five, "Rolled"));
+    state.DiceInPlay.Add(TrayDie.Rolled(0, DieValue.Five));
 
     var cut = Render(@<DiceTray></DiceTray>);
     cut.Find(".dice-tray-die").Click();
 
-    store.GetState<GameState>().DiceInPlay[0].Identifier
-      .Should().Be("SetAside", "tapping a rolled die selects it");
+    store.GetState<GameState>().DiceInPlay[0].IsSelected
+      .Should().BeTrue("tapping a rolled die selects it");
     cut.FindAll(".dice-tray-die.selected").Should().HaveCount(1);
   }
 
@@ -57,13 +57,13 @@
     var store = SetUp();
     var state = store.GetState<GameState>();
     state.DiceInPlay.Clear();
-    state.DiceInPlay.Add(new TrayDie(0, DieValue.Five, "SetAside"));
+    state.DiceInPlay.Add(TrayDie.SetAside(0, DieValue.Five));
 
     var cut = Render(@<DiceTray></DiceTray>);
     cut.Find(".dice-tray-die").Click();
 
-    store.GetState<GameState>().DiceInPlay[0].Identifier
-      .Should().Be("Rolled", "tapping a selected die deselects it");
+    store.GetState<GameState>().DiceInPlay[0].IsSelected
+      .Should().BeFalse("tapping a selected die deselects it");
   }
 
   [Fact]
@@ -73,12 +73,12 @@
     var state = store.GetState<GameState>();
     state.CurrentPlayerId = 1; // PlayerId is 0 → not my turn (spectator)
     state.DiceInPlay.Clear();
-    state.DiceInPlay.Add(new TrayDie(0, DieValue.Five, "Rolled"));
+    state.DiceInPlay.Add(TrayDie.Rolled(0, DieValue.Five));
 
     var cut = Render(@<DiceTray></DiceTray>);
     cut.Find(".dice-tray-die").Click();
 
-    store.GetState<GameState>().DiceInPlay[0].Identifier
-      .Should().Be("Rolled", "spectators can't change the selection");
+    store.GetState<GameState>().DiceInPlay[0].IsSelected
+      .Should().BeFalse("spectators can't change the selection");
   }
 }

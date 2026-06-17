@@ -23,7 +23,7 @@ public partial class GameState
       public override Task Handle(Action action, CancellationToken aCancellationToken)
       {
         foreach (TrayDie die in State.DiceInPlay)
-          die.Animate = false;
+          die.DisableAnimation();
         return Task.CompletedTask;
       }
     }
