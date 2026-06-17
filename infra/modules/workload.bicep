@@ -1,3 +1,5 @@
+import { resourceAbbreviationsType } from '../main.bicep'
+
 @description('Azure region for all resources.')
 param location string
 
@@ -8,7 +10,7 @@ param environmentName string
 param namePrefix string
 
 @description('Microsoft Cloud Adoption Framework resource-type abbreviations used to build resource names. Defaults follow https://learn.microsoft.com/azure/cloud-adoption-framework/ready/azure-best-practices/resource-abbreviations — override in the .bicepparam to use your own.')
-param resourceAbbreviations object = {
+param resourceAbbreviations resourceAbbreviationsType = {
   logAnalytics: 'log'
   applicationInsights: 'appi'
   postgreSql: 'psql'

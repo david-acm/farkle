@@ -13,7 +13,18 @@ param environmentName string
 param namePrefix string = 'farkle'
 
 @description('Microsoft Cloud Adoption Framework resource-type abbreviations used to build resource names. Defaults follow https://learn.microsoft.com/azure/cloud-adoption-framework/ready/azure-best-practices/resource-abbreviations — override in the .bicepparam to use your own.')
-param resourceAbbreviations object = {
+@export()
+type resourceAbbreviationsType = {
+  logAnalytics: string
+  applicationInsights: string
+  postgreSql: string
+  storageAccount: string
+  containerAppsEnvironment: string
+  containerApp: string
+}
+
+@description('Microsoft Cloud Adoption Framework resource-type abbreviations used to build resource names. Defaults follow https://learn.microsoft.com/azure/cloud-adoption-framework/ready/azure-best-practices/resource-abbreviations — override in the .bicepparam to use your own.')
+param resourceAbbreviations resourceAbbreviationsType = {
   logAnalytics: 'log'
   applicationInsights: 'appi'
   postgreSql: 'psql'
