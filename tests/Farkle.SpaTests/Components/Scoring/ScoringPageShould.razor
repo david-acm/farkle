@@ -24,8 +24,10 @@
     table.Should().Contain("Two triplets").And.Contain("2500");
     table.Should().Contain("Four of a kind").And.Contain("1000");
     table.Should().Contain("Run (1-6)");
+    table.Should().Contain("Five of a kind").And.Contain("2000"); // #35
+    table.Should().Contain("Six of a kind").And.Contain("3000");  // #35
 
     // One row per example hand.
-    cut.FindAll("[data-testid='scoring-row']").Should().HaveCount(8);
+    cut.FindAll("[data-testid='scoring-row']").Should().HaveCount(10);
   }
 }
