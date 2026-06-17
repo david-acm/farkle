@@ -1,0 +1,19 @@
+@* Presentational tap-to-select dice tray (#196). Renders the dice grid and raises callbacks;
+   it owns no state — the consumer binds the dice and decides what a tap / finished-animation
+   means. Selection visual (scale + face/pips) is fully library-owned. *@
+<div class="dice-tray @(ReadOnly ? "dice-tray--readonly" : null)">
+  @foreach (var die in Dice)
+  {
+    <div class="dice-tray-die @(die.IsSelected ? "selected" : null)"
+         @key="die.Index"
+         data-testid="tray-die"
+         @onclick="() => OnTapAsync(die)">
+      <Die DieValue="die.Value"
+           Animate="die.IsAnimated"
+           OnAnimated="OnDieAnimated"
+           Selected="die.IsSelected"
+           Size="32">
+      </Die>
+    </div>
+  }
+</div>

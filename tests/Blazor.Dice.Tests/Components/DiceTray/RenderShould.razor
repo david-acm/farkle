@@ -1,0 +1,60 @@
+@inherits BunitContext
+@using Moq
+
+@code {
+  // #196 — the presentational DiceTray: it renders the dice grid and raises callbacks but owns
+  // no state. Tapping a die raises OnToggle (unless ReadOnly); the .selected class follows
+  // each die's IsSelected. (State binding lives in the app's GameDiceTray wrapper.)
+
+  private void SetUp()
+  {
+    JSInterop.Mode = JSRuntimeMode.Loose;
+    Services.AddScoped<IRotationCalculator>(_ => Mock.Of<IRotationCalculator>());
+  }
+
+  private static IReadOnlyList<TrayDie> TwoDice() =>
+    [TrayDie.Rolled(0, DieValue.One), TrayDie.SetAside(1, DieValue.Five)];
+
+  [Fact]
+  public void RenderOneTappableDiePerDie()
+  {
+    SetUp();
+
+    var cut = Render<DiceTray>(p => p.Add(t => t.Dice, TwoDice()));
+
+    cut.FindAll(".dice-tray-die").Should().HaveCount(2);
+    cut.FindAll(".dice-tray-die.selected").Should().HaveCount(1, "the set-aside die is selected");
+  }
+
+  [Fact]
+  public void RaiseOnToggle_WithTheTappedDie()
+  {
+    SetUp();
+    TrayDie? toggled = null;
+    var dice = TwoDice();
+
+    var cut = Render<DiceTray>(p => p
+      .Add(t => t.Dice, dice)
+      .Add(t => t.OnToggle, EventCallback.Factory.Create<TrayDie>(this, d => toggled = d)));
+
+    cut.FindAll(".dice-tray-die")[0].Click();
+
+    toggled.Should().BeSameAs(dice[0], "tapping a die raises OnToggle with that die");
+  }
+
+  [Fact]
+  public void NotRaiseOnToggle_WhenReadOnly()
+  {
+    SetUp();
+    var raised = false;
+
+    var cut = Render<DiceTray>(p => p
+      .Add(t => t.Dice, TwoDice())
+      .Add(t => t.ReadOnly, true)
+      .Add(t => t.OnToggle, EventCallback.Factory.Create<TrayDie>(this, _ => raised = true)));
+
+    cut.FindAll(".dice-tray-die")[0].Click();
+
+    raised.Should().BeFalse("a read-only tray ignores taps");
+  }
+}
