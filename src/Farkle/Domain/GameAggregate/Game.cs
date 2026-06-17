@@ -128,7 +128,9 @@ internal class Game : Aggregate<GameState>
 
   private void Apply(object @event)
   {
-    // TODO: Change Exception for Ardalis.Result
+    // Pre-conditions are validated here: a failure applies the validator's error event
+    // (IErrorEvent) rather than throwing, so the rejection is persisted and surfaced as an
+    // HTTP error by the application layer. (Broader Ardalis.Result adoption is tracked in #31.)
     var result = GameValidator.ValidatePreconditions(this, @event);
 
     if (result.IsValid)

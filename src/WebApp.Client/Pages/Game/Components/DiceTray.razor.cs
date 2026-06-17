@@ -4,12 +4,10 @@ using WebApp.Client.Features;
 
 namespace WebApp.Client.Pages.Game.Components;
 
-public partial class DiceTray : BlazorStateComponent
+public partial class DiceTray : GameStateComponent
 {
   [Inject]
   public ILogger<DiceTray> Logger { get; set; } = null!;
-
-  private GameState GameState => GetState<GameState>();
 
   // Tap toggles the die between selected (SetAside) and unselected (Rolled). This drives
   // the same SetDiceAside action selection uses (#159): it flips the identifier locally

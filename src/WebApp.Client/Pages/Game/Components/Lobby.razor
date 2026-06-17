@@ -1,4 +1,4 @@
-@inherits BlazorState.BlazorStateComponent
+@inherits WebApp.Client.Features.GameStateComponent
 @using WebApp.Client.Features
 @using WebApp.Client.Services
 @inject IJSRuntime JS
@@ -63,8 +63,6 @@
 </MudCard>
 
 @code {
-  private GameState GameState => GetState<GameState>();
-
   private string JoinUrl => JoinLink.For(Nav.BaseUri, GameState.GameId.Value);
 
   private async Task StartGameAsync() =>
