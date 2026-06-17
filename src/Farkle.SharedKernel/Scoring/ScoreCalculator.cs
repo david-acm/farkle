@@ -43,9 +43,17 @@ public static class ScoreCalculator
 
     private static (ScoringTrick Trick, int Points) Score(IReadOnlyList<int> dice)
     {
+        // Six of a kind is the top trick (#35). It must be checked before three-pairs, which
+        // would otherwise claim it (a six-of-a-kind has an even count) for only 1500.
+        if (IsAllSame(dice, 6)) return (ScoringTrick.SixOfAKind, 3000);
+
         // Six-dice combos take priority — a qualifying hand always takes the higher combo.
         if (IsTwoTriplets(dice)) return (ScoringTrick.TwoTriplets, 2500);
         if (IsThreePairs(dice))  return (ScoringTrick.ThreePairs, 1500);
+
+        // Five of a kind (#35) before four/three and before ones-and-fives (which would
+        // otherwise score five 1s/5s as a mere 500/250).
+        if (IsAllSame(dice, 5)) return (ScoringTrick.FiveOfAKind, 2000);
 
         if (IsAllSame(dice, 4)) return (ScoringTrick.FourOfAKind, 1000);
 
