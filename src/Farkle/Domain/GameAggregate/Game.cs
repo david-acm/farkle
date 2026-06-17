@@ -128,7 +128,9 @@ internal class Game : Aggregate<GameState>
 
   private void Apply(object @event)
   {
-    // TODO: Change Exception for Ardalis.Result
+    // Validation-as-events: a command that breaks a precondition applies an IErrorEvent
+    // instead of throwing; the application layer surfaces those as Ardalis.Result errors
+    // (and the endpoints as HTTP), so domain rule violations never raise exceptions.
     var result = GameValidator.ValidatePreconditions(this, @event);
 
     if (result.IsValid)
