@@ -71,10 +71,12 @@ public partial class GameState
                         }
                     }
 
-                    dice.Add(new TrayDie(index, DieValue.FromValue(v), isSet ? "SetAside" : "Rolled")
-                    {
-                        Animate = action.Animate && !isSet
-                    });
+                    var die = isSet
+                        ? TrayDie.SetAside(index, DieValue.FromValue(v))
+                        : TrayDie.Rolled(index, DieValue.FromValue(v));
+                    // Only a fresh roll animates; selected dice never do (#167).
+                    if (isSet || !action.Animate) die.DisableAnimation();
+                    dice.Add(die);
                 }
 
                 State.DiceInPlay = dice;

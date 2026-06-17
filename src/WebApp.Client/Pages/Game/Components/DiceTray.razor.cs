@@ -20,7 +20,7 @@ public partial class DiceTray : BlazorStateComponent
   {
     if (!GameState.IsMyTurn) return;
 
-    var target = die.Identifier == "SetAside" ? "Rolled" : "SetAside";
+    var target = die.IsSelected ? DiceZone.Rolled : DiceZone.SetAside;
     await Mediator.Send(new GameState.SetDiceAside.Action(die, target));
 
     Logger.LogDebug("Tapped die {Index} -> {Target}", die.Index, target);
@@ -31,7 +31,7 @@ public partial class DiceTray : BlazorStateComponent
   // "is there anything left to consume" to dispatch once instead of once per die.
   private async Task ConsumeRollAnimationAsync()
   {
-    if (!GameState.DiceInPlay.Any(d => d.Animate)) return;
+    if (!GameState.DiceInPlay.Any(d => d.IsAnimated)) return;
     await Mediator.Send(new GameState.ConsumeRollAnimation.Action());
   }
 }

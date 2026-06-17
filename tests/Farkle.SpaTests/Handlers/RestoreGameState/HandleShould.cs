@@ -50,7 +50,7 @@ public class HandleShould : HandlerTestContext
     State.TurnScore.Value.Should().Be(150);
     State.DiceInPlay.Should().HaveCount(3);
     State.DiceInPlay.Select(d => d.Value).Should().Equal(DieValue.One, DieValue.Two, DieValue.Three);
-    State.DiceInPlay.Should().OnlyContain(d => d.Identifier == "Rolled");
+    State.DiceInPlay.Should().OnlyContain(d => !d.IsSelected);
     State.DiceInPlay.Select(d => d.Index).Should().Equal(0, 1, 2);
   }
 

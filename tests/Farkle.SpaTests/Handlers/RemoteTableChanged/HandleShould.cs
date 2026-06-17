@@ -51,11 +51,11 @@ public class HandleShould : HandlerTestContext
 
     State.CurrentPlayerId.Should().Be(2);
     State.TurnScore.Value.Should().Be(150);
-    State.DiceInPlay.Where(d => d.Identifier == "Rolled").Select(d => (int)d.Value)
+    State.DiceInPlay.Where(d => !d.IsSelected).Select(d => (int)d.Value)
       .Should().Equal(2, 3, 4);
-    State.DiceInPlay.Where(d => d.Identifier == "SetAside").Select(d => (int)d.Value)
+    State.DiceInPlay.Where(d => d.IsSelected).Select(d => (int)d.Value)
       .Should().Equal(1, 5);
-    State.DiceInPlay.Should().OnlyContain(d => !d.Animate, "spectators see a settled snapshot");
+    State.DiceInPlay.Should().OnlyContain(d => !d.IsAnimated, "spectators see a settled snapshot");
     State.Scoreboard.Single(s => s.Name == "Bob").Score.Should().Be(150);
   }
 
@@ -74,9 +74,9 @@ public class HandleShould : HandlerTestContext
     State.DiceInPlay.Select(d => (int)d.Value).Should().Equal(1, 2, 3, 4, 5, 6);
     State.DiceInPlay.Select(d => d.Index).Should().Equal(0, 1, 2, 3, 4, 5);
     var three = State.DiceInPlay.Single(d => (int)d.Value == 3);
-    three.Identifier.Should().Be("SetAside");
+    three.IsSelected.Should().BeTrue();
     three.Index.Should().Be(2, "the selected die stays in its original position");
-    State.DiceInPlay.Should().OnlyContain(d => !d.Animate);
+    State.DiceInPlay.Should().OnlyContain(d => !d.IsAnimated);
   }
 
   [Fact]
@@ -102,7 +102,7 @@ public class HandleShould : HandlerTestContext
     State.DiceInPlay.Select(d => d.Index).Should().Equal(
       new[] { 0, 2, 4, 5 },
       "survivors keep their original positions so @key stays stable (no re-mount / re-spin, #204)");
-    State.DiceInPlay.Should().OnlyContain(d => !d.Animate, "a keep is not a roll");
+    State.DiceInPlay.Should().OnlyContain(d => !d.IsAnimated, "a keep is not a roll");
   }
 
   [Fact]
@@ -115,8 +115,8 @@ public class HandleShould : HandlerTestContext
     await Sender.Send(new GameState.RemoteTableChanged.Action(
       Snapshot(center: [1, 2, 3, 4, 5, 6], setAside: []), Animate: true));
 
-    State.DiceInPlay.Where(d => d.Identifier == "Rolled")
-      .Should().OnlyContain(d => d.Animate, "a roll spins for spectators");
+    State.DiceInPlay.Where(d => !d.IsSelected)
+      .Should().OnlyContain(d => d.IsAnimated, "a roll spins for spectators");
   }
 
   [Fact]
@@ -127,7 +127,7 @@ public class HandleShould : HandlerTestContext
     await Sender.Send(new GameState.RestoreGameState.Action(2, "Bob"));
     State.CurrentPlayerId = 2;
     State.DiceInPlay.Clear();
-    State.DiceInPlay.Add(new TrayDie(0, DieValue.Six, "SetAside"));
+    State.DiceInPlay.Add(TrayDie.SetAside(0, DieValue.Six));
 
     await Sender.Send(new GameState.RemoteTableChanged.Action(Snapshot(currentPlayerId: 2)));
 
