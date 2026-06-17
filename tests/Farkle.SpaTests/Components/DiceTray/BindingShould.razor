@@ -1,0 +1,54 @@
+@inherits BunitContext
+@using BlazorState
+@using Moq
+@using WebApp.Client.Features
+@using WebApp.Client.Pages.Game.Components
+@using WebApp.Client.Services
+
+@code {
+  // #196 — GameDiceTray binds GameState.DiceInPlay to the presentational Blazor.Dice tray and
+  // turns a tap into the SetDiceAside action. The tray's own rendering/interaction (markup,
+  // OnToggle, read-only) is covered in Blazor.Dice.Tests; here we only prove the binding.
+
+  private IStore SetUp()
+  {
+    JSInterop.Mode = JSRuntimeMode.Loose;
+    Services.AddScoped<IRotationCalculator>(_ => Mock.Of<IRotationCalculator>());
+    Services.AddScoped<IGameService>(_ => Mock.Of<IGameService>());
+    Services.AddLogging();
+    Services.AddBlazorState(o => o.Assemblies = [typeof(GameState).Assembly]);
+    return Services.GetRequiredService<IStore>();
+  }
+
+  [Fact]
+  public void DispatchSetDiceAside_OnTap()
+  {
+    var store = SetUp();
+    var state = store.GetState<GameState>();
+    state.DiceInPlay.Clear();
+    state.DiceInPlay.Add(TrayDie.Rolled(0, DieValue.Five));
+
+    var cut = Render(@<GameDiceTray></GameDiceTray>);
+    cut.Find(".dice-tray-die").Click();
+
+    store.GetState<GameState>().DiceInPlay[0].IsSelected
+      .Should().BeTrue("tapping a rolled die dispatches SetDiceAside and selects it");
+    cut.FindAll(".dice-tray-die.selected").Should().HaveCount(1);
+  }
+
+  [Fact]
+  public void IgnoreTaps_WhenItIsNotMyTurn()
+  {
+    var store = SetUp();
+    var state = store.GetState<GameState>();
+    state.CurrentPlayerId = 1; // PlayerId is 0 → not my turn (spectator); the tray is read-only
+    state.DiceInPlay.Clear();
+    state.DiceInPlay.Add(TrayDie.Rolled(0, DieValue.Five));
+
+    var cut = Render(@<GameDiceTray></GameDiceTray>);
+    cut.Find(".dice-tray-die").Click();
+
+    store.GetState<GameState>().DiceInPlay[0].IsSelected
+      .Should().BeFalse("spectators can't change the selection");
+  }
+}
