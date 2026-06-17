@@ -15,6 +15,7 @@ param namePrefix string = 'farkle'
 @description('Microsoft Cloud Adoption Framework resource-type abbreviations used to build resource names. Defaults follow https://learn.microsoft.com/azure/cloud-adoption-framework/ready/azure-best-practices/resource-abbreviations — override in the .bicepparam to use your own.')
 param resourceAbbreviations object = {
   logAnalytics: 'log'
+  applicationInsights: 'appi'
   postgreSql: 'psql'
   storageAccount: 'st'
   containerAppsEnvironment: 'cae'

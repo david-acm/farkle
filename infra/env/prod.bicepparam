@@ -9,6 +9,7 @@ param namePrefix = 'hotdice'
 // https://learn.microsoft.com/azure/cloud-adoption-framework/ready/azure-best-practices/resource-abbreviations
 param resourceAbbreviations = {
   logAnalytics: 'log'
+  applicationInsights: 'appi'
   postgreSql: 'psql'
   storageAccount: 'st'
   containerAppsEnvironment: 'cae'
