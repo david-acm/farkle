@@ -28,31 +28,24 @@ logger.Information("Starting Farkle WebApp {Version}", WebApp.AppVersion.Current
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Serilog reads its sinks/levels from configuration (Console everywhere). The Application
-// Insights sink (#33) is added programmatically only when a connection string is present
-// (APPLICATIONINSIGHTS_CONNECTION_STRING — set in Azure from Key Vault), so local dev and
-// tests fall back gracefully to console with no crash when it's unset.
-builder.Host.UseSerilog((context, config) =>
-{
-  config
+// Serilog reads its sinks/levels from configuration (Console everywhere). writeToProviders:true
+// forwards log events to the registered ILogger providers too — in particular the OpenTelemetry
+// logging provider wired by the Azure Monitor distro (#216) — so logs reach Application Insights
+// via OTel, correlated to the active span, while the console stays Serilog. Local dev/tests have
+// no connection string, so OTel is a no-op and logging falls back to console.
+builder.Host.UseSerilog(
+  (context, config) => config
     .ReadFrom.Configuration(context.Configuration)
-    .Enrich.FromLogContext();
-
-  var appInsightsConnectionString = context.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"];
-  if (!string.IsNullOrWhiteSpace(appInsightsConnectionString))
-    // Domain events → customEvents, everything else → traces (see DomainEventTelemetryConverter).
-    config.WriteTo.ApplicationInsights(appInsightsConnectionString, new DomainEventTelemetryConverter());
-});
+    .Enrich.FromLogContext(),
+  writeToProviders: true);
 
 var services = builder.Services;
 
-// Application Insights SDK (#33) — collects requests, dependencies, exceptions and performance
-// counters (the Serilog sink only forwards logs). Added only when a connection string is present
-// so local dev/tests don't try to phone home. Logs still flow through Serilog (UseSerilog doesn't
-// write to other providers), so the SDK's own logger isn't wired — no duplicate traces.
+// #216 — OpenTelemetry (Azure Monitor distro): traces (requests, dependencies, Eventuous
+// produce/consume spans with causation across the async event-store hop), metrics, and logs to
+// Application Insights. Gated on the connection string so local dev/tests don't phone home.
 var appInsightsConn = builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"];
-if (!string.IsNullOrWhiteSpace(appInsightsConn))
-  services.AddApplicationInsightsTelemetry(o => o.ConnectionString = appInsightsConn);
+services.AddFarkleTelemetry(appInsightsConn);
 
 services.AddEndpointsApiExplorer();
 services.AddSwaggerGen();
