@@ -11,9 +11,9 @@ public partial class GameState
     // Carries the target selection state explicitly so the UI never mutates the tapped
     // die outside an action handler. Backwards-compatible single-arg form is kept for
     // callers (and tests) that already encode the selection on the die.
-    public record Action(TrayDie Die, bool Selected) : IAction
+    public record Action(DiceInfo Die, bool Selected) : IAction
     {
-      public Action(TrayDie die) : this(die, die.IsSelected) { }
+      public Action(DiceInfo die) : this(die, die.IsSelected) { }
     }
 
     public class Handler(IStore store, IGameService service, ILogger<Handler> logger)
@@ -33,7 +33,7 @@ public partial class GameState
         // none re-spins when the drop container recreates their components for the
         // zone change (covers a move made before the roll animation's own consume
         // fires). A move is never a roll (#139).
-        foreach (TrayDie d in State.DiceInPlay)
+        foreach (DiceInfo d in State.DiceInPlay)
           d.DisableAnimation();
 
         // Promote the (formerly UI-only) selection to a domain command so it's persisted

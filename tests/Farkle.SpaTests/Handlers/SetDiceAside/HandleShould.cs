@@ -14,7 +14,7 @@ public class HandleShould : HandlerTestContext
   [Fact]
   public async Task FlipIdentifierToTargetZone()
   {
-    var die = TrayDie.Unselected(0, DieValue.Five);
+    var die = DiceInfo.Unselected(0, DieValue.Five);
     State.DiceInPlay.Add(die);
 
     await Sender.Send(new GameState.SetDiceAside.Action(die, Selected: true));
@@ -27,7 +27,7 @@ public class HandleShould : HandlerTestContext
   {
     // Dice spin only when rolled. A die starts animatable (just rolled); moving it
     // between zones must clear that flag so the Die renders its face without spinning.
-    var die = TrayDie.Unselected(0, DieValue.Five);
+    var die = DiceInfo.Unselected(0, DieValue.Five);
     State.DiceInPlay.Add(die);
 
     await Sender.Send(new GameState.SetDiceAside.Action(die, Selected: true));
@@ -38,11 +38,11 @@ public class HandleShould : HandlerTestContext
   [Fact]
   public async Task ResolveByIndex_NotByValue_WhenDuplicateFaces()
   {
-    State.DiceInPlay.Add(TrayDie.Unselected(0, DieValue.Five));
-    State.DiceInPlay.Add(TrayDie.Unselected(1, DieValue.Five));
+    State.DiceInPlay.Add(DiceInfo.Unselected(0, DieValue.Five));
+    State.DiceInPlay.Add(DiceInfo.Unselected(1, DieValue.Five));
 
     await Sender.Send(new GameState.SetDiceAside.Action(
-      TrayDie.Selected(1, DieValue.Five), Selected: true));
+      DiceInfo.Selected(1, DieValue.Five), Selected: true));
 
     State.DiceInPlay[0].IsSelected.Should().BeFalse( "first Five must remain in play");
     State.DiceInPlay[1].IsSelected.Should().BeTrue("only the targeted Five moves");
@@ -52,7 +52,7 @@ public class HandleShould : HandlerTestContext
   public async Task SyncSetAsideToTheServer_WhenMovedIntoTheSetAsideZone()
   {
     // #159 — promoting the selection to a domain command so it persists and broadcasts.
-    var die = TrayDie.Unselected(0, DieValue.Five);
+    var die = DiceInfo.Unselected(0, DieValue.Five);
     State.DiceInPlay.Add(die);
 
     await Sender.Send(new GameState.SetDiceAside.Action(die, Selected: true));
@@ -66,7 +66,7 @@ public class HandleShould : HandlerTestContext
   [Fact]
   public async Task SyncPutBackToTheServer_WhenMovedBackIntoPlay()
   {
-    var die = TrayDie.Selected(0, DieValue.Five);
+    var die = DiceInfo.Selected(0, DieValue.Five);
     State.DiceInPlay.Add(die);
 
     await Sender.Send(new GameState.SetDiceAside.Action(die, Selected: false));

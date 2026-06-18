@@ -10,7 +10,7 @@
          @onclick="() => OnTapAsync(die)">
       <Die DieValue="die.Value"
            Animate="die.IsAnimated"
-           OnAnimated="OnDieAnimated"
+           OnAnimated="() => OnDieAnimatedAsync(die)"
            Selected="die.IsSelected"
            Size="32">
       </Die>

@@ -127,7 +127,7 @@ public class HandleShould : HandlerTestContext
     await Sender.Send(new GameState.RestoreGameState.Action(2, "Bob"));
     State.CurrentPlayerId = 2;
     State.DiceInPlay.Clear();
-    State.DiceInPlay.Add(TrayDie.Selected(0, DieValue.Six));
+    State.DiceInPlay.Add(DiceInfo.Selected(0, DieValue.Six));
 
     await Sender.Send(new GameState.RemoteTableChanged.Action(Snapshot(currentPlayerId: 2)));
 

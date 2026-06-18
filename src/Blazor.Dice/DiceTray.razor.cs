@@ -7,16 +7,19 @@ namespace Blazor.Dice;
 // finished). Read-only consumers (spectators) pass ReadOnly so taps are ignored.
 public partial class DiceTray
 {
-  [Parameter, EditorRequired] public IReadOnlyList<TrayDie> Dice { get; set; } = [];
+  [Parameter, EditorRequired] public IReadOnlyList<DiceInfo> Dice { get; set; } = [];
 
   [Parameter] public bool ReadOnly { get; set; }
 
   // Raised with the tapped die when the tray is interactive.
-  [Parameter] public EventCallback<TrayDie> OnToggle { get; set; }
+  [Parameter] public EventCallback<DiceInfo> OnToggle { get; set; }
 
-  // Raised once a die's roll animation finishes (forwarded from Die.OnAnimated).
-  [Parameter] public EventCallback OnDieAnimated { get; set; }
+  // Raised with the die whose roll animation just finished (bridged from Die.OnAnimated),
+  // so the owner can clear that die's one-shot animate flag (e.g. die.DisableAnimation()).
+  [Parameter] public EventCallback<DiceInfo> OnDieAnimated { get; set; }
 
-  private Task OnTapAsync(TrayDie die) =>
+  private Task OnTapAsync(DiceInfo die) =>
     ReadOnly ? Task.CompletedTask : OnToggle.InvokeAsync(die);
+
+  private Task OnDieAnimatedAsync(DiceInfo die) => OnDieAnimated.InvokeAsync(die);
 }

@@ -29,7 +29,7 @@ public partial class GameState
                 // TableCenter is the full roll in a stable order. A set-aside is a non-destructive
                 // overlay (#159) so the centre is unchanged; a keep, however, REMOVES the kept
                 // dice, shrinking the centre. We mark each die selected ("SetAside") by consuming
-                // the set-aside multiset, and assign each die a `@key` (TrayDie.Index) that stays
+                // the set-aside multiset, and assign each die a `@key` (DiceInfo.Index) that stays
                 // stable across these table changes so the spectator's board never reorders,
                 // relocates or re-spins on a select/keep (#186, #204):
                 //   • A fresh roll (Animate) re-rolls every die, so use the table position as the
@@ -38,13 +38,13 @@ public partial class GameState
                 //     index by matching the previous board in value order. On a keep this keeps
                 //     survivors after the kept dice on their original key, so their Die component
                 //     is reused (not re-mounted) and never replays the mount spin (#204) —
-                //     mirroring how the in-turn player's KeepDice retains its TrayDie objects.
+                //     mirroring how the in-turn player's KeepDice retains its DiceInfo objects.
                 var setAside  = new List<int>(p.DiceSetAside);
                 // Prior board, consumed as we match survivors so each value is reused at most once.
-                var available = new List<TrayDie>(State.DiceInPlay);
+                var available = new List<DiceInfo>(State.DiceInPlay);
                 var nextIndex = available.Count == 0 ? 0 : available.Max(d => d.Index) + 1;
 
-                var dice = new List<TrayDie>(p.TableCenter.Count);
+                var dice = new List<DiceInfo>(p.TableCenter.Count);
                 for (var position = 0; position < p.TableCenter.Count; position++)
                 {
                     var v     = p.TableCenter[position];
@@ -72,8 +72,8 @@ public partial class GameState
                     }
 
                     var die = isSet
-                        ? TrayDie.Selected(index, DieValue.FromValue(v))
-                        : TrayDie.Unselected(index, DieValue.FromValue(v));
+                        ? DiceInfo.Selected(index, DieValue.FromValue(v))
+                        : DiceInfo.Unselected(index, DieValue.FromValue(v));
                     // Only a fresh roll animates; selected dice never do (#167).
                     if (isSet || !action.Animate) die.DisableAnimation();
                     dice.Add(die);

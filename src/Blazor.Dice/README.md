@@ -35,29 +35,28 @@ builder.Services.AddBlazorDice();
 <DiceTray Dice="_dice"
           ReadOnly="false"
           OnToggle="Toggle"
-          OnDieAnimated="ClearAnimations" />
+          OnDieAnimated="OnAnimated" />
 
 @code {
-  List<TrayDie> _dice =
+  List<DiceInfo> _dice =
   [
-    TrayDie.Unselected(0, DieValue.One),
-    TrayDie.Selected(1, DieValue.Five),
+    DiceInfo.Unselected(0, DieValue.One),
+    DiceInfo.Selected(1, DieValue.Five),
   ];
 
-  void Toggle(TrayDie die)
+  void Toggle(DiceInfo die)
   {
     if (die.IsSelected) die.Deselect();
     else die.Select();
   }
 
-  void ClearAnimations()
-  {
-    foreach (var die in _dice) die.DisableAnimation();
-  }
+  // OnDieAnimated reports the die that just finished its roll spin, so you clear its
+  // one-shot animate flag (the consumer owns the flag; the tray never mutates your data).
+  void OnAnimated(DiceInfo die) => die.DisableAnimation();
 }
 ```
 
-`TrayDie` is constructed via `TrayDie.Unselected(index, value)` / `TrayDie.Selected(index, value)`
+`DiceInfo` is constructed via `DiceInfo.Unselected(index, value)` / `DiceInfo.Selected(index, value)`
 (animated by default; chain `.DisableAnimation()`), and mutated through `Select()` / `Deselect()`
 / `DisableAnimation()`. `IsSelected` and `IsAnimated` are get-only. The tray ignores taps when
 `ReadOnly` is true (e.g. spectators).

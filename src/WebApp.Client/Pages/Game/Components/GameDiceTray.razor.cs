@@ -15,7 +15,7 @@ public partial class GameDiceTray : BlazorStateComponent
   // A tap toggles the die between selected (SetAside) and unselected (Rolled) via the same
   // SetDiceAside action selection uses (#159): the choice is persisted and broadcast to
   // spectators. The presentational tray already ignores taps when ReadOnly; this guards too.
-  private async Task ToggleAsync(TrayDie die)
+  private async Task ToggleAsync(DiceInfo die)
   {
     if (!GameState.IsMyTurn) return;
 
@@ -26,9 +26,9 @@ public partial class GameDiceTray : BlazorStateComponent
   }
 
   // A die finished its roll animation — clear the one-shot animate flag (via the handler) so
-  // dice render statically on later re-renders. All dice finish ~together, so guard on "is
-  // there anything left to consume" to dispatch once instead of once per die.
-  private async Task ConsumeRollAnimationAsync()
+  // dice render statically on later re-renders. The tray reports which die finished; all dice
+  // finish ~together, so we clear the whole board once (guarded) rather than once per die.
+  private async Task ConsumeRollAnimationAsync(DiceInfo die)
   {
     if (!GameState.DiceInPlay.Any(d => d.IsAnimated)) return;
     await Mediator.Send(new GameState.ConsumeRollAnimation.Action());

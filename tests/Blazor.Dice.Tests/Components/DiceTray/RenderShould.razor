@@ -12,8 +12,8 @@
     Services.AddScoped<IRotationCalculator>(_ => Mock.Of<IRotationCalculator>());
   }
 
-  private static IReadOnlyList<TrayDie> TwoDice() =>
-    [TrayDie.Unselected(0, DieValue.One), TrayDie.Selected(1, DieValue.Five)];
+  private static IReadOnlyList<DiceInfo> TwoDice() =>
+    [DiceInfo.Unselected(0, DieValue.One), DiceInfo.Selected(1, DieValue.Five)];
 
   [Fact]
   public void RenderOneTappableDiePerDie()
@@ -30,12 +30,12 @@
   public void RaiseOnToggle_WithTheTappedDie()
   {
     SetUp();
-    TrayDie? toggled = null;
+    DiceInfo? toggled = null;
     var dice = TwoDice();
 
     var cut = Render<DiceTray>(p => p
       .Add(t => t.Dice, dice)
-      .Add(t => t.OnToggle, EventCallback.Factory.Create<TrayDie>(this, d => toggled = d)));
+      .Add(t => t.OnToggle, EventCallback.Factory.Create<DiceInfo>(this, d => toggled = d)));
 
     cut.FindAll(".dice-tray-die")[0].Click();
 
@@ -51,7 +51,7 @@
     var cut = Render<DiceTray>(p => p
       .Add(t => t.Dice, TwoDice())
       .Add(t => t.ReadOnly, true)
-      .Add(t => t.OnToggle, EventCallback.Factory.Create<TrayDie>(this, _ => raised = true)));
+      .Add(t => t.OnToggle, EventCallback.Factory.Create<DiceInfo>(this, _ => raised = true)));
 
     cut.FindAll(".dice-tray-die")[0].Click();
 

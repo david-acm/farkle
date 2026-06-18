@@ -45,7 +45,7 @@ public partial class GameState
         State.TurnScore = new TurnScore(myTurn ? snapshot.TurnScore : 0);
         State.DiceInPlay = myTurn
           ? snapshot.TableCenter
-              .Select((v, i) => TrayDie.Unselected(i, DieValue.FromValue(v)))
+              .Select((v, i) => DiceInfo.Unselected(i, DieValue.FromValue(v)))
               .ToList()
           : [];
       }

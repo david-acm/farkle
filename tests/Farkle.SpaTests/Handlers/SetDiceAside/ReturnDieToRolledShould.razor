@@ -38,8 +38,8 @@
 
     // Select Five (→ SetAside), then return it (→ Rolled)
     var sender = Services.GetRequiredService<ISender>();
-    await sender.Send(new GameState.SetDiceAside.Action(TrayDie.Selected(0, DieValue.Five)));
-    await sender.Send(new GameState.SetDiceAside.Action(TrayDie.Unselected(0, DieValue.Five)));
+    await sender.Send(new GameState.SetDiceAside.Action(DiceInfo.Selected(0, DieValue.Five)));
+    await sender.Send(new GameState.SetDiceAside.Action(DiceInfo.Unselected(0, DieValue.Five)));
 
     // When — player clicks "Set Dice Aside"
     await game.FindComponent<KeepButton>().Find("button").ClickAsync(new MouseEventArgs());
