@@ -16,8 +16,14 @@ namespace Farkle.Application;
 /// </summary>
 internal static class GameTelemetry
 {
-  public static void Log(ILogger logger, int gameId, object @event, ulong position) =>
+  public static void Log(ILogger logger, int gameId, object @event, ulong position)
+  {
+    // PlayerId is on most events; surfaced as a top-level property so telemetry can be sliced
+    // by player (the host maps GameId/PlayerId → session/user dimensions). Null when absent.
+    var playerId = @event.GetType().GetProperty("PlayerId")?.GetValue(@event) as int?;
+
     logger.LogInformation(
-      "Game event {EventType} for game {GameId} at position {Position} {@GameEvent}",
-      @event.GetType().Name, gameId, position, @event);
+      "Game event {EventType} for game {GameId} player {PlayerId} at position {Position} {@GameEvent}",
+      @event.GetType().Name, gameId, playerId, position, @event);
+  }
 }

@@ -1,5 +1,6 @@
 using Azure.Monitor.OpenTelemetry.AspNetCore;
 using Eventuous.Diagnostics.OpenTelemetry;
+using OpenTelemetry.Instrumentation.AspNetCore;
 using OpenTelemetry.Logs;
 using OpenTelemetry.Trace;
 
@@ -32,6 +33,21 @@ public static class FarkleTelemetryExtensions
     // Application Insights customEvents — the mapping lives here in the host, so the app/core
     // keeps emitting plain ILogger events with no telemetry coupling.
     services.ConfigureOpenTelemetryLoggerProvider(logging => logging.AddProcessor(new DomainEventLogProcessor()));
+
+    // #216 — tag request spans with session.id = game and enduser.id = player (synthetic, no PII)
+    // from the route, so requests + their dependency spans are sliceable by game and player.
+    // EnrichWithHttpResponse runs after routing, so the {gameId}/{playerId} route values are set.
+    services.Configure<AspNetCoreTraceInstrumentationOptions>(options =>
+      options.EnrichWithHttpResponse = (activity, httpResponse) =>
+      {
+        var routeValues = httpResponse.HttpContext.Request.RouteValues;
+        if (routeValues.TryGetValue("gameId", out var gameId) && gameId is not null)
+        {
+          activity.SetTag("session.id", $"g{gameId}");
+          if (routeValues.TryGetValue("playerId", out var playerId) && playerId is not null)
+            activity.SetTag("enduser.id", $"g{gameId}-p{playerId}");
+        }
+      });
 
     return services;
   }

@@ -81,6 +81,7 @@ public partial class Game : GameStateComponent, IAsyncDisposable
       await Mediator.Send(new GameState.JoinPlayer.Action(new(_playerName)));
       await PersistSessionAsync();
       await ConnectHubAsync();
+      await SetTelemetryUserAsync();
     }
     catch (Exception ex)
     {
@@ -101,13 +102,32 @@ public partial class Game : GameStateComponent, IAsyncDisposable
       await Mediator.Send(new GameState.RestoreGameState.Action(stored.PlayerId, stored.Name));
 
       if (HasJoined)
+      {
         await ConnectHubAsync();
+        await SetTelemetryUserAsync();
+      }
       else
         await ClearSessionAsync(ParameterGameId); // game no longer exists
     }
     catch (Exception ex)
     {
       Logger.LogWarning(ex, "Session restore failed for game {GameId}", GameId);
+    }
+  }
+
+  // #216 — tag browser telemetry with the player (user) and game (account) so Application
+  // Insights can slice pageViews/AJAX by player and game. Synthetic id only — no display name.
+  private async Task SetTelemetryUserAsync()
+  {
+    if (GameState.PlayerId.Value <= 0) return;
+    try
+    {
+      var userId = $"g{ParameterGameId}-p{GameState.PlayerId.Value}";
+      await Js.InvokeVoidAsync("farkleTelemetry.setPlayer", userId, ParameterGameId.ToString());
+    }
+    catch (Exception ex)
+    {
+      Logger.LogDebug(ex, "Setting telemetry user failed (non-fatal) for game {GameId}", GameId);
     }
   }
 

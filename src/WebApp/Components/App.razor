@@ -27,6 +27,19 @@
     <Routes />
     <script src="_framework/blazor.web.js"></script>
 	<script src="_content/MudBlazor/MudBlazor.min.js"></script>
+    @* #216 — browser telemetry user/session. Defined unconditionally (and guarded) so the
+       WASM client can call it whether or not the App Insights SDK is loaded. The client invokes
+       it once a player has joined: userId = the synthetic player id, accountId = the game id
+       (→ App Insights user_Id / account_Id). No PII (no display names). *@
+    <script>
+        window.farkleTelemetry = {
+            setPlayer: function (userId, accountId) {
+                if (window.appInsights) {
+                    window.appInsights.setAuthenticatedUserContext(userId, accountId, true);
+                }
+            }
+        };
+    </script>
     @if (!string.IsNullOrWhiteSpace(appInsightsConnectionString))
     {
         // Application Insights JavaScript SDK: captures page views (auto route tracking for the
@@ -42,6 +55,7 @@
                     }
                 });
                 ai.loadAppInsights();
+                window.appInsights = ai;
                 ai.trackPageView();
             })();
         </script>
