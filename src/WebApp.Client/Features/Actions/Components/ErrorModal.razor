@@ -1,5 +1,5 @@
 @using GameState = WebApp.Client.Features.GameState
-@inherits BlazorState.BlazorStateComponent
+@inherits WebApp.Client.Features.GameStateComponent
 
 <MudPopover
   Open="@GameState.ShowError"
@@ -13,8 +13,6 @@
 </MudPopover>
 
 @code {
-  // TODO: Move this to a base class
-  GameState                      GameState => GetState<GameState>();
   private async Task ToggleOpen()
   {
     await Mediator.Send(new GameState.ToggleErrorModal.Action(false));

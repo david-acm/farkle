@@ -1,4 +1,4 @@
-@inherits BlazorState.BlazorStateComponent
+@inherits WebApp.Client.Features.GameStateComponent
 @using WebApp.Client.Features
 
 @* Whose turn it is is signalled by the 🎲 emoji next to the player in the Scoreboard
@@ -8,5 +8,4 @@
 </MudText>
 
 @code {
-  private GameState GameState => GetState<GameState>();
 }

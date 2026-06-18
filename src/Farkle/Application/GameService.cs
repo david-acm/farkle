@@ -97,15 +97,14 @@ internal class GameService
     return game.State.Id == GameId.None ? null : game.State;
   }
 
-  // TODO: Generalize this method
   public async Task<IResult> HandleAsync<TCommand, TResponse>(TCommand command, CancellationToken cancellationToken, Func<GameState,TResponse>? mapper = null)
     where TResponse : class
     where TCommand : class
   {
     var result = await base.Handle(command, cancellationToken);
 
-    // TODO: Refactor this. Check if event is and
     // 0.15.1: the emitted events live on the success case (Result<TState>.Ok.Changes).
+    // Scan them for domain error events (IErrorEvent) so a rejected command becomes an HTTP error.
     var errorEvents = result.TryGet(out var ok)
       ? ok.Changes
         .Where(c => c.Event is IErrorEvent)

@@ -8,7 +8,7 @@ using static Farkle.Contracts.HttpResponses;
 
 namespace WebApp.Client.Pages.Game;
 
-public partial class Game : BlazorStateComponent, IAsyncDisposable
+public partial class Game : GameStateComponent, IAsyncDisposable
 {
   private string _playerName = string.Empty;
 
@@ -32,7 +32,6 @@ public partial class Game : BlazorStateComponent, IAsyncDisposable
   private bool _hubConnected;
 
   private GameId    GameId    => new(ParameterGameId);
-  private GameState GameState => GetState<GameState>();
 
   private bool HasJoined => !string.IsNullOrEmpty(GameState.PlayerName.Value);
 

@@ -5,12 +5,11 @@ using WebApp.Client.Features;
 
 namespace WebApp.Client.Pages.Game.Components;
 
-public partial class GameDiceTray : BlazorStateComponent
+public partial class GameDiceTray : GameStateComponent
 {
   [Inject]
   public ILogger<GameDiceTray> Logger { get; set; } = null!;
 
-  private GameState GameState => GetState<GameState>();
 
   // A tap toggles the die between selected (SetAside) and unselected (Rolled) via the same
   // SetDiceAside action selection uses (#159): the choice is persisted and broadcast to

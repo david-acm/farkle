@@ -4,10 +4,8 @@ using WebApp.Client.Features;
 
 namespace WebApp.Client.Pages.Game.Components;
 
-public partial class TurnScore : BlazorStateComponent
+public partial class TurnScore : GameStateComponent
 {
-  private GameState GameState => GetState<GameState>();
-
   public int Value => GameState.TurnScore.Value;
 
   // Live preview of the current selection (#182) — shown only while dice are selected.

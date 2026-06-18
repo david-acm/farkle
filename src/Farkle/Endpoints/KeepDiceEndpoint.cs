@@ -21,8 +21,7 @@ internal class KeepDiceEndpoint(
   {
     logger.LogInformation("ℹ️ Game {gameId} Keeping dice for {PlayerId}", req.GameId, req.PlayerId);
     var command = new Command.KeepDice(req.GameId, req.PlayerId, req.DiceValues.Select(d => DieValue.FromValue(d)));
-    
-    // TODO: Inject game service or use mediatr
+
     var result = await service
       .HandleAsync<Command.KeepDice, KeepDiceResponse>(command, ct,
         (s) => new KeepDiceResponse(s.Id ?? 0, s.TurnScore));
