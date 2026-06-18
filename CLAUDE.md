@@ -409,10 +409,10 @@ Two sub-layers in one project, separated by folder:
 
 ## Important Implementation Notes
 
-### Observability / Telemetry (#33)
-Three telemetry channels, all keyed off `APPLICATIONINSIGHTS_CONNECTION_STRING` (injected in Azure from the `applicationInsights` component in `infra/modules/workload.bicep`); all absent locally → console only, **no crash**:
-1. **Logs** — Serilog console everywhere; the **Application Insights** sink is added programmatically in `Program.cs` when the connection string is set. `DomainEventTelemetryConverter` (`src/WebApp/Telemetry/`) routes domain-event logs (those with an `EventType` property, from `GameTelemetryHandler`) to AI **`customEvents`** and everything else to **`traces`** — so the app/core stays AI-agnostic (plain `ILogger`).
-2. **Requests/dependencies** — the AI ASP.NET SDK (`AddApplicationInsightsTelemetry`, also gated on the connection string) auto-collects HTTP requests, dependencies and exceptions. (`UseSerilog` doesn't write to other providers, so logs aren't double-sent.)
+### Observability / Telemetry (#33, #216)
+Telemetry goes to Application Insights via the **Azure Monitor OpenTelemetry distro**, all keyed off `APPLICATIONINSIGHTS_CONNECTION_STRING` (injected in Azure from the `applicationInsights` component in `infra/modules/workload.bicep`); absent locally → console only, **no crash** (`AddFarkleTelemetry` in `src/WebApp/Telemetry/` is a no-op without it).
+1. **Traces (requests/dependencies/causation)** — `AddOpenTelemetry().UseAzureMonitor(...)` collects HTTP requests, HttpClient + Npgsql dependencies, and **Eventuous produce/consume spans**. Eventuous persists the W3C trace context into event metadata on append and restores it on consume, so the async read-model projector / broadcaster / event-telemetry handlers correlate back to the request that produced the event.
+2. **Logs** — Serilog owns the console; `UseSerilog(..., writeToProviders: true)` forwards log events to the OTel logging provider → AI, correlated to the active span. Domain-event logs (those with an `EventType` attribute, from `GameTelemetryHandler`) are promoted to AI **`customEvents`** by `DomainEventLogProcessor` (adds `microsoft.custom_event.name`) — the mapping lives in the host, so the app/core stays AI-agnostic (plain `ILogger`).
 3. **Browser/UI** — the AI JavaScript SDK is rendered into `src/WebApp/Components/App.razor` (page views with SPA route tracking, AJAX, JS exceptions) when the connection string is present.
 
 Every committed domain event is logged by `GameTelemetryHandler` (`src/Farkle/Application/`, its own durable subscription in `Farkle.Infrastructure`); the pure `GameTelemetry.Log` shape is unit-tested. Auth endpoints log login/registration success/failure. **Always use structured properties** (`{gameId}`, `{playerId}`, `{@GameEvent}`) — never string interpolation — so they stay queryable in Azure Monitor, and **never log passwords or tokens**.
