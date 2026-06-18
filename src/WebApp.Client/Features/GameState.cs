@@ -41,7 +41,7 @@ public partial class GameState : State<GameState>
   
   public List<TrayDie> DiceInPlay { get; private set; } =
   [
-    TrayDie.Rolled(index: 1, value: DieValue.One)
+    TrayDie.Unselected(index: 1, value: DieValue.One)
   ];
   
   public List<TrayDie> KeptDice => DiceInPlay.Where(d => d.IsSelected).ToList();

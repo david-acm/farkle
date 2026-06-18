@@ -28,7 +28,7 @@ public class CalculateForShould
     var sut = new Blazor.Dice.RotationCalculator();
 
     // Act
-    var (x, y, z) = sut.CalculateFor(DieValue.FromValue(value));
+    var (x, y, z) = sut.CalculateFor(DieValue.FromValue(value), randomSpin: false);
 
     // Assert
     (

@@ -22,9 +22,9 @@
     var store = SetUp();
     var state = store.GetState<GameState>();
     state.DiceInPlay.Clear();
-    state.DiceInPlay.Add(TrayDie.SetAside(0, DieValue.Four));
-    state.DiceInPlay.Add(TrayDie.SetAside(1, DieValue.Four));
-    state.DiceInPlay.Add(TrayDie.SetAside(2, DieValue.Four));
+    state.DiceInPlay.Add(TrayDie.Selected(0, DieValue.Four));
+    state.DiceInPlay.Add(TrayDie.Selected(1, DieValue.Four));
+    state.DiceInPlay.Add(TrayDie.Selected(2, DieValue.Four));
 
     var cut = Render(@<TurnScore></TurnScore>);
 
@@ -38,7 +38,7 @@
     var store = SetUp();
     var state = store.GetState<GameState>();
     state.DiceInPlay.Clear();
-    state.DiceInPlay.Add(TrayDie.SetAside(0, DieValue.Two)); // a lone 2 isn't keepable
+    state.DiceInPlay.Add(TrayDie.Selected(0, DieValue.Two)); // a lone 2 isn't keepable
 
     var cut = Render(@<TurnScore></TurnScore>);
 
@@ -51,7 +51,7 @@
     var store = SetUp();
     var state = store.GetState<GameState>();
     state.DiceInPlay.Clear();
-    state.DiceInPlay.Add(TrayDie.Rolled(0, DieValue.Four));
+    state.DiceInPlay.Add(TrayDie.Unselected(0, DieValue.Four));
 
     var cut = Render(@<TurnScore></TurnScore>);
 

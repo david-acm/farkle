@@ -13,7 +13,7 @@
   }
 
   private static IReadOnlyList<TrayDie> TwoDice() =>
-    [TrayDie.Rolled(0, DieValue.One), TrayDie.SetAside(1, DieValue.Five)];
+    [TrayDie.Unselected(0, DieValue.One), TrayDie.Selected(1, DieValue.Five)];
 
   [Fact]
   public void RenderOneTappableDiePerDie()

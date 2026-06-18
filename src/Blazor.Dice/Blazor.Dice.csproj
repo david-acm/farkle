@@ -3,11 +3,26 @@
   <PropertyGroup>
     <!-- Overrides the net8.0 default in the root Directory.Build.props. -->
     <TargetFramework>net10.0</TargetFramework>
-    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <!-- NuGet packaging. Pack explicitly with `dotnet pack` (not on every build). -->
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <PackageId>Blazor.Dice</PackageId>
+    <Version>0.1.0</Version>
+    <Description>3D CSS dice and a tap-to-select dice tray for Blazor — a Die component, a presentational DiceTray, and a DieValue smart enum, with no app/state coupling.</Description>
+    <Authors>david-acm</Authors>
+    <PackageTags>blazor;dice;components;razor-class-library;game</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
   <ItemGroup>
     <SupportedPlatform Include="browser" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
   <ItemGroup>

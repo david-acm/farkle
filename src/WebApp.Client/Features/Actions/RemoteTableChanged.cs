@@ -72,8 +72,8 @@ public partial class GameState
                     }
 
                     var die = isSet
-                        ? TrayDie.SetAside(index, DieValue.FromValue(v))
-                        : TrayDie.Rolled(index, DieValue.FromValue(v));
+                        ? TrayDie.Selected(index, DieValue.FromValue(v))
+                        : TrayDie.Unselected(index, DieValue.FromValue(v));
                     // Only a fresh roll animates; selected dice never do (#167).
                     if (isSet || !action.Animate) die.DisableAnimation();
                     dice.Add(die);

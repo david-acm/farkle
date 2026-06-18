@@ -30,7 +30,7 @@ public partial class GameState
           response.Value.Select(d => d.Value));
         
         State.DiceInPlay = response.Value
-          .Select((d, i) => TrayDie.Rolled(i, DieValue.FromValue(d)))
+          .Select((d, i) => TrayDie.Unselected(i, DieValue.FromValue(d)))
           .ToList();
       }
     }

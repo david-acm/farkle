@@ -19,10 +19,10 @@ public partial class GameDiceTray : BlazorStateComponent
   {
     if (!GameState.IsMyTurn) return;
 
-    var target = die.IsSelected ? DiceZone.Rolled : DiceZone.SetAside;
-    await Mediator.Send(new GameState.SetDiceAside.Action(die, target));
+    var selected = !die.IsSelected;
+    await Mediator.Send(new GameState.SetDiceAside.Action(die, selected));
 
-    Logger.LogDebug("Tapped die {Index} -> {Target}", die.Index, target);
+    Logger.LogDebug("Tapped die {Index} -> selected={Selected}", die.Index, selected);
   }
 
   // A die finished its roll animation — clear the one-shot animate flag (via the handler) so
