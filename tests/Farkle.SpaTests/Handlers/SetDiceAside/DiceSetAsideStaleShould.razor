@@ -40,8 +40,8 @@
     // Drop the same Five onto SetAside twice (MudDropContainer fires
     // ItemDropped even when the target zone equals the source zone).
     var sender = Services.GetRequiredService<ISender>();
-    await sender.Send(new GameState.SetDiceAside.Action(TrayDie.SetAside(0, DieValue.Five)));
-    await sender.Send(new GameState.SetDiceAside.Action(TrayDie.SetAside(0, DieValue.Five)));
+    await sender.Send(new GameState.SetDiceAside.Action(DiceInfo.Selected(0, DieValue.Five)));
+    await sender.Send(new GameState.SetDiceAside.Action(DiceInfo.Selected(0, DieValue.Five)));
 
     var state = Services.GetRequiredService<IStore>().GetState<GameState>();
     state.DiceInPlay.Count(d => d.IsSelected)
@@ -78,7 +78,7 @@
     // before we click Keep.
     await game.FindComponent<RollDiceButton>().Find("button").ClickAsync(new MouseEventArgs());
     var sender = Services.GetRequiredService<ISender>();
-    await sender.Send(new GameState.SetDiceAside.Action(TrayDie.SetAside(0, DieValue.Five)));
+    await sender.Send(new GameState.SetDiceAside.Action(DiceInfo.Selected(0, DieValue.Five)));
 
     await sender.Send(new GameState.RemoteTurnChanged.Action(
       new HttpResponses.PassTurnResponse(gameId, PlayerId: 1, NewScore: 0, Winner: null, CurrentPlayerId: 2)));
@@ -93,7 +93,7 @@
       .ReturnsAsync(Result<IList<DieValue>>.Success(new List<DieValue> { DieValue.One }));
 
     await game.FindComponent<RollDiceButton>().Find("button").ClickAsync(new MouseEventArgs());
-    await sender.Send(new GameState.SetDiceAside.Action(TrayDie.SetAside(0, DieValue.One)));
+    await sender.Send(new GameState.SetDiceAside.Action(DiceInfo.Selected(0, DieValue.One)));
     await game.FindComponent<KeepButton>().Find("button").ClickAsync(new MouseEventArgs());
 
     capturedDice.Should().NotBeNull("KeepDiceAsync should have been called");

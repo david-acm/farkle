@@ -14,8 +14,8 @@ public class HandleShould : HandlerTestContext
   public async Task SendDerivedSetAsideDice_RemoveThemFromInPlay_AndUpdateTurnScore()
   {
     // Arrange: a die set aside (Five) and one still in play (Three).
-    State.DiceInPlay.Add(TrayDie.SetAside(0, DieValue.Five));
-    State.DiceInPlay.Add(TrayDie.Rolled(1, DieValue.Three));
+    State.DiceInPlay.Add(DiceInfo.Selected(0, DieValue.Five));
+    State.DiceInPlay.Add(DiceInfo.Unselected(1, DieValue.Three));
 
     List<int>? sentDice = null;
     Mock.Get(GameService)
@@ -37,7 +37,7 @@ public class HandleShould : HandlerTestContext
   [Fact]
   public async Task SendEmpty_WhenNothingSetAside()
   {
-    State.DiceInPlay.Add(TrayDie.Rolled(0, DieValue.Two));
+    State.DiceInPlay.Add(DiceInfo.Unselected(0, DieValue.Two));
 
     List<int>? sentDice = null;
     Mock.Get(GameService)

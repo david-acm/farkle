@@ -7,15 +7,17 @@ namespace Blazor.Dice;
 
 public partial class Die : IDisposable
 {
-  private string          _id     = new(Guid.NewGuid().ToString().Where(c => !char.IsDigit(c)).ToArray());
-  private DieValue       _number = DieValue.None;
-  private (int, int, int) _rotation;
-  private double          _scale = 1;
-  private Timer?          _spinTimer;
-  private Timer?          _consumeTimer;
-  
-  [Parameter] public DieValue DieValue { get; set; } = null!;
-  
+  private string      _id     = new(Guid.NewGuid().ToString().Where(c => !char.IsDigit(c)).ToArray());
+  private DieValue    _number = DieValue.None;
+  private DieRotation _rotation;
+  private double      _scale = 1;
+  private Timer?      _spinTimer;
+  private Timer?      _consumeTimer;
+
+  /// <summary>The die face to show (None or One–Six).</summary>
+  [Parameter, EditorRequired] public DieValue DieValue { get; set; } = null!;
+
+  /// <summary>Die size in pixels (drives the <c>--die-size</c> custom property).</summary>
   [Parameter] public int Size { get; set; } = 50;
   
   [Parameter] public string? Class { get; set; }
@@ -49,9 +51,9 @@ public partial class Die : IDisposable
 
   private double AngleFor(char a) => a switch
   {
-    'x' => _rotation.Item1,
-    'y' => _rotation.Item2,
-    'z' => _rotation.Item3,
+    'x' => _rotation.X,
+    'y' => _rotation.Y,
+    'z' => _rotation.Z,
     _   => 0
   };
 
@@ -112,24 +114,24 @@ public partial class Die : IDisposable
     // randomSpin == _animate: only a freshly rolled die gets the random full-turn spins.
     var rotation = RotationCalculator.CalculateFor(_number, _animate);
     SetRotationTo(rotation);
-    Logger.LogDebug("Rotating to: {x}, {y}, {z}", _rotation.Item1, _rotation.Item2, _rotation.Item3);
+    Logger.LogDebug("Rotating to: {x}, {y}, {z}", _rotation.X, _rotation.Y, _rotation.Z);
   }
-  
-  private void SetRotationTo((int, int, int) rotation) =>
+
+  private void SetRotationTo(DieRotation rotation) =>
     _rotation = rotation;
-  
+
   private void MouseLeave(MouseEventArgs e)
   {
-    (var x, var y, var z) = _rotation;
-    SetRotationTo((x, y - 10, z - 10));
+    var (x, y, z) = _rotation;
+    SetRotationTo(new DieRotation(x, y - 10, z - 10));
     Scale(1);
     StateHasChanged();
   }
-  
+
   private void MouseEnter(MouseEventArgs e)
   {
-    (var x, var y, var z) = _rotation;
-    SetRotationTo((x, y + 10, z + 10));
+    var (x, y, z) = _rotation;
+    SetRotationTo(new DieRotation(x, y + 10, z + 10));
     Scale(1.4);
     StateHasChanged();
   }

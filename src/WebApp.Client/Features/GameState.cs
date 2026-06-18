@@ -39,12 +39,12 @@ public partial class GameState : State<GameState>
   public bool       IsHost       => PlayerId.Value != 0 && PlayerId.Value == HostPlayerId;
   public bool       IsInLobby    => GameStage == "WaitingForPlayers";
   
-  public List<TrayDie> DiceInPlay { get; private set; } =
+  public List<DiceInfo> DiceInPlay { get; private set; } =
   [
-    TrayDie.Rolled(index: 1, value: DieValue.One)
+    DiceInfo.Unselected(index: 1, value: DieValue.One)
   ];
   
-  public List<TrayDie> KeptDice => DiceInPlay.Where(d => d.IsSelected).ToList();
+  public List<DiceInfo> KeptDice => DiceInPlay.Where(d => d.IsSelected).ToList();
 
   // Derived from DiceInPlay so the UI and the server payload can never disagree.
   // Don't add a parallel field — it leaks across turns and duplicates on re-drop.

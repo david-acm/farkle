@@ -57,5 +57,5 @@
   ];
 
   private static string Glyphs(int[] dice) =>
-    string.Join(" ", dice.Select(d => DieValue.FromValue(d).Name));
+    string.Join(" ", dice.Select(d => DieValue.FromValue(d).Pip));
 }

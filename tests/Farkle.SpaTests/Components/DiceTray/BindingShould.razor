@@ -26,7 +26,7 @@
     var store = SetUp();
     var state = store.GetState<GameState>();
     state.DiceInPlay.Clear();
-    state.DiceInPlay.Add(TrayDie.Rolled(0, DieValue.Five));
+    state.DiceInPlay.Add(DiceInfo.Unselected(0, DieValue.Five));
 
     var cut = Render(@<GameDiceTray></GameDiceTray>);
     cut.Find(".dice-tray-die").Click();
@@ -43,7 +43,7 @@
     var state = store.GetState<GameState>();
     state.CurrentPlayerId = 1; // PlayerId is 0 → not my turn (spectator); the tray is read-only
     state.DiceInPlay.Clear();
-    state.DiceInPlay.Add(TrayDie.Rolled(0, DieValue.Five));
+    state.DiceInPlay.Add(DiceInfo.Unselected(0, DieValue.Five));
 
     var cut = Render(@<GameDiceTray></GameDiceTray>);
     cut.Find(".dice-tray-die").Click();

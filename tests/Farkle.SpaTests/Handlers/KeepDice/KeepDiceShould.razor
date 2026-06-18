@@ -32,7 +32,7 @@
 
     // Set the die aside
     var sender = Services.GetRequiredService<ISender>();
-    await sender.Send(new GameState.SetDiceAside.Action(TrayDie.SetAside(0, DieValue.Five)));
+    await sender.Send(new GameState.SetDiceAside.Action(DiceInfo.Selected(0, DieValue.Five)));
 
     // When — player clicks "Set Dice Aside"
     await game.FindComponent<KeepButton>().Find("button").ClickAsync(new MouseEventArgs());
@@ -60,7 +60,7 @@
 
     // Select the SECOND Five (index 1) to SetAside
     var sender = Services.GetRequiredService<ISender>();
-    await sender.Send(new GameState.SetDiceAside.Action(TrayDie.SetAside(1, DieValue.Five)));
+    await sender.Send(new GameState.SetDiceAside.Action(DiceInfo.Selected(1, DieValue.Five)));
 
     // Then — only the die at index 1 should move; index 0 stays Rolled
     var state = Services.GetRequiredService<IStore>().GetState<GameState>();

@@ -19,7 +19,7 @@ Learn more at https://bunit.dev/docs/getting-started/writing-tests.html#creating
     var mock = Mock.Of<IRotationCalculator>();
     Mock.Get(mock)
       .Setup(c => c.CalculateFor(It.IsAny<DieValue>(), true))
-      .Returns((xExpected, yExpected, zExpected));
+      .Returns(new DieRotation(xExpected, yExpected, zExpected));
     Services.AddScoped<IRotationCalculator>(_ => mock);
 
     var cut = Render<Die>(c => c
@@ -37,7 +37,7 @@ Learn more at https://bunit.dev/docs/getting-started/writing-tests.html#creating
     // clear the model flag. This one-shot is what prevents a re-spin when the drop
     // container recreates the component on a later (e.g. sibling-move) re-render.
     var mock = Mock.Of<IRotationCalculator>();
-    Mock.Get(mock).Setup(c => c.CalculateFor(It.IsAny<DieValue>(), true)).Returns((1, 2, 3));
+    Mock.Get(mock).Setup(c => c.CalculateFor(It.IsAny<DieValue>(), true)).Returns(new DieRotation(1, 2, 3));
     Services.AddScoped<IRotationCalculator>(_ => mock);
 
     var signalled = new TaskCompletionSource();
@@ -58,8 +58,8 @@ Learn more at https://bunit.dev/docs/getting-started/writing-tests.html#creating
     // reused). It must rotate to the new face — otherwise rolls stop animating
     // and the die shows a stale face.
     var mock = Mock.Of<IRotationCalculator>();
-    Mock.Get(mock).Setup(c => c.CalculateFor(DieValue.One, true)).Returns((10, 20, 30));
-    Mock.Get(mock).Setup(c => c.CalculateFor(DieValue.Six, true)).Returns((40, 50, 60));
+    Mock.Get(mock).Setup(c => c.CalculateFor(DieValue.One, true)).Returns(new DieRotation(10, 20, 30));
+    Mock.Get(mock).Setup(c => c.CalculateFor(DieValue.Six, true)).Returns(new DieRotation(40, 50, 60));
     Services.AddScoped<IRotationCalculator>(_ => mock);
 
     var cut = Render<Die>(c => c
@@ -88,7 +88,7 @@ Learn more at https://bunit.dev/docs/getting-started/writing-tests.html#creating
     var mock = Mock.Of<IRotationCalculator>();
     Mock.Get(mock)
       .Setup(c => c.CalculateFor(It.IsAny<DieValue>(), false))
-      .Returns((xExpected, yExpected, zExpected));
+      .Returns(new DieRotation(xExpected, yExpected, zExpected));
     Services.AddScoped<IRotationCalculator>(_ => mock);
 
     var cut = Render<Die>(c => c
