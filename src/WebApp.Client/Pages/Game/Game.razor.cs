@@ -125,7 +125,7 @@ public partial class Game : GameStateComponent, IAsyncDisposable
       var userId = $"g{ParameterGameId}-p{GameState.PlayerId.Value}";
       await Js.InvokeVoidAsync("farkleTelemetry.setPlayer", userId, ParameterGameId.ToString());
     }
-    catch (Exception ex)
+    catch (JSException ex)
     {
       Logger.LogDebug(ex, "Setting telemetry user failed (non-fatal) for game {GameId}", GameId);
     }
