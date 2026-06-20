@@ -205,15 +205,12 @@ jobs:
           fi
 
       - name: Upload test videos
-        # #231 — videos are published only when a run fails (green runs leave no recording
-        # to upload or publish). Warn rather than error: an infra failure before Playwright
-        # runs leaves no video, and we still want the failure surfaced.
-        if: failure()
+        if: always()
         uses: actions/upload-artifact@v7
         with:
           name: e2e-videos-${{ github.run_id }}
           path: test-results/videos/
-          if-no-files-found: warn
+          if-no-files-found: error
           retention-days: 14
 
       - name: Upload screenshots
@@ -264,9 +261,7 @@ jobs:
   deploy-pages:
     name: Publish E2E videos to GitHub Pages
     needs: e2e
-    # #231 — publish recordings only when the e2e job failed. Green runs publish nothing
-    # (no video artifact, no gh-pages page, no PR comment); reviewers rely on the green check.
-    if: always() && needs.e2e.result == 'failure' && github.event_name == 'pull_request'
+    if: always() && github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     # Serialise gh-pages pushes with the parallel storyboard publisher (both write the

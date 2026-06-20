@@ -254,16 +254,9 @@ jobs:
             } >> "$GITHUB_STEP_SUMMARY"
           fi
 
-      - name: Upload smoke videos (failure only)
-        # #231 — videos published only on failure.
-        if: failure()
-        uses: actions/upload-artifact@v7
-        with:
-          name: post-deploy-e2e-videos-${{ github.run_id }}
-          path: test-results/videos/
-          if-no-files-found: warn
-          retention-days: 14
-
+      # #231 — the post-deploy smoke publishes NO video (it runs at delay 0, so a recording would
+      # be a useless blur; failures are diagnosed from the TRX + the App Insights telemetry link
+      # above). Video publishing stays on the PR CI e2e run only.
       - name: Upload smoke TRX
         if: always()
         uses: actions/upload-artifact@v7
