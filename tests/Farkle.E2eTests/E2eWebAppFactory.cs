@@ -123,15 +123,22 @@ public class E2EWebAppFactory : WebApplicationFactory<Program>
 
     public override async ValueTask DisposeAsync()
     {
-        // Both hosts run the broadcast subscription, whose shutdown trips a known Eventuous
-        // 0.15.0-beta bug (CheckpointCommitHandler double-disposes a CancellationTokenSource).
-        // Harmless at teardown — swallow just that so it doesn't fail fixture cleanup.
+        // Both hosts run the broadcast subscription, whose shutdown trips a known Eventuous bug
+        // (CheckpointCommitHandler double-disposes a CancellationTokenSource). Host.StopAsync
+        // surfaces it *wrapped in an AggregateException*, so swallowing only ObjectDisposedException
+        // let it escape and fail the collection-fixture cleanup — failing the whole run despite the
+        // tests passing. Swallow ODE and an AggregateException whose inners are all ODE; rethrow
+        // anything else.
         if (_kestrelHost != null)
         {
-            try { await _kestrelHost.StopAsync(); } catch (ObjectDisposedException) { }
+            try { await _kestrelHost.StopAsync(); } catch (Exception ex) when (IsHarmlessTeardown(ex)) { }
             _kestrelHost.Dispose();
         }
 
-        try { await base.DisposeAsync(); } catch (ObjectDisposedException) { }
+        try { await base.DisposeAsync(); } catch (Exception ex) when (IsHarmlessTeardown(ex)) { }
     }
+
+    private static bool IsHarmlessTeardown(Exception ex) =>
+        ex is ObjectDisposedException
+        || (ex is AggregateException agg && agg.Flatten().InnerExceptions.All(e => e is ObjectDisposedException));
 }
