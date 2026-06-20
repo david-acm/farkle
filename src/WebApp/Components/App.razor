@@ -29,23 +29,40 @@
 	<script src="_content/MudBlazor/MudBlazor.min.js"></script>
     @if (!string.IsNullOrWhiteSpace(appInsightsConnectionString))
     {
-        // Application Insights JavaScript SDK: captures page views (auto route tracking for the
-        // SPA), browser AJAX (fetch/XHR) as dependencies, and unhandled JS exceptions.
+        // Application Insights JavaScript SDK: captures page views, browser AJAX (fetch/XHR) as
+        // dependencies, and unhandled JS exceptions.
         <script src="https://js.monitor.azure.com/scripts/b/ai.3.gbl.min.js" crossorigin="anonymous"></script>
         <script>
             (function () {
                 var ai = new Microsoft.ApplicationInsights.ApplicationInsights({
                     config: {
                         connectionString: "@appInsightsConnectionString",
-                        enableAutoRouteTracking: true,
+                        // #223 — enableAutoRouteTracking is deliberately OFF. It listens to History
+                        // API events, but Blazor Web Apps navigate via *enhanced navigation*
+                        // (fetch + DOM patch), which the SDK hooks unreliably (symptom: almost no
+                        // pageViews recorded). We track SPA navigation explicitly below instead.
+                        enableAutoRouteTracking: false,
                         autoTrackPageVisitTime: true
+                        // AJAX/dependency correlation is governed by distributedTracingMode
+                        // (default AI_AND_W3C), independent of route tracking — so it stays intact.
                     }
                 });
                 ai.loadAppInsights();
-                ai.trackPageView();
+                ai.trackPageView(); // initial (cross-document) load
                 // Expose the instance so the UI-intent helper (window.farkleTelemetry, below)
                 // can emit custom events. Local to this IIFE otherwise.
                 window.appInsights = ai;
+
+                // #223 — track each in-app navigation explicitly. "enhancednavigationend" fires
+                // once after every enhanced navigation (unlike "enhancedload", which also fires on
+                // streaming updates and would duplicate). It does NOT fire on the initial document
+                // load, so it never doubles the trackPageView() above. Manually calling
+                // trackPageView resets the operation id, preserving per-page telemetry grouping.
+                if (window.Blazor && window.Blazor.addEventListener) {
+                    window.Blazor.addEventListener("enhancednavigationend", function () {
+                        ai.trackPageView();
+                    });
+                }
             })();
         </script>
     }
