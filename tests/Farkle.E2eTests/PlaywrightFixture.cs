@@ -2,16 +2,45 @@ namespace Farkle.E2eTests;
 
 public class PlaywrightFixture : IAsyncLifetime
 {
-    public E2EWebAppFactory Factory  { get; private set; } = null!;
-    public string           BaseUrl  => Factory.ServerAddress;
+    // Post-deployment smoke run (#231): when E2E_BASE_URL is set, drive a *remote* deployed
+    // environment instead of an in-process host — no WebApplicationFactory, no Testcontainers,
+    // no Docker. Factory is null in that mode.
+    private static string? RemoteBaseUrl
+    {
+        get
+        {
+            var url = Environment.GetEnvironmentVariable("E2E_BASE_URL");
+            return string.IsNullOrWhiteSpace(url) ? null : url.TrimEnd('/');
+        }
+    }
+
+    /// <summary>The in-process host, or <c>null</c> when running against a remote URL (#231).</summary>
+    public E2EWebAppFactory? Factory  { get; private set; }
+
+    public string           BaseUrl  { get; private set; } = null!;
 
     private IPlaywright _playwright = null!;
     private IBrowser    _browser    = null!;
 
+    /// <summary>
+    /// Removes and returns buffered in-process API logs. Empty when running against a remote URL
+    /// (#231): there's no in-process host to capture from.
+    /// </summary>
+    public IReadOnlyList<string> DrainApiLogs() => Factory?.DrainApiLogs() ?? [];
+
     public async Task InitializeAsync()
     {
-        Factory = new E2EWebAppFactory();
-        _ = Factory.Server; // triggers CreateHost / Kestrel startup
+        var remote = RemoteBaseUrl;
+        if (remote is null)
+        {
+            Factory = new E2EWebAppFactory();
+            _ = Factory.Server; // triggers CreateHost / Kestrel startup
+            BaseUrl = Factory.ServerAddress;
+        }
+        else
+        {
+            BaseUrl = remote;
+        }
 
         _playwright = await Playwright.CreateAsync();
 
@@ -28,7 +57,10 @@ public class PlaywrightFixture : IAsyncLifetime
         // binaries before any test runs. Without this, the first test in a filtered
         // CI run bears the full cold-start cost (~60+ s on a 2-vCPU runner) and
         // times out. Game 999 is used to avoid conflicting with test game IDs.
-        await PreWarmWasmAsync();
+        // Skipped against a remote deployment — it's already warm, and the pre-warm
+        // would create a throwaway game on the live environment.
+        if (remote is null)
+            await PreWarmWasmAsync();
     }
 
     private async Task PreWarmWasmAsync()
@@ -87,7 +119,8 @@ public class PlaywrightFixture : IAsyncLifetime
     {
         await _browser.DisposeAsync();
         _playwright.Dispose();
-        await Factory.DisposeAsync();
+        if (Factory is not null)
+            await Factory.DisposeAsync();
     }
 }
 
