@@ -124,12 +124,20 @@ public sealed class StoryboardWebAppFactory : WebApplicationFactory<Program>
 
     public override async ValueTask DisposeAsync()
     {
+        // Same harmless-teardown guard as E2eWebAppFactory: a subscription shutdown can surface a
+        // double-disposed CancellationTokenSource (sometimes wrapped in an AggregateException by
+        // Host.StopAsync). Swallow ODE / AggregateException-of-ODE so it never fails the
+        // collection-fixture cleanup; rethrow anything else.
         if (_kestrelHost is not null)
         {
-            await _kestrelHost.StopAsync();
+            try { await _kestrelHost.StopAsync(); } catch (Exception ex) when (IsHarmlessTeardown(ex)) { }
             _kestrelHost.Dispose();
         }
 
-        await base.DisposeAsync();
+        try { await base.DisposeAsync(); } catch (Exception ex) when (IsHarmlessTeardown(ex)) { }
     }
+
+    private static bool IsHarmlessTeardown(Exception ex) =>
+        ex is ObjectDisposedException
+        || (ex is AggregateException agg && agg.Flatten().InnerExceptions.All(e => e is ObjectDisposedException));
 }
