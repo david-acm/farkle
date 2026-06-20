@@ -26,7 +26,11 @@ public static class FarkleTelemetryExtensions
         // context into event metadata on append and restores it on consume, so the projector /
         // broadcaster / telemetry handlers link to the request that produced the event.
         .AddSource("Npgsql")
-        .AddEventuousTracing());
+        .AddEventuousTracing()
+        // #220 — drop the redundant Eventuous subscription-infrastructure spans (sub.* / handler.*
+        // / checkpoint*) so traces stay readable; everything else (incl. consumer.* and the domain
+        // customEvents) keeps flowing and stays correlated by trace id.
+        .SetSampler(new SubscriptionNoiseSampler(new AlwaysOnSampler())));
 
     // Domain-event logs (carrying the "EventType" attribute from GameTelemetryHandler) become
     // Application Insights customEvents — the mapping lives here in the host, so the app/core
