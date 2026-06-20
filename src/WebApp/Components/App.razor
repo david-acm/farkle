@@ -43,9 +43,24 @@
                 });
                 ai.loadAppInsights();
                 ai.trackPageView();
+                // Expose the instance so the UI-intent helper (window.farkleTelemetry, below)
+                // can emit custom events. Local to this IIFE otherwise.
+                window.appInsights = ai;
             })();
         </script>
     }
+    <script>
+        // Issue #225 — UI intent telemetry. Defined unconditionally so JS interop never throws;
+        // a no-op when App Insights isn't loaded (no connection string locally). Custom events
+        // are namespaced "UI.*" so they're separable from server-side domain events in KQL.
+        window.farkleTelemetry = {
+            trackEvent: function (name, properties) {
+                if (window.appInsights) {
+                    window.appInsights.trackEvent({ name: name }, properties);
+                }
+            }
+        };
+    </script>
     <script>
         // Issue #163 — share the join link via the Web Share API, with a
         // clipboard fallback. share() returns false only when the API is
