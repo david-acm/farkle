@@ -25,11 +25,25 @@ public class GameTelemetryShould
     entry.Level.Should().Be(LogLevel.Information);
     entry.Properties.Should().Contain(p => p.Key == "EventType" && Equals(p.Value, "DiceRolled"));
     entry.Properties.Should().Contain(p => p.Key == "GameId" && Equals(p.Value, 42));
+    // PlayerId is promoted to a top-level dimension (#219) so usage is queryable per player/seat.
+    entry.Properties.Should().Contain(p => p.Key == "PlayerId" && Equals(p.Value, 2));
     entry.Properties.Should().Contain(p => p.Key == "Position");
     // The event itself is attached for destructuring (the "@" prefix is kept in the
     // Microsoft.Extensions.Logging state key and stripped by Serilog downstream), so its
     // fields become queryable properties in Azure Monitor.
     entry.Properties.Should().Contain(p => p.Key == "@GameEvent");
+  }
+
+  [Fact]
+  public void LeavePlayerIdNull_ForEventsWithoutAPlayer()
+  {
+    var logger = new CapturingLogger();
+
+    // GameStarted carries the game id, not a player — PlayerId must be null (absent dimension).
+    GameTelemetry.Log(logger, gameId: 42, @event: new GameEvents.V1.GameStarted(42), position: 1);
+
+    var entry = logger.Entries.Should().ContainSingle().Subject;
+    entry.Properties.Should().Contain(p => p.Key == "PlayerId" && p.Value == null);
   }
 
   private sealed class CapturingLogger : ILogger
