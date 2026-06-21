@@ -11,12 +11,12 @@ internal static class PlayerColors
 {
   public static readonly ImmutableArray<string> Palette =
   [
-    "#FFE600", // yellow  (the original accent — player 1 keeps the classic look)
-    "#FF2D6B", // pink
-    "#00E5FF", // cyan
-    "#B388FF", // lavender
-    "#FF9100", // orange
-    "#69F0AE", // mint green
+    "#FFE600", // yellow      (player 1 — the original accent)
+    "#40C4FF", // light blue  (player 2)
+    "#69F0AE", // green       (player 3)
+    "#FF2D6B", // pink        (player 4)
+    "#B388FF", // lavender    (player 5)
+    "#FF9100", // orange      (player 6)
   ];
 
   // Resolve the colour for a player id (1-based join order). Wraps around the palette so a

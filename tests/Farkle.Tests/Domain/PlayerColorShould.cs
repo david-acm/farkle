@@ -46,6 +46,16 @@ public class PlayerColorShould
   }
 
   [Fact]
+  public void AssignTheExpectedIdentityColoursByJoinOrder()
+  {
+    // #248 — player identity colours: P1 yellow, P2 light blue, P3 green, P4 pink.
+    PlayerColors.For(1).Should().Be("#FFE600", "player 1 is yellow");
+    PlayerColors.For(2).Should().Be("#40C4FF", "player 2 is light blue");
+    PlayerColors.For(3).Should().Be("#69F0AE", "player 3 is green");
+    PlayerColors.For(4).Should().Be("#FF2D6B", "player 4 is pink");
+  }
+
+  [Fact]
   public void WrapThePaletteWhenMorePlayersThanColors()
   {
     // The palette wraps so a game with more players than colours still assigns a colour.

@@ -24,13 +24,19 @@ public class NonTextContrastShould
   {
     var css = ReadComponentCss("Die.razor.css");
 
-    // A selected die inverts to a yellow face with dark pips — the pips must stay legible.
-    var selectedFace = Hex(css, @"\.die-container\.selected[^{}]*\.side\s*\{[^}]*background-color:\s*(#[0-9A-Fa-f]{6})");
-    var selectedPip  = Hex(css, @"\.die-container\.selected\s+\.pip\s*\{[^}]*background-color:\s*(#[0-9A-Fa-f]{6})");
+    // A selected die inverts to the in-turn player's colour face (--active-player-color, #248)
+    // with dark pips — verify it uses the player colour and the pips stay legible on every
+    // colour the face can take.
+    css.Should().MatchRegex(
+      @"\.die-container\.selected[^{}]*\.side\s*\{[^}]*background-color:\s*var\(--active-player-color",
+      "the selected die face must take the player's colour, not a fixed accent");
 
-    ContrastMath.Ratio(selectedPip, selectedFace)
-      .Should().BeGreaterThanOrEqualTo(NonText,
-        "a selected die's pips must stay distinguishable from its (inverted) face");
+    var selectedPip = Hex(css, @"\.die-container\.selected\s+\.pip\s*\{[^}]*background-color:\s*(#[0-9A-Fa-f]{6})");
+
+    foreach (var color in PlayerColors.Palette)
+      ContrastMath.Ratio(selectedPip, new MudColor(color))
+        .Should().BeGreaterThanOrEqualTo(NonText,
+          $"a selected die's dark pips must stay distinguishable from player colour {color}");
   }
 
   [Fact]

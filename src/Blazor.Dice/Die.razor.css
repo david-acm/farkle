@@ -84,12 +84,13 @@
     box-shadow: 0 0 4px var(--active-player-color, #FFE600);
 }
 
-/* #182 — selected (tapped) die: the face takes the edge colour (yellow), and the pips and
-   the border invert to dark so they stay visible against the now-yellow face (the border
-   would otherwise disappear, blending yellow-on-yellow). :not(.solid) leaves the grey 3D
-   depth body untouched. The ×1.2 size bump is on the tray wrapper. */
+/* #182/#248 — selected (tapped) die: the face takes the in-turn player's colour (the same
+   --active-player-color the pips/border use, set on .play-area), and the pips and border invert
+   to dark so they stay visible against the now-coloured face (the border would otherwise blend
+   in). Selection only happens on your own turn, so the colour is the selecting player's.
+   :not(.solid) leaves the grey 3D depth body untouched. The ×1.2 size bump is on the tray wrapper. */
 .die-container.selected .die:not(.solid) .side {
-    background-color: #FFE600;
+    background-color: var(--active-player-color, #FFE600);
     border-color: #0D0D2E;
 }
 
