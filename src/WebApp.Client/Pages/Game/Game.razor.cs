@@ -121,6 +121,16 @@ public partial class Game : GameStateComponent, IAsyncDisposable
     GameHubService.OnTableChanged += HandleTableChanged;
     GameHubService.OnDiceRolled   += HandleDiceRolled;
     await GameHubService.ConnectAsync(ParameterGameId);
+
+    // #236 — close the connect race. A broadcast (e.g. GameBegan) sent between our HTTP join and
+    // our SignalR group-join is missed: SignalR pushes are one-shot and never replayed, so the
+    // just-joined client can stay stuck on the lobby/waiting view while everyone else moved on
+    // (intermittent against real network latency; ~never on localhost). Now that we're in the
+    // group, reconcile against the server snapshot so any missed transition self-heals; every
+    // subsequent broadcast keeps us current.
+    if (HasJoined)
+      await Mediator.Send(new GameState.RestoreGameState.Action(
+        GameState.PlayerId.Value, GameState.PlayerName.Value));
   }
 
   private static string SessionKey(int gameId) => $"farkle:game:{gameId}";
