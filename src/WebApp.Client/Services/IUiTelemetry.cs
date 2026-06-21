@@ -21,10 +21,10 @@ public interface IUiTelemetry
   Task TrackIntentAsync(string name, IReadOnlyDictionary<string, string?> properties);
 
   /// <summary>
-  /// #244 — starts a fresh App Insights operation (a new trace id) so the next server request
-  /// begins its own transaction. Called before a server-bound command so each command → events →
-  /// broadcast is one transaction rather than sharing the page's operation_Id. No-op when App
-  /// Insights isn't loaded.
+  /// #244 / #250 — starts a fresh App Insights operation for a server-bound command and records the
+  /// command (<paramref name="commandName"/>, e.g. <c>"RollDice"</c>) as a real UI-action span, so
+  /// the command's request → events → broadcast nest UNDER it in the transaction tree (one
+  /// transaction per command). No-op when App Insights isn't loaded.
   /// </summary>
-  Task StartOperationAsync();
+  Task StartOperationAsync(string commandName);
 }
