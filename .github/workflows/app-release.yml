@@ -162,6 +162,25 @@ jobs:
       - name: Install Playwright Chromium
         run: pwsh tests/Farkle.E2eTests/bin/Debug/net10.0/playwright.ps1 install chromium --with-deps
 
+      - name: Wait for the deployment to be ready
+        # #235 — the roll just bumped the revision; its EventStore dependency can still be
+        # reconnecting (a real run saw "Connection refused (esdb:2113)" seconds post-deploy).
+        # /health/ready includes the EventStoreHealthCheck (tagged "ready"), so it goes 200 only
+        # once web AND ESDB are live. Poll it before driving the smoke so we don't test a
+        # half-ready app. Fail fast (with a clear message) if it never settles.
+        run: |
+          set -uo pipefail
+          deadline=$(( $(date -u +%s) + 240 ))
+          until curl -fsS -o /dev/null "${BASE_URL}/health/ready"; do
+            if [ "$(date -u +%s)" -ge "$deadline" ]; then
+              echo "::error::Deployment not ready (${BASE_URL}/health/ready) after 240s — aborting smoke."
+              exit 1
+            fi
+            echo "Not ready yet; retrying in 5s..."
+            sleep 5
+          done
+          echo "Deployment is ready."
+
       - name: Record smoke window start
         id: t0
         run: echo "epoch=$(date -u +%s)" >> "$GITHUB_OUTPUT"
@@ -207,8 +226,12 @@ jobs:
           start=$(date -u -d "@$((START_EPOCH-120))" +%Y-%m-%dT%H:%M:%S.000Z)
           stop=$(date -u -d "@$((END_EPOCH+300))" +%Y-%m-%dT%H:%M:%S.000Z)
 
-          ai_id=$(az resource list -g "$AZURE_RESOURCE_GROUP" \
-            --resource-type microsoft.insights/components --query "[0].id" -o tsv 2>/dev/null || true)
+          # #235 — resolve the App Insights component via `az monitor app-insights` (which the
+          # deploy identity CAN read), NOT `az resource list` (the generic resource-list returns
+          # empty under this least-privilege RBAC, so the old call silently produced no deep link).
+          az extension add -n application-insights -y >/dev/null 2>&1 || true
+          ai_id=$(az monitor app-insights component show -g "$AZURE_RESOURCE_GROUP" \
+            --query "[0].id" -o tsv 2>/dev/null || true)
 
           KQL=$'union requests, pageViews, customEvents, exceptions, dependencies\n| order by timestamp desc\n| project timestamp, itemType, name, operation_Id, client_Type, cloud_RoleName'
 
@@ -233,7 +256,6 @@ jobs:
             } >> "$GITHUB_STEP_SUMMARY"
 
             # Best-effort live counts — needs Monitoring Reader; never fails the job.
-            az extension add -n application-insights -y >/dev/null 2>&1 || true
             app_id=$(az monitor app-insights component show --ids "$ai_id" --query appId -o tsv 2>/dev/null || true)
             if [ -n "$app_id" ]; then
               {
@@ -241,9 +263,10 @@ jobs:
                 echo "### Live counts (best-effort)"
                 echo '```'
               } >> "$GITHUB_STEP_SUMMARY"
+              # Use -o tsv: `-o table` silently drops single-result rows from the AI query API.
               az monitor app-insights query --apps "$app_id" \
                 --analytics-query "union requests, pageViews, customEvents, exceptions | where timestamp between (datetime(${start}) .. datetime(${stop})) | summarize count() by itemType" \
-                -o table >> "$GITHUB_STEP_SUMMARY" 2>&1 \
+                -o tsv >> "$GITHUB_STEP_SUMMARY" 2>&1 \
                 || echo "(query unavailable — identity likely lacks Monitoring Reader)" >> "$GITHUB_STEP_SUMMARY"
               echo '```' >> "$GITHUB_STEP_SUMMARY"
             fi
@@ -264,3 +287,15 @@ jobs:
           name: post-deploy-e2e-trx-${{ github.run_id }}
           path: test-results/post-deploy-e2e.trx
           if-no-files-found: warn
+
+      - name: Upload smoke logs (failure only)
+        # #235 — on failure the test writes the captured browser console + API logs to
+        # test-results/logs/. Publishing these (no video) makes a failed smoke debuggable from
+        # the run alone, instead of having to reproduce locally against the deployed URL.
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: post-deploy-e2e-logs-${{ github.run_id }}
+          path: test-results/logs/
+          if-no-files-found: warn
+          retention-days: 14
