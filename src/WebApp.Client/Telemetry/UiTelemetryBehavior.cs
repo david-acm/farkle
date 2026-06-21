@@ -59,6 +59,8 @@ public sealed class UiTelemetryBehavior<TRequest, TResponse>(IUiTelemetry teleme
     {
       ["GameId"]   = state.GameId.Value.ToString(),
       ["PlayerId"] = state.PlayerId.Value.ToString(),
+      // #244 — turn entity key, so telemetry can be grouped/joined per turn across players.
+      ["turnId"]   = state.TurnNumber.ToString(),
       ["Failed"]   = failed ? "true" : "false",
     };
 

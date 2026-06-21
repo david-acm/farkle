@@ -10,6 +10,9 @@ public partial class GameState : State<GameState>
   public PlayerId   PlayerId        { get; private set; } = new PlayerId(0);
   public PlayerName PlayerName      { get; private set; } = new(string.Empty);
   public TurnScore  TurnScore       { get; private set; } = new(0);
+  // #244 — server-assigned turn ordinal, carried for telemetry (a turn entity key). Updated from
+  // the DTOs on turn-boundary events (begin / pass / remote turn change / restore).
+  public int        TurnNumber      { get; internal set; } = 0;
   public int        CurrentPlayerId { get; internal set; } = 0;
   public bool       IsMyTurn        => CurrentPlayerId == PlayerId.Value;
   public IReadOnlyList<PlayerStanding> Scoreboard  { get; internal set; } = [];
