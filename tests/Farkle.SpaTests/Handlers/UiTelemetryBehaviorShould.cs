@@ -140,7 +140,7 @@ public class UiTelemetryBehaviorShould : IDisposable
 
     await behavior.Handle(new ServerCommandAction(), () => Task.FromResult(Unit.Value), default);
 
-    _telemetry.Verify(t => t.StartOperationAsync(), Times.Once);
+    _telemetry.Verify(t => t.StartOperationAsync("ServerCommandAction"), Times.Once);
   }
 
   [Fact]
@@ -148,7 +148,7 @@ public class UiTelemetryBehaviorShould : IDisposable
   {
     await Sender.Send(new GameState.SetGameId.Action(new GameId(1)));
 
-    _telemetry.Verify(t => t.StartOperationAsync(), Times.Never);
+    _telemetry.Verify(t => t.StartOperationAsync(It.IsAny<string>()), Times.Never);
   }
 
   public void Dispose() => _scope.Dispose();

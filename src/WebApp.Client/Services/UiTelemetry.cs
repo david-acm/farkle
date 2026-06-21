@@ -30,11 +30,11 @@ public sealed class UiTelemetry(IJSRuntime js) : IUiTelemetry
     }
   }
 
-  public async Task StartOperationAsync()
+  public async Task StartOperationAsync(string commandName)
   {
     try
     {
-      await js.InvokeVoidAsync("farkleTelemetry.newOperation");
+      await js.InvokeVoidAsync("farkleTelemetry.startCommand", commandName);
     }
     catch (JSException) { /* App Insights not loaded — best-effort. */ }
     catch (InvalidOperationException) { /* prerender — best-effort. */ }

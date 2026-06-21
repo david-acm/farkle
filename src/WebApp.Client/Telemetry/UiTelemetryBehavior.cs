@@ -28,12 +28,13 @@ public sealed class UiTelemetryBehavior<TRequest, TResponse>(IUiTelemetry teleme
     if (request is not IAction || request is IInternalAction)
       return await next();
 
-    // #244 — a server-bound command starts its own App Insights operation, so the command's request
-    // → events → broadcast form one transaction (and the UI.* event tracked below joins it) rather
-    // than sharing the page's operation_Id. Done before next() so the handler's fetch adopts the new
-    // trace id.
+    var intent = IntentName(request);
+
+    // #244 / #250 — a server-bound command starts its own App Insights operation rooted at a real
+    // UI-action span (named after the command), so the command's request → events → broadcast nest
+    // UNDER it in one transaction. Done before next() so the handler's fetch adopts the new context.
     if (request is IServerCommandIntent)
-      await telemetry.StartOperationAsync();
+      await telemetry.StartOperationAsync(intent);
 
     var failed = false;
     try
@@ -47,18 +48,21 @@ public sealed class UiTelemetryBehavior<TRequest, TResponse>(IUiTelemetry teleme
     }
     finally
     {
-      await TrackAsync(request, failed);
+      await TrackAsync(request, intent, failed);
     }
   }
 
-  private async Task TrackAsync(TRequest request, bool failed)
+  // Game actions are nested records literally named "Action" (e.g. GameState.RollDice.Action), so
+  // the intent is the *declaring* type's name — "RollDice", "PassTurn", "RemoteTurnChanged". An
+  // action not following that convention falls back to its own type name.
+  private static string IntentName(TRequest request)
   {
-    // Game actions are nested records literally named "Action" (e.g. GameState.RollDice.Action),
-    // so the intent is the *declaring* type's name — "RollDice", "PassTurn", "RemoteTurnChanged".
-    // An action not following that convention falls back to its own type name.
     var type = request.GetType();
-    var intent = type.Name == "Action" ? type.DeclaringType?.Name ?? type.Name : type.Name;
+    return type.Name == "Action" ? type.DeclaringType?.Name ?? type.Name : type.Name;
+  }
 
+  private async Task TrackAsync(TRequest request, string intent, bool failed)
+  {
     // Post-action state: ids reflect the action's effect (e.g. GameId after CreateGame), which is
     // what we want for correlation.
     var state = store.GetState<GameState>();

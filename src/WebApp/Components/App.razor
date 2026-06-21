@@ -76,19 +76,31 @@
                     window.appInsights.trackEvent({ name: name }, properties);
                 }
             },
-            // #244 — start a fresh operation (new W3C trace id) so the next server request begins its
-            // own transaction (one operation per command, not per page). Setting telemetryTrace.traceID
-            // is the SDK-sanctioned reset; subsequent fetch dependencies adopt it as operation_Id and
-            // propagate it as traceparent. No-op when App Insights isn't loaded.
-            newOperation: function () {
+            // #244 / #250 — start a fresh operation per server-bound command AND record the UI action
+            // as a real span (a dependency) so the command's browser fetch — and thus the server
+            // request, events and broadcast — nest UNDER it in the transaction tree (not as siblings
+            // of a phantom parent). The UI action span is the operation root; setting
+            // telemetryTrace.parentID to ITS id makes the auto-tracked fetch a child of it.
+            // No-op when App Insights isn't loaded.
+            startCommand: function (name) {
                 var ai = window.appInsights;
                 if (!ai) return;
                 var ctx = (ai.context && ai.context.telemetryTrace)
                        || (ai.properties && ai.properties.context && ai.properties.context.telemetryTrace);
                 if (!ctx) return;
                 function hex(n) { var s = ''; for (var i = 0; i < n; i++) s += (Math.random() * 16 | 0).toString(16); return s; }
-                ctx.traceID = hex(32);
-                ctx.parentID = hex(16);
+                var traceId = hex(32), spanId = hex(16);
+                // New operation; the UI-action span sits at its root (no parent).
+                ctx.traceID = traceId;
+                ctx.parentID = "";
+                try {
+                    ai.trackDependencyData({
+                        id: spanId, name: "UI." + name, type: "InProc",
+                        duration: 0, success: true, responseCode: 0
+                    });
+                } catch (e) { /* best-effort */ }
+                // Subsequent fetch (and the UI.* customEvent) now nest under the UI-action span.
+                ctx.parentID = spanId;
             }
         };
     </script>
