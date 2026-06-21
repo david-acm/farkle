@@ -10,17 +10,24 @@ namespace WebApp.Telemetry;
 /// operation) → <c>handler.&lt;Handler&gt;/&lt;Event&gt;</c> (leaf) — plus a per-subscription
 /// <c>checkpoint.write</c> heartbeat.
 ///
-/// We drop the <c>sub.*</c> and <c>handler.*</c> layers (redundant with <c>consumer.*</c>) and the
-/// <c>checkpoint*</c> heartbeat, and keep <c>consumer.*</c> (which carries the consume latency),
-/// the HTTP requests, exceptions, <c>eventstore.*</c>, <c>postgresql</c> and the domain
-/// customEvents. Correlation is unaffected: it rides on the trace id (<c>operation_Id</c>), which
-/// every span in the trace shares, not on span parenting — so dropping intermediate spans never
-/// breaks the request → event linkage.
+/// We drop the <c>handler.*</c> leaf (redundant detail under <c>consumer.*</c>) and the
+/// <c>checkpoint*</c> heartbeat, and keep <c>consumer.*</c> (the consume operation + latency),
+/// the HTTP requests, exceptions, <c>eventstore.*</c>, <c>postgresql</c> and the domain customEvents.
+///
+/// #221 — we KEEP <c>sub.*</c>. It looks like infra noise but it's the <b>structural parent</b>
+/// that links <c>consumer.*</c> back up to the produce span (the <c>eventstore.append</c> of the
+/// originating command): <c>request → eventstore.append → sub.* → consumer.*</c>. #220 originally
+/// dropped it as "redundant", but dropping a parent while keeping its child <b>orphans the child in
+/// the trace tree</b> — the consumer's parent id then points at a span that was never exported, so
+/// the broadcast renders as a sibling branch instead of nesting under the command that triggered it.
+/// Correlation (shared trace id) survived, but the hierarchy didn't. Keeping <c>sub.*</c> is the
+/// minimum needed for the broadcast/projector/telemetry consumers to nest under their command.
 /// </summary>
 internal sealed class SubscriptionNoiseSampler(Sampler inner) : Sampler
 {
-  // Span name prefixes that are pure subscription infrastructure noise.
-  private static readonly string[] DropPrefixes = ["sub.", "handler.", "checkpoint"];
+  // Span name prefixes that are pure subscription infrastructure noise. NOTE: "sub." is deliberately
+  // NOT here (#221) — it's the structural parent that keeps consumer.* nested under the command.
+  private static readonly string[] DropPrefixes = ["handler.", "checkpoint"];
 
   public override SamplingResult ShouldSample(in SamplingParameters samplingParameters)
   {
