@@ -26,9 +26,15 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
     private const int WasmTimeoutMs = GameFlow.WasmTimeoutMs;
 
     // Pause between notable steps so animations are visible in the recorded video.
-    // Override with E2E_STEP_DELAY_MS environment variable (e.g. set to 0 for speed).
+    // Override with E2E_STEP_DELAY_MS environment variable (e.g. set to 0 for the
+    // post-deploy smoke run, #231). Governs *video-pacing* holds only — functional
+    // waits (awaiting selectors/responses) are unaffected.
     private static int StepDelayMs =>
         int.TryParse(Environment.GetEnvironmentVariable("E2E_STEP_DELAY_MS"), out var v) ? v : 2_000;
+
+    // Shorthand for a video-pacing hold that collapses to nothing when StepDelayMs is 0.
+    private static Task PaceAsync(IPage page) =>
+        StepDelayMs > 0 ? page.WaitForTimeoutAsync(StepDelayMs) : Task.CompletedTask;
 
     private static string VideoDir =>
         Path.GetFullPath(Path.Join(AppContext.BaseDirectory, "..", "..", "..", "..", "..",
@@ -58,7 +64,7 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
         try
         {
             await test(alicePage);
-            await alicePage.WaitForTimeoutAsync(1_500); // hold on final state before recording ends
+            await PaceAsync(alicePage); // hold on final state before recording ends (skipped when delay=0)
         }
         catch (Exception ex)
         {
@@ -71,7 +77,7 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
             if (File.Exists(rawPath))
                 File.Move(rawPath, Path.Combine(VideoDir, $"{testName}.webm"), overwrite: true);
 
-            var apiLogs = fixture.Factory.DrainApiLogs();
+            var apiLogs = fixture.DrainApiLogs();
             if (failure != null)
             {
                 Directory.CreateDirectory(LogDir);
@@ -198,7 +204,7 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
                 aliceTurn = !aliceTurn;
             }
 
-            await alicePage.WaitForTimeoutAsync(StepDelayMs); // pause on the winner screen
+            await PaceAsync(alicePage); // pause on the winner screen
 
             won.Should().BeTrue($"a player should win within {maxTurns} turns");
             var scoreboards = (await alicePage.Locator("[data-testid='scoreboard']").InnerTextAsync()) +
@@ -258,7 +264,7 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
                 "the active-player colour flips for both players when the turn changes");
             bobColourOnBob.Should().NotBe(aliceColourOnAlice, "each player has a distinct colour");
 
-            await alicePage.WaitForTimeoutAsync(StepDelayMs); // hold the flipped colour on video
+            await PaceAsync(alicePage); // hold the flipped colour on video
         }
         finally
         {
@@ -326,7 +332,7 @@ public class GameHappyPathShould(PlaywrightFixture fixture)
             (await alicePage.Locator("[data-testid='scoreboard']").InnerTextAsync())
                 .Should().Contain("Alice").And.Contain("Bob");
 
-            await alicePage.WaitForTimeoutAsync(StepDelayMs); // hold the restored state on video
+            await PaceAsync(alicePage); // hold the restored state on video
         }
         finally
         {

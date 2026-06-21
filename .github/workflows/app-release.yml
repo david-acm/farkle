@@ -45,6 +45,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     if: ${{ vars.DEPLOY_ENABLED == 'true' }}
+    outputs:
+      # The deployed app URL (empty when the workload isn't provisioned → post-deploy smoke skips).
+      fqdn: ${{ steps.roll.outputs.fqdn }}
     env:
       AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
       AZURE_PERSISTENT_RESOURCE_GROUP: ${{ vars.AZURE_PERSISTENT_RESOURCE_GROUP }}
@@ -66,6 +69,7 @@ jobs:
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
       - name: Roll the WebApp container to the new image
+        id: roll
         run: |
           set -euo pipefail
 
@@ -120,3 +124,143 @@ jobs:
           fqdn=$(az containerapp show -n "$app" -g "$AZURE_RESOURCE_GROUP" \
             --query 'properties.configuration.ingress.fqdn' -o tsv)
           echo "### WebApp rolled: https://${fqdn} → image tag \`${IMAGE_TAG}\` (revision \`${suffix}\`)" >> "$GITHUB_STEP_SUMMARY"
+          # Hand the deployed URL to the post-deploy smoke job (#231).
+          echo "fqdn=https://${fqdn}" >> "$GITHUB_OUTPUT"
+
+  # #231 — after the roll, run the Playwright happy-path against the *deployed* app as a
+  # post-deployment smoke test (no Testcontainers — E2E_BASE_URL points Playwright at the live
+  # URL), then emit a link to inspect this run's telemetry in Application Insights. Report-only:
+  # a failure surfaces the recordings + flags the run, but does not auto-roll back.
+  post-deploy-e2e:
+    name: Post-deploy E2E smoke (deployed env)
+    needs: release
+    # Skip cleanly when the workload wasn't provisioned (release produced no FQDN).
+    if: ${{ needs.release.outputs.fqdn != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      BASE_URL: ${{ needs.release.outputs.fqdn }}
+      AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install wasm-tools workload
+        run: dotnet workload install wasm-tools
+
+      - name: Restore dependencies
+        run: dotnet restore tests/Farkle.E2eTests/Farkle.E2eTests.csproj
+
+      - name: Build
+        run: dotnet build tests/Farkle.E2eTests/Farkle.E2eTests.csproj --no-restore
+
+      - name: Install Playwright Chromium
+        run: pwsh tests/Farkle.E2eTests/bin/Debug/net10.0/playwright.ps1 install chromium --with-deps
+
+      - name: Record smoke window start
+        id: t0
+        run: echo "epoch=$(date -u +%s)" >> "$GITHUB_OUTPUT"
+
+      - name: Run happy-path smoke against the deployed app
+        # E2E_BASE_URL → drive the remote deployment (no in-process host / Testcontainers).
+        # E2E_STEP_DELAY_MS=0 → no video-pacing holds, run at full speed.
+        env:
+          E2E_BASE_URL: ${{ needs.release.outputs.fqdn }}
+          E2E_STEP_DELAY_MS: '0'
+        run: >
+          dotnet test tests/Farkle.E2eTests/Farkle.E2eTests.csproj
+          --no-build
+          --filter "FullyQualifiedName~GameHappyPathShould.HappyPath"
+          --logger "trx;LogFileName=post-deploy-e2e.trx"
+          --results-directory test-results
+
+      - name: Record smoke window end
+        if: always()
+        id: t1
+        run: echo "epoch=$(date -u +%s)" >> "$GITHUB_OUTPUT"
+
+      - name: Azure login (OIDC)
+        if: always()
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_APP_RELEASE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: App Insights telemetry link for this run
+        # Never fail the deploy over telemetry: the live query needs Monitoring Reader, which the
+        # least-privilege app-release identity may lack. The Logs deep link + KQL text always work.
+        if: always()
+        continue-on-error: true
+        env:
+          TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+          START_EPOCH: ${{ steps.t0.outputs.epoch }}
+          END_EPOCH: ${{ steps.t1.outputs.epoch }}
+        run: |
+          set -uo pipefail
+          # Pad the window for ingestion latency (telemetry lands minutes after the action).
+          start=$(date -u -d "@$((START_EPOCH-120))" +%Y-%m-%dT%H:%M:%S.000Z)
+          stop=$(date -u -d "@$((END_EPOCH+300))" +%Y-%m-%dT%H:%M:%S.000Z)
+
+          ai_id=$(az resource list -g "$AZURE_RESOURCE_GROUP" \
+            --resource-type microsoft.insights/components --query "[0].id" -o tsv 2>/dev/null || true)
+
+          KQL=$'union requests, pageViews, customEvents, exceptions, dependencies\n| order by timestamp desc\n| project timestamp, itemType, name, operation_Id, client_Type, cloud_RoleName'
+
+          {
+            echo "## Post-deploy telemetry (App Insights)"
+            echo ""
+            echo "- Deployed app: ${BASE_URL}"
+            echo "- Window (UTC, padded for ingestion): \`${start}\` → \`${stop}\`"
+            echo ""
+            echo '```kusto'
+            echo "$KQL"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ -n "$ai_id" ]; then
+            enc_id=$(printf '%s' "$ai_id" | jq -sRr @uri)
+            enc_q=$(printf '%s' "$KQL" | gzip -c | base64 -w0 | jq -sRr @uri)
+            link="https://portal.azure.com#@${TENANT_ID}/blade/Microsoft_Azure_Monitoring_Logs/LogsBlade/resourceId/${enc_id}/source/LogsBlade.AnalyticsShareLinkToQuery/q/${enc_q}/timespan/${start}%2F${stop}"
+            {
+              echo ""
+              echo "▶️ **[Open this run's telemetry in App Insights Logs](${link})**"
+            } >> "$GITHUB_STEP_SUMMARY"
+
+            # Best-effort live counts — needs Monitoring Reader; never fails the job.
+            az extension add -n application-insights -y >/dev/null 2>&1 || true
+            app_id=$(az monitor app-insights component show --ids "$ai_id" --query appId -o tsv 2>/dev/null || true)
+            if [ -n "$app_id" ]; then
+              {
+                echo ""
+                echo "### Live counts (best-effort)"
+                echo '```'
+              } >> "$GITHUB_STEP_SUMMARY"
+              az monitor app-insights query --apps "$app_id" \
+                --analytics-query "union requests, pageViews, customEvents, exceptions | where timestamp between (datetime(${start}) .. datetime(${stop})) | summarize count() by itemType" \
+                -o table >> "$GITHUB_STEP_SUMMARY" 2>&1 \
+                || echo "(query unavailable — identity likely lacks Monitoring Reader)" >> "$GITHUB_STEP_SUMMARY"
+              echo '```' >> "$GITHUB_STEP_SUMMARY"
+            fi
+          else
+            {
+              echo ""
+              echo "_App Insights resource not resolvable with the deploy identity — paste the query above into the Logs blade and set the time range manually._"
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      # #231 — the post-deploy smoke publishes NO video (it runs at delay 0, so a recording would
+      # be a useless blur; failures are diagnosed from the TRX + the App Insights telemetry link
+      # above). Video publishing stays on the PR CI e2e run only.
+      - name: Upload smoke TRX
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: post-deploy-e2e-trx-${{ github.run_id }}
+          path: test-results/post-deploy-e2e.trx
+          if-no-files-found: warn
