@@ -35,8 +35,14 @@ public partial class GameState
         var standings = snapshot.Scoreboard
           .Select(p => new PlayerStanding(p.PlayerId, p.Name, p.Score, p.Color))
           .ToList();
-        State.Scoreboard = standings;
-        State.Roster     = standings;
+        // Never wipe a known roster to empty: the read model is eventually consistent, so a
+        // reconcile right after joining (#236) can read a view that exists but hasn't projected
+        // the just-joined player yet. Keep what we have; the PlayerJoined broadcast fills it in.
+        if (standings.Count > 0)
+        {
+          State.Scoreboard = standings;
+          State.Roster     = standings;
+        }
 
         // Dice and the in-progress turn score belong to the player whose turn it is.
         // In live play other players never see the active player's dice, so a restoring
