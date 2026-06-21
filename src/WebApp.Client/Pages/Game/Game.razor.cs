@@ -166,12 +166,14 @@ public partial class Game : GameStateComponent, IAsyncDisposable
     public string Name     { get; set; } = string.Empty;
   }
 
-  private async void HandleTurnChanged(PassTurnResponse payload)
+  // #221 — the traceId arg is the originating command's App Insights operation_Id, carried over
+  // SignalR; it's threaded onto the dispatched action so the UI.* event links back to the command.
+  private async void HandleTurnChanged(PassTurnResponse payload, string? traceId)
   {
     try
     {
       await InvokeAsync(async () =>
-        await Mediator.Send(new GameState.RemoteTurnChanged.Action(payload)));
+        await Mediator.Send(new GameState.RemoteTurnChanged.Action(payload, traceId)));
     }
     catch (Exception ex)
     {
@@ -179,12 +181,12 @@ public partial class Game : GameStateComponent, IAsyncDisposable
     }
   }
 
-  private async void HandlePlayerJoined(LobbyStateResponse payload)
+  private async void HandlePlayerJoined(LobbyStateResponse payload, string? traceId)
   {
     try
     {
       await InvokeAsync(async () =>
-        await Mediator.Send(new GameState.RemotePlayerJoined.Action(payload)));
+        await Mediator.Send(new GameState.RemotePlayerJoined.Action(payload, traceId)));
     }
     catch (Exception ex)
     {
@@ -192,12 +194,12 @@ public partial class Game : GameStateComponent, IAsyncDisposable
     }
   }
 
-  private async void HandleGameBegan(LobbyStateResponse payload)
+  private async void HandleGameBegan(LobbyStateResponse payload, string? traceId)
   {
     try
     {
       await InvokeAsync(async () =>
-        await Mediator.Send(new GameState.RemoteGameBegan.Action(payload)));
+        await Mediator.Send(new GameState.RemoteGameBegan.Action(payload, traceId)));
     }
     catch (Exception ex)
     {
@@ -205,12 +207,12 @@ public partial class Game : GameStateComponent, IAsyncDisposable
     }
   }
 
-  private async void HandleTableChanged(GameStateResponse payload)
+  private async void HandleTableChanged(GameStateResponse payload, string? traceId)
   {
     try
     {
       await InvokeAsync(async () =>
-        await Mediator.Send(new GameState.RemoteTableChanged.Action(payload)));
+        await Mediator.Send(new GameState.RemoteTableChanged.Action(payload, CausedByOperationId: traceId)));
     }
     catch (Exception ex)
     {
@@ -219,12 +221,12 @@ public partial class Game : GameStateComponent, IAsyncDisposable
   }
 
   // A roll snapshot — same table update as TableChanged but animate the dice (#167).
-  private async void HandleDiceRolled(GameStateResponse payload)
+  private async void HandleDiceRolled(GameStateResponse payload, string? traceId)
   {
     try
     {
       await InvokeAsync(async () =>
-        await Mediator.Send(new GameState.RemoteTableChanged.Action(payload, Animate: true)));
+        await Mediator.Send(new GameState.RemoteTableChanged.Action(payload, Animate: true, CausedByOperationId: traceId)));
     }
     catch (Exception ex)
     {

@@ -1,5 +1,6 @@
 using BlazorState;
 using WebApp.Client.Pages.Game.Components;
+using WebApp.Client.Telemetry;
 using static Farkle.Contracts.HttpResponses;
 
 namespace WebApp.Client.Features;
@@ -12,7 +13,8 @@ public partial class GameState
     {
         // Animate is true only for a roll snapshot (#167) so spectators see the dice spin;
         // keeps / set-aside / put-back update the table without re-spinning.
-        public record Action(GameStateResponse Payload, bool Animate = false) : IAction;
+        public record Action(GameStateResponse Payload, bool Animate = false, string? CausedByOperationId = null)
+            : IAction, ICausedByBroadcast;
 
         public class Handler(IStore store) : ActionHandler<Action>(store)
         {

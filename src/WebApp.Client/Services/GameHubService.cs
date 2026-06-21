@@ -8,11 +8,11 @@ public sealed class GameHubService(HttpClient http) : IGameHubService
     private HubConnection? _connection;
     private int            _gameId;
 
-    public event Action<PassTurnResponse>? OnTurnChanged;
-    public event Action<LobbyStateResponse>? OnPlayerJoined;
-    public event Action<LobbyStateResponse>? OnGameBegan;
-    public event Action<GameStateResponse>? OnTableChanged;
-    public event Action<GameStateResponse>? OnDiceRolled;
+    public event Action<PassTurnResponse, string?>? OnTurnChanged;
+    public event Action<LobbyStateResponse, string?>? OnPlayerJoined;
+    public event Action<LobbyStateResponse, string?>? OnGameBegan;
+    public event Action<GameStateResponse, string?>? OnTableChanged;
+    public event Action<GameStateResponse, string?>? OnDiceRolled;
 
     public async Task ConnectAsync(int gameId)
     {
@@ -23,16 +23,17 @@ public sealed class GameHubService(HttpClient http) : IGameHubService
             .WithAutomaticReconnect()
             .Build();
 
-        _connection.On<PassTurnResponse>("TurnChanged",
-            payload => OnTurnChanged?.Invoke(payload));
-        _connection.On<LobbyStateResponse>("PlayerJoined",
-            payload => OnPlayerJoined?.Invoke(payload));
-        _connection.On<LobbyStateResponse>("GameBegan",
-            payload => OnGameBegan?.Invoke(payload));
-        _connection.On<GameStateResponse>("TableChanged",
-            payload => OnTableChanged?.Invoke(payload));
-        _connection.On<GameStateResponse>("DiceRolled",
-            payload => OnDiceRolled?.Invoke(payload));
+        // #221 — each broadcast carries the originating command's trace id as a second arg.
+        _connection.On<PassTurnResponse, string?>("TurnChanged",
+            (payload, traceId) => OnTurnChanged?.Invoke(payload, traceId));
+        _connection.On<LobbyStateResponse, string?>("PlayerJoined",
+            (payload, traceId) => OnPlayerJoined?.Invoke(payload, traceId));
+        _connection.On<LobbyStateResponse, string?>("GameBegan",
+            (payload, traceId) => OnGameBegan?.Invoke(payload, traceId));
+        _connection.On<GameStateResponse, string?>("TableChanged",
+            (payload, traceId) => OnTableChanged?.Invoke(payload, traceId));
+        _connection.On<GameStateResponse, string?>("DiceRolled",
+            (payload, traceId) => OnDiceRolled?.Invoke(payload, traceId));
 
         // After an automatic reconnect the connection has a *new* connection id, so
         // the server-side group membership (game-{gameId}) is lost. Re-join the game
