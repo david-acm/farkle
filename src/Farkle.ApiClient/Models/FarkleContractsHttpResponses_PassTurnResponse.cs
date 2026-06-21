@@ -28,6 +28,8 @@ namespace Farkle.ApiClient.Models
 #else
         public List<global::Farkle.ApiClient.Models.FarkleContractsHttpResponses_PlayerScore> Scoreboard { get; set; }
 #endif
+        /// <summary>The turnNumber property</summary>
+        public int? TurnNumber { get; set; }
         /// <summary>The winner property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
@@ -59,6 +61,7 @@ namespace Farkle.ApiClient.Models
                 { "newScore", n => { NewScore = n.GetIntValue(); } },
                 { "playerId", n => { PlayerId = n.GetIntValue(); } },
                 { "scoreboard", n => { Scoreboard = n.GetCollectionOfObjectValues<global::Farkle.ApiClient.Models.FarkleContractsHttpResponses_PlayerScore>(global::Farkle.ApiClient.Models.FarkleContractsHttpResponses_PlayerScore.CreateFromDiscriminatorValue)?.AsList(); } },
+                { "turnNumber", n => { TurnNumber = n.GetIntValue(); } },
                 { "winner", n => { Winner = n.GetObjectValue<global::Farkle.ApiClient.Models.FarkleContractsHttpResponses_WinnerResponse>(global::Farkle.ApiClient.Models.FarkleContractsHttpResponses_WinnerResponse.CreateFromDiscriminatorValue); } },
             };
         }
@@ -74,6 +77,7 @@ namespace Farkle.ApiClient.Models
             writer.WriteIntValue("newScore", NewScore);
             writer.WriteIntValue("playerId", PlayerId);
             writer.WriteCollectionOfObjectValues<global::Farkle.ApiClient.Models.FarkleContractsHttpResponses_PlayerScore>("scoreboard", Scoreboard);
+            writer.WriteIntValue("turnNumber", TurnNumber);
             writer.WriteObjectValue<global::Farkle.ApiClient.Models.FarkleContractsHttpResponses_WinnerResponse>("winner", Winner);
         }
     }

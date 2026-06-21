@@ -34,6 +34,8 @@ namespace Farkle.ApiClient.Models
 #else
         public string Stage { get; set; }
 #endif
+        /// <summary>The turnNumber property</summary>
+        public int? TurnNumber { get; set; }
         /// <summary>
         /// Creates a new instance of the appropriate class based on discriminator value
         /// </summary>
@@ -57,6 +59,7 @@ namespace Farkle.ApiClient.Models
                 { "hostPlayerId", n => { HostPlayerId = n.GetIntValue(); } },
                 { "roster", n => { Roster = n.GetCollectionOfObjectValues<global::Farkle.ApiClient.Models.FarkleContractsHttpResponses_LobbyPlayer>(global::Farkle.ApiClient.Models.FarkleContractsHttpResponses_LobbyPlayer.CreateFromDiscriminatorValue)?.AsList(); } },
                 { "stage", n => { Stage = n.GetStringValue(); } },
+                { "turnNumber", n => { TurnNumber = n.GetIntValue(); } },
             };
         }
         /// <summary>
@@ -71,6 +74,7 @@ namespace Farkle.ApiClient.Models
             writer.WriteIntValue("hostPlayerId", HostPlayerId);
             writer.WriteCollectionOfObjectValues<global::Farkle.ApiClient.Models.FarkleContractsHttpResponses_LobbyPlayer>("roster", Roster);
             writer.WriteStringValue("stage", Stage);
+            writer.WriteIntValue("turnNumber", TurnNumber);
         }
     }
 }

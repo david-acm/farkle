@@ -41,6 +41,12 @@ internal record GameState : State<GameState>
   public ImmutableArray<DieValue> DiceSetAside { get; private init; } = ImmutableArray<DieValue>.Empty;
   public int StraightsKeptThisTurn { get; private init; } = 0;
 
+  // #244 — a server-assigned, replay-derived turn ordinal. 0 before play begins; 1 once the game
+  // starts; increments on every TurnPassed. The single source of truth all players agree on, used
+  // as a telemetry entity key so a turn (and a game) can be reconstructed across players. Derived
+  // purely from events, so no event-schema change is needed.
+  public int TurnNumber { get; private init; } = 0;
+
   public ImmutableDictionary<int, int> ScoreTable { get; private init; } =
     ImmutableDictionary<int, int>.Empty;
 
@@ -138,7 +144,8 @@ internal record GameState : State<GameState>
       DiceKept = state.TableCenter.Clear(),
       DiceSetAside = ImmutableArray<DieValue>.Empty,
       StraightsKeptThisTurn = 0,
-      TurnScore = new Score(0)
+      TurnScore = new Score(0),
+      TurnNumber = state.TurnNumber + 1 // #244 — a pass advances to the next turn
     };
   }
 
@@ -193,7 +200,7 @@ internal record GameState : State<GameState>
 
   private static GameState HandleGamePlayStarted(GameState state, GameEvents.V1.GamePlayStarted e)
   {
-    return state with { GameStage = GameStage.Rolling };
+    return state with { GameStage = GameStage.Rolling, TurnNumber = 1 }; // #244 — first turn
   }
 
   private static GameState HandleGameWon(GameState state, GameEvents.V1.GameWon e)
