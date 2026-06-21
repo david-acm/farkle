@@ -39,7 +39,11 @@
 
     cut.FindAll(".dice-tray-die")[0].Click();
 
-    toggled.Should().BeSameAs(dice[0], "tapping a die raises OnToggle with that die");
+    // OnTapAsync dispatches OnToggle.InvokeAsync (async), so `toggled` is set on the renderer's
+    // dispatcher continuation — reading it synchronously raced and was intermittently null (#233).
+    // WaitForAssertion retries until the continuation runs, making the test deterministic.
+    cut.WaitForAssertion(() =>
+      toggled.Should().BeSameAs(dice[0], "tapping a die raises OnToggle with that die"));
   }
 
   [Fact]
