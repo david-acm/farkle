@@ -75,6 +75,20 @@
                 if (window.appInsights) {
                     window.appInsights.trackEvent({ name: name }, properties);
                 }
+            },
+            // #244 — start a fresh operation (new W3C trace id) so the next server request begins its
+            // own transaction (one operation per command, not per page). Setting telemetryTrace.traceID
+            // is the SDK-sanctioned reset; subsequent fetch dependencies adopt it as operation_Id and
+            // propagate it as traceparent. No-op when App Insights isn't loaded.
+            newOperation: function () {
+                var ai = window.appInsights;
+                if (!ai) return;
+                var ctx = (ai.context && ai.context.telemetryTrace)
+                       || (ai.properties && ai.properties.context && ai.properties.context.telemetryTrace);
+                if (!ctx) return;
+                function hex(n) { var s = ''; for (var i = 0; i < n; i++) s += (Math.random() * 16 | 0).toString(16); return s; }
+                ctx.traceID = hex(32);
+                ctx.parentID = hex(16);
             }
         };
     </script>

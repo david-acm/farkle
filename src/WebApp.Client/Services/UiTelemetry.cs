@@ -29,4 +29,14 @@ public sealed class UiTelemetry(IJSRuntime js) : IUiTelemetry
       // JS interop not available yet (prerender) — ignore.
     }
   }
+
+  public async Task StartOperationAsync()
+  {
+    try
+    {
+      await js.InvokeVoidAsync("farkleTelemetry.newOperation");
+    }
+    catch (JSException) { /* App Insights not loaded — best-effort. */ }
+    catch (InvalidOperationException) { /* prerender — best-effort. */ }
+  }
 }

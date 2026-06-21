@@ -1,4 +1,5 @@
 using BlazorState;
+using WebApp.Client.Telemetry;
 using WebApp.Client.Pages.Game.Components;
 using WebApp.Client.Services;
 
@@ -11,7 +12,7 @@ public partial class GameState
     // Carries the target selection state explicitly so the UI never mutates the tapped
     // die outside an action handler. Backwards-compatible single-arg form is kept for
     // callers (and tests) that already encode the selection on the die.
-    public record Action(DiceInfo Die, bool Selected) : IAction
+    public record Action(DiceInfo Die, bool Selected) : IAction, IServerCommandIntent
     {
       public Action(DiceInfo die) : this(die, die.IsSelected) { }
     }

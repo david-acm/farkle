@@ -1,4 +1,5 @@
 using BlazorState;
+using WebApp.Client.Telemetry;
 using WebApp.Client.Services;
 
 namespace WebApp.Client.Features;
@@ -7,7 +8,7 @@ public partial class GameState
 {
   public static class JoinPlayer
   {
-    public record Action(PlayerName PlayerName) : IAction;
+    public record Action(PlayerName PlayerName) : IAction, IServerCommandIntent;
 
     public class Handler(IStore store, IGameService service) : ActionHandler<Action>(store)
     {
