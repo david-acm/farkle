@@ -131,6 +131,26 @@ public class UiTelemetryBehaviorShould : IDisposable
     entry.Props["Failed"].Should().Be("true");
   }
 
+  [Fact]
+  public async Task StartANewOperation_ForServerBoundCommands()
+  {
+    // #244 — a server-bound command resets the App Insights operation before dispatch, so each
+    // command becomes its own transaction.
+    var behavior = new UiTelemetryBehavior<ServerCommandAction, Unit>(_telemetry.Object, Store);
+
+    await behavior.Handle(new ServerCommandAction(), () => Task.FromResult(Unit.Value), default);
+
+    _telemetry.Verify(t => t.StartOperationAsync(), Times.Once);
+  }
+
+  [Fact]
+  public async Task NotStartANewOperation_ForNonCommandActions()
+  {
+    await Sender.Send(new GameState.SetGameId.Action(new GameId(1)));
+
+    _telemetry.Verify(t => t.StartOperationAsync(), Times.Never);
+  }
+
   public void Dispose() => _scope.Dispose();
 
   // Test-only fakes for the direct-invocation tests above. They are never dispatched through the
@@ -140,5 +160,7 @@ public class UiTelemetryBehaviorShould : IDisposable
   public record InternalNoiseAction : IAction, IInternalAction;
 
   public record ThrowingAction : IAction;
+
+  public record ServerCommandAction : IAction, IServerCommandIntent;
 #pragma warning restore TW0001
 }

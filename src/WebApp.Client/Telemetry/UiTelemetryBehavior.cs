@@ -28,6 +28,13 @@ public sealed class UiTelemetryBehavior<TRequest, TResponse>(IUiTelemetry teleme
     if (request is not IAction || request is IInternalAction)
       return await next();
 
+    // #244 — a server-bound command starts its own App Insights operation, so the command's request
+    // → events → broadcast form one transaction (and the UI.* event tracked below joins it) rather
+    // than sharing the page's operation_Id. Done before next() so the handler's fetch adopts the new
+    // trace id.
+    if (request is IServerCommandIntent)
+      await telemetry.StartOperationAsync();
+
     var failed = false;
     try
     {

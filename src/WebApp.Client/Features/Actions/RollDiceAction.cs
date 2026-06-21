@@ -1,4 +1,5 @@
 ﻿using BlazorState;
+using WebApp.Client.Telemetry;
 using WebApp.Client.Pages.Game.Components;
 using WebApp.Client.Services;
 
@@ -8,7 +9,7 @@ public partial class GameState
 {
   public class RollDice
   {
-    public record Action() : IAction;
+    public record Action() : IAction, IServerCommandIntent;
     
     public class Handler(IStore store, IGameService service, ILogger<RollDice> logger) 
       : ActionHandler<Action>(store)

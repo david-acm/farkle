@@ -19,4 +19,12 @@ public interface IUiTelemetry
   /// <c>"UI.RollDice"</c>); <paramref name="properties"/> are queryable string dimensions.
   /// </summary>
   Task TrackIntentAsync(string name, IReadOnlyDictionary<string, string?> properties);
+
+  /// <summary>
+  /// #244 — starts a fresh App Insights operation (a new trace id) so the next server request
+  /// begins its own transaction. Called before a server-bound command so each command → events →
+  /// broadcast is one transaction rather than sharing the page's operation_Id. No-op when App
+  /// Insights isn't loaded.
+  /// </summary>
+  Task StartOperationAsync();
 }
