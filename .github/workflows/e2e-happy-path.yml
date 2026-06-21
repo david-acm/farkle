@@ -282,7 +282,7 @@ jobs:
         # Infra failures before Playwright runs leave no artifact; we still want
         # to publish a run page with failure metadata, so don't fail the job.
         continue-on-error: true
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: e2e-videos-${{ github.run_id }}
           path: videos
