@@ -16,7 +16,9 @@ public static class HttpResponses
     string Stage,
     IReadOnlyList<LobbyPlayer> Roster,
     int HostPlayerId,
-    int CurrentPlayerId);
+    int CurrentPlayerId,
+    // #244 — server-assigned turn ordinal (0 in the lobby, 1 once play begins); telemetry entity key.
+    int TurnNumber = 0);
 
   public record PlayerScore(int PlayerId, string Name, int Score, string Color = "");
   
@@ -29,7 +31,7 @@ public static class HttpResponses
   
   public record StartGameResponse(int Id);
 
-  public record PassTurnResponse(int GameId, int PlayerId, int NewScore, WinnerResponse? Winner, int CurrentPlayerId = 0, IReadOnlyList<PlayerScore>? Scoreboard = null);
+  public record PassTurnResponse(int GameId, int PlayerId, int NewScore, WinnerResponse? Winner, int CurrentPlayerId = 0, IReadOnlyList<PlayerScore>? Scoreboard = null, int TurnNumber = 0);
 
   public record WinnerResponse(int PlayerId, string Name, int Score);
 
@@ -47,5 +49,7 @@ public static class HttpResponses
     IReadOnlyList<int> DiceKept,
     // #159 — the in-turn player's transient set-aside selection (overlays TableCenter),
     // so spectators can render the live keep selection and a refresh restores it.
-    IReadOnlyList<int> DiceSetAside);
+    IReadOnlyList<int> DiceSetAside,
+    // #244 — server-assigned turn ordinal; telemetry entity key carried to spectators on broadcasts.
+    int TurnNumber = 0);
 }

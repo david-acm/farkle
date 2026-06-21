@@ -58,6 +58,8 @@ namespace Farkle.ApiClient.Models
 #else
         public List<int?> TableCenter { get; set; }
 #endif
+        /// <summary>The turnNumber property</summary>
+        public int? TurnNumber { get; set; }
         /// <summary>The turnScore property</summary>
         public int? TurnScore { get; set; }
         /// <summary>The winner property</summary>
@@ -94,6 +96,7 @@ namespace Farkle.ApiClient.Models
                 { "scoreboard", n => { Scoreboard = n.GetCollectionOfObjectValues<global::Farkle.ApiClient.Models.FarkleContractsHttpResponses_PlayerScore>(global::Farkle.ApiClient.Models.FarkleContractsHttpResponses_PlayerScore.CreateFromDiscriminatorValue)?.AsList(); } },
                 { "stage", n => { Stage = n.GetStringValue(); } },
                 { "tableCenter", n => { TableCenter = n.GetCollectionOfPrimitiveValues<int?>()?.AsList(); } },
+                { "turnNumber", n => { TurnNumber = n.GetIntValue(); } },
                 { "turnScore", n => { TurnScore = n.GetIntValue(); } },
                 { "winner", n => { Winner = n.GetObjectValue<global::Farkle.ApiClient.Models.FarkleContractsHttpResponses_WinnerResponse>(global::Farkle.ApiClient.Models.FarkleContractsHttpResponses_WinnerResponse.CreateFromDiscriminatorValue); } },
             };
@@ -113,6 +116,7 @@ namespace Farkle.ApiClient.Models
             writer.WriteCollectionOfObjectValues<global::Farkle.ApiClient.Models.FarkleContractsHttpResponses_PlayerScore>("scoreboard", Scoreboard);
             writer.WriteStringValue("stage", Stage);
             writer.WriteCollectionOfPrimitiveValues<int?>("tableCenter", TableCenter);
+            writer.WriteIntValue("turnNumber", TurnNumber);
             writer.WriteIntValue("turnScore", TurnScore);
             writer.WriteObjectValue<global::Farkle.ApiClient.Models.FarkleContractsHttpResponses_WinnerResponse>("winner", Winner);
         }

@@ -497,6 +497,10 @@
           "currentPlayerId": {
             "type": "integer",
             "format": "int32"
+          },
+          "turnNumber": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },
@@ -583,6 +587,10 @@
               "type": "integer",
               "format": "int32"
             }
+          },
+          "turnNumber": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },
@@ -725,6 +733,10 @@
             "items": {
               "$ref": "#/components/schemas/FarkleContractsHttpResponses_PlayerScore"
             }
+          },
+          "turnNumber": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },

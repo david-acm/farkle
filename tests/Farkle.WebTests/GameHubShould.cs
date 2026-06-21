@@ -98,6 +98,7 @@ public class GameHubShould : IClassFixture<GameApiWebAppFactory>
         Assert.NotNull(received);
         Assert.Equal(2, received!.CurrentPlayerId); // turn rotated to player 2
         Assert.Equal(gameId, received.GameId);
+        Assert.Equal(2, received.TurnNumber);       // #244 — began on turn 1, one pass → turn 2
 
         await connection.DisposeAsync();
     }
