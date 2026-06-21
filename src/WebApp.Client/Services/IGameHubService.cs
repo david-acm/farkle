@@ -4,11 +4,14 @@ namespace WebApp.Client.Services;
 
 public interface IGameHubService : IAsyncDisposable
 {
-    event Action<PassTurnResponse>? OnTurnChanged;
-    event Action<LobbyStateResponse>? OnPlayerJoined;
-    event Action<LobbyStateResponse>? OnGameBegan;
-    event Action<GameStateResponse>? OnTableChanged;
-    event Action<GameStateResponse>? OnDiceRolled;
+    // #221 — the second arg is the originating command's trace id (App Insights operation_Id),
+    // propagated from the server broadcast so the client links its UI update back to the command.
+    // Null when server-side tracing is off.
+    event Action<PassTurnResponse, string?>? OnTurnChanged;
+    event Action<LobbyStateResponse, string?>? OnPlayerJoined;
+    event Action<LobbyStateResponse, string?>? OnGameBegan;
+    event Action<GameStateResponse, string?>? OnTableChanged;
+    event Action<GameStateResponse, string?>? OnDiceRolled;
     Task ConnectAsync(int gameId);
     Task DisconnectAsync();
 }

@@ -64,19 +64,20 @@ public class GameBunitContext : BunitContext, Xunit.IAsyncLifetime
 
   public class TestHubService : IGameHubService, IDisposable
   {
-    public event Action<PassTurnResponse>? OnTurnChanged;
-    public event Action<LobbyStateResponse>? OnPlayerJoined;
-    public event Action<LobbyStateResponse>? OnGameBegan;
-    public event Action<GameStateResponse>? OnTableChanged;
-    public event Action<GameStateResponse>? OnDiceRolled;
+    // #221 — second arg is the originating command's trace id (null in tests unless specified).
+    public event Action<PassTurnResponse, string?>? OnTurnChanged;
+    public event Action<LobbyStateResponse, string?>? OnPlayerJoined;
+    public event Action<LobbyStateResponse, string?>? OnGameBegan;
+    public event Action<GameStateResponse, string?>? OnTableChanged;
+    public event Action<GameStateResponse, string?>? OnDiceRolled;
     public Task ConnectAsync(int gameId) => Task.CompletedTask;
     public Task DisconnectAsync() => Task.CompletedTask;
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     public void Dispose() { }
-    public void RaiseTurnChanged(PassTurnResponse payload) => OnTurnChanged?.Invoke(payload);
-    public void RaisePlayerJoined(LobbyStateResponse payload) => OnPlayerJoined?.Invoke(payload);
-    public void RaiseGameBegan(LobbyStateResponse payload) => OnGameBegan?.Invoke(payload);
-    public void RaiseTableChanged(GameStateResponse payload) => OnTableChanged?.Invoke(payload);
-    public void RaiseDiceRolled(GameStateResponse payload) => OnDiceRolled?.Invoke(payload);
+    public void RaiseTurnChanged(PassTurnResponse payload, string? traceId = null) => OnTurnChanged?.Invoke(payload, traceId);
+    public void RaisePlayerJoined(LobbyStateResponse payload, string? traceId = null) => OnPlayerJoined?.Invoke(payload, traceId);
+    public void RaiseGameBegan(LobbyStateResponse payload, string? traceId = null) => OnGameBegan?.Invoke(payload, traceId);
+    public void RaiseTableChanged(GameStateResponse payload, string? traceId = null) => OnTableChanged?.Invoke(payload, traceId);
+    public void RaiseDiceRolled(GameStateResponse payload, string? traceId = null) => OnDiceRolled?.Invoke(payload, traceId);
   }
 }

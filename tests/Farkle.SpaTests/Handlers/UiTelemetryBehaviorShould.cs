@@ -70,6 +70,29 @@ public class UiTelemetryBehaviorShould : IDisposable
   }
 
   [Fact]
+  public async Task LinkBroadcastActionsToTheOriginatingCommandTrace()
+  {
+    // #221 — a broadcast-triggered action carries the originating command's trace id; the UI event
+    // links back to it via causedByOperationId (without overwriting this client's own operation id).
+    var payload = new PassTurnResponse(GameId: 7, PlayerId: 1, NewScore: 0, Winner: null, CurrentPlayerId: 2);
+
+    await Sender.Send(new GameState.RemoteTurnChanged.Action(payload, CausedByOperationId: "abc123trace"));
+
+    var entry = _tracked.Should().ContainSingle(e => e.Name == "UI.RemoteTurnChanged").Subject;
+    entry.Props["causedByOperationId"].Should().Be("abc123trace");
+  }
+
+  [Fact]
+  public async Task OmitTheCorrelationProp_WhenNoOriginatingTrace()
+  {
+    // Tracing off server-side → null trace id → the property is simply absent (not empty).
+    await Sender.Send(new GameState.SetGameId.Action(new GameId(42)));
+
+    var entry = _tracked.Should().ContainSingle().Subject;
+    entry.Props.Should().NotContainKey("causedByOperationId");
+  }
+
+  [Fact]
   public async Task NotTrackActionsMarkedInternal()
   {
     var behavior = new UiTelemetryBehavior<InternalNoiseAction, Unit>(_telemetry.Object, Store);

@@ -55,11 +55,19 @@ public sealed class UiTelemetryBehavior<TRequest, TResponse>(IUiTelemetry teleme
     // Post-action state: ids reflect the action's effect (e.g. GameId after CreateGame), which is
     // what we want for correlation.
     var state = store.GetState<GameState>();
-    await telemetry.TrackIntentAsync($"UI.{intent}", new Dictionary<string, string?>
+    var props = new Dictionary<string, string?>
     {
       ["GameId"]   = state.GameId.Value.ToString(),
       ["PlayerId"] = state.PlayerId.Value.ToString(),
       ["Failed"]   = failed ? "true" : "false",
-    });
+    };
+
+    // #221 — a broadcast-triggered action links back to the originating command's trace id, so a
+    // KQL join reconstructs "player A's command → player B's screen" without overwriting this
+    // client's own session operation_Id.
+    if (request is ICausedByBroadcast { CausedByOperationId: { Length: > 0 } causedBy })
+      props["causedByOperationId"] = causedBy;
+
+    await telemetry.TrackIntentAsync($"UI.{intent}", props);
   }
 }

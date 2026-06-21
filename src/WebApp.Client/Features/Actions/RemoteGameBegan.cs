@@ -1,4 +1,5 @@
 using BlazorState;
+using WebApp.Client.Telemetry;
 using static Farkle.Contracts.HttpResponses;
 
 namespace WebApp.Client.Features;
@@ -7,7 +8,8 @@ public partial class GameState
 {
   public static class RemoteGameBegan
   {
-    public record Action(LobbyStateResponse Payload) : IAction;
+    public record Action(LobbyStateResponse Payload, string? CausedByOperationId = null)
+      : IAction, ICausedByBroadcast;
 
     public class Handler(IStore store) : ActionHandler<Action>(store)
     {

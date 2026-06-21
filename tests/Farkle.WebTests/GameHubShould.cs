@@ -61,7 +61,8 @@ public class GameHubShould : IClassFixture<GameApiWebAppFactory>
 
         PassTurnResponse? received = null;
         var tcs = new TaskCompletionSource<PassTurnResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
-        connection.On<PassTurnResponse>("TurnChanged", payload =>
+        // #221 — broadcasts carry a second arg (the originating command's trace id); ignore it here.
+        connection.On<PassTurnResponse, string?>("TurnChanged", (payload, _) =>
         {
             received = payload;
             tcs.TrySetResult(payload);
@@ -115,7 +116,7 @@ public class GameHubShould : IClassFixture<GameApiWebAppFactory>
             .Build();
 
         var tcs = new TaskCompletionSource<GameStateResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
-        connection.On<GameStateResponse>("DiceRolled", payload => tcs.TrySetResult(payload));
+        connection.On<GameStateResponse, string?>("DiceRolled", (payload, _) => tcs.TrySetResult(payload));
 
         await connection.StartAsync();
         await connection.InvokeAsync("JoinGame", gameId);
@@ -161,7 +162,7 @@ public class GameHubShould : IClassFixture<GameApiWebAppFactory>
 
         // Capture the broadcast once the whole best-trick selection has been set aside.
         var tcs = new TaskCompletionSource<GameStateResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
-        connection.On<GameStateResponse>("TableChanged", payload =>
+        connection.On<GameStateResponse, string?>("TableChanged", (payload, _) =>
         {
             if (payload.DiceSetAside.Count >= bestKeep.Count) tcs.TrySetResult(payload);
         });
@@ -219,7 +220,7 @@ public class GameHubShould : IClassFixture<GameApiWebAppFactory>
             .Build();
 
         var tcs = new TaskCompletionSource<LobbyStateResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
-        connection.On<LobbyStateResponse>("PlayerJoined", payload => tcs.TrySetResult(payload));
+        connection.On<LobbyStateResponse, string?>("PlayerJoined", (payload, _) => tcs.TrySetResult(payload));
 
         await connection.StartAsync();
         await connection.InvokeAsync("JoinGame", gameId);
@@ -249,7 +250,7 @@ public class GameHubShould : IClassFixture<GameApiWebAppFactory>
             .Build();
 
         var tcs = new TaskCompletionSource<LobbyStateResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
-        connection.On<LobbyStateResponse>("GameBegan", payload => tcs.TrySetResult(payload));
+        connection.On<LobbyStateResponse, string?>("GameBegan", (payload, _) => tcs.TrySetResult(payload));
 
         await connection.StartAsync();
         await connection.InvokeAsync("JoinGame", gameId);
