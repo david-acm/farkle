@@ -1,6 +1,8 @@
 using Eventuous;
 using Farkle.Domain.GameAggregate;
 using Microsoft.AspNetCore.Http;
+using Polly;
+using Polly.Retry;
 using static Eventuous.ExpectedState;
 
 namespace Farkle.Application;
@@ -10,6 +12,27 @@ internal class GameService
     IGameService
 {
   private readonly IEventStore _store;
+
+  // #237 — retry play commands on an optimistic-concurrency conflict. Rapid same-game commands
+  // (e.g. two tap-to-set-aside POSTs then a keep) can race on the aggregate's stream: the loser's
+  // append is rejected with WrongExpectedVersion (surfaced as OptimisticConcurrencyException) and
+  // writes NOTHING — ESDB's expected-version check is atomic — so reloading and re-applying is
+  // safe and never duplicates events. CommandService.Handle reloads every call, so each retry sees
+  // the concurrent change and re-validates; a command that's genuinely invalid after reload yields
+  // a domain error event instead (not a conflict, so it isn't retried). StartGame is NOT routed
+  // through here (see TryStartGameAsync) — its conflict means "id already taken", handled there.
+  private static readonly ResiliencePipeline<Result<GameState>> ConflictRetry =
+    new ResiliencePipelineBuilder<Result<GameState>>()
+      .AddRetry(new RetryStrategyOptions<Result<GameState>>
+      {
+        ShouldHandle = args => ValueTask.FromResult(
+          args.Outcome.Result?.Exception is OptimisticConcurrencyException),
+        MaxRetryAttempts = 5,
+        Delay           = TimeSpan.FromMilliseconds(15),
+        BackoffType     = DelayBackoffType.Exponential,
+        UseJitter       = true,
+      })
+      .Build();
 
   public GameService(IEventStore store, IRandom random)
     : base(store, factoryRegistry: CreateAggregateFactory(random))
@@ -101,7 +124,10 @@ internal class GameService
     where TResponse : class
     where TCommand : class
   {
-    var result = await base.Handle(command, cancellationToken);
+    // Retry transparently on optimistic-concurrency conflicts (#237). base.Handle reloads the
+    // aggregate each attempt, so the retry re-applies the command against the latest state.
+    var result = await ConflictRetry.ExecuteAsync(
+      async ct => await base.Handle(command, ct), cancellationToken);
 
     // 0.15.1: the emitted events live on the success case (Result<TState>.Ok.Changes).
     // Scan them for domain error events (IErrorEvent) so a rejected command becomes an HTTP error.
