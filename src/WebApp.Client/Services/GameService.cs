@@ -49,7 +49,8 @@ public class GameService : IGameService
       response?.Stage ?? "",
       ToRoster(response?.Roster) ?? [],
       response?.HostPlayerId ?? 0,
-      response?.CurrentPlayerId ?? 0);
+      response?.CurrentPlayerId ?? 0,
+      response?.TurnNumber ?? 0);
   }
 
   private static IReadOnlyList<LobbyPlayer>? ToRoster(
@@ -123,7 +124,8 @@ public class GameService : IGameService
         : new WinnerResponse(r.Winner.PlayerId ?? 0, r.Winner.Name ?? "", r.Winner.Score ?? 0),
       TableCenter: (r.TableCenter ?? []).Select(v => v ?? 0).ToArray(),
       DiceKept: (r.DiceKept ?? []).Select(v => v ?? 0).ToArray(),
-      DiceSetAside: (r.DiceSetAside ?? []).Select(v => v ?? 0).ToArray());
+      DiceSetAside: (r.DiceSetAside ?? []).Select(v => v ?? 0).ToArray(),
+      TurnNumber: r.TurnNumber ?? 0);
   }
 
   private static PassTurnResponse ToPassTurnResponse(KiotaModels.FarkleContractsHttpResponses_PassTurnResponse? r)
@@ -135,6 +137,6 @@ public class GameService : IGameService
       : new WinnerResponse(r.Winner.PlayerId ?? 0, r.Winner.Name ?? "", r.Winner.Score ?? 0);
     return new PassTurnResponse(
       r?.GameId ?? 0, r?.PlayerId ?? 0, r?.NewScore ?? 0,
-      winner, r?.CurrentPlayerId ?? 0, scoreboard);
+      winner, r?.CurrentPlayerId ?? 0, scoreboard, r?.TurnNumber ?? 0);
   }
 }

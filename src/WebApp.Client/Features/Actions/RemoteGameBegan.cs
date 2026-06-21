@@ -21,6 +21,7 @@ public partial class GameState
         State.GameStage       = p.Stage;
         State.CurrentPlayerId = p.CurrentPlayerId;
         State.HostPlayerId    = p.HostPlayerId;
+        State.TurnNumber      = p.TurnNumber; // #244
         State.Scoreboard      = p.Roster
           .Select(lp => new PlayerStanding(lp.PlayerId, lp.Name, 0, lp.Color))
           .ToList();

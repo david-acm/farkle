@@ -28,6 +28,7 @@ public partial class GameState
         State.PlayerId        = new PlayerId(action.PlayerId);
         State.PlayerName      = new PlayerName(action.PlayerName);
         State.CurrentPlayerId = snapshot.CurrentPlayerId;
+        State.TurnNumber      = snapshot.TurnNumber; // #244
         State.GameStage       = snapshot.Stage;
         State.HostPlayerId    = snapshot.HostPlayerId;
         State.WinnerName      = snapshot.Winner?.Name;

@@ -84,6 +84,7 @@ public partial class GameState
                 State.DiceInPlay = dice;
                 State.TurnScore       = new(p.TurnScore);
                 State.CurrentPlayerId = p.CurrentPlayerId;
+                State.TurnNumber      = p.TurnNumber; // #244 — keep spectators' turn ordinal current
                 State.Scoreboard = (p.Scoreboard ?? [])
                     .Select(s => new PlayerStanding(s.PlayerId, s.Name, s.Score, s.Color))
                     .ToList();

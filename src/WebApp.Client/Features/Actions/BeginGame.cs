@@ -21,6 +21,7 @@ public partial class GameState
         State.GameStage       = lobby.Stage;
         State.CurrentPlayerId = lobby.CurrentPlayerId;
         State.HostPlayerId    = lobby.HostPlayerId;
+        State.TurnNumber      = lobby.TurnNumber; // #244
         State.Scoreboard      = lobby.Roster
           .Select(p => new PlayerStanding(p.PlayerId, p.Name, 0, p.Color))
           .ToList();

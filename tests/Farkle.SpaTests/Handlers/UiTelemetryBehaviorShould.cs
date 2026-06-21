@@ -70,6 +70,19 @@ public class UiTelemetryBehaviorShould : IDisposable
   }
 
   [Fact]
+  public async Task StampTheTurnEntityKey()
+  {
+    // #244 — a turn-boundary action updates State.TurnNumber, which the behavior stamps as turnId.
+    var payload = new PassTurnResponse(GameId: 7, PlayerId: 1, NewScore: 0, Winner: null,
+      CurrentPlayerId: 2, Scoreboard: null, TurnNumber: 5);
+
+    await Sender.Send(new GameState.RemoteTurnChanged.Action(payload));
+
+    var entry = _tracked.Should().ContainSingle().Subject;
+    entry.Props["turnId"].Should().Be("5");
+  }
+
+  [Fact]
   public async Task LinkBroadcastActionsToTheOriginatingCommandTrace()
   {
     // #221 — a broadcast-triggered action carries the originating command's trace id; the UI event
