@@ -1,15 +1,30 @@
 @page "/about"
 
-<MudStack>
-  <MudText Class="mt-6"
-           Typo="Typo.h3">
-    Hey, Thanks for visiting!
-  </MudText>
+<PageTitle>About Farkle</PageTitle>
+
+<MudStack Class="pa-2" Style="max-width: 640px">
+  <MudText Typo="Typo.h4" Class="mt-2">About</MudText>
+
   <MudText Typo="Typo.body1">
-    Farkle.Domain is game based on the popular dice game Farkle.Domain. This game was created to serve as an example of how to build applications using Event Sourcing. You can find the source for this app in github at <MudLink Href="https://github.com/david-acm/Farkle.Domain">david-acm/Farkle.Domain.</MudLink>
-    <MudText Class="mt-3"
-             Typo="Typo.body1">
-      Feel free to open any issues, reach out for classes an or training. Thanks for visiting and playing.
-    </MudText>
+    <strong>Farkle</strong> is a real-time, multiplayer take on the classic push-your-luck dice
+    game. It doubles as a working sample of <strong>event sourcing</strong>, CQRS and clean
+    architecture on .NET — every move is an immutable event, and the read model and live UI are
+    projected from that event stream.
+  </MudText>
+
+  <MudText Typo="Typo.body2">
+    Built with .NET 10, Blazor (Server host + WebAssembly client) and MudBlazor, backed by
+    EventStoreDB and PostgreSQL, with real-time turn updates over SignalR. The source is on
+    <MudLink Href="https://github.com/david-acm/farkle" Target="_blank">github.com/david-acm/farkle</MudLink>.
+  </MudText>
+
+  <MudText Typo="Typo.body2">
+    See what's changed in the <MudLink Href="release-notes">release notes</MudLink>, or
+    <MudLink Href="https://github.com/david-acm/farkle/issues" Target="_blank">open an issue</MudLink>.
+    Thanks for visiting and playing!
+  </MudText>
+
+  <MudText Typo="Typo.caption" Class="mt-3" data-testid="app-version">
+    Version @AppVersion.Current
   </MudText>
 </MudStack>
