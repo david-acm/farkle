@@ -99,8 +99,12 @@
                         duration: 0, success: true, responseCode: 0
                     });
                 } catch (e) { /* best-effort */ }
-                // Subsequent fetch (and the UI.* customEvent) now nest under the UI-action span.
-                ctx.parentID = spanId;
+                // #250 — the SDK stores the dependency's id in its legacy hierarchical form with a
+                // TRAILING DOT (e.g. "<spanId>."), but a child's operation_ParentId is whatever we put
+                // in telemetryTrace.parentID verbatim. So children must reference "<spanId>." (with the
+                // dot) to match the UI-action span's stored id — otherwise the span renders detached at
+                // the top of the transaction instead of as the parent of the fetch.
+                ctx.parentID = spanId + ".";
             }
         };
     </script>
