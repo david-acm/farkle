@@ -1,7 +1,8 @@
 namespace Farkle.SharedKernel.Scoring;
 
-// The scoring trick a set of kept dice satisfies. Names reflect the rules; the legacy domain
-// validators called the four-of-a-kind "straight" and the 1-6 run a "stair".
+// A single scoring component of a kept selection. Names reflect the rules; the legacy domain
+// validators called the four-of-a-kind a "straight" and the 1-6 run a "stair". Lone 1s/5s are
+// their own components (Ones / Fives) so a selection can read e.g. "ones + 3 of a kind" (#274).
 public enum ScoringTrick
 {
     None,
@@ -9,18 +10,16 @@ public enum ScoringTrick
     TwoTriplets,   // six dice = two three-of-a-kinds (e.g. 2,2,2,5,5,5) → 2500
     ThreePairs,    // six dice that form three pairs (all value-counts even) → 1500
     FiveOfAKind,   // five dice of the same value            → 2000 (#35)
-    FourOfAKind,   // four dice of the same value          → 1000
+    FourOfAKind,   // four dice of the same value            → 1000
     ThreeOfAKind,  // three of a kind → face×100, but three 1s → 1000 (#177)
-    OnesAndFives,  // any mix of 1s and 5s → 100 per 1 + 50 per 5
-    Run            // a full 1-6 run (all six unique)       → 1500
+    Ones,          // leftover single 1s → 100 each
+    Fives,         // leftover single 5s → 50 each
+    Run            // a full 1-6 run (all six unique)        → 1500
 }
 
-// The points and component tricks a kept selection is worth. `Tricks` lists every scoring
-// component, highest-first (a single-trick keep has one; a multi-trick keep — e.g. a
-// three-of-a-kind plus a pair of 5s — lists each). `Trick` is the primary (highest) component
-// for back-compat, or None when nothing scores.
+// The points a kept selection is worth and the component tricks it is made of, listed in
+// ascending die-value order (e.g. {1,3,3,3} → [Ones, ThreeOfAKind]).
 public readonly record struct ScoreBreakdown(
-    ScoringTrick Trick,
     int Points,
     bool CanKeep,
     IReadOnlyList<ScoringTrick> Tricks);
@@ -41,8 +40,7 @@ public static class ScoreCalculator
     public static ScoreBreakdown Evaluate(IReadOnlyList<int> dice)
     {
         var (points, tricks) = BestScoring(dice);
-        var primary = tricks.Count > 0 ? tricks[0] : ScoringTrick.None;
-        return new ScoreBreakdown(primary, points, points > 0, tricks);
+        return new ScoreBreakdown(points, points > 0, tricks);
     }
 
     // A set is keepable iff at least one die scores. This is the lenient "is there anything
@@ -71,36 +69,39 @@ public static class ScoreCalculator
     }
 
     // Sums each face's largest n-of-a-kind (atomic — four 1s stays a four-of-a-kind, not 3+1)
-    // plus any leftover single 1s/5s (as one ones-and-fives component). Non-scoring "dead" dice
-    // (a 2/3/4/6 with fewer than three of it) simply contribute nothing. Returns (0, []) when
-    // nothing scores. Components are ordered highest-first.
+    // plus any leftover single 1s/5s (as Ones / Fives components). Non-scoring "dead" dice (a
+    // 2/3/4/6 with fewer than three of it) contribute nothing. Faces are walked in ascending
+    // value order, so the component list reads low-to-high (e.g. [Ones, ThreeOfAKind]).
     private static (int Points, IReadOnlyList<ScoringTrick> Tricks) Decompose(IReadOnlyList<int> dice)
     {
-        var components = new List<(int Points, ScoringTrick Trick)>();
-        var singlesPoints = 0;
-        var hasSingles = false;
+        var components = new List<ScoringTrick>();
+        var points = 0;
 
-        foreach (var group in dice.GroupBy(d => d))
+        for (var value = 1; value <= 6; value++)
         {
-            var value = group.Key;
-            var count = group.Count();
+            var count = dice.Count(d => d == value);
+            if (count == 0) continue;
 
             if (count >= 3)
             {
-                components.Add(NOfAKind(value, count));
+                var (p, trick) = NOfAKind(value, count);
+                points += p;
+                components.Add(trick);
             }
-            else if (value is 1 or 5)
+            else if (value == 1)
             {
-                singlesPoints += value == 1 ? count * 100 : count * 50;
-                hasSingles = true;
+                points += count * 100;
+                components.Add(ScoringTrick.Ones);
             }
-            // else: a 2/3/4/6 without three of a kind scores nothing — skip it.
+            else if (value == 5)
+            {
+                points += count * 50;
+                components.Add(ScoringTrick.Fives);
+            }
+            // else: a 2/3/4/6 with fewer than three of it scores nothing — skip it.
         }
 
-        if (hasSingles) components.Add((singlesPoints, ScoringTrick.OnesAndFives));
-
-        var ordered = components.OrderByDescending(c => c.Points).ToList();
-        return (ordered.Sum(c => c.Points), ordered.Select(c => c.Trick).ToArray());
+        return (points, components);
     }
 
     // The score and trick for n dice of the same value (n >= 3): three of a kind is face×100
