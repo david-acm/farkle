@@ -156,7 +156,7 @@ internal class Game : Aggregate<GameState>
     var breakdown = ScoreCalculator.Evaluate(diceKept.Select(d => d.Value).ToList());
     var turnScore = breakdown.Points;
 
-    if (breakdown.Trick == ScoringTrick.FourOfAKind && state.StraightsKeptThisTurn > 0)
+    if (breakdown.Tricks.Contains(ScoringTrick.FourOfAKind) && state.StraightsKeptThisTurn > 0)
       return new Score((currentScore + turnScore) * 2);
 
     return new Score(currentScore + turnScore);

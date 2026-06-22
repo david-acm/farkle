@@ -6,6 +6,14 @@ namespace WebApp.Client.Pages.Game.Components;
 // scoring reference page so the labels never drift.
 public static class ScoringTrickDisplay
 {
+  // #270 — a selection can hold several tricks (e.g. a three-of-a-kind plus a pair of 5s); show
+  // them all, highest-first, joined with " + ". Falls back to the primary trick's name when the
+  // component list is empty (e.g. a non-scoring selection).
+  public static string ToDisplayName(this ScoreBreakdown breakdown) =>
+    breakdown.Tricks.Count > 0
+      ? string.Join(" + ", breakdown.Tricks.Select(t => t.ToDisplayName()))
+      : breakdown.Trick.ToDisplayName();
+
   public static string ToDisplayName(this ScoringTrick trick) => trick switch
   {
     ScoringTrick.SixOfAKind   => "Six of a kind",

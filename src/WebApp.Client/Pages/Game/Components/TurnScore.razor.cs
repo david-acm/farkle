@@ -16,5 +16,6 @@ public partial class TurnScore : GameStateComponent
   // True when the selection forms a scoring trick worth keeping.
   private bool PreviewScores => Preview.CanKeep && Preview.Points > 0;
 
-  private string PreviewLabel => Preview.Trick.ToDisplayName();
+  // Lists every component trick in the selection (e.g. "Three of a kind + Ones & fives", #270).
+  private string PreviewLabel => Preview.ToDisplayName();
 }

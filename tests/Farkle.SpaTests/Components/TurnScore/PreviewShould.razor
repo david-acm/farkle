@@ -33,6 +33,25 @@
   }
 
   [Fact]
+  public void ListEveryTrickAndTheSummedPoints_ForAMultiTrickSelection()
+  {
+    // #270 — selecting a three-of-a-kind plus a pair of 5s lists both tricks and the sum.
+    var store = SetUp();
+    var state = store.GetState<GameState>();
+    state.DiceInPlay.Clear();
+    state.DiceInPlay.Add(DiceInfo.Selected(0, DieValue.Two));
+    state.DiceInPlay.Add(DiceInfo.Selected(1, DieValue.Two));
+    state.DiceInPlay.Add(DiceInfo.Selected(2, DieValue.Two));
+    state.DiceInPlay.Add(DiceInfo.Selected(3, DieValue.Five));
+    state.DiceInPlay.Add(DiceInfo.Selected(4, DieValue.Five));
+
+    var cut = Render(@<TurnScore></TurnScore>);
+
+    cut.Find("[data-testid='selection-preview']").TextContent
+      .Should().Contain("Three of a kind").And.Contain("Ones & fives").And.Contain("+300");
+  }
+
+  [Fact]
   public void ShowNoScore_ForANonScoringSelection()
   {
     var store = SetUp();
