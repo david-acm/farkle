@@ -463,5 +463,16 @@ public class KeepDiceShould : GameWithThreePlayersTest
       "six 2s should add 3000", new[] { 2, 2, 2, 2, 2, 2 },
       new[] { DieValue.Two, DieValue.Two, DieValue.Two, DieValue.Two, DieValue.Two, DieValue.Two }, 3000
     };
+    // #270 — keeping multiple tricks in one keep scores the sum.
+    yield return new object[]
+    {
+      "three 2s + two 5s should add 400", new[] { 2, 2, 2, 5, 5, 4 },
+      new[] { DieValue.Two, DieValue.Two, DieValue.Two, DieValue.Five, DieValue.Five }, 400
+    };
+    yield return new object[]
+    {
+      "three 3s + one 1 should add 400", new[] { 3, 3, 3, 1, 4, 6 },
+      new[] { DieValue.Three, DieValue.Three, DieValue.Three, DieValue.One }, 400
+    };
   }
 }

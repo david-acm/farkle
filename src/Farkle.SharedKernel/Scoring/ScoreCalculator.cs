@@ -15,7 +15,15 @@ public enum ScoringTrick
     Run            // a full 1-6 run (all six unique)       → 1500
 }
 
-public readonly record struct ScoreBreakdown(ScoringTrick Trick, int Points, bool CanKeep);
+// The points and component tricks a kept selection is worth. `Tricks` lists every scoring
+// component, highest-first (a single-trick keep has one; a multi-trick keep — e.g. a
+// three-of-a-kind plus a pair of 5s — lists each). `Trick` is the primary (highest) component
+// for back-compat, or None when nothing scores.
+public readonly record struct ScoreBreakdown(
+    ScoringTrick Trick,
+    int Points,
+    bool CanKeep,
+    IReadOnlyList<ScoringTrick> Tricks);
 
 /// <summary>
 /// Pure, infra-free scoring of a set of kept dice (face values 1-6). Single source of truth
@@ -29,7 +37,8 @@ public static class ScoreCalculator
     public static ScoreBreakdown Evaluate(IReadOnlyList<int> dice)
     {
         var (trick, points) = Score(dice);
-        return new ScoreBreakdown(trick, points, CanKeep(dice));
+        IReadOnlyList<ScoringTrick> tricks = trick == ScoringTrick.None ? [] : [trick];
+        return new ScoreBreakdown(trick, points, CanKeep(dice), tricks);
     }
 
     // A keep is allowed when the dice contain a 1 or a 5, three+ of a kind, or form a full
