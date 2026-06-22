@@ -5,8 +5,8 @@
 @using WebApp.Client.Pages.Game.Components
 
 @code {
-  // #182 — TurnScore shows a live preview of the current selection's value (trick + points)
-  // via the shared ScoreCalculator, before the player commits with Keep.
+  // #182 / #274 — SelectionScore shows the POTENTIAL score of the current selection (points +
+  // trick names) under the dice, via the shared ScoreCalculator, before the player commits Keep.
 
   private IStore SetUp()
   {
@@ -17,7 +17,7 @@
   }
 
   [Fact]
-  public void ShowTheTrickAndPoints_ForAScoringSelection()
+  public void ShowThePointsAndTrick_ForAScoringSelection()
   {
     var store = SetUp();
     var state = store.GetState<GameState>();
@@ -26,16 +26,16 @@
     state.DiceInPlay.Add(DiceInfo.Selected(1, DieValue.Four));
     state.DiceInPlay.Add(DiceInfo.Selected(2, DieValue.Four));
 
-    var cut = Render(@<TurnScore></TurnScore>);
+    var cut = Render(@<SelectionScore></SelectionScore>);
 
     cut.Find("[data-testid='selection-preview']").TextContent
-      .Should().Contain("Three of a kind").And.Contain("+400"); // three 4s = 4×100
+      .Should().Contain("400").And.Contain("3 of a kind"); // three 4s = 4×100
   }
 
   [Fact]
   public void ListEveryTrickAndTheSummedPoints_ForAMultiTrickSelection()
   {
-    // #270 — selecting a three-of-a-kind plus a pair of 5s lists both tricks and the sum.
+    // #270 / #274 — a three-of-a-kind plus a pair of 5s reads "300 (3 of a kind + fives)".
     var store = SetUp();
     var state = store.GetState<GameState>();
     state.DiceInPlay.Clear();
@@ -45,10 +45,10 @@
     state.DiceInPlay.Add(DiceInfo.Selected(3, DieValue.Five));
     state.DiceInPlay.Add(DiceInfo.Selected(4, DieValue.Five));
 
-    var cut = Render(@<TurnScore></TurnScore>);
+    var cut = Render(@<SelectionScore></SelectionScore>);
 
     cut.Find("[data-testid='selection-preview']").TextContent
-      .Should().Contain("Three of a kind").And.Contain("Ones & fives").And.Contain("+300");
+      .Should().Contain("300").And.Contain("3 of a kind").And.Contain("fives");
   }
 
   [Fact]
@@ -59,9 +59,9 @@
     state.DiceInPlay.Clear();
     state.DiceInPlay.Add(DiceInfo.Selected(0, DieValue.Two)); // a lone 2 isn't keepable
 
-    var cut = Render(@<TurnScore></TurnScore>);
+    var cut = Render(@<SelectionScore></SelectionScore>);
 
-    cut.Find("[data-testid='selection-preview']").TextContent.Should().Contain("No score");
+    cut.Find("[data-testid='selection-preview']").TextContent.Should().Contain("no score");
   }
 
   [Fact]
@@ -72,7 +72,7 @@
     state.DiceInPlay.Clear();
     state.DiceInPlay.Add(DiceInfo.Unselected(0, DieValue.Four));
 
-    var cut = Render(@<TurnScore></TurnScore>);
+    var cut = Render(@<SelectionScore></SelectionScore>);
 
     cut.FindAll("[data-testid='selection-preview']").Should().BeEmpty();
   }

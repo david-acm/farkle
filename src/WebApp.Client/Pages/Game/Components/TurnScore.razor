@@ -1,28 +1,6 @@
 @inherits WebApp.Client.Features.GameStateComponent
 
 <div class="turn-score">
-  <div class="turn-score-main">
-    <MudText Typo="Typo.subtitle2">Turn score</MudText>
-    <MudText Typo="Typo.h5" Color="Color.Primary" data-testid="turn-score">@Value</MudText>
-  </div>
-
-  @* Live preview of the current selection's value (#182): the matched trick(s) and the points
-     they would add (#270), updating as dice are tapped. Sits to the RIGHT of the score (not
-     underneath) so a multi-trick list has room. Muted when the selection isn't a scoring keep. *@
-  @if (HasSelection)
-  {
-    <MudText Typo="Typo.caption"
-             Class="turn-score-preview"
-             Color="@(PreviewScores ? Color.Primary : Color.Default)"
-             data-testid="selection-preview">
-      @if (PreviewScores)
-      {
-        <text>@PreviewLabel +@Preview.Points</text>
-      }
-      else
-      {
-        <text>No score yet</text>
-      }
-    </MudText>
-  }
+  <MudText Typo="Typo.subtitle2">Turn score</MudText>
+  <MudText Typo="Typo.h5" Color="Color.Primary" data-testid="turn-score">@Value</MudText>
 </div>

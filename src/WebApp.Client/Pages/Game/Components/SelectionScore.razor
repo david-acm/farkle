@@ -1,0 +1,33 @@
+@inherits WebApp.Client.Features.GameStateComponent
+@using Farkle.SharedKernel.Scoring
+
+@* #274 — the potential score of the currently selected (set-aside) dice, shown UNDER the dice.
+   "{points} ({tricks})", with multiple tricks joined by " + " (e.g. "400 (ones + 3 of a kind)").
+   Only rendered while dice are selected; muted when the selection doesn't score yet. *@
+@if (HasSelection)
+{
+  <div class="selection-score" data-testid="selection-preview">
+    <span class="selection-score-label">Potential score:</span>
+    @if (Scores)
+    {
+      <span class="selection-score-value">
+        <strong>@Preview.Points</strong> (@Label)
+      </span>
+    }
+    else
+    {
+      <span class="selection-score-value">0 (no score)</span>
+    }
+  </div>
+}
+
+@code {
+  private ScoreBreakdown Preview => GameState.SelectionPreview;
+
+  private bool HasSelection => GameState.DiceSetAside.Count > 0;
+
+  private bool Scores => Preview.CanKeep && Preview.Points > 0;
+
+  // The component tricks, casual and joined with " + " (e.g. "ones + 3 of a kind").
+  private string Label => Preview.ToDisplayName();
+}
