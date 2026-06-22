@@ -1,0 +1,44 @@
+@page "/release-notes"
+
+<PageTitle>Farkle release notes</PageTitle>
+
+<MudStack Class="pa-2" Style="max-width: 640px">
+  <MudText Typo="Typo.h4" Class="mt-2">Release notes</MudText>
+  <MudText Typo="Typo.body2" Class="mb-2" data-testid="current-version">
+    Currently running <strong>@AppVersion.Current</strong>.
+  </MudText>
+
+  @foreach (var release in Releases)
+  {
+    <MudPaper Class="pa-3" Outlined="true" Elevation="0" data-testid="release-entry">
+      <MudText Typo="Typo.subtitle1"><strong>@release.Title</strong></MudText>
+      @foreach (var item in release.Items)
+      {
+        <MudText Typo="Typo.body2" Class="mt-1">• @item</MudText>
+      }
+    </MudPaper>
+  }
+</MudStack>
+
+@code {
+  private sealed record Release(string Title, string[] Items);
+
+  // Curated highlights of notable changes. Add new entries at the top.
+  private static readonly Release[] Releases =
+  [
+    new("Player colours", [
+      "Every player gets a distinct identity colour on join.",
+      "The in-turn player's colour drives the dice and scoreboard for everyone, in real time.",
+    ]),
+    new("Dice component library", [
+      "The 3D dice UI moved into a standalone Blazor.Dice Razor class library with its own test suite.",
+    ]),
+    new("Scoring reference", [
+      "A page listing every scoring combination, generated from the game's own scoring rules.",
+    ]),
+    new("Cloud deployment", [
+      "Hosted on Azure Container Apps via Bicep infrastructure-as-code and OIDC CI/CD.",
+      "A nightly lifecycle tears the environment down and rebuilds it to keep costs low.",
+    ]),
+  ];
+}
