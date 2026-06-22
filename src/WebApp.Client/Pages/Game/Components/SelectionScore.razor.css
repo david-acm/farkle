@@ -1,22 +1,16 @@
-/* #274 — the potential-score line under the dice. Compact and centred so it adds minimal
-   height (the play screen must stay within the viewport), with the points in the brand colour
-   and the trick list muted. */
+/* #275 — stable-height placeholder for the under-dice potential score. The row always reserves
+   one turn-score (h5) line, so it never shifts the layout as the selection appears or clears
+   (the .play-dice area, flex:1, absorbs the reserved space — no extra page height). The text is
+   rendered in the turn-score font (Typo.h5). */
 .selection-score {
     display: flex;
-    flex-wrap: wrap;
+    align-items: center;
     justify-content: center;
-    align-items: baseline;
-    gap: 0.35rem;
+    min-height: 2.5rem;
     text-align: center;
-    font-size: 0.8125rem;
+}
+
+.selection-score ::deep .selection-score-text {
+    margin: 0;
     line-height: 1.2;
-    padding: 0.15rem 0.25rem;
-}
-
-.selection-score-label {
-    color: var(--mud-palette-text-secondary);
-}
-
-.selection-score-value strong {
-    color: var(--mud-palette-primary);
 }
