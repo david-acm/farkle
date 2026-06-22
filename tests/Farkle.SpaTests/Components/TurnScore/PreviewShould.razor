@@ -32,7 +32,7 @@
     var cut = Render(@<SelectionScore></SelectionScore>);
 
     cut.Find("[data-testid='selection-preview']").TextContent
-      .Should().Contain("+400").And.Contain("3 of a kind"); // three 4s = 4×100
+      .Should().Contain("+400").And.Contain("3 of a kind").And.NotContain("("); // three 4s = 4×100; no parentheses
   }
 
   [Fact]
@@ -51,7 +51,7 @@
     var cut = Render(@<SelectionScore></SelectionScore>);
 
     cut.Find("[data-testid='selection-preview']").TextContent
-      .Should().Contain("+300").And.Contain("3 of a kind").And.Contain("fives");
+      .Should().Contain("+300").And.Contain("3 of a kind").And.Contain("fives").And.NotContain("(");
   }
 
   [Fact]

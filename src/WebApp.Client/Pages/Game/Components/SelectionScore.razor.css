@@ -1,16 +1,23 @@
-/* #275 — stable-height placeholder for the under-dice potential score. The row always reserves
-   one turn-score (h5) line, so it never shifts the layout as the selection appears or clears
-   (the .play-dice area, flex:1, absorbs the reserved space — no extra page height). The text is
-   rendered in the turn-score font (Typo.h5). */
+/* #275 — stable-height placeholder for the under-dice potential score. The row stacks the score
+   (turn-score font) over its trick description and always reserves both lines, so it never
+   shifts the layout as the selection appears or clears (the .play-dice area, flex:1, absorbs the
+   reserved space — no extra page height). */
 .selection-score {
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    min-height: 2.5rem;
+    min-height: 3.25rem;
     text-align: center;
 }
 
-.selection-score ::deep .selection-score-text {
+.selection-score ::deep .selection-score-points {
+    margin: 0;
+    line-height: 1.1;
+}
+
+.selection-score ::deep .selection-score-tricks {
     margin: 0;
     line-height: 1.2;
+    color: var(--mud-palette-text-secondary);
 }
