@@ -101,6 +101,14 @@
                 } catch (e) { /* best-effort */ }
                 // Subsequent fetch (and the UI.* customEvent) now nest under the UI-action span.
                 ctx.parentID = spanId;
+            },
+            // #216 — tag browser telemetry (pageViews / AJAX / exceptions) with the player as user and
+            // the game as account, so App Insights slices browser RUM by player and game. Synthetic
+            // ids only — no display names (no PII). No-op when App Insights isn't loaded.
+            setPlayer: function (userId, accountId) {
+                if (window.appInsights && window.appInsights.setAuthenticatedUserContext) {
+                    window.appInsights.setAuthenticatedUserContext(userId, accountId, true);
+                }
             }
         };
     </script>

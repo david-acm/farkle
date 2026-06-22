@@ -131,6 +131,25 @@ public partial class Game : GameStateComponent, IAsyncDisposable
     if (HasJoined)
       await Mediator.Send(new GameState.RestoreGameState.Action(
         GameState.PlayerId.Value, GameState.PlayerName.Value));
+
+    // #216 — by now PlayerId is set (via join or restore); tag browser telemetry with the player/game.
+    await SetTelemetryUserAsync();
+  }
+
+  // #216 — set the App Insights browser user (player) + account (game) so RUM is sliceable by
+  // player and game. Synthetic ids only (no display names / PII). Best-effort.
+  private async Task SetTelemetryUserAsync()
+  {
+    if (GameState.PlayerId.Value <= 0) return;
+    try
+    {
+      var userId = $"g{ParameterGameId}-p{GameState.PlayerId.Value}";
+      await Js.InvokeVoidAsync("farkleTelemetry.setPlayer", userId, ParameterGameId.ToString());
+    }
+    catch (JSException ex)
+    {
+      Logger.LogDebug(ex, "Setting telemetry user failed (non-fatal) for game {GameId}", GameId);
+    }
   }
 
   private static string SessionKey(int gameId) => $"farkle:game:{gameId}";
