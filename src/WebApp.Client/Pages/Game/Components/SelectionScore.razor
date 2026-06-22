@@ -1,0 +1,33 @@
+@inherits WebApp.Client.Features.GameStateComponent
+@using Farkle.SharedKernel.Scoring
+
+@* #275 — the potential score of the current selection, UNDER the dice, in the turn-score font.
+   The row is a STABLE-HEIGHT placeholder (always rendered, reserving one line) so the layout
+   never shifts as the selection changes. Shows "+{points} ({tricks})" while a selection scores
+   (e.g. "+400 (ones + 3 of a kind)"), or "+0" for a non-scoring selection; blank otherwise. *@
+<div class="selection-score" data-testid="selection-preview">
+  @if (HasSelection)
+  {
+    <MudText Typo="Typo.h5" Color="Color.Primary" Class="selection-score-text">
+      @if (Scores)
+      {
+        <text>+@Preview.Points (@Label)</text>
+      }
+      else
+      {
+        <text>+0</text>
+      }
+    </MudText>
+  }
+</div>
+
+@code {
+  private ScoreBreakdown Preview => GameState.SelectionPreview;
+
+  private bool HasSelection => GameState.DiceSetAside.Count > 0;
+
+  private bool Scores => Preview.CanKeep && Preview.Points > 0;
+
+  // The component tricks, casual and joined with " + " (e.g. "ones + 3 of a kind").
+  private string Label => Preview.ToDisplayName();
+}

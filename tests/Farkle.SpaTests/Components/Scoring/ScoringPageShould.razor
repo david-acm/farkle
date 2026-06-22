@@ -19,13 +19,14 @@
 
     var cut = Render(@<Scoring></Scoring>);
 
+    // #274 — casual, content-specific wording (matches the in-game potential-score label).
     var table = cut.Find("[data-testid='scoring-table']").TextContent;
-    table.Should().Contain("Three pairs").And.Contain("1500");
-    table.Should().Contain("Two triplets").And.Contain("2500");
-    table.Should().Contain("Four of a kind").And.Contain("1000");
-    table.Should().Contain("Run (1-6)");
-    table.Should().Contain("Five of a kind").And.Contain("2000"); // #35
-    table.Should().Contain("Six of a kind").And.Contain("3000");  // #35
+    table.Should().Contain("three pairs").And.Contain("1500");
+    table.Should().Contain("two triplets").And.Contain("2500");
+    table.Should().Contain("4 of a kind").And.Contain("1000");
+    table.Should().Contain("run");
+    table.Should().Contain("5 of a kind").And.Contain("2000"); // #35
+    table.Should().Contain("6 of a kind").And.Contain("3000");  // #35
 
     // One row per example hand.
     cut.FindAll("[data-testid='scoring-row']").Should().HaveCount(10);

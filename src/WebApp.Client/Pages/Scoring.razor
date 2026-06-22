@@ -24,7 +24,7 @@
       var breakdown = ScoreCalculator.Evaluate(example);
       <tr data-testid="scoring-row">
         <td class="dice-example">@Glyphs(example)</td>
-        <td>@breakdown.Trick.ToDisplayName()</td>
+        <td>@breakdown.ToDisplayName()</td>
         <td style="text-align:right" data-testid="score-value">
           <MudText Color="Color.Primary" Typo="Typo.body2"><strong>@breakdown.Points</strong></MudText>
         </td>
