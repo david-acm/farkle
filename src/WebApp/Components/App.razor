@@ -24,7 +24,11 @@
 </head>
 
 <body>
-    <Routes />
+    @* #269 — render the whole router subtree (incl. MainLayout) interactively so the layout's
+       hamburger/drawer toggle works. Pages are all WASM already; applying the render mode here
+       (rather than per page) makes the layout interactive too. prerender:false matches the prior
+       per-page setting. *@
+    <Routes @rendermode="@(new InteractiveWebAssemblyRenderMode(prerender: false))" />
     <script src="_framework/blazor.web.js"></script>
 	<script src="_content/MudBlazor/MudBlazor.min.js"></script>
     @if (!string.IsNullOrWhiteSpace(appInsightsConnectionString))
@@ -99,8 +103,12 @@
                         duration: 0, success: true, responseCode: 0
                     });
                 } catch (e) { /* best-effort */ }
-                // Subsequent fetch (and the UI.* customEvent) now nest under the UI-action span.
-                ctx.parentID = spanId;
+                // #250 — the SDK stores the dependency's id in its legacy hierarchical form with a
+                // TRAILING DOT (e.g. "<spanId>."), but a child's operation_ParentId is whatever we put
+                // in telemetryTrace.parentID verbatim. So children must reference "<spanId>." (with the
+                // dot) to match the UI-action span's stored id — otherwise the span renders detached at
+                // the top of the transaction instead of as the parent of the fetch.
+                ctx.parentID = spanId + ".";
             },
             // #216 — tag browser telemetry (pageViews / AJAX / exceptions) with the player as user and
             // the game as account, so App Insights slices browser RUM by player and game. Synthetic
