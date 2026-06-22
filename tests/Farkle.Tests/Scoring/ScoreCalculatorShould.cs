@@ -20,7 +20,7 @@ public class ScoreCalculatorShould
   [InlineData(new[] { 2, 2, 2, 5, 5, 5 }, ScoringTrick.TwoTriplets, 2500)]  // two three-of-a-kinds
   [InlineData(new[] { 1, 1, 5, 5, 2, 2 }, ScoringTrick.ThreePairs, 1500)]   // beats ones+fives (highest 6-dice)
   // #270 — multiple tricks in one keep score the SUM (primary = highest-value component).
-  [InlineData(new[] { 2, 2, 2, 5, 5 }, ScoringTrick.ThreeOfAKind, 400)]  // three 2s (200) + two 5s (100)
+  [InlineData(new[] { 2, 2, 2, 5, 5 }, ScoringTrick.ThreeOfAKind, 300)]  // three 2s (200) + two 5s (100)
   [InlineData(new[] { 2, 2, 2, 5 },    ScoringTrick.ThreeOfAKind, 250)]  // three 2s (200) + one 5 (50)
   [InlineData(new[] { 3, 3, 3, 1 },    ScoringTrick.ThreeOfAKind, 400)]  // three 3s (300) + one 1 (100)
   [InlineData(new[] { 1, 1, 1, 5, 5 }, ScoringTrick.ThreeOfAKind, 1100)] // three 1s (1000) + two 5s (100)
@@ -59,7 +59,7 @@ public class ScoreCalculatorShould
     // #270 — a three-of-a-kind plus a pair of 5s lists BOTH tricks (highest-first) and sums.
     var breakdown = ScoreCalculator.Evaluate(new[] { 2, 2, 2, 5, 5 });
 
-    breakdown.Points.Should().Be(400);
+    breakdown.Points.Should().Be(300); // three 2s (200) + two 5s (100)
     breakdown.CanKeep.Should().BeTrue();
     breakdown.Tricks.Should().Equal(ScoringTrick.ThreeOfAKind, ScoringTrick.OnesAndFives);
   }
@@ -81,7 +81,7 @@ public class ScoreCalculatorShould
   [InlineData(new[] { 2, 3 },    false)]
   [InlineData(new[] { 2, 2 },    false)] // only two of a kind, no 1/5
   [InlineData(new[] { 2, 2, 2, 5, 5 }, true)]  // #270 — triplet + scoring pair is keepable
-  [InlineData(new[] { 2, 2, 2, 4 },    false)] // #270 — triplet + a dead die is NOT keepable
+  [InlineData(new[] { 2, 2, 2, 4 },    true)]  // #270 — keepable via the triplet; the lone 4 just scores nothing
   public void DecideWhatIsKeepable(int[] dice, bool canKeep) =>
     ScoreCalculator.CanKeep(dice).Should().Be(canKeep);
 }

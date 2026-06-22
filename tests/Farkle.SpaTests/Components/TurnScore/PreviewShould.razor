@@ -48,7 +48,7 @@
     var cut = Render(@<TurnScore></TurnScore>);
 
     cut.Find("[data-testid='selection-preview']").TextContent
-      .Should().Contain("Three of a kind").And.Contain("Ones & fives").And.Contain("+400");
+      .Should().Contain("Three of a kind").And.Contain("Ones & fives").And.Contain("+300");
   }
 
   [Fact]

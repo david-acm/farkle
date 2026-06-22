@@ -28,62 +28,90 @@ public readonly record struct ScoreBreakdown(
 /// <summary>
 /// Pure, infra-free scoring of a set of kept dice (face values 1-6). Single source of truth
 /// shared by the domain aggregate (which adds the turn-level combo doubling) and the UI
-/// (which previews a selection's value before the player commits it). The trick priority
-/// mirrors the aggregate's original GetNewTurnScore exactly: the first trick the dice satisfy
-/// wins.
+/// (which previews a selection's value before the player commits it).
+///
+/// A selection may contain MORE THAN ONE trick (e.g. a three-of-a-kind plus a pair of 5s); the
+/// score is the SUM of its components (#270). The result is the maximum of two readings: a
+/// single whole-set six-dice combo (two triplets / three pairs / run), or a per-face
+/// decomposition (each face's largest n-of-a-kind, plus leftover single 1s/5s). Non-scoring
+/// "dead" dice simply contribute nothing; a set is keepable when at least one die scores.
 /// </summary>
 public static class ScoreCalculator
 {
     public static ScoreBreakdown Evaluate(IReadOnlyList<int> dice)
     {
-        var (trick, points) = Score(dice);
-        IReadOnlyList<ScoringTrick> tricks = trick == ScoringTrick.None ? [] : [trick];
-        return new ScoreBreakdown(trick, points, CanKeep(dice), tricks);
+        var (points, tricks) = BestScoring(dice);
+        var primary = tricks.Count > 0 ? tricks[0] : ScoringTrick.None;
+        return new ScoreBreakdown(primary, points, points > 0, tricks);
     }
 
-    // A keep is allowed when the dice contain a 1 or a 5, three+ of a kind, or form a full
-    // six-dice three-pairs / two-triplets hand (which need not contain a 1/5 or a triplet).
-    public static bool CanKeep(IReadOnlyList<int> dice) =>
-        dice.Count > 0 &&
-        (dice.Any(d => d is 1 or 5) ||
-         dice.GroupBy(d => d).Any(g => g.Count() >= 3) ||
-         IsThreePairs(dice) ||
-         IsTwoTriplets(dice));
+    // A set is keepable iff at least one die scores. This is the lenient "is there anything
+    // worth keeping" predicate — shared by the keep gate AND the roll/Farkle check (a roll is a
+    // bust only when NOTHING scores), so it must stay lenient. Dead dice in a selection simply
+    // don't add points (see BestScoring); they don't make the whole selection unkeepable.
+    public static bool CanKeep(IReadOnlyList<int> dice) => BestScoring(dice).Points > 0;
 
-    private static (ScoringTrick Trick, int Points) Score(IReadOnlyList<int> dice)
+    private static (int Points, IReadOnlyList<ScoringTrick> Tricks) BestScoring(IReadOnlyList<int> dice)
     {
-        // Six of a kind is the top trick (#35). It must be checked before three-pairs, which
-        // would otherwise claim it (a six-of-a-kind has an even count) for only 1500.
-        if (IsAllSame(dice, 6)) return (ScoringTrick.SixOfAKind, 3000);
+        var best = Decompose(dice);
 
-        // Six-dice combos take priority — a qualifying hand always takes the higher combo.
-        if (IsTwoTriplets(dice)) return (ScoringTrick.TwoTriplets, 2500);
-        if (IsThreePairs(dice))  return (ScoringTrick.ThreePairs, 1500);
+        if (WholeSetCombo(dice) is { } combo && combo.Points > best.Points)
+            best = (combo.Points, [combo.Trick]);
 
-        // Five of a kind (#35) before four/three and before ones-and-fives (which would
-        // otherwise score five 1s/5s as a mere 500/250).
-        if (IsAllSame(dice, 5)) return (ScoringTrick.FiveOfAKind, 2000);
+        return best;
+    }
 
-        if (IsAllSame(dice, 4)) return (ScoringTrick.FourOfAKind, 1000);
+    // The multi-value six-dice combos. (A six-of-a-kind is a single face, so Decompose scores it.)
+    private static (int Points, ScoringTrick Trick)? WholeSetCombo(IReadOnlyList<int> dice)
+    {
+        if (IsTwoTriplets(dice)) return (2500, ScoringTrick.TwoTriplets);
+        if (IsThreePairs(dice))  return (1500, ScoringTrick.ThreePairs);
+        if (dice.Count == 6 && Enumerable.Range(1, 6).All(dice.Contains)) return (1500, ScoringTrick.Run);
+        return null;
+    }
 
-        if (IsAllSame(dice, 3))
+    // Sums each face's largest n-of-a-kind (atomic — four 1s stays a four-of-a-kind, not 3+1)
+    // plus any leftover single 1s/5s (as one ones-and-fives component). Non-scoring "dead" dice
+    // (a 2/3/4/6 with fewer than three of it) simply contribute nothing. Returns (0, []) when
+    // nothing scores. Components are ordered highest-first.
+    private static (int Points, IReadOnlyList<ScoringTrick> Tricks) Decompose(IReadOnlyList<int> dice)
+    {
+        var components = new List<(int Points, ScoringTrick Trick)>();
+        var singlesPoints = 0;
+        var hasSingles = false;
+
+        foreach (var group in dice.GroupBy(d => d))
         {
-            var face = dice[0];
-            return (ScoringTrick.ThreeOfAKind, face == 1 ? 1000 : face * 100);
+            var value = group.Key;
+            var count = group.Count();
+
+            if (count >= 3)
+            {
+                components.Add(NOfAKind(value, count));
+            }
+            else if (value is 1 or 5)
+            {
+                singlesPoints += value == 1 ? count * 100 : count * 50;
+                hasSingles = true;
+            }
+            // else: a 2/3/4/6 without three of a kind scores nothing — skip it.
         }
 
-        if (dice.Count > 0 && dice.All(d => d is 1 or 5))
-            return (ScoringTrick.OnesAndFives,
-                    dice.Count(d => d == 1) * 100 + dice.Count(d => d == 5) * 50);
+        if (hasSingles) components.Add((singlesPoints, ScoringTrick.OnesAndFives));
 
-        if (dice.Count == 6 && Enumerable.Range(1, 6).All(dice.Contains))
-            return (ScoringTrick.Run, 1500);
-
-        return (ScoringTrick.None, 0);
+        var ordered = components.OrderByDescending(c => c.Points).ToList();
+        return (ordered.Sum(c => c.Points), ordered.Select(c => c.Trick).ToArray());
     }
 
-    private static bool IsAllSame(IReadOnlyList<int> dice, int count) =>
-        dice.Count == count && dice.Distinct().Count() == 1;
+    // The score and trick for n dice of the same value (n >= 3): three of a kind is face×100
+    // (three 1s special-cased to 1000, #177); four/five/six of a kind are flat 1000/2000/3000.
+    private static (int Points, ScoringTrick Trick) NOfAKind(int value, int count) => count switch
+    {
+        >= 6 => (3000, ScoringTrick.SixOfAKind),
+        5    => (2000, ScoringTrick.FiveOfAKind),
+        4    => (1000, ScoringTrick.FourOfAKind),
+        _    => (value == 1 ? 1000 : value * 100, ScoringTrick.ThreeOfAKind) // count == 3
+    };
 
     // Two three-of-a-kinds: six dice, exactly two distinct values, each appearing three times
     // (e.g. 2,2,2,5,5,5). Note {3,3} counts are odd, so this is never also "three pairs".

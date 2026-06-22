@@ -100,7 +100,7 @@ internal record GameState : State<GameState>
       TableCenter = ImmutableArray<DieValue>.Empty.AddRange(e.TableCenter.ToDiceValues()),
       GameStage = GameStage.Rolling,
       DiceSetAside = ImmutableArray<DieValue>.Empty,
-      StraightsKeptThisTurn = ScoreCalculator.Evaluate(e.Dice).Trick == ScoringTrick.FourOfAKind ? state.StraightsKeptThisTurn + 1 : state.StraightsKeptThisTurn
+      StraightsKeptThisTurn = ScoreCalculator.Evaluate(e.Dice).Tricks.Contains(ScoringTrick.FourOfAKind) ? state.StraightsKeptThisTurn + 1 : state.StraightsKeptThisTurn
     };
   }
 
@@ -113,7 +113,7 @@ internal record GameState : State<GameState>
       TableCenter = ImmutableArray<DieValue>.Empty.AddRange(e.TableCenter.ToDiceValues()),
       GameStage = e.Stage,
       DiceSetAside = ImmutableArray<DieValue>.Empty,
-      StraightsKeptThisTurn = ScoreCalculator.Evaluate(e.Dice).Trick == ScoringTrick.FourOfAKind ? state.StraightsKeptThisTurn + 1 : state.StraightsKeptThisTurn
+      StraightsKeptThisTurn = ScoreCalculator.Evaluate(e.Dice).Tricks.Contains(ScoringTrick.FourOfAKind) ? state.StraightsKeptThisTurn + 1 : state.StraightsKeptThisTurn
     };
   }
 
