@@ -70,6 +70,7 @@ public class GameBunitContext : BunitContext, Xunit.IAsyncLifetime
     public event Action<LobbyStateResponse, string?>? OnGameBegan;
     public event Action<GameStateResponse, string?>? OnTableChanged;
     public event Action<GameStateResponse, string?>? OnDiceRolled;
+    public event Action? OnReconnected;
     public Task ConnectAsync(int gameId, int playerId) => Task.CompletedTask;
     public Task DisconnectAsync() => Task.CompletedTask;
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;
@@ -79,5 +80,6 @@ public class GameBunitContext : BunitContext, Xunit.IAsyncLifetime
     public void RaiseGameBegan(LobbyStateResponse payload, string? traceId = null) => OnGameBegan?.Invoke(payload, traceId);
     public void RaiseTableChanged(GameStateResponse payload, string? traceId = null) => OnTableChanged?.Invoke(payload, traceId);
     public void RaiseDiceRolled(GameStateResponse payload, string? traceId = null) => OnDiceRolled?.Invoke(payload, traceId);
+    public void RaiseReconnected() => OnReconnected?.Invoke();
   }
 }

@@ -1,0 +1,32 @@
+@inherits GameBunitContext
+@using Moq
+@using WebApp.Client.Features
+@using WebApp.Client.Pages.Game
+@using WebApp.Client.Services
+
+@code {
+  // #242 — after an automatic SignalR reconnect the hub re-joins our game group, but any broadcast
+  // sent while we were disconnected is gone for good (SignalR never replays). The client must
+  // reconcile against the server snapshot (GET /api/games/{id}) so a turn/table change missed during
+  // the reconnect window self-heals instead of leaving the player stuck on a stale view.
+
+  [Fact]
+  public async Task ReconcileGameState_AfterReconnecting()
+  {
+    var cut = Render(@<Game></Game>);
+    JoinLobby(cut, "Bob", assignedPlayerId: 2, hostPlayerId: 1);
+
+    // Connecting already reconciles once (#236); capture that baseline so we assert the *reconnect*
+    // drives an additional snapshot fetch rather than re-counting the connect-time one.
+    var beforeReconnect = Mock.Get(GameService).Invocations
+      .Count(i => i.Method.Name == nameof(IGameService.GetGameStateAsync));
+
+    await cut.InvokeAsync(() => HubService.RaiseReconnected());
+
+    cut.WaitForAssertion(() =>
+      Mock.Get(GameService).Invocations
+        .Count(i => i.Method.Name == nameof(IGameService.GetGameStateAsync))
+        .Should().BeGreaterThan(beforeReconnect,
+          "an automatic reconnect must reconcile against the server snapshot to recover a missed broadcast"));
+  }
+}
