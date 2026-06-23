@@ -70,7 +70,7 @@ public class GameBunitContext : BunitContext, Xunit.IAsyncLifetime
     public event Action<LobbyStateResponse, string?>? OnGameBegan;
     public event Action<GameStateResponse, string?>? OnTableChanged;
     public event Action<GameStateResponse, string?>? OnDiceRolled;
-    public Task ConnectAsync(int gameId) => Task.CompletedTask;
+    public Task ConnectAsync(int gameId, int playerId) => Task.CompletedTask;
     public Task DisconnectAsync() => Task.CompletedTask;
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     public void Dispose() { }

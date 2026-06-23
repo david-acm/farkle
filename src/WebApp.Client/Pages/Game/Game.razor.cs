@@ -120,7 +120,7 @@ public partial class Game : GameStateComponent, IAsyncDisposable
     GameHubService.OnGameBegan    += HandleGameBegan;
     GameHubService.OnTableChanged += HandleTableChanged;
     GameHubService.OnDiceRolled   += HandleDiceRolled;
-    await GameHubService.ConnectAsync(ParameterGameId);
+    await GameHubService.ConnectAsync(ParameterGameId, GameState.PlayerId.Value);
 
     // #236 — close the connect race. A broadcast (e.g. GameBegan) sent between our HTTP join and
     // our SignalR group-join is missed: SignalR pushes are one-shot and never replayed, so the
