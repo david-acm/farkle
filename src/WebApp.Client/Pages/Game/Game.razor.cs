@@ -120,6 +120,7 @@ public partial class Game : GameStateComponent, IAsyncDisposable
     GameHubService.OnGameBegan    += HandleGameBegan;
     GameHubService.OnTableChanged += HandleTableChanged;
     GameHubService.OnDiceRolled   += HandleDiceRolled;
+    GameHubService.OnReconnected  += HandleReconnected;
     await GameHubService.ConnectAsync(ParameterGameId, GameState.PlayerId.Value);
 
     // #236 — close the connect race. A broadcast (e.g. GameBegan) sent between our HTTP join and
@@ -128,12 +129,36 @@ public partial class Game : GameStateComponent, IAsyncDisposable
     // (intermittent against real network latency; ~never on localhost). Now that we're in the
     // group, reconcile against the server snapshot so any missed transition self-heals; every
     // subsequent broadcast keeps us current.
-    if (HasJoined)
-      await Mediator.Send(new GameState.RestoreGameState.Action(
-        GameState.PlayerId.Value, GameState.PlayerName.Value));
+    await ReconcileStateAsync();
 
     // #216 — by now PlayerId is set (via join or restore); tag browser telemetry with the player/game.
     await SetTelemetryUserAsync();
+  }
+
+  // #242 — after an automatic reconnect the hub re-joins our game group, but any broadcast sent
+  // while we were disconnected is lost (SignalR never replays). Reconcile against the server
+  // snapshot — the same self-heal as the initial connect (#236) — so a turn/table change missed
+  // during the reconnect window doesn't leave the player stuck on a stale view.
+  private async void HandleReconnected()
+  {
+    try
+    {
+      await InvokeAsync(ReconcileStateAsync);
+    }
+    catch (Exception ex)
+    {
+      Logger.LogWarning(ex, "Reconnect reconcile failed for game {GameId}", GameId);
+    }
+  }
+
+  // Pulls the authoritative snapshot from the server and rebuilds the view (incl. whose turn it
+  // is). Identity comes from our current state (the snapshot is identity-free); skipped until we
+  // know who we are. Shared by the initial connect (#236) and reconnect (#242) self-heals.
+  private async Task ReconcileStateAsync()
+  {
+    if (HasJoined)
+      await Mediator.Send(new GameState.RestoreGameState.Action(
+        GameState.PlayerId.Value, GameState.PlayerName.Value));
   }
 
   // #216 — set the App Insights browser user (player) + account (game) so RUM is sliceable by
@@ -260,6 +285,7 @@ public partial class Game : GameStateComponent, IAsyncDisposable
     GameHubService.OnGameBegan -= HandleGameBegan;
     GameHubService.OnTableChanged -= HandleTableChanged;
     GameHubService.OnDiceRolled -= HandleDiceRolled;
+    GameHubService.OnReconnected -= HandleReconnected;
     await GameHubService.DisconnectAsync();
   }
 }
