@@ -24,6 +24,7 @@ public sealed class GameHubService(HttpClient http, IUiTelemetry telemetry) : IG
     public event Action<LobbyStateResponse, string?>? OnGameBegan;
     public event Action<GameStateResponse, string?>? OnTableChanged;
     public event Action<GameStateResponse, string?>? OnDiceRolled;
+    public event Action? OnReconnected;
 
     public async Task ConnectAsync(int gameId, int playerId)
     {
@@ -59,6 +60,10 @@ public sealed class GameHubService(HttpClient http, IUiTelemetry telemetry) : IG
             await TrackConnectionAsync("Realtime.Reconnected"); // #242
             if (_connection is not null)
                 await _connection.InvokeAsync("JoinGame", _gameId);
+            // #242 — re-joining the group is not enough: a broadcast sent while we were
+            // disconnected is gone for good, so reconcile against the server snapshot to
+            // self-heal any turn/table transition we missed during the reconnect window.
+            OnReconnected?.Invoke();
         };
 
         // #242 — connection fully closed. error == null is a clean stop (LeaveGame/navigate);
