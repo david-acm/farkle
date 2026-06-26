@@ -2,6 +2,9 @@
 
 public static class HttpResponses
 {
+  // #277 — ack for an accepted feedback submission (echoes the session id it was filed under).
+  public record SubmitFeedbackResponse(string SessionId);
+
   public record JoinPlayerResponse(
     int Id,
     int CurrentPlayerId,

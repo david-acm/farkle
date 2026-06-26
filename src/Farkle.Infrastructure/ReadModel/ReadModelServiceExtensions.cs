@@ -31,6 +31,7 @@ public static class ReadModelServiceExtensions
     // The subscription + GET resolve these from singleton scopes, so the stores open their own
     // DI scope per call (see EfGameViewStore / PostgresCheckpointStore).
     services.AddSingleton<IGameViewStore, EfGameViewStore>();
+    services.AddSingleton<IFeedbackViewStore, EfFeedbackViewStore>();
     services.AddSingleton<PostgresCheckpointStore>();
 
     services.AddSubscription<AllStreamSubscription, AllStreamSubscriptionOptions>(
@@ -39,6 +40,16 @@ public static class ReadModelServiceExtensions
         .Configure(o => o.EventFilter = StreamFilter.Prefix("Game-"))
         .UseCheckpointStore<PostgresCheckpointStore>()
         .AddEventHandler<GameViewProjector>());
+
+    // #277 — feedback read model: its own durable $all subscription over the "Feedback-" streams,
+    // folding FeedbackSubmitted into FeedbackView for triage. Separate checkpoint id so it's
+    // isolated from the game projector.
+    services.AddSubscription<AllStreamSubscription, AllStreamSubscriptionOptions>(
+      "FeedbackProjector",
+      b => b
+        .Configure(o => o.EventFilter = StreamFilter.Prefix("Feedback-"))
+        .UseCheckpointStore<PostgresCheckpointStore>()
+        .AddEventHandler<FeedbackViewProjector>());
 
     // #33 — a separate, durable subscription that emits structured telemetry per committed event
     // (GameTelemetryHandler). Kept isolated from the projector so a logging hiccup can never

@@ -388,6 +388,39 @@
         }
       }
     },
+    "/api/feedback": {
+      "post": {
+        "tags": [
+          "Api"
+        ],
+        "operationId": "FarkleEndpointsSubmitFeedbackEndpoint",
+        "requestBody": {
+          "x-name": "SubmitFeedbackRequest",
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FarkleContractsHttpRequests_SubmitFeedbackRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FarkleContractsHttpResponses_SubmitFeedbackResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/games": {
       "post": {
         "tags": [
@@ -799,6 +832,48 @@
           "dieValue": {
             "type": "integer",
             "format": "int32"
+          }
+        }
+      },
+      "FarkleContractsHttpResponses_SubmitFeedbackResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "sessionId": {
+            "type": "string"
+          }
+        }
+      },
+      "FarkleContractsHttpRequests_SubmitFeedbackRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "sessionId": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "sentiment": {
+            "type": "string"
+          },
+          "gameId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "playerId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "stage": {
+            "type": "string",
+            "nullable": true
+          },
+          "route": {
+            "type": "string",
+            "nullable": true
           }
         }
       },
