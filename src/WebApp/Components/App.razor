@@ -137,6 +137,48 @@
             }
         };
     </script>
+    <script>
+        // Issue #277 — client-side rage-click detection. A burst of rapid clicks anywhere in the
+        // document (>= threshold within windowMs) calls back into the FeedbackWidget so it can pulse
+        // and emit a UI.RageClick telemetry event. Debounced to one burst per cool-off window so a
+        // single frustrated flurry records once, not per click. Capture phase so it sees every click.
+        window.farkleRageClick = {
+            _handler: null,
+            // A burst only counts as "rage" when the clicks cluster in roughly the same spot —
+            // repeatedly hitting one unresponsive thing. Normal play clicks land on *different*
+            // controls (roll, dice, keep, pass), so they spread out and are ignored.
+            SpreadPx: 80,
+            start: function (dotNetRef, threshold, windowMs) {
+                if (this._handler) return; // already listening
+                var clicks = [];
+                var cooling = false;
+                var spreadPx = this.SpreadPx;
+                this._handler = function (e) {
+                    var now = Date.now();
+                    clicks.push({ t: now, x: e.clientX, y: e.clientY });
+                    while (clicks.length && now - clicks[0].t > windowMs) clicks.shift();
+                    if (cooling || clicks.length < threshold) return;
+                    var xs = clicks.map(function (c) { return c.x; });
+                    var ys = clicks.map(function (c) { return c.y; });
+                    var spread = Math.max(Math.max.apply(null, xs) - Math.min.apply(null, xs),
+                                          Math.max.apply(null, ys) - Math.min.apply(null, ys));
+                    if (spread > spreadPx) return; // clicks scattered across the page — not rage
+                    cooling = true;
+                    var count = clicks.length;
+                    clicks = [];
+                    try { dotNetRef.invokeMethodAsync('OnRageBurst', count); } catch (err) { /* widget gone */ }
+                    setTimeout(function () { cooling = false; }, windowMs);
+                };
+                document.addEventListener('click', this._handler, true);
+            },
+            stop: function () {
+                if (this._handler) {
+                    document.removeEventListener('click', this._handler, true);
+                    this._handler = null;
+                }
+            }
+        };
+    </script>
 </body>
 
 </html>

@@ -32,6 +32,11 @@ public static class FarkleModuleServiceExtensions
     // EfGameViewStore + the projector subscription when the read model is enabled.
     services.TryAddSingleton<IGameViewStore, NullGameViewStore>();
 
+    // #277 — thin append-only feedback writer (no aggregate). Singleton: IEventStore is a
+    // singleton and the writer is stateless. The FeedbackView read model + projector are wired
+    // separately in Farkle.Infrastructure when the read model is enabled.
+    services.AddSingleton<IFeedbackWriter, FeedbackWriter>();
+
     // The concrete event-store transport (ESDB client, aggregate store, broadcast subscription)
     // lives in Farkle.Infrastructure and is wired by the host via AddFarkleEventStore — the core
     // depends only on Eventuous' IAggregateStore abstraction (resolved at runtime).

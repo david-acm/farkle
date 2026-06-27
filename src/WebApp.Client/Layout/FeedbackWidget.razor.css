@@ -1,0 +1,70 @@
+/* #277 — floating feedback widget. position: fixed keeps it out of document flow, so it never
+   introduces scroll (the no-scroll constraint holds at every viewport). High z-index so it sits
+   above the MudBlazor app bar / drawer. */
+.feedback-widget {
+    position: fixed;
+    right: 1rem;
+    bottom: 1rem;
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.5rem;
+    /* The container's box can span a wide area (e.g. when the hint is shown), but it must NOT
+       swallow clicks meant for the UI behind it (it overlapped the game's Pass Turn button).
+       Make the empty container click-through; the interactive children re-enable pointer events. */
+    pointer-events: none;
+}
+
+.feedback-hint {
+    pointer-events: auto;
+}
+
+/* The FAB overshoots its box a little when pulsing; keep a subtle resting shadow. */
+.feedback-widget ::deep .feedback-fab {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    pointer-events: auto;
+}
+
+.feedback-widget ::deep .feedback-form {
+    pointer-events: auto;
+}
+
+.feedback-widget.pulsing ::deep .feedback-fab {
+    animation: feedback-pulse 0.8s ease-in-out 3;
+}
+
+@keyframes feedback-pulse {
+    0%   { transform: scale(1); }
+    50%  { transform: scale(1.18); }
+    100% { transform: scale(1); }
+}
+
+.feedback-hint {
+    background: rgba(33, 33, 33, 0.92);
+    color: #fff;
+    padding: 0.35rem 0.6rem;
+    border-radius: 0.4rem;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.feedback-form {
+    width: 18rem;
+    max-width: calc(100vw - 2rem);
+    padding: 1rem;
+}
+
+.feedback-sentiment {
+    display: flex;
+    gap: 0.5rem;
+    margin: 0.25rem 0;
+}
+
+.feedback-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}

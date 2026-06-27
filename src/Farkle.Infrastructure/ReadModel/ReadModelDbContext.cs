@@ -9,6 +9,8 @@ public class ReadModelDbContext(DbContextOptions<ReadModelDbContext> options) : 
 {
     public DbSet<GameView> GameViews => Set<GameView>();
 
+    public DbSet<FeedbackView> FeedbackViews => Set<FeedbackView>();
+
     public DbSet<SubscriptionCheckpoint> Checkpoints => Set<SubscriptionCheckpoint>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -18,6 +20,17 @@ public class ReadModelDbContext(DbContextOptions<ReadModelDbContext> options) : 
             e.HasKey(x => x.GameId);
             e.Property(x => x.GameId).ValueGeneratedNever(); // the game's own id
             e.Property(x => x.StateJson).IsRequired();
+        });
+
+        // #277 — one row per feedback submission, keyed by the source event's $all position
+        // (idempotent reprojection); indexed by GameId for per-game triage.
+        modelBuilder.Entity<FeedbackView>(e =>
+        {
+            e.HasKey(x => x.Position);
+            e.Property(x => x.Position).ValueGeneratedNever();
+            e.Property(x => x.SessionId).IsRequired();
+            e.Property(x => x.Message).IsRequired();
+            e.HasIndex(x => x.GameId);
         });
 
         modelBuilder.Entity<SubscriptionCheckpoint>(e =>

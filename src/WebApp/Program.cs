@@ -6,6 +6,8 @@ using FastEndpoints.Security;
 using FastEndpoints.Swagger;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Npgsql;
 using WebApp.Auth;
 using WebApp.Client.Pages;
 using WebApp.Components;
@@ -188,12 +190,29 @@ var skipIdentitySeed = builder.Configuration.GetValue<bool>("Storyboard:SkipIden
 if (!app.Environment.IsEnvironment("NSwag") && !skipIdentitySeed)
 {
     using var scope = app.Services.CreateScope();
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.Migrate();
+
+    // Concurrent startups can race to apply a pending migration: the E2E harness boots two hosts
+    // against one Postgres, and a multi-replica rollout could too. The loser then sees the winner's
+    // object already created — a benign duplicate, since the schema ends up correct. Swallow the
+    // duplicate-object errors (mirrors the seed-race handling below); rethrow anything else.
+    static void MigrateTolerant(DatabaseFacade database)
+    {
+        try
+        {
+            database.Migrate();
+        }
+        catch (PostgresException ex) when (ex.SqlState is "42P07" or "42P06" or "23505")
+        {
+            // 42P07 duplicate_table / 42P06 duplicate_schema / 23505 unique_violation (history row):
+            // another startup applied this migration first — nothing left to do.
+        }
+    }
+
+    MigrateTolerant(scope.ServiceProvider.GetRequiredService<AppDbContext>().Database);
 
     // Apply the read-model schema alongside Identity (same database, separate history table).
     if (readModelEnabled)
-        scope.ServiceProvider.GetRequiredService<ReadModelDbContext>().Database.Migrate();
+        MigrateTolerant(scope.ServiceProvider.GetRequiredService<ReadModelDbContext>().Database);
 
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
     const string seedEmail = "player1@email.com";

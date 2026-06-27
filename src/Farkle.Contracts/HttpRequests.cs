@@ -25,4 +25,16 @@ public static class HttpRequests
 
   // GET /api/games/{gameId} — full state snapshot for refresh / reconnect.
   public record GetGameRequest(int GameId);
+
+  // #277 — POST /api/feedback (anonymous). SessionId is the client-generated feedback stream key
+  // (persisted in localStorage); Sentiment is "Up" | "Down". Context (GameId/PlayerId/Stage/Route)
+  // is optional — present in-game, absent on landing/lobby. Never carries names/PII.
+  public record SubmitFeedbackRequest(
+    string  SessionId,
+    string  Message,
+    string  Sentiment,
+    int?    GameId   = null,
+    int?    PlayerId = null,
+    string? Stage    = null,
+    string? Route    = null);
 }
