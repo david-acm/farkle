@@ -31,6 +31,7 @@ public static class ClientServiceExtensions
     services.AddScoped<IGameHubService, GameHubService>();
     services.AddScoped<IShareService, ShareService>();
     services.AddScoped<IUiTelemetry, UiTelemetry>();
+    services.AddScoped<IFeedbackService, FeedbackService>();
 
     var assembly = typeof(Program).Assembly;
     services.AddBlazorState(o => o.Assemblies = [assembly]);
