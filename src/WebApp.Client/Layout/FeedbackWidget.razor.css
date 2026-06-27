@@ -10,11 +10,24 @@
     flex-direction: column;
     align-items: flex-end;
     gap: 0.5rem;
+    /* The container's box can span a wide area (e.g. when the hint is shown), but it must NOT
+       swallow clicks meant for the UI behind it (it overlapped the game's Pass Turn button).
+       Make the empty container click-through; the interactive children re-enable pointer events. */
+    pointer-events: none;
+}
+
+.feedback-hint {
+    pointer-events: auto;
 }
 
 /* The FAB overshoots its box a little when pulsing; keep a subtle resting shadow. */
 .feedback-widget ::deep .feedback-fab {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    pointer-events: auto;
+}
+
+.feedback-widget ::deep .feedback-form {
+    pointer-events: auto;
 }
 
 .feedback-widget.pulsing ::deep .feedback-fab {

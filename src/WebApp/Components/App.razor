@@ -144,21 +144,30 @@
         // single frustrated flurry records once, not per click. Capture phase so it sees every click.
         window.farkleRageClick = {
             _handler: null,
+            // A burst only counts as "rage" when the clicks cluster in roughly the same spot —
+            // repeatedly hitting one unresponsive thing. Normal play clicks land on *different*
+            // controls (roll, dice, keep, pass), so they spread out and are ignored.
+            SpreadPx: 80,
             start: function (dotNetRef, threshold, windowMs) {
                 if (this._handler) return; // already listening
                 var clicks = [];
                 var cooling = false;
-                this._handler = function () {
+                var spreadPx = this.SpreadPx;
+                this._handler = function (e) {
                     var now = Date.now();
-                    clicks.push(now);
-                    while (clicks.length && now - clicks[0] > windowMs) clicks.shift();
-                    if (!cooling && clicks.length >= threshold) {
-                        cooling = true;
-                        var count = clicks.length;
-                        clicks = [];
-                        try { dotNetRef.invokeMethodAsync('OnRageBurst', count); } catch (e) { /* widget gone */ }
-                        setTimeout(function () { cooling = false; }, windowMs);
-                    }
+                    clicks.push({ t: now, x: e.clientX, y: e.clientY });
+                    while (clicks.length && now - clicks[0].t > windowMs) clicks.shift();
+                    if (cooling || clicks.length < threshold) return;
+                    var xs = clicks.map(function (c) { return c.x; });
+                    var ys = clicks.map(function (c) { return c.y; });
+                    var spread = Math.max(Math.max.apply(null, xs) - Math.min.apply(null, xs),
+                                          Math.max.apply(null, ys) - Math.min.apply(null, ys));
+                    if (spread > spreadPx) return; // clicks scattered across the page — not rage
+                    cooling = true;
+                    var count = clicks.length;
+                    clicks = [];
+                    try { dotNetRef.invokeMethodAsync('OnRageBurst', count); } catch (err) { /* widget gone */ }
+                    setTimeout(function () { cooling = false; }, windowMs);
                 };
                 document.addEventListener('click', this._handler, true);
             },
