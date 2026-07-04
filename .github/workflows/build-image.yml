@@ -28,6 +28,17 @@ permissions:
   id-token: write
   contents: read
 
+# Coalesce the build→deploy chain for main. Two src/** merges landing close together used to
+# start two CI - Image runs that each queued an App Release into app-release.yml's shared
+# `workload-deploy` lock (cancel-in-progress: false); when one was cancelled while queued there,
+# the group stopped dispatching and no deploy ran again (the wedge that forced the cd-deploy →
+# workload-deploy rename). Serializing here — with cancel-in-progress — means a newer main push
+# supersedes an older in-flight build, so rapid merges collapse to a single build + deploy of the
+# LATEST commit and never race into the deploy lock. Keyed by workflow only (this runs on main).
+concurrency:
+  group: image-and-release
+  cancel-in-progress: true
+
 jobs:
   build:
     name: Build & push WebApp image to ACR
