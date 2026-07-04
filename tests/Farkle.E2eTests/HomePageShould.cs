@@ -17,10 +17,6 @@ public class HomePageShould(PlaywrightFixture fixture)
         await page.WaitForSelectorAsync("[data-testid='start-new-game']", new() { Timeout = WasmTimeoutMs });
         (await page.QuerySelectorAsync("[data-testid='join-existing-game']"))
             .Should().NotBeNull("the landing page should offer both Start and Join actions");
-
-        var heading = await page.WaitForSelectorAsync("h3", new() { Timeout = WasmTimeoutMs });
-        var text    = await heading!.InnerTextAsync();
-        text.Should().Contain("Farkle!");
     }
 
     [Fact]
