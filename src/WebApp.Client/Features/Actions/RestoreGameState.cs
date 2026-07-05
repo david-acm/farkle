@@ -1,4 +1,5 @@
 using BlazorState;
+using Farkle.SharedKernel.Turns;
 using WebApp.Client.Pages.Game.Components;
 using WebApp.Client.Services;
 
@@ -50,6 +51,15 @@ public partial class GameState
         // non-active player gets an empty board — matching what they'd otherwise see.
         var myTurn = snapshot.CurrentPlayerId == action.PlayerId;
         State.TurnScore = new TurnScore(myTurn ? snapshot.TurnScore : 0);
+
+        // #286 — restore the local turn-action gating from the snapshot's stage. "Has acted this
+        // turn" isn't carried explicitly, so infer it: mid-keep (Keeping) always follows a roll,
+        // and any banked turn score / kept dice means the player has already rolled or kept.
+        State.TurnStage = ToTurnStage(snapshot.Stage);
+        State.HasActedThisTurn = myTurn &&
+          (State.TurnStage == TurnStage.AwaitingKeep
+           || snapshot.TurnScore > 0
+           || snapshot.DiceKept.Count > 0);
         State.DiceInPlay = myTurn
           ? snapshot.TableCenter
               .Select((v, i) => DiceInfo.Unselected(i, DieValue.FromValue(v)))

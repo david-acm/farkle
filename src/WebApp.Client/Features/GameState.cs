@@ -1,5 +1,6 @@
 ﻿using BlazorState;
 using Farkle.SharedKernel.Scoring;
+using Farkle.SharedKernel.Turns;
 using WebApp.Client.Pages.Game.Components;
 
 namespace WebApp.Client.Features;
@@ -58,6 +59,34 @@ public partial class GameState : State<GameState>
   // shared ScoreCalculator. Lets the UI show the value before the player commits with Keep.
   public ScoreBreakdown SelectionPreview => ScoreCalculator.Evaluate(DiceSetAside);
 
+  // #286 — the local turn stage, tracked by the BlazorState action handlers (roll → AwaitingKeep,
+  // keep → AwaitingRoll, pass / remote turn change → reset). Drives per-action button gating via
+  // the shared TurnActionPolicy; no API contract change (the server already owns the real rule).
+  internal TurnStage TurnStage        { get; set; } = TurnStage.AwaitingRoll;
+  // Whether the in-turn player has already rolled or kept this turn — gates Pass.
+  internal bool      HasActedThisTurn { get; set; }
+
+  // Per-action validity from the shared policy, layered under "it's my turn" (off-turn or after
+  // a win, everything is disabled). Bound by the Roll / Keep / Pass buttons.
+  private ActionAvailability TurnActions =>
+    IsMyTurn && !IsGameOver
+      ? TurnActionPolicy.Evaluate(TurnStage, HasActedThisTurn, SelectionPreview.CanKeep)
+      : new ActionAvailability(false, false, false);
+
+  public bool CanRoll => TurnActions.CanRoll;
+  public bool CanKeep => TurnActions.CanKeep;
+  public bool CanPass => TurnActions.CanPass;
+
+  // #286 — maps a server snapshot's stage string (domain GameStage.ToString()) onto the shared
+  // TurnStage, for restoring the local gating after a refresh / reconnect.
+  internal static TurnStage ToTurnStage(string? stage) => stage switch
+  {
+    "Rolling"  => TurnStage.AwaitingRoll,
+    "Keeping"  => TurnStage.AwaitingKeep,
+    "Finished" => TurnStage.Finished,
+    _          => TurnStage.AwaitingRoll
+  };
+
   public  string    ErrorMessage     { get; private set; } = string.Empty;
   public  bool      ShowError        { get; private set; }
   public  object    LastErrorMessage { get; private set; } = string.Empty;
@@ -74,6 +103,8 @@ public partial class GameState : State<GameState>
     GameStage       = string.Empty;
     HostPlayerId    = 0;
     Roster          = [];
+    TurnStage        = TurnStage.AwaitingRoll;
+    HasActedThisTurn = false;
   }
 }
 

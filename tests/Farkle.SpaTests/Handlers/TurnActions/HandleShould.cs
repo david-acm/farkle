@@ -1,9 +1,9 @@
 using Ardalis.Result;
+using Blazor.Dice;
 using Farkle.SharedKernel.Turns;
 using FluentAssertions;
 using Moq;
 using WebApp.Client.Features;
-using WebApp.Client.Pages.Game.Components;
 using WebApp.Client.Services;
 using static Farkle.Contracts.HttpResponses;
 

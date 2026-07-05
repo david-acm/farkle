@@ -15,9 +15,9 @@
   // computed disabled state to the MudButton, so we assert on the rendered <button>'s
   // `disabled` attribute across the phases of a turn.
 
-  private IRenderedComponent<RollDiceButton> Roll(IRenderedComponent<Game> cut) => cut.FindComponent<RollDiceButton>();
-  private IRenderedComponent<KeepButton>     Keep(IRenderedComponent<Game> cut) => cut.FindComponent<KeepButton>();
-  private IRenderedComponent<PassTurnButton> Pass(IRenderedComponent<Game> cut) => cut.FindComponent<PassTurnButton>();
+  private static IRenderedComponent<RollDiceButton> Roll(IRenderedComponent<IComponent> cut) => cut.FindComponent<RollDiceButton>();
+  private static IRenderedComponent<KeepButton>     Keep(IRenderedComponent<IComponent> cut) => cut.FindComponent<KeepButton>();
+  private static IRenderedComponent<PassTurnButton> Pass(IRenderedComponent<IComponent> cut) => cut.FindComponent<PassTurnButton>();
 
   [Fact]
   public void AtTurnStart_OnlyRollIsEnabled()

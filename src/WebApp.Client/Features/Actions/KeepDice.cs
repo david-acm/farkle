@@ -20,6 +20,11 @@ public partial class GameState
         State.DiceInPlay.RemoveAll(d => d.IsSelected);
 
         State.TurnScore = new(response.TurnScore);
+
+        // #286 — after keeping, the player may roll the remaining dice again (or pass); the
+        // staged selection is consumed, so Keep goes disabled until a new scoring selection.
+        State.TurnStage        = Farkle.SharedKernel.Turns.TurnStage.AwaitingRoll;
+        State.HasActedThisTurn = true;
       }
     }
   }
