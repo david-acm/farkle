@@ -36,6 +36,11 @@ public readonly record struct ActionAvailability(bool CanRoll, bool CanKeep, boo
 /// </summary>
 public static class TurnActionPolicy
 {
+    /// <summary>
+    /// Evaluates which of the three turn actions (Roll / Keep / Pass) are valid right now, from
+    /// the turn stage plus whether the player has acted this turn and whether the staged selection
+    /// scores. Layer "it's my turn" on top of the result — off-turn, every action is disabled.
+    /// </summary>
     /// <param name="stage">The turn stage.</param>
     /// <param name="hasActedThisTurn">
     /// Whether the player has already rolled or kept this turn (the domain's "last event is a
