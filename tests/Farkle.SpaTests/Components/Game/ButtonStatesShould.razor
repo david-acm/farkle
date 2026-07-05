@@ -1,6 +1,8 @@
 @inherits GameBunitContext
+@using Ardalis.Result
 @using BlazorState
 @using MediatR
+@using Microsoft.AspNetCore.Components.Web
 @using Moq
 @using WebApp.Client.Features
 @using WebApp.Client.Pages.Game
@@ -8,26 +10,70 @@
 @using static Farkle.Contracts.HttpResponses
 
 @code {
-  // B2 — Roll, Keep and Pass buttons are Disabled when !IsMyTurn and
-  //      Enabled when IsMyTurn. The bound property is forwarded by each
-  //      button to its MudButton, so we assert on the rendered <button>'s
-  //      `disabled` attribute.
+  // #286 — the three action buttons reflect PER-ACTION validity at the current turn stage
+  // (via the shared TurnActionPolicy), not just "is it my turn". Each button forwards its
+  // computed disabled state to the MudButton, so we assert on the rendered <button>'s
+  // `disabled` attribute across the phases of a turn.
+
+  private IRenderedComponent<RollDiceButton> Roll(IRenderedComponent<Game> cut) => cut.FindComponent<RollDiceButton>();
+  private IRenderedComponent<KeepButton>     Keep(IRenderedComponent<Game> cut) => cut.FindComponent<KeepButton>();
+  private IRenderedComponent<PassTurnButton> Pass(IRenderedComponent<Game> cut) => cut.FindComponent<PassTurnButton>();
 
   [Fact]
-  public void AllThreeButtonsEnabled_WhenItIsMyTurn()
+  public void AtTurnStart_OnlyRollIsEnabled()
   {
     var cut = Render(@<Game></Game>);
-    JoinGame(cut, "Alice", assignedPlayerId: 1);   // JoinPlayer makes us the current player
+    JoinGame(cut, "Alice", assignedPlayerId: 1);   // my turn, nothing rolled yet
 
-    foreach (var (button, label) in new[]
-    {
-      (cut.FindComponent<RollDiceButton>().Find("button"), "Roll"),
-      (cut.FindComponent<KeepButton>().Find("button"),     "Keep"),
-      (cut.FindComponent<PassTurnButton>().Find("button"), "Pass"),
-    })
-    {
-      button.HasAttribute("disabled").Should().BeFalse($"{label} must be enabled when it is the player's turn");
-    }
+    Roll(cut).Find("button").HasAttribute("disabled").Should().BeFalse("Roll is valid at turn start");
+    Keep(cut).Find("button").HasAttribute("disabled").Should().BeTrue("nothing has been rolled to keep");
+    Pass(cut).Find("button").HasAttribute("disabled").Should().BeTrue("you cannot pass before rolling");
+  }
+
+  [Fact]
+  public async Task AfterRolling_RollIsDisabled_PassIsEnabled_KeepFollowsTheSelection()
+  {
+    Mock.Get(GameService)
+      .Setup(s => s.RollDiceAsync(It.IsAny<int>(), It.IsAny<int>()))
+      .ReturnsAsync(Result<IList<DieValue>>.Success(new List<DieValue> { DieValue.Five }));
+
+    var cut = Render(@<Game></Game>);
+    JoinGame(cut, "Alice", assignedPlayerId: 1);
+
+    await Roll(cut).Find("button").ClickAsync(new MouseEventArgs());
+
+    Roll(cut).Find("button").HasAttribute("disabled").Should().BeTrue("no second roll before a keep");
+    Pass(cut).Find("button").HasAttribute("disabled").Should().BeFalse("you may pass once you have rolled");
+    Keep(cut).Find("button").HasAttribute("disabled").Should().BeTrue("nothing is staged, so the selection does not score");
+
+    // Stage the scoring Five — Keep now becomes valid.
+    var sender = Services.GetRequiredService<ISender>();
+    await sender.Send(new GameState.SetDiceAside.Action(DiceInfo.Selected(0, DieValue.Five)));
+
+    Keep(cut).Find("button").HasAttribute("disabled").Should().BeFalse("a staged scoring selection can be kept");
+  }
+
+  [Fact]
+  public async Task AfterKeeping_RollAndPassAreEnabled_KeepIsDisabled()
+  {
+    Mock.Get(GameService)
+      .Setup(s => s.RollDiceAsync(It.IsAny<int>(), It.IsAny<int>()))
+      .ReturnsAsync(Result<IList<DieValue>>.Success(new List<DieValue> { DieValue.Five }));
+    Mock.Get(GameService)
+      .Setup(s => s.KeepDiceAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<IEnumerable<int>>()))
+      .ReturnsAsync(new KeepDiceResponse(0, 50));
+
+    var cut = Render(@<Game></Game>);
+    JoinGame(cut, "Alice", assignedPlayerId: 1);
+
+    await Roll(cut).Find("button").ClickAsync(new MouseEventArgs());
+    var sender = Services.GetRequiredService<ISender>();
+    await sender.Send(new GameState.SetDiceAside.Action(DiceInfo.Selected(0, DieValue.Five)));
+    await Keep(cut).Find("button").ClickAsync(new MouseEventArgs());
+
+    Roll(cut).Find("button").HasAttribute("disabled").Should().BeFalse("after keeping you may roll again");
+    Pass(cut).Find("button").HasAttribute("disabled").Should().BeFalse("after keeping you may pass");
+    Keep(cut).Find("button").HasAttribute("disabled").Should().BeTrue("the staged selection was consumed by the keep");
   }
 
   [Fact]
@@ -41,14 +87,8 @@
     await sender.Send(new GameState.RemoteTurnChanged.Action(
       new PassTurnResponse(GameId: 0, PlayerId: 1, NewScore: 0, Winner: null, CurrentPlayerId: 2)));
 
-    foreach (var (button, label) in new[]
-    {
-      (cut.FindComponent<RollDiceButton>().Find("button"), "Roll"),
-      (cut.FindComponent<KeepButton>().Find("button"),     "Keep"),
-      (cut.FindComponent<PassTurnButton>().Find("button"), "Pass"),
-    })
-    {
-      button.HasAttribute("disabled").Should().BeTrue($"{label} must be disabled when it is another player's turn");
-    }
+    Roll(cut).Find("button").HasAttribute("disabled").Should().BeTrue("Roll must be disabled off-turn");
+    Keep(cut).Find("button").HasAttribute("disabled").Should().BeTrue("Keep must be disabled off-turn");
+    Pass(cut).Find("button").HasAttribute("disabled").Should().BeTrue("Pass must be disabled off-turn");
   }
 }
