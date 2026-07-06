@@ -32,6 +32,12 @@ internal record GameState : State<GameState>
   public Player?   Winner    { get; private init; }
   public Score     TurnScore { get; private init; } = new(0);
 
+  // #301 — whether the in-turn player has rolled or kept this turn. Replaces the old
+  // event-history peek (PlayerCanPass reading game.Current) so "can I pass?" is a pure
+  // (command, state) decision: you may pass only once you've acted. Set by roll/keep, reset
+  // on pass. A write-model signal only — the read model (GameView) never reads it.
+  public bool HasActedThisTurn { get; private init; }
+
   public ImmutableArray<Player>    Players     { get; private init; } = ImmutableArray<Player>.Empty;
   public ImmutableArray<DieValue> TableCenter { get; private init; } = ImmutableArray<DieValue>.Empty;
   public ImmutableArray<DieValue> DiceKept    { get; private init; } = ImmutableArray<DieValue>.Empty;
@@ -134,6 +140,7 @@ internal record GameState : State<GameState>
       TableCenter = ImmutableArray<DieValue>.Empty.AddRange(e.TableCenter.ToDiceValues()),
       GameStage = GameStage.Rolling,
       DiceSetAside = ImmutableArray<DieValue>.Empty,
+      HasActedThisTurn = true,
       StraightsKeptThisTurn = ScoreCalculator.Evaluate(e.Dice).Tricks.Contains(ScoringTrick.FourOfAKind) ? state.StraightsKeptThisTurn + 1 : state.StraightsKeptThisTurn
     };
   }
@@ -147,6 +154,7 @@ internal record GameState : State<GameState>
       TableCenter = ImmutableArray<DieValue>.Empty.AddRange(e.TableCenter.ToDiceValues()),
       GameStage = e.Stage,
       DiceSetAside = ImmutableArray<DieValue>.Empty,
+      HasActedThisTurn = true,
       StraightsKeptThisTurn = ScoreCalculator.Evaluate(e.Dice).Tricks.Contains(ScoringTrick.FourOfAKind) ? state.StraightsKeptThisTurn + 1 : state.StraightsKeptThisTurn
     };
   }
@@ -178,6 +186,7 @@ internal record GameState : State<GameState>
       DiceKept = state.TableCenter.Clear(),
       DiceSetAside = ImmutableArray<DieValue>.Empty,
       StraightsKeptThisTurn = 0,
+      HasActedThisTurn = false, // next player hasn't acted yet
       TurnScore = new Score(0),
       TurnNumber = state.TurnNumber + 1 // #244 — a pass advances to the next turn
     };
@@ -190,6 +199,7 @@ internal record GameState : State<GameState>
       TurnScore = e.TurnScore,
       TableCenter = ImmutableArray<DieValue>.Empty.AddRange(e.Dice.ToDiceValues()),
       DiceSetAside = ImmutableArray<DieValue>.Empty,
+      HasActedThisTurn = true,
       GameStage = GameStage.Keeping
     };
   }
@@ -201,6 +211,7 @@ internal record GameState : State<GameState>
       TurnScore = e.TurnScore,
       TableCenter = ImmutableArray<DieValue>.Empty.AddRange(e.Dice.ToDiceValues()),
       DiceSetAside = ImmutableArray<DieValue>.Empty,
+      HasActedThisTurn = true,
       GameStage = e.Stage
     };
   }

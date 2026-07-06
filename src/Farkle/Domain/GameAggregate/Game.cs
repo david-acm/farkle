@@ -67,21 +67,14 @@ internal class Game : Aggregate<GameState>
 
   public void PassTurn(Command.PassTurn passTurn)
   {
-    var newScore = GetScore(passTurn.PlayerId);
-    Apply(new GameEvents.V1.TurnPassed(
-      passTurn.PlayerId,
-      GetPlayerOrder(passTurn.PlayerId),
-      newScore));
-
-    if (newScore >= WinningScore)
-      base.Apply(new GameEvents.V1.GameWon(passTurn.PlayerId, newScore));
+    foreach (var @event in Features.PassTurn.PassTurnDecider.Decide(passTurn, State))
+      base.Apply(@event);
   }
 
   public void KeepDice(Command.KeepDice keepDice)
   {
-    Apply(new V1.DiceKept(keepDice.PlayerId, keepDice.DiceValues.ToPrimitiveArray(),
-      GetTableCenterDice(keepDice),
-      GetNewTurnScore(keepDice.DiceValues, State.TurnScore, State)));
+    foreach (var @event in Features.KeepDice.KeepDiceDecider.Decide(keepDice, State))
+      base.Apply(@event);
   }
 
   public void KeepDiceV2(Command.KeepDice keepDice)
