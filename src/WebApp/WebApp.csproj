@@ -48,6 +48,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Farkle\Farkle.csproj" />
+    <ProjectReference Include="..\Farkle.Endpoints\Farkle.Endpoints.csproj" />
     <ProjectReference Include="..\WebApp.Client\WebApp.Client.csproj" />
     <ProjectReference Include="..\Farkle.Infrastructure\Farkle.Infrastructure.csproj" />
   </ItemGroup>

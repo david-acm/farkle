@@ -24,22 +24,22 @@ A descriptive, side-by-side comparison of Farkle's architecture with the canonic
 
 Farkle honours the **spirit** of Clean Architecture — dependencies point inward, the domain is
 rich and encapsulated, infrastructure is inverted behind interfaces, and the test pyramid is
-strong. Since the `Farkle.Infrastructure` extraction it also packages most layers the Ardalis way:
-the event store, read model, realtime and Identity now live in a dedicated Infrastructure project,
-and the `Farkle` core no longer references the ESDB/EF/SignalR/Identity stacks. The **one remaining
-packaging divergence** is that Domain, Application (use cases) and the HTTP **Endpoints** still share
-the single `Farkle` project — so the web framework (`FastEndpoints`) is compiled into the core —
-whereas Ardalis splits Endpoints into a separate `*.Web` project so the core carries zero web
-dependencies.
+strong. Since the `Farkle.Infrastructure` (PR #197) and `Farkle.Endpoints` (#292) extractions it
+also packages the layers the Ardalis way: the event store, read model, realtime and Identity live
+in a dedicated Infrastructure project, and the HTTP endpoints live in a dedicated endpoints project,
+so the `Farkle` core is now just **Domain + Application** and no longer references the
+ESDB/EF/SignalR/Identity stacks **or the web framework**. The remaining divergence is a minor one:
+Domain and Application still share the single `Farkle` module (separated by folder + `internal`
+visibility), where Ardalis splits them into `*.Core` and `*.UseCases`.
 
 | Principle | Verdict |
 |---|---|
 | Dependency Rule (point inward) | ✅ Aligned (acyclic inward graph, enforced by `Farkle.ArchitectureTests`) |
 | Domain-centric, rich model | ✅ Aligned (aggregate enforces invariants; no anemic models) |
 | Dependency inversion for infrastructure | ✅ Aligned (event store, read model, broadcast, Identity all inverted; core depends on abstractions only) |
-| "Infrastructure/DB is a detail (plugin)" | 🟡 Mostly (ESDB/EF/SignalR/Identity are a swappable `Farkle.Infrastructure` plugin; the **web framework** is still compiled into the core because Endpoints live there) |
-| Encapsulation / testability | ✅ Aligned (internal domain, `IRandom` seam, ArchUnit guards, 5-project test suite) |
-| Project-per-layer organization | 🔵 Mostly (dedicated Contracts/SharedKernel/Infrastructure projects; Domain+Application+Endpoints still share one `Farkle` module) |
+| "Infrastructure/DB is a detail (plugin)" | ✅ Aligned (ESDB/EF/SignalR/Identity are a swappable `Farkle.Infrastructure` plugin; the web framework lives in `Farkle.Endpoints`, not the core) |
+| Encapsulation / testability | ✅ Aligned (internal domain, `IRandom` seam, ArchUnit guards, 6-project test suite) |
+| Project-per-layer organization | 🔵 Mostly (dedicated Contracts/SharedKernel/Infrastructure/Endpoints projects; Domain+Application still share one `Farkle` module) |
 
 Legend: ✅ aligned · 🟡 partial · 🔵 divergent-by-design.
 
@@ -52,7 +52,7 @@ Legend: ✅ aligned · 🟡 partial · 🔵 divergent-by-design.
 | **Dependency Rule** — source dependencies point only inward, toward the domain. | Web → UseCases/Infrastructure → Core; Core depends on nothing. | Acyclic graph pointing inward: `WebApp → {Farkle, Farkle.Infrastructure} → Farkle → {Farkle.Contracts, Farkle.SharedKernel}` (see §4). `tests/Farkle.ArchitectureTests` asserts (via ArchUnitNET) that the core doesn't depend on `Farkle.Infrastructure`/the host, that domain types stay `internal`, and that the shared kernel and contracts remain dependency-free leaves. | ✅ |
 | **Domain-centric design** — architecture organized around the model, not the database/framework. | Entities/aggregates/value objects/domain events in Core. | `src/Farkle/Domain/GameAggregate/` holds the `Game` aggregate, `GameState`, versioned `GameEvents`, value objects (`Score`, `GameId`, `DieValue`, `Player`, `Dice`) and `GameValidator`. The model — not the store — is the center. | ✅ |
 | **Dependency inversion for infrastructure** — outer layers implement interfaces defined inward. | Repositories/services implement Core interfaces. | The read/notify **ports** `IGameViewStore` and `IGameEventBroadcaster` (in `src/Farkle/Application/`) are implemented in `Farkle.Infrastructure` (`ReadModel/EfGameViewStore.cs`, `Realtime/SignalRGameEventBroadcaster.cs`); `PortImplementationShould` asserts those implementations live in Infrastructure. The **event store** is inverted too: the core's `GameService` depends on Eventuous' `IEventStore` abstraction, and the concrete ESDB transport (`Eventuous.EventStore` + `EventStore.Client.Grpc`) is referenced and wired only in `Farkle.Infrastructure` (`Persistence/`, `AddFarkleEventStore`). | ✅ |
-| **Infrastructure/DB is a detail (a plugin)** — DB/UI/framework are replaceable. | EF Core, external services confined to Infrastructure. | ESDB/Eventuous transport, Postgres (Identity + read model), SignalR and Identity are all confined to `Farkle.Infrastructure` and swappable (the storyboard test factory swaps in an in-memory store, no Docker). **Remaining caveat:** the web framework (`FastEndpoints`) is a package reference of the `Farkle` project because the HTTP **endpoints** live there, so that one framework is compiled into the core rather than plugged in around it. | 🟡 |
+| **Infrastructure/DB is a detail (a plugin)** — DB/UI/framework are replaceable. | EF Core, external services confined to Infrastructure. | ESDB/Eventuous transport, Postgres (Identity + read model), SignalR and Identity are all confined to `Farkle.Infrastructure` and swappable (the storyboard test factory swaps in an in-memory store, no Docker). The web framework (`FastEndpoints`) lives in the dedicated `Farkle.Endpoints` project (#292), so the core is not compiled against it either — a guardrail (`KeepTheCoreFreeOfTheWebFramework`) enforces this. | ✅ |
 | **Encapsulation & rich model** — invariants enforced inside the model; no anemic entities. | Aggregates form consistency boundaries; value objects immutable. | The `Game` aggregate enforces all rules through `GameValidator` before applying events; invalid commands yield **error events** instead of mutating state. Value objects are immutable records/SmartEnums. Domain types are `internal`, enforced by `DomainPurityShould.KeepDomainTypesInternal`. | ✅ |
 | **Testability** — business logic testable without DB/UI/framework. | Unit/Integration/Functional layering. | Domain unit tests mock `IRandom` and exercise the aggregate with no I/O; integration tests use Testcontainers; component tests use bUnit; E2E uses Playwright; a dedicated ArchUnitNET project guards structure. See §7. | ✅ |
 
@@ -98,13 +98,14 @@ Project dependency graph (from each `.csproj`'s `ProjectReference` — acyclic, 
 
 ```
 Farkle                -> Farkle.Contracts, Farkle.SharedKernel
+Farkle.Endpoints      -> Farkle, Farkle.Contracts
 Farkle.Infrastructure -> Farkle, Farkle.Contracts
 Farkle.Contracts      -> (none)
 Farkle.SharedKernel   -> (none)
 Farkle.ApiClient      -> (none, Kiota-generated)
 Blazor.Dice           -> (none)
 WebApp.Client         -> Blazor.Dice, Farkle.ApiClient, Farkle.Contracts, Farkle.SharedKernel
-WebApp                -> Farkle, Farkle.Infrastructure, WebApp.Client
+WebApp                -> Farkle, Farkle.Endpoints, Farkle.Infrastructure, WebApp.Client
 tests:  Farkle.Tests             -> Farkle
         Farkle.WebTests          -> Farkle, WebApp, Farkle.ApiClient
         Farkle.SpaTests          -> Farkle, WebApp.Client
@@ -112,12 +113,12 @@ tests:  Farkle.Tests             -> Farkle
         Farkle.ArchitectureTests -> (loads the built assemblies to assert structure)
 ```
 
-The `Farkle` project still folds **three** Clean-Architecture layers — Domain, Application (use
-cases) and the HTTP Endpoints — into one assembly (separated by folder/namespace and `internal`
-visibility rather than project boundary). Infrastructure, by contrast, is now its own project:
+The `Farkle` project now folds **two** Clean-Architecture layers — Domain and Application (use
+cases) — into one assembly (separated by folder/namespace and `internal` visibility rather than
+project boundary). Endpoints and Infrastructure are each their own project:
 
 ```
-src/Farkle/                        ← the "core module" (Domain + Application + Endpoints)
+src/Farkle/                        ← the "core module" (Domain + Application)
   Domain/GameAggregate/   Game, GameState, GameEvents (V1/V2), Command,
                           GameValidator, DefaultRandomProvider, EventExtensions
   Domain/                 Validator, ValidationResult (composite-validator base)
@@ -125,11 +126,15 @@ src/Farkle/                        ← the "core module" (Domain + Application +
                           GameViewProjector (projection logic), GameBroadcastHandler,
                           GameTelemetryHandler, GameStateSerializer, ResultExtensions,
                           CommandHandlerBuilderExtensions, IGameViewStore, IGameEventBroadcaster
-                          (outbound ports); plus the feedback pipeline (FeedbackViewProjector, …)
-  Endpoints/              StartGame/JoinPlayer/BeginGame/RollDice/KeepDice/PassTurn/
-                          GetGameState/SubmitFeedback (FastEndpoints) + TypedEndpoint base + *Mapper.cs
+                          (outbound ports), the GameState→DTO mappers (GameStateMapper /
+                          LobbyMapper / PassTurnMapper, shared with the broadcast handler); plus
+                          the feedback pipeline (FeedbackViewProjector, …)
   FarkleModuleServiceExtensions.cs   (DI registration — domain/application only, infra-free)
-  Assembly.cs                        ([InternalsVisibleTo] for test projects)
+  Assembly.cs                        ([InternalsVisibleTo] for test + endpoints + infra projects)
+
+src/Farkle.Endpoints/              ← the HTTP delivery layer (#292; references Farkle via IVT)
+  StartGame/JoinPlayer/BeginGame/RollDice/KeepDice/PassTurn/GetGameState/SubmitFeedback
+  (FastEndpoints) + TypedEndpoint base. The only project that references FastEndpoints.
 
 src/Farkle.Infrastructure/         ← all server infrastructure (implements the core's ports)
   Persistence/   ESDB event store + AddFarkleEventStore + EventStoreHealthCheck
@@ -144,11 +149,14 @@ src/Farkle.SharedKernel/   Scoring/ScoreCalculator (+ MachinePlayer),
 src/Farkle.Contracts/      HttpRequests / HttpResponses (dependency-free DTOs)
 ```
 
-Note that the two web helpers a reader might expect in a "shared kernel" actually live **inside**
-the `Farkle` project: `TypedEndpoint` (the FastEndpoints base) in `Endpoints/`, and `ResultExtensions`
-(Eventuous-`Result`→HTTP mapping) in `Application/`. `Farkle.SharedKernel` instead holds *domain*
-logic (`ScoreCalculator`, `TurnActionPolicy`), which both the server aggregate and the WASM client
-reference — closer to the DDD meaning of a shared kernel.
+The endpoints are `internal` and map `internal` commands/state, so `Farkle.Endpoints` sees the
+core's internals through `[InternalsVisibleTo]` (the same mechanism `Farkle.Infrastructure` uses)
+rather than forcing those types public — they must stay internal per the domain-purity guardrail.
+The `GameState→DTO` mappers stay in the **core** `Application/` (not the endpoints project) because
+the `GameBroadcastHandler` uses them too; `ResultExtensions` (Eventuous-`Result`→HTTP mapping) also
+stays in `Application/`. `Farkle.SharedKernel` holds *domain* logic (`ScoreCalculator`,
+`TurnActionPolicy`), which both the server aggregate and the WASM client reference — closer to the
+DDD meaning of a shared kernel.
 
 The read model is split by concern: the **projection logic** lives in the core
 (`src/Farkle/Application/GameViewProjector.cs`) while its **EF persistence** and durable
@@ -164,7 +172,7 @@ to own moved into `Farkle.Infrastructure/Identity/`.
 |---|---|
 | `*.Core` (domain) | `src/Farkle/Domain/**` |
 | `*.UseCases` (application) | `src/Farkle/Application/**` |
-| `*.Web` (endpoints + composition root) | `src/Farkle/Endpoints/**` (endpoints, in the core module) + `src/WebApp/Program.cs` (composition root) + `src/WebApp/Auth/**` (auth endpoints) |
+| `*.Web` (endpoints + composition root) | **`src/Farkle.Endpoints/**`** (game endpoints, dedicated project — #292) + `src/WebApp/Program.cs` (composition root) + `src/WebApp/Auth/**` (auth endpoints) |
 | `*.Infrastructure` | **`src/Farkle.Infrastructure/**`** — a dedicated project owning the ESDB event store (`Persistence/`), EF/Postgres read model (`ReadModel/`), SignalR (`Realtime/`) and Identity (`Identity/`, `Migrations/`). |
 | `Ardalis.SharedKernel` (DDD base types) | *Package not used* (Eventuous supplies aggregate/state base types). Farkle has its **own** `Farkle.SharedKernel` project, but for **shared infra-free domain logic** — `Scoring/ScoreCalculator` and `Turns/TurnActionPolicy` (plus the shared `GameStage` enum), single sources of truth reused by the server domain *and* the Blazor client — which matches the *purpose* of a DDD shared kernel (see §5). |
 | Contracts/DTOs (usually inside Web/UseCases) | `src/Farkle.Contracts/**` (extracted as its own dependency-free project) |
@@ -181,7 +189,7 @@ to own moved into `Farkle.Infrastructure/Identity/`.
 | `Ardalis.GuardClauses` | 🟡 Referenced as a package; the domain favours the composite `Validator` + validation-as-events over guard clauses. |
 | `Ardalis.SharedKernel` base types (`EntityBase`, `IAggregateRoot`, `DomainEventBase`, `IDomainEventDispatcher`) | ❌ Package not used — Eventuous `Aggregate<TState>` / `State<TState>` + `[EventType]` events. Farkle's own `Farkle.SharedKernel` project instead carries shared *domain* logic (`Scoring/ScoreCalculator`, `Turns/TurnActionPolicy`) reused by server + client. |
 | `Ardalis.Specification` | ❌ N/A — there is no `IQueryable`/repository query surface to encapsulate under Event Sourcing. |
-| `Ardalis.ApiEndpoints` | ❌ Uses **FastEndpoints** instead (which recent Ardalis templates also adopt) via `TypedEndpoint<,>` (`Farkle/Endpoints/TypedEndpoint.cs`). |
+| `Ardalis.ApiEndpoints` | ❌ Uses **FastEndpoints** instead (which recent Ardalis templates also adopt) via `TypedEndpoint<,>` (`Farkle.Endpoints/TypedEndpoint.cs`). |
 | MediatR (CQRS + domain-event dispatch) | ❌ Server uses Eventuous `CommandService`; the **client** uses BlazorState (a MediatR-like Redux loop). |
 | FluentValidation | ❌ Custom composite `Validator`/`ValidationResult`; invalid commands emit `IErrorEvent`s surfaced as HTTP 400. |
 
@@ -236,24 +244,28 @@ a real SPA.
 - Eventuous `CommandService` instead of MediatR; BlazorState on the client.
 - Validation-as-events instead of throwing/FluentValidation.
 - Eventuous base types instead of `Ardalis.SharedKernel`; no `Ardalis.Specification` (no query surface).
-- A single `Farkle` *module* project for Domain + Application + Endpoints in a small,
-  single-bounded-context game, separating those layers by folder + `internal` visibility rather than
-  by project. (Infrastructure, Contracts and the SharedKernel *are* separate projects.)
+- A single `Farkle` *module* project for Domain + Application in a small, single-bounded-context
+  game, separating those two layers by folder + `internal` visibility rather than by project.
+  (Endpoints, Infrastructure, Contracts and the SharedKernel *are* separate projects.)
 - Scoring and the turn-action rule extracted into an infra-free `Farkle.SharedKernel`
   (`ScoreCalculator`, `TurnActionPolicy`) reused by both the server domain and the Blazor client — a
   Clean-Architecture-friendly shared kernel (one source of truth, no duplicated rules between back end
   and UI).
 
 **Genuine gaps (would hold even if the stack were EF + MediatR):**
-- **HTTP endpoints share the project with the domain** (`Endpoints/` next to `Domain/` in `Farkle`),
-  so a Web concern — and the `FastEndpoints` package — is compiled into the core module. Ardalis keeps
-  endpoints in a separate `*.Web` project so the core is web-framework-free. This is the main remaining
-  packaging divergence from the canon.
-- The core still carries some framework-adjacent package references beyond the domain's needs
-  (OpenAPI/Swagger tooling for endpoint generation, messaging/config clients), a side effect of the
-  endpoints and DI wiring living in the same assembly.
+- The core still carries a few package references beyond the domain's needs — messaging/config
+  clients (`Azure.Messaging.*`, `Microsoft.Azure.AppConfiguration.*`) and OpenAPI/Swagger packages —
+  that appear unused in the core's code (leftovers from the infrastructure/endpoint extractions).
+  Tracked for cleanup in #293.
 
-**Closed since earlier revisions of this document (PR #197):**
+**Closed since earlier revisions of this document (PR #197, #292):**
+- ~~HTTP endpoints share the project with the domain (FastEndpoints compiled into the core)~~ → the
+  endpoints moved to a dedicated **`Farkle.Endpoints`** project (#292); the core no longer references
+  the web framework, enforced by `KeepTheCoreFreeOfTheWebFramework`.
+- ~~No dedicated Infrastructure project~~ → `Farkle.Infrastructure` now owns the event store, EF read
+  model, SignalR and Identity.
+- ~~The core compiles against `EventStore.Client.Grpc` / `Eventuous.EventStore`~~ → those moved to
+  `Farkle.Infrastructure`; the core references only the Eventuous *abstractions* (by design, like
 - ~~No dedicated Infrastructure project~~ → `Farkle.Infrastructure` now owns the event store, EF read
   model, SignalR and Identity.
 - ~~The core compiles against `EventStore.Client.Grpc` / `Eventuous.EventStore`~~ → those moved to
