@@ -10,6 +10,10 @@ Learn more at https://bunit.dev/docs/getting-started/writing-tests.html#creating
 
 @code {
 
+  // A rolled die awaits requestAnimationFrame (via die-spin.js) before rotating. Loose JSInterop
+  // lets that module import/call no-op in these DOM-less unit tests; the rotation still applies.
+  public RenderShould() => JSInterop.Mode = JSRuntimeMode.Loose;
+
   [Theory]
   [AutoData]
   public void SpinToFaceWhenRolled(int xExpected, int yExpected, int zExpected)

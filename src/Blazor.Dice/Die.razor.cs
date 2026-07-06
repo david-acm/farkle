@@ -8,7 +8,7 @@ namespace Blazor.Dice;
 
 public partial class Die : IAsyncDisposable
 {
-  private string              _id     = new(Guid.NewGuid().ToString().Where(c => !char.IsDigit(c)).ToArray());
+  private readonly string     _id     = new(Guid.NewGuid().ToString().Where(c => !char.IsDigit(c)).ToArray());
   private DieValue            _number = DieValue.None;
   private DieRotation         _rotation;
   private double              _scale = 1;
@@ -116,12 +116,14 @@ public partial class Die : IAsyncDisposable
     try
     {
       _spinModule ??= await JS.InvokeAsync<IJSObjectReference>("import", SpinModulePath);
-      await _spinModule.InvokeVoidAsync("afterNextPaint");
+      if (_spinModule is not null)
+        await _spinModule.InvokeVoidAsync("afterNextPaint");
     }
-    catch (Exception ex)
+    catch (Exception ex) when (ex is JSException or JSDisconnectedException or OperationCanceledException or ObjectDisposedException)
     {
+      // JS unavailable / circuit gone / disposed mid-flight — settle on the face without the
+      // paint-wait (the spin just isn't observed in that rare case).
       Logger.LogDebug(ex, "Die spin paint-wait unavailable; settling without requestAnimationFrame");
-      try { await Task.Delay(16); } catch (TaskCanceledException) { }
     }
 
     if (_disposed || _rotated) return;
