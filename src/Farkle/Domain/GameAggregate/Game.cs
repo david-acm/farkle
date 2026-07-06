@@ -25,7 +25,11 @@ internal class Game : Aggregate<GameState>
 
   public void Start(Command.StartGame startGame)
   {
-    Apply(new GameEvents.V1.GameStarted(startGame));
+    // Delegates to the pure StartGame decider (validation-as-events included). Applies its
+    // output through base.Apply directly — the decider already validated, so the legacy
+    // GameValidator path is bypassed for converted slices.
+    foreach (var @event in Features.StartGame.StartGameDecider.Decide(startGame, State))
+      base.Apply(@event);
   }
 
   public void JoinPlayer(Command.JoinPlayer joinPlayer)
