@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Text.Json;
 using Farkle.Domain.GameAggregate;
+using Farkle.SharedKernel.Turns;
 
 namespace Farkle.Application;
 

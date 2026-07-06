@@ -28,7 +28,7 @@ public partial class GameState
         State.DiceInPlay.Clear();
         State.TurnScore = new(0);
         // #286 — a fresh turn starts awaiting a roll with nothing committed yet.
-        State.TurnStage        = Farkle.SharedKernel.Turns.TurnStage.AwaitingRoll;
+        State.PlayStage        = Farkle.SharedKernel.Turns.GameStage.Rolling;
         State.HasActedThisTurn = false;
       }
     }

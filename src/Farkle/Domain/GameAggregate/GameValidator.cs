@@ -4,20 +4,6 @@ using static Farkle.Domain.GameAggregate.GameEvents.V1;
 
 namespace Farkle.Domain.GameAggregate;
 
-// #286 — maps the domain's internal GameStage onto the shared TurnStage vocabulary so the
-// stage -> allowed-action rule can live once in Farkle.SharedKernel, reused by both the
-// domain validators here and the client's button gating.
-internal static class GameStageExtensions
-{
-  public static TurnStage ToTurnStage(this GameStage stage) => stage switch
-  {
-    GameStage.Rolling  => TurnStage.AwaitingRoll,
-    GameStage.Keeping  => TurnStage.AwaitingKeep,
-    // None / WaitingForPlayers / Finished: no in-turn action is valid.
-    _                  => TurnStage.Finished
-  };
-}
-
 internal static class GameValidator
 {
   public static ValidationResult ValidatePreconditions(Game game, object @event)
@@ -101,7 +87,7 @@ internal class SingleRoll : Validator
     // #286 — "can I roll now?" is the shared policy's stage rule (a roll is only valid while
     // awaiting a roll — no second roll before a keep). hasActed / selectionScores don't gate Roll.
     var availability = TurnActionPolicy.Evaluate(
-      _state.GameStage.ToTurnStage(), hasActedThisTurn: false, selectionScores: false);
+      _state.GameStage, hasActedThisTurn: false, selectionScores: false);
     return new ValidationResult(availability.CanRoll, new RolledTwice(_playerId));
   }
 }
@@ -298,7 +284,7 @@ internal class PlayerCanPass : Validator
       _game.Current.LastEventsWhere(typeof(GameEvents.V1.DiceKept));
 
     var availability = TurnActionPolicy.Evaluate(
-      _game.State.GameStage.ToTurnStage(), hasActedThisTurn, selectionScores: false);
+      _game.State.GameStage, hasActedThisTurn, selectionScores: false);
     return new ValidationResult(availability.CanPass, new PassedWithoutRolling(_playerId));
   }
 }

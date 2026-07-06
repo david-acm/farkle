@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using Farkle.Domain.GameAggregate;
+using Farkle.SharedKernel.Turns;
 using Farkle.Tests.Framework;
 using FluentAssertions;
 using Xunit.Abstractions;

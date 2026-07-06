@@ -27,7 +27,7 @@ public class HandleShould : HandlerTestContext
   {
     await JoinAsMyTurn();
 
-    State.TurnStage.Should().Be(TurnStage.AwaitingRoll);
+    State.PlayStage.Should().Be(GameStage.Rolling);
     State.HasActedThisTurn.Should().BeFalse();
     State.CanRoll.Should().BeTrue();
     State.CanPass.Should().BeFalse("you cannot pass before rolling");
@@ -44,7 +44,7 @@ public class HandleShould : HandlerTestContext
 
     await Sender.Send(new GameState.RollDice.Action());
 
-    State.TurnStage.Should().Be(TurnStage.AwaitingKeep);
+    State.PlayStage.Should().Be(GameStage.Keeping);
     State.HasActedThisTurn.Should().BeTrue();
     State.CanRoll.Should().BeFalse("no second roll before a keep");
     State.CanPass.Should().BeTrue("you may pass once you have rolled");
@@ -64,7 +64,7 @@ public class HandleShould : HandlerTestContext
     await Sender.Send(new GameState.RollDice.Action());
     await Sender.Send(new GameState.KeepDice.Action());
 
-    State.TurnStage.Should().Be(TurnStage.AwaitingRoll);
+    State.PlayStage.Should().Be(GameStage.Rolling);
     State.HasActedThisTurn.Should().BeTrue();
     State.CanRoll.Should().BeTrue("after keeping you may roll again");
     State.CanPass.Should().BeTrue("after keeping you may pass");
@@ -84,7 +84,7 @@ public class HandleShould : HandlerTestContext
     await Sender.Send(new GameState.RollDice.Action());
     await Sender.Send(new GameState.PassTurn.Action());
 
-    State.TurnStage.Should().Be(TurnStage.AwaitingRoll);
+    State.PlayStage.Should().Be(GameStage.Rolling);
     State.HasActedThisTurn.Should().BeFalse("a fresh turn has no committed action yet");
     State.CanPass.Should().BeFalse();
   }
