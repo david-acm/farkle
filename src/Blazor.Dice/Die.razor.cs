@@ -2,17 +2,22 @@ using System.Threading;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.Logging;
+using Microsoft.JSInterop;
 
 namespace Blazor.Dice;
 
-public partial class Die : IDisposable
+public partial class Die : IAsyncDisposable
 {
-  private string      _id     = new(Guid.NewGuid().ToString().Where(c => !char.IsDigit(c)).ToArray());
-  private DieValue    _number = DieValue.None;
-  private DieRotation _rotation;
-  private double      _scale = 1;
-  private Timer?      _spinTimer;
-  private Timer?      _consumeTimer;
+  private string              _id     = new(Guid.NewGuid().ToString().Where(c => !char.IsDigit(c)).ToArray());
+  private DieValue            _number = DieValue.None;
+  private DieRotation         _rotation;
+  private double              _scale = 1;
+  private Timer?              _consumeTimer;
+  private IJSObjectReference? _spinModule;
+  private bool                _disposed;
+
+  // Static asset of the Blazor.Dice RCL (served at _content/<assembly>/…).
+  private const string SpinModulePath = "./_content/Blazor.Dice/die-spin.js";
 
   /// <summary>The die face to show (None or One–Six).</summary>
   [Parameter, EditorRequired] public DieValue DieValue { get; set; } = null!;
@@ -49,6 +54,8 @@ public partial class Die : IDisposable
 
   [Inject] public IRotationCalculator RotationCalculator { get; set; } = null!;
 
+  [Inject] public IJSRuntime JS { get; set; } = null!;
+
   private double AngleFor(char a) => a switch
   {
     'x' => _rotation.X,
@@ -78,17 +85,19 @@ public partial class Die : IDisposable
 
   protected override void OnAfterRender(bool firstRender)
   {
-    // A freshly rolled die rendered at its neutral orientation. Rotate to the face on
-    // a *later* tick (Timer) so the browser paints the neutral state first — the CSS
-    // transition then has a "from" state and animates the roll. Doing this inline
-    // (synchronous StateHasChanged) renders the final rotation in the same frame, so
-    // no transition fires and the roll looks static. Gated on _animate, so settled or
-    // moved dice (which set their face synchronously in OnParametersSet) never spin.
+    // A freshly rolled die rendered at its neutral orientation. Rotate to the face only after
+    // the browser has PAINTED that neutral state — the CSS transition then has a "from" state
+    // and animates the roll. Doing it inline (synchronous StateHasChanged) renders the final
+    // rotation in the same frame, so no transition fires and the roll looks static. Gated on
+    // _animate, so settled or moved dice (which set their face synchronously in OnParametersSet)
+    // never spin.
     if (!firstRender || !_animate || _rotated) return;
 
-    // 1) After the neutral paint, rotate to the face → the CSS transition animates the roll.
-    _spinTimer = new Timer(_ => InvokeAsync(() => { RotateToValue(); StateHasChanged(); }),
-      null, 0, Timeout.Infinite);
+    // 1) Rotate to the face once a real frame has painted (see SpinAfterPaintAsync). A prior
+    //    Timer(0) fired on the next microtask — usually BEFORE the neutral paint — so the
+    //    transition intermittently didn't fire and the dice snapped to their faces with no
+    //    spin (worst on a turn's first roll). requestAnimationFrame waits for an actual paint.
+    _ = SpinAfterPaintAsync();
 
     // 2) After the transition finishes, ask the owner to clear the model's Animate flag
     //    (a one-shot), so a later recreation of this component renders statically. Doing
@@ -98,13 +107,43 @@ public partial class Die : IDisposable
       null, AnimationDurationMs, Timeout.Infinite);
   }
 
-  // Blazor disposes the component when it is removed (e.g. recreated for a zone move).
-  // Dispose the one-shot timers so they don't leak — important because a die's
-  // component is recreated whenever it moves between the rolled/set-aside zones.
-  public void Dispose()
+  // Wait for the neutral orientation to actually paint, then rotate to the face so the CSS
+  // transition animates. The paint-wait is via requestAnimationFrame in JS (die-spin.js). If
+  // JS isn't available (component tests, static prerender, or teardown mid-flight) we fall back
+  // to a short delay so the die still settles on its face — the visual spin just isn't observed.
+  private async Task SpinAfterPaintAsync()
   {
-    _spinTimer?.Dispose();
+    try
+    {
+      _spinModule ??= await JS.InvokeAsync<IJSObjectReference>("import", SpinModulePath);
+      await _spinModule.InvokeVoidAsync("afterNextPaint");
+    }
+    catch (Exception ex)
+    {
+      Logger.LogDebug(ex, "Die spin paint-wait unavailable; settling without requestAnimationFrame");
+      try { await Task.Delay(16); } catch (TaskCanceledException) { }
+    }
+
+    if (_disposed || _rotated) return;
+    RotateToValue();
+    StateHasChanged();
+  }
+
+  // Blazor disposes the component when it is removed (e.g. recreated for a zone move).
+  // Dispose the one-shot timer + the JS module so they don't leak — important because a die's
+  // component is recreated whenever it moves between the rolled/set-aside zones.
+  public async ValueTask DisposeAsync()
+  {
+    _disposed = true;
     _consumeTimer?.Dispose();
+    if (_spinModule is not null)
+    {
+      try { await _spinModule.DisposeAsync(); }
+      catch (Exception ex) when (ex is JSDisconnectedException or JSException or TaskCanceledException or OperationCanceledException)
+      {
+        // Circuit/browser gone during teardown — nothing to release.
+      }
+    }
   }
 
   private void RotateToValue()
