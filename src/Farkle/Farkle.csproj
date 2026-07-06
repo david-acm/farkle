@@ -23,11 +23,11 @@
          Note: Eventuous.AspNetCore and Eventuous.AspNetCore.Web were dropped — neither has a
          0.15.1 release (max beta.7 / rc.1) and both were unused (the command-mapping they
          provide is replaced by FastEndpoints; MapCommands is not used). -->
-    <PackageReference Include="Eventuous.Application" Version="0.15.1" />
-    <PackageReference Include="Eventuous.Extensions.DependencyInjection" Version="0.15.1" />
-    <PackageReference Include="Eventuous.Persistence" Version="0.15.1" />
+    <PackageReference Include="Eventuous.Application" Version="0.16.4" />
+    <PackageReference Include="Eventuous.Extensions.DependencyInjection" Version="0.16.4" />
+    <PackageReference Include="Eventuous.Persistence" Version="0.16.4" />
     <PackageReference Include="Eventuous.Subscriptions" Version="0.15.1" />
-    <PackageReference Include="Eventuous.Shared" Version="0.15.1" />
+    <PackageReference Include="Eventuous.Shared" Version="0.16.4" />
     <!-- #292 — FastEndpoints moved to the Farkle.Endpoints project with the HTTP endpoints, so
          the domain/application core no longer compiles against the web framework. -->
     <PackageReference Include="Mapster" Version="10.0.7" />
