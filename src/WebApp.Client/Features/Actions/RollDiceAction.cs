@@ -33,6 +33,11 @@ public partial class GameState
         State.DiceInPlay = response.Value
           .Select((d, i) => DiceInfo.Unselected(i, DieValue.FromValue(d)))
           .ToList();
+
+        // #286 — a roll moves the turn into the keeping stage and counts as having acted
+        // (so Pass becomes valid); a second roll is gated until the player keeps.
+        State.TurnStage        = Farkle.SharedKernel.Turns.TurnStage.AwaitingKeep;
+        State.HasActedThisTurn = true;
       }
     }
   }

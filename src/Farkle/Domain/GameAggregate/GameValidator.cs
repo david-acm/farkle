@@ -1,7 +1,22 @@
 using Eventuous;
+using Farkle.SharedKernel.Turns;
 using static Farkle.Domain.GameAggregate.GameEvents.V1;
 
 namespace Farkle.Domain.GameAggregate;
+
+// #286 — maps the domain's internal GameStage onto the shared TurnStage vocabulary so the
+// stage -> allowed-action rule can live once in Farkle.SharedKernel, reused by both the
+// domain validators here and the client's button gating.
+internal static class GameStageExtensions
+{
+  public static TurnStage ToTurnStage(this GameStage stage) => stage switch
+  {
+    GameStage.Rolling  => TurnStage.AwaitingRoll,
+    GameStage.Keeping  => TurnStage.AwaitingKeep,
+    // None / WaitingForPlayers / Finished: no in-turn action is valid.
+    _                  => TurnStage.Finished
+  };
+}
 
 internal static class GameValidator
 {
@@ -83,8 +98,11 @@ internal class SingleRoll : Validator
 
   public override ValidationResult IsSatisfied()
   {
-    return new ValidationResult(_state.GameStage == GameStage.Rolling,
-      new RolledTwice(_playerId));
+    // #286 — "can I roll now?" is the shared policy's stage rule (a roll is only valid while
+    // awaiting a roll — no second roll before a keep). hasActed / selectionScores don't gate Roll.
+    var availability = TurnActionPolicy.Evaluate(
+      _state.GameStage.ToTurnStage(), hasActedThisTurn: false, selectionScores: false);
+    return new ValidationResult(availability.CanRoll, new RolledTwice(_playerId));
   }
 }
 
@@ -269,14 +287,19 @@ internal class PlayerCanPass : Validator
 
   public override ValidationResult IsSatisfied()
   {
-    return new ValidationResult(
+    // #286 — "can I pass now?" is the shared policy's Pass rule: you may pass only once you've
+    // acted this turn. "Acted" here is the domain's own signal — the last event is a Roll or Keep.
+    var hasActedThisTurn =
       _game.Current.LastEventsWhere(typeof(GameEvents.V2.DiceRolled))
       ||
       _game.Current.LastEventsWhere(typeof(GameEvents.V1.DiceRolled))
       ||
       _game.Current.LastEventsWhere(typeof(GameEvents.V2.DiceKept)) ||
-      _game.Current.LastEventsWhere(typeof(GameEvents.V1.DiceKept)),
-      new PassedWithoutRolling(_playerId));
+      _game.Current.LastEventsWhere(typeof(GameEvents.V1.DiceKept));
+
+    var availability = TurnActionPolicy.Evaluate(
+      _game.State.GameStage.ToTurnStage(), hasActedThisTurn, selectionScores: false);
+    return new ValidationResult(availability.CanPass, new PassedWithoutRolling(_playerId));
   }
 }
 

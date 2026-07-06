@@ -26,6 +26,9 @@ public partial class GameState
         State.Scoreboard      = lobby.Roster
           .Select(p => new PlayerStanding(p.PlayerId, p.Name, 0, p.Color))
           .ToList();
+        // #286 — play begins with the first player awaiting a roll, nothing committed yet.
+        State.TurnStage        = Farkle.SharedKernel.Turns.TurnStage.AwaitingRoll;
+        State.HasActedThisTurn = false;
       }
     }
   }

@@ -55,13 +55,14 @@ else
     <div class="play-controls">
       <MudGrid Spacing="1">
         <MudItem xs="4">
-          <RollDiceButton IsDisabled="@(!GameState.IsMyTurn)" />
+          @* #286 — per-action validity via the shared TurnActionPolicy, not just "my turn". *@
+          <RollDiceButton IsDisabled="@(!GameState.CanRoll)" />
         </MudItem>
         <MudItem xs="4">
-          <KeepButton IsDisabled="@(!GameState.IsMyTurn)" />
+          <KeepButton IsDisabled="@(!GameState.CanKeep)" />
         </MudItem>
         <MudItem xs="4">
-          <PassTurnButton IsDisabled="@(!GameState.IsMyTurn)" />
+          <PassTurnButton IsDisabled="@(!GameState.CanPass)" />
         </MudItem>
       </MudGrid>
     </div>

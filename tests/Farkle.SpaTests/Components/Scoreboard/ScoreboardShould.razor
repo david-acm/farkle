@@ -1,3 +1,4 @@
+@using Ardalis.Result
 @using BlazorState
 @using Moq
 @using MudBlazor.Services
@@ -25,9 +26,14 @@
           new PlayerScore(1, "David",   200),
           new PlayerScore(2, "Allison", 0),
         ]));
+    // #286 — Pass is only enabled after rolling, so roll first.
+    Mock.Get(GameService)
+      .Setup(s => s.RollDiceAsync(It.IsAny<int>(), It.IsAny<int>()))
+      .ReturnsAsync(Result<IList<DieValue>>.Success(new List<DieValue> { DieValue.Five }));
 
     var cut = Render(@<Game></Game>);
     JoinGame(cut);
+    await cut.FindComponent<RollDiceButton>().Find("button").ClickAsync(new MouseEventArgs());
 
     var passButton = cut.FindComponent<PassTurnButton>().Find("button");
 
