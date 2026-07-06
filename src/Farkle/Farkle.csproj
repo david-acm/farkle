@@ -26,7 +26,7 @@
     <PackageReference Include="Eventuous.Application" Version="0.15.1" />
     <PackageReference Include="Eventuous.Extensions.DependencyInjection" Version="0.15.1" />
     <PackageReference Include="Eventuous.Persistence" Version="0.15.1" />
-    <PackageReference Include="Eventuous.Subscriptions" Version="0.15.1" />
+    <PackageReference Include="Eventuous.Subscriptions" Version="0.16.4" />
     <PackageReference Include="Eventuous.Shared" Version="0.15.1" />
     <!-- #292 — FastEndpoints moved to the Farkle.Endpoints project with the HTTP endpoints, so
          the domain/application core no longer compiles against the web framework. -->
