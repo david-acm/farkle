@@ -82,6 +82,34 @@ internal record GameState : State<GameState>
       ScoreTable            = scoreTable
     };
 
+  // Pure event fold — the framework-free way to rebuild state (used by decider tests to arrange
+  // a state, and the Marten SingleStreamProjection<GameView> in #302). Reuses the same static
+  // Handle* methods the Eventuous On<> registrations point at; error events and unknowns are
+  // no-ops (they never mutate state). The On<> registrations above disappear at the #302 cutover,
+  // leaving this as the single fold.
+  internal static GameState Fold(GameState state, object @event) => @event switch
+  {
+    V1.GameStarted e     => HandleGameStarted(state, e),
+    V1.PlayerJoined e    => HandlePlayerJoined(state, e),
+    V2.PlayerJoined e    => HandlePlayerJoinedV2(state, e),
+    V1.GamePlayStarted e => HandleGamePlayStarted(state, e),
+    V1.DiceRolled e      => HandleDiceRolled(state, e),
+    V2.DiceRolled e      => HandleDiceRolledV2(state, e),
+    V1.TurnPassed e      => HandleTurnPassed(state, e),
+    V1.DiceKept e        => HandleDiceKept(state, e),
+    V2.DiceKept e        => HandleDiceKeptV2(state, e),
+    V1.DiceSetAside e    => HandleDiceSetAside(state, e),
+    V1.DiceReturned e    => HandleDiceReturned(state, e),
+    V1.GameWon e         => HandleGameWon(state, e),
+    _                    => state
+  };
+
+  internal static GameState Fold(GameState state, IEnumerable<object> events) =>
+    events.Aggregate(state, Fold);
+
+  internal static GameState Fold(params object[] events) =>
+    Fold(new GameState(), events);
+
   public Score GameScoreFor(PlayerId playerId)
   {
     return new Score(ScoreTable.GetValueOrDefault(playerId, 0));

@@ -34,13 +34,14 @@ internal class Game : Aggregate<GameState>
 
   public void JoinPlayer(Command.JoinPlayer joinPlayer)
   {
-    var newId = State.Players.Length + 1;
-    Apply(new V2.PlayerJoined(newId, joinPlayer.Name, PlayerColors.For(newId)));
+    foreach (var @event in Features.JoinPlayer.JoinPlayerDecider.Decide(joinPlayer, State))
+      base.Apply(@event);
   }
 
   public void BeginGame(Command.BeginGame beginGame)
   {
-    Apply(new GameEvents.V1.GamePlayStarted(beginGame.PlayerId));
+    foreach (var @event in Features.BeginGame.BeginGameDecider.Decide(beginGame, State))
+      base.Apply(@event);
   }
 
   public void RollDiceV1(Command.RollDice rollDice)
