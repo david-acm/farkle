@@ -58,15 +58,11 @@ internal class Game : Aggregate<GameState>
 
   public void RollDiceV2(Command.RollDice rollDice)
   {
-    var roll = Dice.FromNewRoll(
-      _randomProvider,
-      GetNumberOfDiceToTrow());
+    // The roll is the side effect (IRandom); the pure decider takes the resulting dice.
+    var roll = Dice.FromNewRoll(_randomProvider, State.DiceToRoll);
 
-    Apply(new V2.DiceRolled(
-      rollDice.PlayerId,
-      roll.DiceValues.ToPrimitiveArray(),
-      GetScoreAfterRoll(roll),
-      GameStage.Keeping));
+    foreach (var @event in Features.RollDice.RollDiceDecider.Decide(rollDice, State, roll))
+      base.Apply(@event);
   }
 
   public void PassTurn(Command.PassTurn passTurn)
@@ -101,12 +97,14 @@ internal class Game : Aggregate<GameState>
   // to validate against the full roll.
   public void SetDiceAside(Command.SetDiceAside cmd)
   {
-    Apply(new V1.DiceSetAside(cmd.PlayerId, cmd.Die.Value));
+    foreach (var @event in Features.SetDiceAside.SetDiceAsideDecider.Decide(cmd, State))
+      base.Apply(@event);
   }
 
   public void ReturnDice(Command.ReturnDice cmd)
   {
-    Apply(new V1.DiceReturned(cmd.PlayerId, cmd.Die.Value));
+    foreach (var @event in Features.ReturnDice.ReturnDiceDecider.Decide(cmd, State))
+      base.Apply(@event);
   }
 
   private int[] GetTableCenterDice(Command.KeepDice keepDice)

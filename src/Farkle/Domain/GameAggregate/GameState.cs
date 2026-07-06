@@ -53,6 +53,11 @@ internal record GameState : State<GameState>
 
   internal int PlayerInTurn => Players.IsEmpty ? 0 : Players[0].Id;
 
+  // How many dice the next roll throws: the six minus whatever is already kept this turn (a fresh
+  // turn rolls all six; kept dice wrap at six). Pure, so the roll side effect (rolling that many)
+  // lives in the handler while the count stays domain logic the decider and handler share.
+  internal int DiceToRoll => 6 - DiceKept.Length % 6;
+
   // #156 — the single sanctioned seam for rebuilding a state from a persisted read-model
   // snapshot, so the incremental projector can fold the next event onto it via When(). Keeps
   // the init-properties private (the aggregate is still the only thing that mutates state
