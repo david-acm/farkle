@@ -34,10 +34,19 @@ public class DependencyRulesShould
   }
 
   [Fact]
-  public void KeepTheCoreFreeOfInfrastructureAndHostProjects()
+  public void KeepTheCoreFreeOfTheWebFramework()
   {
-    ForbiddenDependencies(CoreAsm, InfraAsm, HostAsm)
-      .Should().BeEmpty("the core must not depend on Farkle.Infrastructure or the WebApp host (dependencies point inward)");
+    // #292 — the HTTP endpoints moved to Farkle.Endpoints, so the domain/application core no
+    // longer compiles against the web framework. Keep it that way.
+    ForbiddenDependencies(CoreAsm, "FastEndpoints")
+      .Should().BeEmpty("the Farkle core must not depend on the web framework (FastEndpoints) — that belongs in Farkle.Endpoints");
+  }
+
+  [Fact]
+  public void KeepTheCoreFreeOfInfrastructureHostAndEndpointProjects()
+  {
+    ForbiddenDependencies(CoreAsm, InfraAsm, HostAsm, EndpointsAsm)
+      .Should().BeEmpty("the core must not depend on Farkle.Infrastructure, Farkle.Endpoints or the WebApp host (dependencies point inward)");
   }
 
   [Fact]

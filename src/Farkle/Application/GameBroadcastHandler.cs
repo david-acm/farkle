@@ -2,7 +2,6 @@ using Eventuous;
 using Eventuous.Subscriptions;
 using Eventuous.Subscriptions.Context;
 using Farkle.Domain.GameAggregate;
-using Farkle.Endpoints;
 using Microsoft.Extensions.Logging;
 
 namespace Farkle.Application;
