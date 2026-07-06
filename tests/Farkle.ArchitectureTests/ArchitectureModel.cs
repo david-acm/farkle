@@ -82,6 +82,23 @@ internal static class ArchitectureModel
     (t.Namespace.FullName == "Farkle.Domain" ||
      t.Namespace.FullName.StartsWith("Farkle.Domain.", System.StringComparison.Ordinal));
 
+  /// <summary>
+  /// True for a vertical-slice type: any type under the <c>Farkle.Features</c> namespace tree
+  /// (#301). Slices colocate a command's decider (and, later, its endpoint/handler/response).
+  /// </summary>
+  public static bool IsFeatureSlice(IType t) =>
+    t.Assembly.Name == CoreAsm &&
+    (t.Namespace.FullName == "Farkle.Features" ||
+     t.Namespace.FullName.StartsWith("Farkle.Features.", System.StringComparison.Ordinal));
+
+  /// <summary>
+  /// True for a slice's pure decision function (a <c>*Decider</c> type). Deciders must stay
+  /// framework-free even though they live in the framework-coupled slice, so they get their own
+  /// selector for the decider-purity guardrail (#301) — purity by test, not by project boundary.
+  /// </summary>
+  public static bool IsDecider(IType t) =>
+    IsFeatureSlice(t) && t.Name.EndsWith("Decider", System.StringComparison.Ordinal);
+
   /// <summary>Concrete (instantiable) types in the model that implement the named interface.</summary>
   public static IReadOnlyList<IType> ConcreteImplementationsOf(string interfaceFullName) =>
     Model.Types

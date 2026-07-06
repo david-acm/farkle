@@ -69,6 +69,28 @@ public class DependencyRulesShould
   }
 
   [Fact]
+  public void KeepDecidersPureAndFrameworkFree()
+  {
+    // #301 — the heart of the vertical-slice model: each slice's Decide(command, state) -> events
+    // function is pure. It may live in the (eventually framework-coupled) slice, but the decision
+    // logic itself must never reach for a persistence / messaging / web framework. Enforced by
+    // test rather than by an assembly boundary, so slices keep their locality.
+    ForbiddenDependencies(IsDecider,
+        "Eventuous", "Marten", "Wolverine", "Microsoft.AspNetCore", "FastEndpoints", "Npgsql")
+      .Should().BeEmpty("slice deciders must stay pure — no framework in the decision logic");
+  }
+
+  [Fact]
+  public void KeepSlicesOffTheApplicationAndInfrastructureLayers()
+  {
+    // #301 — a slice depends inward only (domain + shared kernel). It must not reach into the
+    // application/host/infrastructure layers; cross-slice coupling goes through the shared kernel.
+    ForbiddenDependencies(IsFeatureSlice,
+        "Farkle.Application", InfraAsm, HostAsm, EndpointsAsm)
+      .Should().BeEmpty("vertical slices point inward — no dependency on application/host/infra");
+  }
+
+  [Fact]
   public void KeepTheBlazorClientOffTheServerCoreAndInfrastructure()
   {
     // The WASM client may use Farkle.Contracts / Farkle.SharedKernel / Farkle.ApiClient only.
