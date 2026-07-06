@@ -3,7 +3,7 @@ using Farkle.Tests.Framework;
 using FluentAssertions;
 using static Farkle.Domain.GameAggregate.Command;
 using static Farkle.Domain.GameAggregate.GameEvents.V1;
-using static Farkle.Domain.GameAggregate.GameStage;
+using static Farkle.SharedKernel.Turns.GameStage;
 
 namespace Farkle.Tests.Domain;
 

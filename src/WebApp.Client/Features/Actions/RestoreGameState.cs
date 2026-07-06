@@ -52,12 +52,12 @@ public partial class GameState
         var myTurn = snapshot.CurrentPlayerId == action.PlayerId;
         State.TurnScore = new TurnScore(myTurn ? snapshot.TurnScore : 0);
 
-        // #286 — restore the local turn-action gating from the snapshot's stage. "Has acted this
+        // #286 — restore the local play-stage gating from the snapshot's stage. "Has acted this
         // turn" isn't carried explicitly, so infer it: mid-keep (Keeping) always follows a roll,
         // and any banked turn score / kept dice means the player has already rolled or kept.
-        State.TurnStage = ToTurnStage(snapshot.Stage);
+        State.PlayStage = ParseStage(snapshot.Stage);
         State.HasActedThisTurn = myTurn &&
-          (State.TurnStage == TurnStage.AwaitingKeep
+          (State.PlayStage == Farkle.SharedKernel.Turns.GameStage.Keeping
            || snapshot.TurnScore > 0
            || snapshot.DiceKept.Count > 0);
         State.DiceInPlay = myTurn

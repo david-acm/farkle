@@ -1,6 +1,7 @@
 ﻿using System.Collections.Immutable;
 using Eventuous;
 using Farkle.SharedKernel.Scoring;
+using Farkle.SharedKernel.Turns;
 using V1 = Farkle.Domain.GameAggregate.GameEvents.V1;
 using V2 = Farkle.Domain.GameAggregate.GameEvents.V2;
 
@@ -174,14 +175,3 @@ internal class Game : Aggregate<GameState>
 // PlayerColors. It is always derived from the player's id, so it is stable across event
 // replays and snapshot round-trips even for events stored before colours existed.
 internal record Player(int Id, string Name, string Color = "");
-
-internal enum GameStage
-{
-  None,
-  Rolling,
-  Keeping,
-  Finished,
-  // Appended at the end to preserve existing ordinals: V2 events serialize GameStage,
-  // so inserting a value mid-enum would corrupt already-stored events.
-  WaitingForPlayers
-}

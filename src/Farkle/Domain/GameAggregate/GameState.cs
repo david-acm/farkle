@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using Eventuous;
 using Farkle.SharedKernel.Scoring;
+using Farkle.SharedKernel.Turns;
 using static Farkle.Domain.GameAggregate.Command;
 using static Farkle.Domain.GameAggregate.GameEvents;
 

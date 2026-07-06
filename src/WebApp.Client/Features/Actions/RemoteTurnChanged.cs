@@ -27,7 +27,7 @@ public partial class GameState
                 State.DiceInPlay.Clear();
                 State.TurnScore = new(0);
                 // #286 — the turn moved on; reset the local stage to a fresh awaiting-roll turn.
-                State.TurnStage        = Farkle.SharedKernel.Turns.TurnStage.AwaitingRoll;
+                State.PlayStage        = Farkle.SharedKernel.Turns.GameStage.Rolling;
                 State.HasActedThisTurn = false;
                 return Task.CompletedTask;
             }

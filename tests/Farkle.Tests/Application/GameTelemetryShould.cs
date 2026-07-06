@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Farkle.Application;
 using Farkle.Domain.GameAggregate;
+using Farkle.SharedKernel.Turns;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Xunit;

@@ -23,7 +23,7 @@ public partial class GameState
 
         // #286 — after keeping, the player may roll the remaining dice again (or pass); the
         // staged selection is consumed, so Keep goes disabled until a new scoring selection.
-        State.TurnStage        = Farkle.SharedKernel.Turns.TurnStage.AwaitingRoll;
+        State.PlayStage        = Farkle.SharedKernel.Turns.GameStage.Rolling;
         State.HasActedThisTurn = true;
       }
     }
