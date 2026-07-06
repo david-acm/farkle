@@ -25,18 +25,23 @@ internal class Game : Aggregate<GameState>
 
   public void Start(Command.StartGame startGame)
   {
-    Apply(new GameEvents.V1.GameStarted(startGame));
+    // Delegates to the pure StartGame decider (validation-as-events included). Applies its
+    // output through base.Apply directly — the decider already validated, so the legacy
+    // GameValidator path is bypassed for converted slices.
+    foreach (var @event in Features.StartGame.StartGameDecider.Decide(startGame, State))
+      base.Apply(@event);
   }
 
   public void JoinPlayer(Command.JoinPlayer joinPlayer)
   {
-    var newId = State.Players.Length + 1;
-    Apply(new V2.PlayerJoined(newId, joinPlayer.Name, PlayerColors.For(newId)));
+    foreach (var @event in Features.JoinPlayer.JoinPlayerDecider.Decide(joinPlayer, State))
+      base.Apply(@event);
   }
 
   public void BeginGame(Command.BeginGame beginGame)
   {
-    Apply(new GameEvents.V1.GamePlayStarted(beginGame.PlayerId));
+    foreach (var @event in Features.BeginGame.BeginGameDecider.Decide(beginGame, State))
+      base.Apply(@event);
   }
 
   public void RollDiceV1(Command.RollDice rollDice)
@@ -53,34 +58,23 @@ internal class Game : Aggregate<GameState>
 
   public void RollDiceV2(Command.RollDice rollDice)
   {
-    var roll = Dice.FromNewRoll(
-      _randomProvider,
-      GetNumberOfDiceToTrow());
+    // The roll is the side effect (IRandom); the pure decider takes the resulting dice.
+    var roll = Dice.FromNewRoll(_randomProvider, State.DiceToRoll);
 
-    Apply(new V2.DiceRolled(
-      rollDice.PlayerId,
-      roll.DiceValues.ToPrimitiveArray(),
-      GetScoreAfterRoll(roll),
-      GameStage.Keeping));
+    foreach (var @event in Features.RollDice.RollDiceDecider.Decide(rollDice, State, roll))
+      base.Apply(@event);
   }
 
   public void PassTurn(Command.PassTurn passTurn)
   {
-    var newScore = GetScore(passTurn.PlayerId);
-    Apply(new GameEvents.V1.TurnPassed(
-      passTurn.PlayerId,
-      GetPlayerOrder(passTurn.PlayerId),
-      newScore));
-
-    if (newScore >= WinningScore)
-      base.Apply(new GameEvents.V1.GameWon(passTurn.PlayerId, newScore));
+    foreach (var @event in Features.PassTurn.PassTurnDecider.Decide(passTurn, State))
+      base.Apply(@event);
   }
 
   public void KeepDice(Command.KeepDice keepDice)
   {
-    Apply(new V1.DiceKept(keepDice.PlayerId, keepDice.DiceValues.ToPrimitiveArray(),
-      GetTableCenterDice(keepDice),
-      GetNewTurnScore(keepDice.DiceValues, State.TurnScore, State)));
+    foreach (var @event in Features.KeepDice.KeepDiceDecider.Decide(keepDice, State))
+      base.Apply(@event);
   }
 
   public void KeepDiceV2(Command.KeepDice keepDice)
@@ -96,12 +90,14 @@ internal class Game : Aggregate<GameState>
   // to validate against the full roll.
   public void SetDiceAside(Command.SetDiceAside cmd)
   {
-    Apply(new V1.DiceSetAside(cmd.PlayerId, cmd.Die.Value));
+    foreach (var @event in Features.SetDiceAside.SetDiceAsideDecider.Decide(cmd, State))
+      base.Apply(@event);
   }
 
   public void ReturnDice(Command.ReturnDice cmd)
   {
-    Apply(new V1.DiceReturned(cmd.PlayerId, cmd.Die.Value));
+    foreach (var @event in Features.ReturnDice.ReturnDiceDecider.Decide(cmd, State))
+      base.Apply(@event);
   }
 
   private int[] GetTableCenterDice(Command.KeepDice keepDice)
