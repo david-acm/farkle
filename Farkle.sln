@@ -20,8 +20,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Farkle.WebTests", "tests\Fa
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Farkle.SpaTests", "tests\Farkle.SpaTests\Farkle.SpaTests.csproj", "{8F53ED31-033E-45FA-9700-9CD3DC29D6D2}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".github", ".github", "{A6E29EB8-B644-41A8-A5DF-D06369BC4797}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{7D7CA886-DF51-4B34-81D0-E837F62E9DD1}"
 	ProjectSection(SolutionItems) = preProject
 		docker-compose.yml = docker-compose.yml
@@ -42,8 +40,6 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Blazor.Dice.Tests", "tests\Blazor.Dice.Tests\Blazor.Dice.Tests.csproj", "{3E062499-07DC-4503-A581-F25241B25C76}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Farkle.Endpoints", "src\Farkle.Endpoints\Farkle.Endpoints.csproj", "{2EDDC06D-61C4-4A7E-B49B-6C9A817B096C}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Farkle.Features", "src\Farkle.Features\Farkle.Features.csproj", "{830AEC15-3353-4B6A-8113-35C1BA41BA33}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -235,18 +231,6 @@ Global
 		{2EDDC06D-61C4-4A7E-B49B-6C9A817B096C}.Release|x64.Build.0 = Release|Any CPU
 		{2EDDC06D-61C4-4A7E-B49B-6C9A817B096C}.Release|x86.ActiveCfg = Release|Any CPU
 		{2EDDC06D-61C4-4A7E-B49B-6C9A817B096C}.Release|x86.Build.0 = Release|Any CPU
-		{830AEC15-3353-4B6A-8113-35C1BA41BA33}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{830AEC15-3353-4B6A-8113-35C1BA41BA33}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{830AEC15-3353-4B6A-8113-35C1BA41BA33}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{830AEC15-3353-4B6A-8113-35C1BA41BA33}.Debug|x64.Build.0 = Debug|Any CPU
-		{830AEC15-3353-4B6A-8113-35C1BA41BA33}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{830AEC15-3353-4B6A-8113-35C1BA41BA33}.Debug|x86.Build.0 = Debug|Any CPU
-		{830AEC15-3353-4B6A-8113-35C1BA41BA33}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{830AEC15-3353-4B6A-8113-35C1BA41BA33}.Release|Any CPU.Build.0 = Release|Any CPU
-		{830AEC15-3353-4B6A-8113-35C1BA41BA33}.Release|x64.ActiveCfg = Release|Any CPU
-		{830AEC15-3353-4B6A-8113-35C1BA41BA33}.Release|x64.Build.0 = Release|Any CPU
-		{830AEC15-3353-4B6A-8113-35C1BA41BA33}.Release|x86.ActiveCfg = Release|Any CPU
-		{830AEC15-3353-4B6A-8113-35C1BA41BA33}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -267,6 +251,5 @@ Global
 		{7216F610-4CB6-4FFB-A9C1-BE8EA3D0FDDE} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{3E062499-07DC-4503-A581-F25241B25C76} = {429E4E3B-7CDB-4ABE-96DB-EBFF4494B3B3}
 		{2EDDC06D-61C4-4A7E-B49B-6C9A817B096C} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
-		{830AEC15-3353-4B6A-8113-35C1BA41BA33} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 	EndGlobalSection
 EndGlobal

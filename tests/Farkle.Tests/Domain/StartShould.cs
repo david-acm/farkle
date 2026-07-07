@@ -21,7 +21,7 @@ public class StartShould
 
     // Assert
     game.State.GameStage.Should().Be(WaitingForPlayers);
-    game.State.Id.Should().Be((GameId)gameId);
+    game.State.Code.Should().Be(gameId);
   }
 
   [Fact]

@@ -29,17 +29,12 @@ public static class ReadModelServiceExtensions
     });
 
     // The subscription + GET resolve these from singleton scopes, so the stores open their own
-    // DI scope per call (see EfGameViewStore / PostgresCheckpointStore).
-    services.AddSingleton<IGameViewStore, EfGameViewStore>();
+    // DI scope per call (see EfFeedbackViewStore / PostgresCheckpointStore).
     services.AddSingleton<IFeedbackViewStore, EfFeedbackViewStore>();
     services.AddSingleton<PostgresCheckpointStore>();
 
-    services.AddSubscription<AllStreamSubscription, AllStreamSubscriptionOptions>(
-      "GameViewProjector",
-      b => b
-        .Configure(o => o.EventFilter = StreamFilter.Prefix("Game-"))
-        .UseCheckpointStore<PostgresCheckpointStore>()
-        .AddEventHandler<GameViewProjector>());
+    // The GameView read model is now Marten's Inline GameState snapshot (ADR 0004) — GET queries it
+    // directly (GetGameStateEndpoint), so the hand-rolled $all GameViewProjector subscription is gone.
 
     // #277 — feedback read model: its own durable $all subscription over the "Feedback-" streams,
     // folding FeedbackSubmitted into FeedbackView for triage. Separate checkpoint id so it's

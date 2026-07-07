@@ -1,6 +1,8 @@
-using Farkle.Application;
+using Ardalis.Result;
+using Ardalis.Result.AspNetCore;
 using Farkle.Domain.GameAggregate;
 using Microsoft.Extensions.Logging;
+using Wolverine;
 using static Farkle.Contracts.HttpRequests;
 using static Farkle.Contracts.HttpResponses;
 
@@ -10,7 +12,7 @@ namespace Farkle.Endpoints;
 // persisted + broadcast selection change; never keeps or scores dice.
 internal class ReturnDiceEndpoint(
   ILogger<ReturnDiceEndpoint> logger,
-  IGameService                service)
+  IMessageBus                 bus)
   : TypedEndpoint<ReturnDiceRequest, SetAsideResponse>
 {
   public override void Configure()
@@ -24,11 +26,7 @@ internal class ReturnDiceEndpoint(
       req.GameId, req.PlayerId, req.DieValue);
 
     var command = new Command.ReturnDice(req.GameId, req.PlayerId, DieValue.FromValue(req.DieValue));
-
-    var result = await service
-      .HandleAsync<Command.ReturnDice, SetAsideResponse>(command, ct,
-        s => new SetAsideResponse(s.Id ?? 0, s.DiceSetAside.Select(d => d.Value).ToArray()));
-
-    await Send.ResultAsync(result);
+    var result = await bus.InvokeAsync<Result<SetAsideResponse>>(command, ct);
+    await Send.ResultAsync(result.ToMinimalApiResult());
   }
 }

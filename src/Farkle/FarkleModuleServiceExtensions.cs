@@ -1,5 +1,4 @@
 ﻿using System.Reflection;
-using Eventuous;
 using Farkle.Application;
 using Farkle.Domain.GameAggregate;
 using Microsoft.AspNetCore.Builder;
@@ -18,8 +17,8 @@ public static class FarkleModuleServiceExtensions
   {
     mediatrAssemblies.Add(typeof(FarkleModuleServiceExtensions).Assembly);
 
-    services.AddCommandService<GameService, GameState>();
-    services.AddSingleton<IGameService, GameService>();
+    // The command path is now Wolverine [AggregateHandler]s over Marten (AddFarkleCritterStack),
+    // not an Eventuous CommandService (ADR 0004).
     services.AddSingleton<IGameIdGenerator, RandomGameIdGenerator>();
     services.AddSingleton<IGameCreator, GameCreator>();
     // Dice source seam (#93): the default RNG, injected into the Game aggregate via
@@ -48,10 +47,8 @@ public static class FarkleModuleServiceExtensions
 
   public static WebApplication SetUpFarkleModule(this WebApplication app)
   {
-    TypeMap.RegisterKnownEventTypes();
-
-    // app.MapCommands(); // Commented out to prevent duplicate routes with FastEndpoints
-
+    // Marten registers event types by CLR type (greenfield data, ADR 0002/0004), so the Eventuous
+    // TypeMap.RegisterKnownEventTypes() bootstrap is gone.
     return app;
   }
 }

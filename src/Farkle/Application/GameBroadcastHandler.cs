@@ -2,6 +2,7 @@ using Eventuous;
 using Eventuous.Subscriptions;
 using Eventuous.Subscriptions.Context;
 using Farkle.Domain.GameAggregate;
+using Marten;
 using Microsoft.Extensions.Logging;
 
 namespace Farkle.Application;
@@ -16,16 +17,16 @@ namespace Farkle.Application;
 // because its IGameService dependency transitively exposes the internal GameState.
 internal sealed class GameBroadcastHandler : Eventuous.Subscriptions.EventHandler
 {
-  private readonly IGameService                   _service;
+  private readonly IDocumentStore                 _store;
   private readonly IGameEventBroadcaster          _broadcaster;
   private readonly ILogger<GameBroadcastHandler>  _logger;
 
   public GameBroadcastHandler(
-    IGameService                  service,
+    IDocumentStore                store,
     IGameEventBroadcaster         broadcaster,
     ILogger<GameBroadcastHandler> logger)
   {
-    _service     = service;
+    _store       = store;
     _broadcaster = broadcaster;
     _logger      = logger;
 
@@ -79,7 +80,8 @@ internal sealed class GameBroadcastHandler : Eventuous.Subscriptions.EventHandle
       return;
     }
 
-    var state = await _service.LoadStateAsync(new GameId(gameId), ctx.CancellationToken);
+    await using var query = _store.QuerySession();
+    var state = await query.LoadAsync<GameState>($"game-{gameId}", ctx.CancellationToken);
     if (state is null) return;
 
     await broadcast(state, ctx.CancellationToken);
