@@ -36,12 +36,13 @@ Marten-native self-aggregating snapshot.** Embrace the framework directly.
    `"game-{code}"` stream key, ADR 0002) and conventional, `public` `Create(GameStarted)` /
    `Apply(<Event>)` methods. These **replace** `GameState.Fold`, the `GameProjection`, the
    `GameDocument` wrapper, and the manual `Evolve` from ADR 0003 — all removed.
-2. **Commands are handled by pure static `[AggregateHandler]` methods** — one per slice,
-   `Handle(Command.X cmd, GameState state, <deps>) → events`. This method *is* the decider:
-   the #301 decider bodies (including validation-as-events returning `IErrorEvent`) move into
-   it near-verbatim, and it stays directly unit-testable as a pure `(command, state) → events`
-   function. `RollDice` uses a compound handler (`Before`/`Load`) to roll `IRandom` and pass
-   the dice into the pure decision.
+2. **Commands are handled by thin `[AggregateHandler]` methods that keep the #301 deciders.**
+   One handler per slice, `(Result<TResponse>, Events) Handle(Command.X cmd, GameState state, <deps>)`:
+   it calls the pure `XDecider.Decide(...)` (kept unchanged, unit-tested with no mocks), appends the
+   returned events, and returns an Ardalis `Result` (an `Error` carrying an `IErrorEvent` name maps to
+   HTTP 400). `RollDice` rolls `IRandom` in the handler *before* calling the decider so the decision
+   stays pure. Stream identity is resolved by convention — see **Handler identity** below. `StartGame`
+   is a plain `StartStream` handler (it creates the stream, so there is no aggregate to fetch).
 3. **No wrapper document, no separate read projection.** `GameState` is both the write-side
    snapshot (via `FetchForWriting`) and the read model; the `GetGame` slice queries it with
    `IQuerySession.LoadAsync`/`FetchLatest` and maps it to the `GameView` DTO. Registered
@@ -119,6 +120,59 @@ public static (Result<RollDiceResponse>, Events) Handle(Command.RollDice cmd, Ga
 > rather than inlined — this preserves the existing decider unit-test suite unchanged while the
 > handler remains the Wolverine/decider entry point.
 
+### Handler identity: convention now (Option A), Wolverine.HTTP as the #303 target (Option C)
+
+`[AggregateHandler]` resolves the stream id **by convention** — a `{Aggregate}Id` or `Id` property on
+the command, of the stream-identity type (string). There is **no `[Identity]` attribute** in Wolverine
+6.16 (that is a later release). Because our stream key is the derived string `"game-{code}"` while the
+command carries the `int` game code, three options exist; all were checked against local Postgres.
+
+**Option A — computed `Id` string on the command (chosen for #302; verified).** Keep `int GameId` as
+the API identity and add a one-line computed property so the convention resolves the stream, letting
+`[AggregateHandler]` do the `FetchForWriting` + append + optimistic-concurrency + save:
+
+```csharp
+public record RollDice(int GameId, int PlayerId)
+{
+    public string Id => $"game-{GameId}";        // matches the [AggregateHandler] convention
+}
+
+[AggregateHandler]
+public static (Result<RollResult>, Events) Handle(Command.RollDice cmd, GameState game, IRandom rng)
+{ /* roll → RollDiceDecider.Decide → (Result, Events) */ }
+```
+
+Verified: the stream resolves from the computed `Id` on the `IMessageBus.InvokeAsync` path, the `Events`
+(including appended error events) commit, and the `Result` flows back to the caller. Cost: a one-line
+computed `Id` per command (a mild leak of the `"game-{code}"` format onto the command). This is a
+temporary bridge, not throwaway — see Option C.
+
+**Option B — explicit `FetchForWriting` (also verified).** No attribute; the handler calls
+`session.Events.FetchForWriting<GameState>($"game-{cmd.GameId}")` itself. Keeps commands `int`-only at
+the cost of ~2 lines per handler. Equivalent behaviour; A is preferred for being the idiomatic
+`[AggregateHandler]` shape with less boilerplate.
+
+**Option C — Wolverine.HTTP `[WriteAggregate]` route binding + strong-typed id (the #303 target).** When
+endpoints collapse into Wolverine.HTTP (#303), the endpoint *is* the handler and the aggregate is sourced
+from the route argument, erasing the FastEndpoint + `IMessageBus.InvokeAsync` + mapper layer entirely:
+
+```csharp
+[WolverinePost("/api/games/{gameId}/players/{playerId}/rolls")]
+public static (RollDiceResponse, Events) Post(
+    GameId gameId, PlayerId playerId,               // strong-typed, bound from the route (Wolverine 5+)
+    [WriteAggregate] GameState game, IRandom rng) { /* … */ }
+```
+
+C is **better** — one method per slice with zero glue, type-safe identity end-to-end (no computed `Id`),
+and the framework owns route→stream binding, `FetchForWriting`, the concurrency `VersionSource`, and
+404/ProblemDetails. It is deliberately **out of scope for #302**, which keeps FastEndpoints +
+`IMessageBus.InvokeAsync` and mandates *no `swagger.json` change*; adopting Wolverine.HTTP + a strong-typed
+`GameId` now would rewrite the HTTP surface, force a Kiota/swagger regen, and ripple through routes, DTOs,
+the client, and tests. So **Option A ships in #302 and evolves into Option C at #303**: `[WriteAggregate("gameId")]`
+route-binding replaces the computed `Id`, the handlers become endpoints, and the decider / `Events` /
+`GameState`-aggregate core carries over unchanged. (A Marten *natural key* — 8.23+/Wolverine 5.18 — is the
+candidate at #303 for keeping the int game code first-class alongside a surrogate stream id.)
+
 ## Consequences
 
 - **Simpler, grain-following code**: the wrapper, the manual `Evolve`, the standalone
@@ -142,14 +196,18 @@ public static (Result<RollDiceResponse>, Events) Handle(Command.RollDice cmd, Ga
 
 1. `Farkle.csproj`: add `Marten`, `WolverineFx.Marten`, `WolverineFx.RuntimeCompilation`;
    remove the `Farkle.Features` project from the solution and fold its file in.
-2. `GameState`: drop any Eventuous base type; add the `string Id`, `Create`, and `Apply`
-   conventions; delete `Fold` once nothing calls it.
-3. Make `Command.*`, `GameId`, `PlayerId`, `DieValue`, and the event records `public`.
-4. One `[AggregateHandler]` static handler per slice (StartGame, JoinPlayer, BeginGame,
-   RollDice, KeepDice, SetDiceAside, ReturnDice, PassTurn), each carrying its #301 decider body.
+2. `GameState`: drop the Eventuous `State<>` base + the `On<>` ctor; make it `public record` with
+   public-init properties (STJ rehydration); add the `string Id`, `int Code`, `Create`, and `Apply`
+   conventions. Keep the pure `Fold` (decider/handler unit tests arrange state through it).
+3. Make `Command.*`, `GameId`, `PlayerId`, `DieValue`, `Player`, `Score`, and the event records `public`;
+   add a computed `Id => $"game-{GameId}"` to each stream-mutating command (Option A identity).
+4. One thin `[AggregateHandler]` handler per stream-mutating slice (JoinPlayer, BeginGame, RollDice,
+   KeepDice, SetDiceAside, ReturnDice, PassTurn) that calls its kept #301 decider and returns
+   `(Result, Events)`; `StartGame` is a plain `StartStream` handler.
 5. `AddFarkleCritterStack` in `Farkle`: Marten (`StreamIdentity.AsString`,
-   `Snapshot<GameState>(Inline)`) + `IntegrateWithWolverine` + Wolverine `AutoApplyTransactions`.
-6. Endpoints call `IMessageBus.InvokeAsync`; `IErrorEvent` still maps to HTTP 400.
+   `Snapshot<GameState>(Inline)`, `UseSystemTextJsonForSerialization` + `SmartEnumValueConverter<DieValue,int>`)
+   + `IntegrateWithWolverine` + Wolverine `AutoApplyTransactions`.
+6. Endpoints call `IMessageBus.InvokeAsync<Result<TResponse>>`; `IErrorEvent` still maps to HTTP 400.
 7. Drop the framework-free arch-tests; keep slice-cohesion ones.
 8. A Marten integration test (local Postgres, `farkle_marten`) driving a full game through the
    handlers; domain unit tests call the static handlers directly.
