@@ -1,7 +1,15 @@
 # 3. Marten + Wolverine integration shape (validated by spike)
 
-Status: **Accepted** (#302). Validated end-to-end against a local PostgreSQL 16 on
-Marten 9.12.0 / WolverineFx 6.16.0 / .NET 10 before writing production code.
+Status: **Superseded by [ADR 0004](0004-marten-native-domain.md)** (#302). Originally Accepted;
+validated end-to-end against a local PostgreSQL 16 on Marten 9.12.0 / WolverineFx 6.16.0 /
+.NET 10.
+
+> The spike findings below (the five Marten 9 / Wolverine 6 gotchas, the registration shape)
+> remain accurate and useful. What changed: ADR 0004 drops the framework-free constraint that
+> forced the **`GameDocument` wrapper + manual `Evolve`** design recorded here. With the domain
+> referencing Marten, `GameState` is the self-aggregating snapshot directly (conventional
+> `Create`/`Apply`), so the wrapper and the manual projection are removed — and gotcha #4 is
+> *resolved* (the analyzer now runs over `Farkle`) rather than worked around.
 
 ## Context
 

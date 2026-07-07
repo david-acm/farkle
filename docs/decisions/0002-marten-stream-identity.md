@@ -1,6 +1,8 @@
 # 2. Marten stream identity: string key derived from the game code
 
-Status: **Proposed** (decision recorded in #301; applied at the #302 cutover)
+Status: **Accepted** (#302). Decision recorded in #301; applied at the #302 cutover and
+carried forward unchanged by [ADR 0004](0004-marten-native-domain.md) — the `"game-{code}"`
+string key is now `GameState`'s Marten-native document id.
 
 ## Context
 

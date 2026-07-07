@@ -1,6 +1,12 @@
 # 1. Vertical slices with pure deciders; purity by arch-test, not by project boundary
 
-Status: **Accepted** (#301, epic #295)
+Status: **Superseded by [ADR 0004](0004-marten-native-domain.md)** (#302). Originally Accepted (#301, epic #295).
+
+> The vertical-slice organization and the pure decision logic survive, but the
+> **framework-free guardrail** this ADR established (no Marten in the domain, purity enforced
+> by an arch-test) was fighting the Critter Stack's grain and is reversed by ADR 0004: the
+> domain references Marten, `GameState` becomes the aggregate, and the deciders become
+> `[AggregateHandler]` methods. See ADR 0004 for the rationale.
 
 ## Context
 
