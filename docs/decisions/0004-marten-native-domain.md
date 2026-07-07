@@ -80,9 +80,44 @@ services.AddMarten(opts =>
     opts.Connection(connectionString);
     opts.Events.StreamIdentity = StreamIdentity.AsString;         // "game-{code}"
     opts.Projections.Snapshot<GameState>(SnapshotLifecycle.Inline);
+
+    // Verified by spike: STJ + the SmartEnum value converter is required for GameState to
+    // round-trip as a stored document. Without it, ImmutableArray<DieValue> (a SmartEnum)
+    // does not serialize. ImmutableArray<T> and the int-keyed ScoreTable round-trip cleanly
+    // under STJ. Needs the Ardalis.SmartEnum.SystemTextJson (8.1.0) package in Farkle.
+    opts.UseSystemTextJsonForSerialization(configure: o =>
+        o.Converters.Add(new SmartEnumValueConverter<DieValue, int>()));
 }).IntegrateWithWolverine();
 services.AddWolverine(opts => opts.Policies.AutoApplyTransactions());
 ```
+
+### Error events: append AND return HTTP 400 (verified by spike)
+
+Validation failures (`IErrorEvent`) are **appended** as stored facts and still surface as HTTP 400 —
+verified end-to-end against local Postgres. A command handler returns a **tuple**
+`(Result<TResponse>, Events)`: Wolverine returns the `Result` to `IMessageBus.InvokeAsync<Result<TResponse>>`
+(the endpoint maps `Result.Error` → 400) **and** commits the `Events` (including the error event) in
+the same transaction — no exception, so the append is not rolled back. On replay the error event is
+inert (see gotcha #4 / FACT 1: Marten ignores event types with no `Apply` overload).
+
+```csharp
+[AggregateHandler]
+public static (Result<RollDiceResponse>, Events) Handle(Command.RollDice cmd, GameState state, IRandom random)
+{
+    var roll   = Dice.FromNewRoll(random, state.DiceToRoll);
+    var events = RollDiceDecider.Decide(cmd, state, roll);   // #301 decider, pure, kept as-is
+    var wrapped = new Events();
+    wrapped.AddRange(events);
+    var error = events.OfType<IErrorEvent>().FirstOrDefault();
+    return error is not null
+        ? (Result.Error(error.GetType().Name), wrapped)                    // appended + HTTP 400
+        : (Result.Success(Map(state.Apply(events))), wrapped);            // appended + HTTP 200
+}
+```
+
+> The #301 deciders are kept as pure helper functions that the thin `[AggregateHandler]` calls,
+> rather than inlined — this preserves the existing decider unit-test suite unchanged while the
+> handler remains the Wolverine/decider entry point.
 
 ## Consequences
 
