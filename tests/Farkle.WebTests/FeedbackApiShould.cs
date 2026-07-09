@@ -64,37 +64,8 @@ public class FeedbackApiShould : IClassFixture<GameApiWebAppFactory>
         Assert.Equal(400, ex.ResponseStatusCode);
     }
 
-    [Fact]
-    public async Task ProjectFeedbackIntoTheReadModelAsync()
-    {
-        var sessionId = $"sess-{Guid.NewGuid():N}";
-
-        await _client.Api.Feedback.PostAsync(new FarkleContractsHttpRequests_SubmitFeedbackRequest
-        {
-            SessionId = sessionId,
-            Message   = "Found a layout bug on mobile",
-            Sentiment = "Down",
-            GameId    = 4242,
-        });
-
-        // The projection is updated asynchronously by the $all subscription — poll the read model.
-        Farkle.Infrastructure.ReadModel.FeedbackView? row = null;
-        for (var attempt = 0; attempt < 50; attempt++)
-        {
-            using (var scope = _factory.Services.CreateScope())
-            {
-                var db = scope.ServiceProvider
-                    .GetRequiredService<Farkle.Infrastructure.ReadModel.ReadModelDbContext>();
-                row = await db.FeedbackViews.FirstOrDefaultAsync(f => f.SessionId == sessionId);
-                if (row is not null) break;
-            }
-            await Task.Delay(100);
-        }
-
-        Assert.NotNull(row);
-        Assert.Equal("Found a layout bug on mobile", row!.Message);
-        Assert.Equal("Down", row.Sentiment);
-        Assert.Equal(4242, row.GameId);
-        Assert.True(row.Position > 0, "the folded $all position is recorded");
-    }
+    // The feedback triage read model (a $all EF projection) is retired at the Marten cutover
+    // (ADR 0004) — the submission is appended to a Marten "feedback-{session}" stream; a triage
+    // read model can return as a Marten projection in a follow-up. The write path is covered by
+    // AcceptAnonymousFeedbackAndEchoTheSessionAsync above.
 }

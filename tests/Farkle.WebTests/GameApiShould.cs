@@ -338,33 +338,21 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
     }
 
     [Fact]
-    public async Task ProjectGameEventsIntoTheGameViewReadModelAsync()
+    public async Task ExposeTheLatestGameStateViaTheMartenReadModelAsync()
     {
-        // #156 — the $all subscription folds events into a Postgres GameView row. Drive a
-        // game, then assert the projection persisted a snapshot reflecting the latest events.
+        // ADR 0004 — the GameView read model is now the Inline Marten GameState snapshot; GET reads
+        // it directly (read-your-own-writes), so no async projection to poll.
         var gameId  = await StartGameAsync();
         var player1 = await JoinGameAsync(gameId, "David");
         await JoinGameAsync(gameId, "Allison");
         await BeginGameAsync(gameId);
         await RollDiceAsync(gameId, player1);
 
-        // The projection is updated asynchronously — poll the read model directly.
-        Farkle.Infrastructure.ReadModel.GameView? row = null;
-        for (var attempt = 0; attempt < 50; attempt++)
-        {
-            using (var scope = _factory.Services.CreateScope())
-            {
-                var db = scope.ServiceProvider.GetRequiredService<Farkle.Infrastructure.ReadModel.ReadModelDbContext>();
-                row = await db.GameViews.FindAsync(gameId);
-                if (row is not null && row.StateJson.Contains("\"Stage\":2")) break; // 2 = Keeping
-            }
-            await Task.Delay(100);
-        }
+        var state = await _client.Api.Games[gameId].GetAsync();
 
-        Assert.NotNull(row);
-        Assert.Equal(gameId, row!.GameId);
-        Assert.Contains("\"Stage\":2", row.StateJson); // GameStage.Keeping after a roll
-        Assert.True(row.Position > 0, "the folded $all position is recorded");
+        Assert.NotNull(state);
+        Assert.Equal(gameId, state!.GameId);
+        Assert.Equal("Keeping", state.Stage); // GameStage.Keeping after a roll
     }
 
     // The server now generates the game id; the POST is body-less and returns the id.

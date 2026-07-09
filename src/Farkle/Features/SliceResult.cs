@@ -16,9 +16,12 @@ internal static class SliceResult
     var wrapped = new Events();
     wrapped.AddRange(events);
 
+    // A domain precondition failure is surfaced as Result.Invalid so the endpoint maps it to HTTP
+    // 400 (Result.Error would be 422) — preserving the pre-cutover wire behaviour. The error event
+    // is still appended above (a stored fact, inert on replay).
     var error = events.OfType<IErrorEvent>().FirstOrDefault();
     return error is not null
-      ? (Result<T>.Error(error.GetType().Name), wrapped)
+      ? (Result<T>.Invalid(new ValidationError(error.GetType().Name)), wrapped)
       : (Result<T>.Success(map(GameState.Fold(state, events))), wrapped);
   }
 }
