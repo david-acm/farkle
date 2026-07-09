@@ -1,5 +1,6 @@
 using Ardalis.Result;
 using Ardalis.Result.AspNetCore;
+using Farkle.Application;
 using Farkle.Domain.GameAggregate;
 using Microsoft.Extensions.Logging;
 using Wolverine;
@@ -10,7 +11,8 @@ namespace Farkle.Endpoints;
 
 internal class JoinPlayerEndpoint(
   ILogger<JoinPlayerEndpoint> logger,
-  IMessageBus                 bus)
+  IMessageBus                 bus,
+  GameNotifier                notifier)
   : TypedEndpoint<JoinPlayerRequest, JoinPlayerResponse>
 {
   public override void Configure()
@@ -23,6 +25,7 @@ internal class JoinPlayerEndpoint(
     logger.LogInformation("ℹ️ Game: {gameId}. Joining player with name: {playerName}", req.GameId, req.PlayerName);
     var result = await bus.InvokeAsync<Result<JoinPlayerResponse>>(
       new Command.JoinPlayer(req.GameId, req.PlayerName), ct);
+    if (result.IsSuccess) await notifier.LobbyChangedAsync(req.GameId, ct);
     await Send.ResultAsync(result.ToMinimalApiResult());
   }
 }

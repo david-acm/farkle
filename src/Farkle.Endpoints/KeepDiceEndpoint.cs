@@ -1,5 +1,6 @@
 using Ardalis.Result;
 using Ardalis.Result.AspNetCore;
+using Farkle.Application;
 using Farkle.Domain.GameAggregate;
 using Microsoft.Extensions.Logging;
 using Wolverine;
@@ -10,7 +11,8 @@ namespace Farkle.Endpoints;
 
 internal class KeepDiceEndpoint(
   ILogger<KeepDiceEndpoint> logger,
-  IMessageBus               bus)
+  IMessageBus               bus,
+  GameNotifier              notifier)
   : TypedEndpoint<KeepDiceRequest, KeepDiceResponse>
 {
   public override void Configure()
@@ -23,6 +25,7 @@ internal class KeepDiceEndpoint(
     logger.LogInformation("ℹ️ Game {gameId} Keeping dice for {PlayerId}", req.GameId, req.PlayerId);
     var command = new Command.KeepDice(req.GameId, req.PlayerId, req.DiceValues.Select(DieValue.FromValue));
     var result = await bus.InvokeAsync<Result<KeepDiceResponse>>(command, ct);
+    if (result.IsSuccess) await notifier.TableChangedAsync(req.GameId, ct);
     await Send.ResultAsync(result.ToMinimalApiResult());
   }
 }

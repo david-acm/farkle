@@ -1,5 +1,6 @@
 using Ardalis.Result;
 using Ardalis.Result.AspNetCore;
+using Farkle.Application;
 using Farkle.Domain.GameAggregate;
 using Microsoft.Extensions.Logging;
 using Wolverine;
@@ -10,7 +11,8 @@ namespace Farkle.Endpoints;
 
 internal class PassTurnEndpoint(
   ILogger<PassTurnEndpoint>  logger,
-  IMessageBus                bus)
+  IMessageBus                bus,
+  GameNotifier               notifier)
   : TypedEndpoint<PassTurnHttp, PassTurnResponse>
 {
   public override void Configure()
@@ -23,6 +25,7 @@ internal class PassTurnEndpoint(
     logger.LogInformation("ℹ️ Game {gameId}. Player {playerId} passing turn", req.GameId, req.PlayerId);
     var result = await bus.InvokeAsync<Result<PassTurnResponse>>(
       new Command.PassTurn(req.GameId, req.PlayerId), ct);
+    if (result.IsSuccess) await notifier.TurnChangedAsync(req.GameId, req.PlayerId, ct);
     await Send.ResultAsync(result.ToMinimalApiResult());
   }
 }

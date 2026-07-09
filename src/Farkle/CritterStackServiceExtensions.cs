@@ -16,8 +16,13 @@ namespace Farkle;
 /// </summary>
 public static class CritterStackServiceExtensions
 {
+  /// <param name="lightweight">
+  /// DB-free boot paths (NSwag swagger extraction) set this: Marten never touches the schema and
+  /// Wolverine runs mediator-only (no durability agents / message-store tables), so the host boots
+  /// without a live Postgres. Marten still connects lazily, so no command actually runs there.
+  /// </param>
   public static IServiceCollection AddFarkleCritterStack(
-    this IServiceCollection services, string connectionString)
+    this IServiceCollection services, string connectionString, bool lightweight = false)
   {
     services
       .AddMarten(opts =>
@@ -38,8 +43,7 @@ public static class CritterStackServiceExtensions
         opts.UseSystemTextJsonForSerialization(configure: o =>
           o.Converters.Add(new SmartEnumValueConverter<DieValue, int>()));
       })
-      // Marten backs Wolverine's inbox/outbox so side effects (SignalR broadcast) commit atomically
-      // with the event append.
+      // Marten backs Wolverine's inbox/outbox so side effects commit atomically with the event append.
       .IntegrateWithWolverine();
 
     services.AddWolverine(opts =>
@@ -47,6 +51,9 @@ public static class CritterStackServiceExtensions
       // Required: without this (and without an [AggregateHandler] on the path) plain handlers that
       // touch IDocumentSession silently don't commit. Turns on the Marten transactional middleware.
       opts.Policies.AutoApplyTransactions();
+
+      if (lightweight)
+        opts.Durability.Mode = DurabilityMode.MediatorOnly;   // no message-store/agents at startup
     });
 
     return services;

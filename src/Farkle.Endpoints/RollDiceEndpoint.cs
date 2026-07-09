@@ -1,5 +1,6 @@
 using Ardalis.Result;
 using Ardalis.Result.AspNetCore;
+using Farkle.Application;
 using Farkle.Domain.GameAggregate;
 using Microsoft.Extensions.Logging;
 using Wolverine;
@@ -10,7 +11,8 @@ namespace Farkle.Endpoints;
 
 internal class RollDiceEndpoint(
   ILogger<RollDiceEndpoint> logger,
-  IMessageBus               bus)
+  IMessageBus               bus,
+  GameNotifier              notifier)
   : TypedEndpoint<RollDiceRequest, RollDiceResponse>
 {
   public override void Configure()
@@ -23,6 +25,7 @@ internal class RollDiceEndpoint(
     logger.LogInformation("ℹ️ Game: {gameId}. Rolling dice for player: {playerId}", req.GameId, req.PlayerId);
     var result = await bus.InvokeAsync<Result<RollDiceResponse>>(
       new Command.RollDice(req.GameId, req.PlayerId), ct);
+    if (result.IsSuccess) await notifier.DiceRolledAsync(req.GameId, ct);
     await Send.ResultAsync(result.ToMinimalApiResult());
   }
 }

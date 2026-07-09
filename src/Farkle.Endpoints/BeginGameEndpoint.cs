@@ -1,5 +1,6 @@
 using Ardalis.Result;
 using Ardalis.Result.AspNetCore;
+using Farkle.Application;
 using Farkle.Domain.GameAggregate;
 using Microsoft.Extensions.Logging;
 using Wolverine;
@@ -10,7 +11,8 @@ namespace Farkle.Endpoints;
 
 internal class BeginGameEndpoint(
   ILogger<BeginGameEndpoint> logger,
-  IMessageBus                bus)
+  IMessageBus                bus,
+  GameNotifier               notifier)
   : TypedEndpoint<BeginGameRequest, LobbyStateResponse>
 {
   public override void Configure()
@@ -23,6 +25,7 @@ internal class BeginGameEndpoint(
     logger.LogInformation("ℹ️ Game {gameId}. Player {playerId} starting play", req.GameId, req.PlayerId);
     var result = await bus.InvokeAsync<Result<LobbyStateResponse>>(
       new Command.BeginGame(req.GameId, req.PlayerId), ct);
+    if (result.IsSuccess) await notifier.GameBeganAsync(req.GameId, ct);
     await Send.ResultAsync(result.ToMinimalApiResult());
   }
 }

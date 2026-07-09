@@ -89,21 +89,13 @@ services.AddCors(o =>
     .AllowAnyHeader()
     .AllowAnyMethod()));
 
-// Add module services (domain + application) and the EventStoreDB infrastructure plug-in.
+// Add module services (domain + application) and the Critter Stack write/read path: Marten as the
+// PostgreSQL event store (GameState is the Inline self-aggregating snapshot GET reads) + Wolverine as
+// the command bus (ADR 0004). Marten shares the one Postgres with Identity (its own schema). NSwag
+// boots DB-free (lightweight: Marten lazy, Wolverine mediator-only) for swagger extraction.
 services.AddFarkleModuleServices(builder.Configuration, logger, new List<Assembly>());
-services.AddFarkleEventStore(builder.Configuration, logger);
-
-// CQRS read side (#156): a GameView projection in Postgres, kept current by a $all catch-up
-// subscription, that GET reads instead of replaying the stream. Disabled for hosts without
-// Postgres/ESDB (NSwag spec extraction, the in-memory storyboard capture). It reuses the
-// Identity Postgres database (own migrations-history table) — see ReadModelDbContext.
-var readModelEnabled = !builder.Environment.IsEnvironment("NSwag")
-    && !builder.Configuration.GetValue<bool>("Storyboard:SkipIdentitySeed")
-    && builder.Configuration.GetValue("Farkle:ReadModelEnabled", true);
-if (readModelEnabled)
-{
-    services.AddFarkleReadModel(identityConn, identityDataSource);
-}
+var martenConn = identityConn ?? "Host=localhost;Database=farkle;Username=postgres;Password=postgres";
+services.AddFarkleCritterStack(martenConn, lightweight: builder.Environment.IsEnvironment("NSwag"));
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
@@ -210,9 +202,8 @@ if (!app.Environment.IsEnvironment("NSwag") && !skipIdentitySeed)
 
     MigrateTolerant(scope.ServiceProvider.GetRequiredService<AppDbContext>().Database);
 
-    // Apply the read-model schema alongside Identity (same database, separate history table).
-    if (readModelEnabled)
-        MigrateTolerant(scope.ServiceProvider.GetRequiredService<ReadModelDbContext>().Database);
+    // Marten manages its own schema (auto-create); no read-model DbContext migration to apply —
+    // the GameView read model is now the Inline GameState snapshot (ADR 0004).
 
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
     const string seedEmail = "player1@email.com";
