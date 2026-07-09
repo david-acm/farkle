@@ -16,11 +16,19 @@ namespace Farkle;
 /// </summary>
 public static class CritterStackServiceExtensions
 {
+  /// <summary>
+  /// Wires Marten (event store + Inline <see cref="GameState"/> snapshot) integrated with Wolverine
+  /// (command bus + transactional outbox) onto the given Postgres connection. This is the single
+  /// registration the host calls to stand up the ADR 0004 write/read path.
+  /// </summary>
+  /// <param name="services">The service collection to register into.</param>
+  /// <param name="connectionString">The Postgres connection string Marten/Wolverine use.</param>
   /// <param name="lightweight">
   /// DB-free boot paths (NSwag swagger extraction) set this: Marten never touches the schema and
   /// Wolverine runs mediator-only (no durability agents / message-store tables), so the host boots
   /// without a live Postgres. Marten still connects lazily, so no command actually runs there.
   /// </param>
+  /// <returns>The same <paramref name="services"/> instance, for chaining.</returns>
   public static IServiceCollection AddFarkleCritterStack(
     this IServiceCollection services, string connectionString, bool lightweight = false)
   {

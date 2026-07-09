@@ -1,5 +1,4 @@
 using Azure.Monitor.OpenTelemetry.AspNetCore;
-using Eventuous.Diagnostics.OpenTelemetry;
 using OpenTelemetry.Instrumentation.AspNetCore;
 using OpenTelemetry.Logs;
 using OpenTelemetry.Trace;
@@ -8,9 +7,9 @@ namespace WebApp.Telemetry;
 
 /// <summary>
 /// #216 — wires OpenTelemetry to Application Insights via the Azure Monitor distro: requests +
-/// dependencies + Eventuous produce/consume spans (so the async event-store handlers correlate
-/// back to the originating request), metrics, and logs. Gated on the connection string so local
-/// dev / tests are a no-op (telemetry simply isn't exported).
+/// dependencies + Marten/Wolverine event-store spans (so the async message handlers correlate back
+/// to the originating request), metrics, and logs. Gated on the connection string so local dev /
+/// tests are a no-op (telemetry simply isn't exported).
 /// </summary>
 public static class FarkleTelemetryExtensions
 {
@@ -22,15 +21,15 @@ public static class FarkleTelemetryExtensions
     services.AddOpenTelemetry()
       .UseAzureMonitor(o => o.ConnectionString = connectionString)
       .WithTracing(tracing => tracing
-        // Postgres (Npgsql's built-in ActivitySource) for DB dependency spans, and Eventuous'
-        // command-service / event-store / subscription spans. Eventuous persists the W3C trace
-        // context into event metadata on append and restores it on consume, so the projector /
-        // broadcaster / telemetry handlers link to the request that produced the event.
+        // Postgres (Npgsql's built-in ActivitySource) for DB dependency spans, plus Marten's event
+        // store and Wolverine's message-bus ActivitySources. Marten/Wolverine propagate the W3C
+        // trace context across the append→handle hop, so the async handlers (broadcast, telemetry)
+        // link back to the request that produced the event.
         .AddSource("Npgsql")
-        .AddEventuousTracing()
-        // #220 — drop the redundant Eventuous subscription-infrastructure spans (sub.* / handler.*
-        // / checkpoint*) so traces stay readable; everything else (incl. consumer.* and the domain
-        // customEvents) keeps flowing and stays correlated by trace id.
+        .AddSource("Marten")
+        .AddSource("Wolverine")
+        // #220 — drop redundant event-infrastructure spans (sub.* / handler.* / checkpoint*) so
+        // traces stay readable; everything else keeps flowing, correlated by trace id.
         .SetSampler(new SubscriptionNoiseSampler(new AlwaysOnSampler())));
 
     // Domain-event logs (carrying the "EventType" attribute from GameTelemetryHandler) become

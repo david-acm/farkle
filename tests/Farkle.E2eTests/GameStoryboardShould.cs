@@ -10,9 +10,9 @@ namespace Farkle.E2eTests;
 ///   01-landing → 02-lobby → 03-roll → 04-select → 05-keep → 06-pass
 ///
 /// Frames are written to <c>test-results/storyboard/{step}-{viewport}.png</c> so they
-/// sort in interaction order and group by viewport. The backend is the in-memory
-/// <see cref="InMemoryAggregateStore"/> (no Testcontainers); a deterministic dice source
-/// guarantees a scoring die so the keep/pass stages render every time.
+/// sort in interaction order and group by viewport. The backend is Marten + Wolverine on a
+/// lightweight Postgres Testcontainer (ADR 0004); a deterministic dice source guarantees a
+/// scoring die so the keep/pass stages render every time.
 ///
 /// The player-advancing steps (landing nav, start game, tap die) are reused from the
 /// shared <see cref="GameFlow"/> helpers that the happy-path E2E also uses.

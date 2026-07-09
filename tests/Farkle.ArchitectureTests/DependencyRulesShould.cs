@@ -11,16 +11,13 @@ namespace Farkle.ArchitectureTests;
 /// </summary>
 public class DependencyRulesShould
 {
-  // Infrastructure libraries the core (Farkle) must NOT compile against once the dedicated
-  // Farkle.Infrastructure project owns them. Note: the Eventuous *abstractions*
-  // (Eventuous, Eventuous.Application/Persistence/Subscriptions) deliberately stay in the core,
-  // so they are NOT listed here — only the concrete event-store transport and the
-  // database/realtime/identity stacks.
+  // Infrastructure libraries the core (Farkle) must NOT compile against — the realtime/identity/EF
+  // stacks belong in Farkle.Infrastructure. Note (ADR 0004): the core IS now Marten-native — it
+  // depends on Marten + Wolverine (and, transitively, Npgsql for the collision-retry in
+  // GameCreator), so those are deliberately absent from this list. EF Core, SignalR and Identity
+  // still stay out of the core.
   private static readonly string[] InfrastructureLibraries =
   [
-    "EventStore.Client",
-    "Eventuous.EventStore",
-    "Npgsql",
     "Microsoft.EntityFrameworkCore",
     "Microsoft.AspNetCore.SignalR",
     "Microsoft.AspNetCore.Identity",
@@ -30,7 +27,7 @@ public class DependencyRulesShould
   public void KeepTheCoreFreeOfInfrastructureLibraries()
   {
     ForbiddenDependencies(CoreAsm, InfrastructureLibraries)
-      .Should().BeEmpty("the Farkle core must not depend on the event store / EF / SignalR / Identity stacks — those belong in Farkle.Infrastructure");
+      .Should().BeEmpty("the Farkle core must not depend on the EF / SignalR / Identity stacks — those belong in Farkle.Infrastructure");
   }
 
   [Fact]

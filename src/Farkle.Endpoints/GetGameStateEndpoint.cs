@@ -1,4 +1,4 @@
-using Farkle.Application;
+using Farkle.Features;
 using Farkle.Domain.GameAggregate;
 using Marten;
 using Microsoft.Extensions.Logging;

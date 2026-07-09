@@ -1,9 +1,9 @@
 name: CI - Storyboard
 # Multi-viewport storyboard screenshots (issue #98). Runs as its own workflow so the
-# infra-light capture executes in parallel with the e2e job rather than behind it. The
-# storyboard tests live in the same project as the happy-path E2E (tests/Farkle.E2eTests)
-# but are selected by the "Category=Storyboard" trait so they boot the in-memory backend
-# (no Postgres / EventStore / Docker) and never start Testcontainers.
+# capture executes in parallel with the e2e job rather than behind it. The storyboard
+# tests live in the same project as the happy-path E2E (tests/Farkle.E2eTests) but are
+# selected by the "Category=Storyboard" trait. Post-cutover (ADR 0004) they boot the real
+# Marten + Wolverine backend on a lightweight Postgres Testcontainer — no ESDB.
 on:
   pull_request:
     branches: [main]
@@ -45,10 +45,13 @@ jobs:
         # Microsoft.Playwright NuGet version so browsers are installed to the right path.
         run: pwsh tests/Farkle.E2eTests/bin/Debug/net10.0/playwright.ps1 install chromium --with-deps
 
+      - name: Pull Postgres image for the storyboard backend
+        run: docker pull postgres:16-alpine
+
       - name: Run storyboard capture
-        # No Testcontainers / Docker — only the Storyboard-tagged tests run, so the
-        # container-backed happy-path fixture is never instantiated. The host boots with
-        # an in-memory aggregate store instead.
+        # The host boots the real Marten + Wolverine backend on a Postgres Testcontainer
+        # (ADR 0004); only the Storyboard-tagged tests run, so the heavyweight happy-path
+        # fixture is never instantiated.
         run: >
           dotnet test tests/Farkle.E2eTests/Farkle.E2eTests.csproj
           --no-build

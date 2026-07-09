@@ -211,3 +211,33 @@ candidate at #303 for keeping the int game code first-class alongside a surrogat
 7. Drop the framework-free arch-tests; keep slice-cohesion ones.
 8. A Marten integration test (local Postgres, `farkle_marten`) driving a full game through the
    handlers; domain unit tests call the static handlers directly.
+
+## Implementation notes (deltas found during the cutover, #302 / PR #309)
+
+These refine the checklist above with what the actual cutover required:
+
+- **Response mappers moved into `Farkle.Features`.** `LobbyMapper` / `GameStateMapper` /
+  `PassTurnMapper` (GameState → Contracts DTO) used to sit in `Farkle.Application`. The slice
+  `[AggregateHandler]`s now map to their response inside the slice, so the mappers were moved to
+  the `Farkle.Features` namespace (`src/Farkle/Features/Responses/`). This keeps
+  `KeepSlicesOffTheApplicationAndInfrastructureLayers` satisfied (a slice must not reach into the
+  application layer). `GameNotifier` (application) and the read endpoint reference them the other
+  way, which no guardrail forbids.
+- **Architecture guardrails updated, not just dropped.** `KeepDomainTypesInternal` is removed — the
+  event-sourcing contract (events, `GameState`, commands, value objects) is now *public* because it
+  is the persisted Marten/STJ serialization contract (the standard Critter Stack convention). Purity
+  is still enforced by `DomainPurityShould.NotDependOnApplicationEndpointsWebOrInfrastructure` and the
+  decider-purity test. `DependencyRulesShould` no longer forbids the core from Marten/Wolverine/Npgsql
+  (that inward coupling is the point of going native); EF Core / SignalR / Identity stay out of core.
+- **Post-commit broadcast, not a subscription.** Turn/table/lobby SignalR pushes are triggered by the
+  endpoints via `GameNotifier` after a committed `InvokeAsync` (reads the up-to-date Inline snapshot).
+  This replaces the Eventuous `$all` broadcast subscription. Moving it onto Wolverine's outbox as a
+  cascading message is deferred to #305.
+- **Domain-event telemetry deferred.** The Eventuous `$all` `GameTelemetryHandler` (which logged every
+  committed event as an Application Insights custom event) is deleted with the rest of the subscription
+  machinery. The pure `GameTelemetry.Log` shape (and its unit test) is kept so the mapping can be
+  re-wired onto a Marten event subscription / Wolverine handler in the same #305 follow-up.
+- **DB-free boots per path.** NSwag swagger extraction boots Marten lightweight (dummy connection,
+  lazy connect, Wolverine mediator-only) — `verify-generated` produces no drift. The storyboard
+  capture and the e2e happy-path both boot the real Marten + Wolverine backend on a lightweight
+  Postgres Testcontainer (the storyboard is no longer in-memory / DB-free).

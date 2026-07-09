@@ -1,7 +1,7 @@
 using Farkle.Domain.GameAggregate;
 using static Farkle.Contracts.HttpResponses;
 
-namespace Farkle.Application;
+namespace Farkle.Features;
 
 internal static class LobbyMapper
 {

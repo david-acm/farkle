@@ -1,4 +1,5 @@
 using Farkle.Domain.GameAggregate;
+using Farkle.Features;
 using Marten;
 
 namespace Farkle.Application;

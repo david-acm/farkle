@@ -1,7 +1,6 @@
-﻿services:
+services:
   farkle.web:
     depends_on:
-    - esdb
     - postgres
     image: webapp
     build:
@@ -16,25 +15,12 @@
       ASPNETCORE_Kestrel__Certificates__Default__Password: ${KESTREL_CERT_PASSWORD}
       ASPNETCORE_Kestrel__Certificates__Default__Path: /https/aspnetapp.pfx
       ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings:Esdb: esdb://${ESDB_USER}:${ESDB_PASSWORD}@esdb:2113?tls=false
+      # Marten (event store) shares this Postgres with Identity — its own schema (ADR 0004). No ESDB.
       ConnectionStrings:Identity: Host=postgres;Port=5432;Database=farkle_identity;Username=farkle;Password=${POSTGRES_PASSWORD}
     volumes:
       - ${HOME}/.aspnet/https:/https/
     networks:
       - my-network
-      
-  setup:
-    image: eventstore/es-gencert-cli:1.0.2
-    entrypoint: bash
-    user: "1000:1000"
-    command: >
-      -c "mkdir -p ./certs && cd /certs
-      && es-gencert-cli create-ca
-      && es-gencert-cli create-node -out ./node1 -ip-addresses 127.0.0.1,172.30.240.11 -dns-names localhost
-      && find . -type f -print0 | xargs -0 chmod 666"
-    container_name: setup
-    volumes:
-      - ./certs:/certs
 
   postgres:
     image: postgres:16-alpine
@@ -49,35 +35,7 @@
     networks:
       - my-network
 
-  esdb:
-    depends_on:
-      - setup
-    image: eventstore/eventstore:23.10.0-bookworm-slim
-    environment:
-      - EVENTSTORE_CLUSTER_SIZE=1
-      - EVENTSTORE_RUN_PROJECTIONS=All
-      - EVENTSTORE_START_STANDARD_PROJECTIONS=true
-      - EVENTSTORE_EXT_TCP_PORT=1113
-      - EVENTSTORE_HTTP_PORT=2113
-      - EVENTSTORE_INSECURE=true
-      - EVENTSTORE_ENABLE_EXTERNAL_TCP=true
-      - EVENTSTORE_ENABLE_ATOM_PUB_OVER_HTTP=true
-    ports:
-      - "1113:1113"
-      - "2113:2113"
-    volumes:
-      - type: volume
-        source: eventstore-volume-data
-        target: /var/lib/eventstore
-      - type: volume
-        source: eventstore-volume-logs
-        target: /var/log/eventstore
-    networks:
-      my-network:
-
 volumes:
-  eventstore-volume-data:
-  eventstore-volume-logs:
   postgres-data:
 
 networks:

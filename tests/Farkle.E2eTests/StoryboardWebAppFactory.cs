@@ -1,26 +1,28 @@
 using System.Net;
-using EventStore.Client;
-using Eventuous;
-using Eventuous.EventStore;
+using DotNet.Testcontainers.Builders;
 using Farkle.Domain.GameAggregate;
+using Farkle.Infrastructure.Identity;
+using Marten;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 
 namespace Farkle.E2eTests;
 
-// Boots the real WebApp host (serving the WASM client) on a dynamic Kestrel port so
-// Playwright can drive it — but with the ESDB-backed aggregate store swapped for an
-// in-memory one and the Identity migrate/seed skipped. No Testcontainers, no Docker.
+// Boots the real WebApp host (serving the WASM client) on a dynamic Kestrel port so Playwright can
+// drive it. Post-cutover (ADR 0004) the write path is Marten + Wolverine on Postgres, so the
+// storyboard needs a real Postgres — no more in-memory aggregate store. It spins a lightweight
+// Postgres Testcontainer (or reuses FARKLE_TEST_PG, e.g. the SessionStart hook's instance), keeps the
+// game endpoints anonymous, and swaps IRandom for a deterministic ScriptedRandom.
 //
-// This is the "light" companion to E2EWebAppFactory: the heavyweight happy-path tests
-// use the container-backed factory, the storyboard capture uses this one. xUnit only
-// instantiates the fixture whose tests are selected, so a filtered storyboard run never
-// starts containers.
+// This is the "light" companion to E2EWebAppFactory: the heavyweight happy-path tests use one factory,
+// the storyboard capture uses this one. xUnit only instantiates the fixture whose tests are selected.
 public sealed class StoryboardWebAppFactory : WebApplicationFactory<Program>
 {
     public string ServerAddress { get; private set; } = string.Empty;
@@ -29,20 +31,37 @@ public sealed class StoryboardWebAppFactory : WebApplicationFactory<Program>
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
+        var localConn = Environment.GetEnvironmentVariable("FARKLE_TEST_PG");
+        string pgConn;
+
+        if (!string.IsNullOrWhiteSpace(localConn))
+        {
+            pgConn = localConn;
+        }
+        else
+        {
+            var pgContainer = new ContainerBuilder("postgres:16-alpine")
+                .WithPortBinding(5432, true)
+                .WithEnvironment("POSTGRES_USER", "farkle_story")
+                .WithEnvironment("POSTGRES_PASSWORD", "farkle_story")
+                .WithEnvironment("POSTGRES_DB", "farkle_story")
+                .WithWaitStrategy(Wait.ForUnixContainer()
+                    .UntilCommandIsCompleted("pg_isready", "-h", "127.0.0.1", "-U", "farkle_story"))
+                .WithAutoRemove(false).Build();
+
+            pgContainer.StartAsync().GetAwaiter().GetResult();
+            var pgPort = pgContainer.GetMappedPublicPort(5432);
+            pgConn = $"Host=localhost;Port={pgPort};Database=farkle_story;Username=farkle_story;Password=farkle_story";
+        }
+
         builder.ConfigureAppConfiguration((_, cfg) =>
         {
             cfg.AddInMemoryCollection(new Dictionary<string, string?>
             {
-                // Skip the Postgres migrate/seed at startup (game endpoints never touch Identity).
+                // The storyboard never logs in, so skip the Identity migrate/seed at startup.
                 ["Storyboard:SkipIdentitySeed"] = "true",
                 // Keep the game endpoints anonymous so the UI renders without logging in.
                 ["Auth:RequireAuthorization"]   = "false",
-                // No EventStore here (in-memory aggregate store), so disable the broadcast
-                // subscription — it needs the EventStoreClient and would fail host startup.
-                ["Farkle:RealtimeBroadcastEnabled"] = "false",
-                // Dummy connection strings: present so option binding succeeds, never contacted.
-                ["ConnectionStrings:Identity"]  = "Host=localhost;Database=storyboard;Username=u;Password=p",
-                ["ConnectionStrings:Esdb"]      = "esdb://localhost:2113?tls=false",
             });
         });
 
@@ -50,59 +69,16 @@ public sealed class StoryboardWebAppFactory : WebApplicationFactory<Program>
 
         builder.ConfigureServices(services =>
         {
-            // Replace the ESDB persistence with the in-memory store; drop the now-unused
-            // EventStore wiring (including the EsdbEventStore singleton, registered as its
-            // own concrete type) so DI validation doesn't try to reach a real database.
-            // 0.15.1 registers the store as IEventStore/IEventReader/IEventWriter (AddEventStore)
-            // rather than the retired IAggregateStore.
-            RemoveAll(services, typeof(IEventStore));
-            RemoveAll(services, typeof(IEventReader));
-            RemoveAll(services, typeof(IEventWriter));
-            RemoveAll(services, typeof(EsdbEventStore));
-            RemoveAll(services, typeof(EventStoreClient));
+            // AddFarkleCritterStack captured its connection at registration (from unset config), so
+            // layer the test Postgres onto Marten (last Connection() wins).
+            services.ConfigureMarten(opts => opts.Connection(pgConn));
 
-            // Drop the broadcast subscription's hosted service — with no EventStoreClient it
-            // would NRE on startup. Eventuous registers it as the only *factory-based*
-            // IHostedService (no ImplementationType); the framework's own hosted services
-            // (health-check publisher, data protection, the web host) all have concrete types.
-            // (A config gate can't reach here: AddFarkleModuleServices reads config before the
-            // test's ConfigureAppConfiguration is merged.)
-            foreach (var hosted in services
-                         .Where(d => d.ServiceType == typeof(IHostedService)
-                                     && d.ImplementationFactory is not null
-                                     && d.ImplementationType is null)
-                         .ToList())
-                services.Remove(hosted);
-
-            var inMemoryStore = new InMemoryAggregateStore();
-            services.AddSingleton<IEventStore>(inMemoryStore);
-            services.AddSingleton<IEventReader>(inMemoryStore);
-            services.AddSingleton<IEventWriter>(inMemoryStore);
-
-            // Deterministic dice via the DI seam (#93): swap the default IRandom for
-            // ScriptedRandom (always rolls the minimum → six 1s) so every roll yields a scoring
-            // die and the storyboard stages stay reproducible. GameService's aggregate factory
-            // resolves this when constructing Game on the command path.
-            RemoveAll(services, typeof(IRandom));
+            // Deterministic dice via the DI seam (#93): swap the default IRandom for ScriptedRandom
+            // (always rolls the minimum → six 1s) so every roll yields a scoring die and the
+            // storyboard stages stay reproducible.
+            services.RemoveAll<IRandom>();
             services.AddSingleton<IRandom, ScriptedRandom>();
-
-            // The read model (#156) is gated on config that isn't merged yet at registration
-            // time (same limitation as the broadcast subscription above), so Program registers
-            // the Postgres-backed EfGameViewStore here too. Swap it for the no-op store so GET
-            // falls back to the in-memory replay instead of hitting the dummy Postgres. The
-            // projector's subscription was already dropped by the hosted-service removal above.
-            RemoveAll(services, typeof(Farkle.Application.IGameViewStore));
-            services.AddSingleton<Farkle.Application.IGameViewStore, Farkle.Application.NullGameViewStore>();
         });
-    }
-
-    // Removes every registration that exposes or implements the given type.
-    private static void RemoveAll(IServiceCollection services, Type type)
-    {
-        foreach (var descriptor in services
-                     .Where(d => d.ServiceType == type || d.ImplementationType == type)
-                     .ToList())
-            services.Remove(descriptor);
     }
 
     protected override IHost CreateHost(IHostBuilder builder)
@@ -124,10 +100,10 @@ public sealed class StoryboardWebAppFactory : WebApplicationFactory<Program>
 
     public override async ValueTask DisposeAsync()
     {
-        // Same harmless-teardown guard as E2eWebAppFactory: a subscription shutdown can surface a
-        // double-disposed CancellationTokenSource (sometimes wrapped in an AggregateException by
-        // Host.StopAsync). Swallow ODE / AggregateException-of-ODE so it never fails the
-        // collection-fixture cleanup; rethrow anything else.
+        // Two hosts share one Marten/Wolverine store; racing their shutdown can surface an
+        // ObjectDisposedException (sometimes wrapped in an AggregateException) from the background
+        // durability agent. That's harmless teardown noise — swallow ODE / AggregateException-of-ODE
+        // so it never fails the collection-fixture cleanup; rethrow anything else.
         if (_kestrelHost is not null)
         {
             try { await _kestrelHost.StopAsync(); } catch (Exception ex) when (IsHarmlessTeardown(ex)) { }

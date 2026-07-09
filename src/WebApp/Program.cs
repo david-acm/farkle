@@ -17,8 +17,6 @@ using WebApp.Client;
 using WebApp.Telemetry;
 using Farkle.Infrastructure;
 using Farkle.Infrastructure.Identity;
-using Farkle.Infrastructure.Persistence;
-using Farkle.Infrastructure.ReadModel;
 using Farkle.Infrastructure.Realtime;
 
 var logger = Log.Logger = new LoggerConfiguration()
@@ -43,8 +41,8 @@ builder.Host.UseSerilog(
 
 var services = builder.Services;
 
-// #216 — OpenTelemetry (Azure Monitor distro): traces (requests, dependencies, Eventuous
-// produce/consume spans with causation across the async event-store hop), metrics, and logs to
+// #216 — OpenTelemetry (Azure Monitor distro): traces (requests, dependencies, Marten/Wolverine
+// event-store spans with causation across the async handling hop), metrics, and logs to
 // Application Insights. Gated on the connection string so local dev/tests don't phone home.
 var appInsightsConn = builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"];
 services.AddFarkleTelemetry(appInsightsConn);
@@ -113,8 +111,9 @@ var app = builder.Build();
 
 // Health endpoints, mapped before CORS/auth/FastEndpoints so they always answer
 // anonymously (never gated by Auth:RequireAuthorization). Liveness runs no checks
-// (just "process is up"); readiness runs the "ready"-tagged Postgres + EventStore
-// checks. These are minimal-API endpoints, so they're absent from the Swagger doc.
+// (just "process is up"); readiness runs the "ready"-tagged Postgres check (which
+// also covers Marten's event store — it shares the DB). These are minimal-API
+// endpoints, so they're absent from the Swagger doc.
 app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false });
 app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = c => c.Tags.Contains("ready") });
 
