@@ -38,7 +38,7 @@ public class FeedbackApiShould : IClassFixture<GameApiWebAppFactory>
     {
         var sessionId = $"sess-{Guid.NewGuid():N}";
 
-        var response = await _client.Api.Feedback.PostAsync(new FarkleContractsHttpRequests_SubmitFeedbackRequest
+        var response = await _client.Api.Feedback.PostAsync(new SubmitFeedbackRequest
         {
             SessionId = sessionId,
             Message   = "The dice animation is delightful",
@@ -53,15 +53,17 @@ public class FeedbackApiShould : IClassFixture<GameApiWebAppFactory>
     [Fact]
     public async Task RejectEmptyFeedbackMessageAsync()
     {
-        var ex = await Assert.ThrowsAsync<ApiException>(() =>
-            _client.Api.Feedback.PostAsync(new FarkleContractsHttpRequests_SubmitFeedbackRequest
+        // #303 — the endpoint now returns a typed ValidationProblem (400), which Kiota surfaces as
+        // the strongly-typed HttpValidationProblemDetails error rather than a bare ApiException.
+        var ex = await Assert.ThrowsAsync<HttpValidationProblemDetails>(() =>
+            _client.Api.Feedback.PostAsync(new SubmitFeedbackRequest
             {
                 SessionId = $"sess-{Guid.NewGuid():N}",
                 Message   = "   ",
                 Sentiment = "Down",
             }));
 
-        Assert.Equal(400, ex.ResponseStatusCode);
+        Assert.Equal(400, ex.Status);
     }
 
     // The feedback triage read model (a $all EF projection) is retired at the Marten cutover

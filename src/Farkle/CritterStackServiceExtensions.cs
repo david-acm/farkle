@@ -30,7 +30,8 @@ public static class CritterStackServiceExtensions
   /// </param>
   /// <returns>The same <paramref name="services"/> instance, for chaining.</returns>
   public static IServiceCollection AddFarkleCritterStack(
-    this IServiceCollection services, string connectionString, bool lightweight = false)
+    this IServiceCollection services, string connectionString, bool lightweight = false,
+    params System.Reflection.Assembly[] additionalEndpointAssemblies)
   {
     services
       .AddMarten(opts =>
@@ -59,6 +60,16 @@ public static class CritterStackServiceExtensions
       // Required: without this (and without an [AggregateHandler] on the path) plain handlers that
       // touch IDocumentSession silently don't commit. Turns on the Marten transactional middleware.
       opts.Policies.AutoApplyTransactions();
+
+      // #303 — the Wolverine.HTTP game endpoints live in this (Farkle) assembly's slices.
+      opts.Discovery.IncludeAssembly(typeof(CritterStackServiceExtensions).Assembly);
+      foreach (var assembly in additionalEndpointAssemblies)
+        opts.Discovery.IncludeAssembly(assembly);
+
+      // #303 — compile the generated handler/endpoint code in-memory rather than writing it to the
+      // build output. Dynamic avoids concurrent app instances (the per-class WebApplicationFactory
+      // tests) racing to write the same generated .cs files. Static pre-compilation is #305.
+      opts.CodeGeneration.TypeLoadMode = JasperFx.CodeGeneration.TypeLoadMode.Dynamic;
 
       if (lightweight)
         opts.Durability.Mode = DurabilityMode.MediatorOnly;   // no message-store/agents at startup

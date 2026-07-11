@@ -50,3 +50,6 @@ test-results/
 
 # Local environment / secrets (keep .env.example tracked)
 .env
+
+# Subagent git worktrees — never commit these
+.claude/worktrees/

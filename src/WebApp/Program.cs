@@ -1,9 +1,10 @@
 using System.Reflection;
+using System.Text;
 using Farkle;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
-using FastEndpoints;
-using FastEndpoints.Security;
-using FastEndpoints.Swagger;
+using Microsoft.IdentityModel.Tokens;
+using Wolverine.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
@@ -47,8 +48,10 @@ var services = builder.Services;
 var appInsightsConn = builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"];
 services.AddFarkleTelemetry(appInsightsConn);
 
-services.AddEndpointsApiExplorer();
-services.AddSwaggerGen();
+// #303 — OpenAPI is now sourced from ASP.NET's built-in document generator (Microsoft.AspNetCore.
+// OpenApi), which sees the Wolverine.HTTP endpoints. It replaces FastEndpoints.Swagger + NSwag; the
+// committed swagger.json is produced by dumping this document (see verify-generated).
+services.AddOpenApi();
 
 // Identity persistence (DbContext + stores + the Entra/managed-identity data-source decision)
 // lives in Farkle.Infrastructure; it returns the data source so the read model reuses it.
@@ -58,22 +61,24 @@ var identityDataSource = services.AddFarkleIdentity(identityConn);
 // Readiness checks for the two backing services (tagged "ready"); liveness runs none.
 services.AddFarkleHealthChecks();
 
+// #303 — standard ASP.NET JWT bearer (replacing FastEndpoints.Security). HMAC-SHA256 over
+// Auth:JwtSecret; issuer/audience are not used, so validate signature + lifetime only. The login
+// endpoint mints matching tokens with the IdentityModel handler.
+var jwtSecret = builder.Configuration["Auth:JwtSecret"] ?? "farkle-fallback-signing-key-not-used-for-real-tokens";
 services
-  .AddAuthenticationJwtBearer(s =>
+  .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+  .AddJwtBearer(o =>
   {
-    s.SigningKey = builder.Configuration["Auth:JwtSecret"];
-  })
-  .AddAuthorization()
-  .SwaggerDocument()
-  .AddFastEndpoints(o =>
-  {
-      o.Assemblies = new[]
-      {
-          typeof(Farkle.Endpoints.StartGame).Assembly,
-          typeof(RegisterEndpoint).Assembly
-      };
-      o.DisableAutoDiscovery = true;
+    o.TokenValidationParameters = new TokenValidationParameters
+    {
+      ValidateIssuer           = false,
+      ValidateAudience         = false,
+      ValidateIssuerSigningKey = true,
+      IssuerSigningKey         = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
+      ValidateLifetime         = true,
+    };
   });
+services.AddAuthorization();
 
 // Real-time delivery (SignalR + the IGameEventBroadcaster) lives in Farkle.Infrastructure.
 services.AddFarkleRealtime();
@@ -94,6 +99,16 @@ services.AddCors(o =>
 services.AddFarkleModuleServices(builder.Configuration, logger, new List<Assembly>());
 var martenConn = identityConn ?? "Host=localhost;Database=farkle;Username=postgres;Password=postgres";
 services.AddFarkleCritterStack(martenConn, lightweight: builder.Environment.IsEnvironment("NSwag"));
+
+// #303 — Wolverine.HTTP hosts the game endpoints from their slices (migrating off FastEndpoints).
+services.AddWolverineHttp();
+
+// #303 — Wolverine.HTTP defaults the HTTP JSON options to AllowReadingFromString, which makes the
+// OpenAPI generator emit integers as a ["integer","string"] union that Kiota can't map to a typed
+// property (it falls back to UntypedNode). Force strict number handling so ints stay plain integers
+// in the document and the generated client keeps typed int properties.
+services.ConfigureHttpJsonOptions(o =>
+  o.SerializerOptions.NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.Strict);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
@@ -158,11 +173,23 @@ if(requireAuth)
   app.UseAuthentication()
       .UseAuthorization();
 
-app.UseFastEndpoints(c =>
-  {
-    c.Endpoints.Configurator = ep => { if (requireAuth) ep.Options(b => b.RequireAuthorization()); else ep.Options(b => b.AllowAnonymous());};
-  })
-   .UseSwaggerGen();
+// #303 — the OpenAPI document (Microsoft.AspNetCore.OpenApi), served at /openapi/v1.json. The
+// verify-generated pipeline fetches it to produce the committed swagger.json + Kiota client.
+app.MapOpenApi();
+
+// #303 — every game/feedback/auth endpoint is a Wolverine.HTTP method now (FastEndpoints is gone).
+// When auth is required, gate the whole group; the anonymous endpoints (login, register, feedback)
+// opt out via [AllowAnonymous].
+app.MapWolverineEndpoints(opts =>
+{
+  if (requireAuth)
+    opts.RequireAuthorizeOnAll();
+});
+
+// #303 — auth endpoints as anonymous minimal APIs (migrated off FastEndpoints). Kept minimal-API
+// rather than Wolverine.HTTP because Identity's UserManager isn't resolvable by Wolverine code-gen.
+app.MapPost("/api/auth/register", WebApp.Auth.RegisterEndpoint.Post).AllowAnonymous().WithTags("Auth");
+app.MapPost("/api/auth/login", WebApp.Auth.LoginEndpoint.Post).AllowAnonymous().WithTags("Auth");
 
 app.MapFarkleRealtime();
 

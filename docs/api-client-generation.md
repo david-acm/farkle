@@ -12,14 +12,17 @@ and `Farkle.WebTests`, so there's one regeneration command for all consumers.
 ## Steps
 
 1. Edit the DTO in `src/Farkle.Contracts/HttpResponses.cs` (or `HttpRequests.cs`).
-2. Regenerate `swagger.json` (NSwag, via the WebApp build):
+2. Regenerate `swagger.json`. Since #303 this is emitted by ASP.NET's built-in OpenAPI
+   generator (`Microsoft.Extensions.ApiDescription.Server`), which **boots the host**, so a
+   reachable Postgres is required (Marten + Identity). Point `ConnectionStrings:Identity` at one:
    ```bash
-   dotnet build src/WebApp/WebApp.csproj -p:GenerateSwagger=true
+   ConnectionStrings__Identity="Host=localhost;Port=5432;Database=farkle_marten;Username=postgres;Password=changeit" \
+     dotnet build src/WebApp/WebApp.csproj -p:GenerateSwagger=true
    ```
-3. Regenerate the Kiota client:
+3. Regenerate the Kiota client (clean first so a removed path/schema can't leave an orphan):
    ```bash
    dotnet tool restore
-   cd src/Farkle.ApiClient && dotnet kiota generate \
+   cd src/Farkle.ApiClient && rm -rf Api Models && dotnet kiota generate \
      -l CSharp -d ../WebApp.Client/swagger.json \
      -c FarkleApiClient -n Farkle.ApiClient -o . \
      && cd -

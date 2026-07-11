@@ -1,6 +1,6 @@
 using Microsoft.JSInterop;
 using Farkle.ApiClient;
-using KiotaFeedbackRequest = Farkle.ApiClient.Models.FarkleContractsHttpRequests_SubmitFeedbackRequest;
+using KiotaFeedbackRequest = Farkle.ApiClient.Models.SubmitFeedbackRequest;
 
 namespace WebApp.Client.Services;
 

@@ -4,13 +4,11 @@ using Marten;
 
 namespace Farkle.Application;
 
-// Post-commit real-time broadcast (ADR 0004). After a command's Wolverine handler has committed
-// (IMessageBus.InvokeAsync returned success), the endpoint calls the matching method here; it loads
-// the up-to-date GameState snapshot from Marten and pushes the SignalR message. Replaces the
-// Eventuous $all GameBroadcastHandler subscription. Because it runs only after a committed
-// InvokeAsync, it keeps the "never broadcast a rolled-back write" guarantee; a future refinement
-// (#305) can move it onto Wolverine's outbox as a cascading message.
-internal sealed class GameNotifier(IQuerySession query, IGameEventBroadcaster broadcaster)
+// Post-commit real-time broadcast (ADR 0004). Loads the up-to-date GameState snapshot from Marten and
+// pushes the SignalR message. Since #303 it is driven by GameBroadcastHandler, which consumes the
+// GameNotifications cascaded by the Wolverine.HTTP endpoints via the Marten outbox — so it runs only
+// after the event append commits ("never broadcast a rolled-back write").
+public sealed class GameNotifier(IQuerySession query, IGameEventBroadcaster broadcaster)
 {
   public Task LobbyChangedAsync(int gameId, CancellationToken ct) =>
     WithState(gameId, ct, s => broadcaster.BroadcastPlayerJoinedAsync(LobbyMapper.ToLobbyState(s), ct));
