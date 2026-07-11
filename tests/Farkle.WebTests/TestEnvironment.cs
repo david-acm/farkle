@@ -14,12 +14,4 @@ internal static class TestEnvironment
     internal static void Init() =>
         Environment.SetEnvironmentVariable(
             "Auth__JwtSecret", "farkle-integration-test-signing-key-0123456789");
-
-    // EventStore runs in insecure mode in the test containers; these are its
-    // well-known default credentials, kept in one place rather than inlined.
-    internal const string EsdbUser     = "admin";
-    internal const string EsdbPassword = "changeit";
-
-    internal static string EsdbConnectionString(int port) =>
-        $"esdb://{EsdbUser}:{EsdbPassword}@localhost:{port}?tls=false";
 }
