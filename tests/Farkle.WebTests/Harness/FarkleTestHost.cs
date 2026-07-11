@@ -46,11 +46,21 @@ public static class FarkleTestHost
     });
 
   // Racing the host stop with the Marten/Wolverine durability agent can surface a harmless
-  // ObjectDisposedException (sometimes wrapped) — swallow just that on teardown.
+  // ObjectDisposedException (sometimes wrapped in an AggregateException) — swallow just that on
+  // teardown; anything else propagates and fails the run.
   public static async Task StopTolerantlyAsync(IAlbaHost host)
   {
-    try { await host.DisposeAsync(); }
-    catch (ObjectDisposedException) { }
-    catch (AggregateException ex) when (ex.Flatten().InnerExceptions.All(e => e is ObjectDisposedException)) { }
+    try
+    {
+      await host.DisposeAsync();
+    }
+    catch (Exception ex) when (IsHarmlessTeardown(ex))
+    {
+      System.Diagnostics.Debug.WriteLine($"Ignoring harmless host-teardown exception: {ex.GetType().Name}");
+    }
   }
+
+  private static bool IsHarmlessTeardown(Exception ex) =>
+    ex is ObjectDisposedException
+    || (ex is AggregateException agg && agg.Flatten().InnerExceptions.All(e => e is ObjectDisposedException));
 }

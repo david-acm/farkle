@@ -22,6 +22,7 @@ public abstract class IntegrationTest : IAsyncLifetime
   protected FarkleApiClient Client { get; }
 
   private readonly HttpClient _http;
+  private readonly HttpClientRequestAdapter _adapter;
 
   protected IntegrationTest(AppFixture fixture)
   {
@@ -30,9 +31,9 @@ public abstract class IntegrationTest : IAsyncLifetime
     {
       BaseAddress = fixture.Host.Server.BaseAddress,
     };
-    var adapter = new HttpClientRequestAdapter(new AnonymousAuthenticationProvider(), httpClient: _http);
-    adapter.BaseUrl = _http.BaseAddress?.ToString().TrimEnd('/') ?? string.Empty;
-    Client = new FarkleApiClient(adapter);
+    _adapter = new HttpClientRequestAdapter(new AnonymousAuthenticationProvider(), httpClient: _http);
+    _adapter.BaseUrl = _http.BaseAddress?.ToString().TrimEnd('/') ?? string.Empty;
+    Client = new FarkleApiClient(_adapter);
   }
 
   // Reset Marten data for isolation, then register + log in so the client carries a bearer token for
@@ -46,6 +47,7 @@ public abstract class IntegrationTest : IAsyncLifetime
 
   public Task DisposeAsync()
   {
+    _adapter.Dispose();
     _http.Dispose();
     return Task.CompletedTask;
   }
