@@ -1,57 +1,67 @@
 using System.Security.Claims;
-using FastEndpoints;
-using FastEndpoints.Security;
+using System.Text;
 using Farkle.Infrastructure.Identity;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.Extensions.Logging;
+using Microsoft.IdentityModel.JsonWebTokens;
+using Microsoft.IdentityModel.Tokens;
 
 namespace WebApp.Auth;
 
-internal class LoginEndpoint(
+// #303 — login on Wolverine.HTTP (migrated off FastEndpoints.Security). Anonymous. Verifies the
+// credentials and mints a 4-hour HMAC-SHA256 JWT with the standard IdentityModel handler (replacing
+// FastEndpoints' JwtBearer.CreateToken). Never logs the password or the issued token.
+public static class LoginEndpoint
+{
+  [AllowAnonymous]
+  [Wolverine.Http.WolverinePost("/api/auth/login")]
+  public static async Task<Results<Ok<LoginResponse>, UnauthorizedHttpResult>> Post(
+    LoginRequest body,
     UserManager<AppUser> userManager,
     SignInManager<AppUser> signInManager,
     IConfiguration configuration,
-    ILogger<LoginEndpoint> logger)
-    : Endpoint<LoginRequest, LoginResponse>
-{
-    public override void Configure()
+    ILoggerFactory loggerFactory,
+    CancellationToken ct)
+  {
+    var logger = loggerFactory.CreateLogger("WebApp.Auth.Login");
+
+    var user = await userManager.FindByEmailAsync(body.Email);
+    if (user is null)
     {
-        Post("/api/auth/login");
-        AllowAnonymous();
+      logger.LogWarning("Login failed for {Email}: {Reason}", body.Email, "user not found");
+      return TypedResults.Unauthorized();
     }
 
-    public override async Task HandleAsync(LoginRequest req, CancellationToken ct)
+    var result = await signInManager.CheckPasswordSignInAsync(user, body.Password, lockoutOnFailure: false);
+    if (!result.Succeeded)
     {
-        // Structured telemetry (#33): log the outcome and the email only — never the password
-        // or the issued token.
-        var user = await userManager.FindByEmailAsync(req.Email);
-        if (user is null)
-        {
-            logger.LogWarning("Login failed for {Email}: {Reason}", req.Email, "user not found");
-            await Send.UnauthorizedAsync(ct);
-            return;
-        }
-
-        var result = await signInManager.CheckPasswordSignInAsync(user, req.Password, lockoutOnFailure: false);
-        if (!result.Succeeded)
-        {
-            logger.LogWarning("Login failed for {Email}: {Reason}", req.Email, "invalid password");
-            await Send.UnauthorizedAsync(ct);
-            return;
-        }
-
-        var expiresAt = DateTime.UtcNow.AddHours(4);
-
-        var token = JwtBearer.CreateToken(
-            o =>
-            {
-                o.SigningKey = configuration["Auth:JwtSecret"]!;
-                o.ExpireAt = expiresAt;
-                o.User.Claims.Add(new Claim(ClaimTypes.NameIdentifier, user.Id));
-                o.User.Claims.Add(new Claim(ClaimTypes.Email, user.Email!));
-            });
-
-        logger.LogInformation("Login succeeded for {Email}", req.Email);
-        await Send.OkAsync(new LoginResponse(token, expiresAt), ct);
+      logger.LogWarning("Login failed for {Email}: {Reason}", body.Email, "invalid password");
+      return TypedResults.Unauthorized();
     }
+
+    var expiresAt = DateTime.UtcNow.AddHours(4);
+    var token     = CreateToken(configuration["Auth:JwtSecret"]!, user, expiresAt);
+
+    logger.LogInformation("Login succeeded for {Email}", body.Email);
+    return TypedResults.Ok(new LoginResponse(token, expiresAt));
+  }
+
+  private static string CreateToken(string secret, AppUser user, DateTime expiresAt)
+  {
+    var descriptor = new SecurityTokenDescriptor
+    {
+      Subject = new ClaimsIdentity(
+      [
+        new Claim(ClaimTypes.NameIdentifier, user.Id),
+        new Claim(ClaimTypes.Email, user.Email!)
+      ]),
+      Expires            = expiresAt,
+      SigningCredentials = new SigningCredentials(
+        new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret)), SecurityAlgorithms.HmacSha256),
+    };
+
+    return new JsonWebTokenHandler().CreateToken(descriptor);
+  }
 }

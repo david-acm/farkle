@@ -30,7 +30,8 @@ public static class CritterStackServiceExtensions
   /// </param>
   /// <returns>The same <paramref name="services"/> instance, for chaining.</returns>
   public static IServiceCollection AddFarkleCritterStack(
-    this IServiceCollection services, string connectionString, bool lightweight = false)
+    this IServiceCollection services, string connectionString, bool lightweight = false,
+    params System.Reflection.Assembly[] additionalEndpointAssemblies)
   {
     services
       .AddMarten(opts =>
@@ -60,9 +61,11 @@ public static class CritterStackServiceExtensions
       // touch IDocumentSession silently don't commit. Turns on the Marten transactional middleware.
       opts.Policies.AutoApplyTransactions();
 
-      // #303 — the Wolverine.HTTP endpoints live in this (Farkle) assembly's slices, not the WebApp
-      // entry assembly, so include it for both message-handler and HTTP endpoint discovery.
+      // #303 — the Wolverine.HTTP endpoints live in this (Farkle) assembly's slices; the auth
+      // endpoints live in the host assembly. Include both for message-handler + HTTP discovery.
       opts.Discovery.IncludeAssembly(typeof(CritterStackServiceExtensions).Assembly);
+      foreach (var assembly in additionalEndpointAssemblies)
+        opts.Discovery.IncludeAssembly(assembly);
 
       if (lightweight)
         opts.Durability.Mode = DurabilityMode.MediatorOnly;   // no message-store/agents at startup

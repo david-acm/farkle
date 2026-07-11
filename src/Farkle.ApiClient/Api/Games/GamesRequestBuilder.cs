@@ -21,25 +21,12 @@ namespace Farkle.ApiClient.Api.Games
         /// <summary>Gets an item from the Farkle.ApiClient.api.games.item collection</summary>
         /// <param name="position">Unique identifier of the item</param>
         /// <returns>A <see cref="global::Farkle.ApiClient.Api.Games.Item.WithGameItemRequestBuilder"/></returns>
-        public global::Farkle.ApiClient.Api.Games.Item.WithGameItemRequestBuilder this[int position]
-        {
-            get
-            {
-                var urlTplParams = new Dictionary<string, object>(PathParameters);
-                urlTplParams.Add("gameId", position);
-                return new global::Farkle.ApiClient.Api.Games.Item.WithGameItemRequestBuilder(urlTplParams, RequestAdapter);
-            }
-        }
-        /// <summary>Gets an item from the Farkle.ApiClient.api.games.item collection</summary>
-        /// <param name="position">Unique identifier of the item</param>
-        /// <returns>A <see cref="global::Farkle.ApiClient.Api.Games.Item.WithGameItemRequestBuilder"/></returns>
-        [Obsolete("This indexer is deprecated and will be removed in the next major version. Use the one with the typed parameter instead.")]
         public global::Farkle.ApiClient.Api.Games.Item.WithGameItemRequestBuilder this[string position]
         {
             get
             {
                 var urlTplParams = new Dictionary<string, object>(PathParameters);
-                if (!string.IsNullOrWhiteSpace(position)) urlTplParams.Add("gameId", position);
+                urlTplParams.Add("gameId", position);
                 return new global::Farkle.ApiClient.Api.Games.Item.WithGameItemRequestBuilder(urlTplParams, RequestAdapter);
             }
         }
@@ -59,21 +46,27 @@ namespace Farkle.ApiClient.Api.Games
         public GamesRequestBuilder(string rawUrl, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/api/games", rawUrl)
         {
         }
-        /// <returns>A <see cref="global::Farkle.ApiClient.Models.FarkleContractsHttpResponses_StartGameResponse"/></returns>
+        /// <summary>
+        /// POST_api_games
+        /// </summary>
+        /// <returns>A <see cref="global::Farkle.ApiClient.Models.StartGameResponse"/></returns>
         /// <param name="cancellationToken">Cancellation token to use when cancelling requests</param>
         /// <param name="requestConfiguration">Configuration for the request such as headers, query parameters, and middleware options.</param>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
-        public async Task<global::Farkle.ApiClient.Models.FarkleContractsHttpResponses_StartGameResponse?> PostAsync(Action<RequestConfiguration<DefaultQueryParameters>>? requestConfiguration = default, CancellationToken cancellationToken = default)
+        public async Task<global::Farkle.ApiClient.Models.StartGameResponse?> PostAsync(Action<RequestConfiguration<DefaultQueryParameters>>? requestConfiguration = default, CancellationToken cancellationToken = default)
         {
 #nullable restore
 #else
-        public async Task<global::Farkle.ApiClient.Models.FarkleContractsHttpResponses_StartGameResponse> PostAsync(Action<RequestConfiguration<DefaultQueryParameters>> requestConfiguration = default, CancellationToken cancellationToken = default)
+        public async Task<global::Farkle.ApiClient.Models.StartGameResponse> PostAsync(Action<RequestConfiguration<DefaultQueryParameters>> requestConfiguration = default, CancellationToken cancellationToken = default)
         {
 #endif
             var requestInfo = ToPostRequestInformation(requestConfiguration);
-            return await RequestAdapter.SendAsync<global::Farkle.ApiClient.Models.FarkleContractsHttpResponses_StartGameResponse>(requestInfo, global::Farkle.ApiClient.Models.FarkleContractsHttpResponses_StartGameResponse.CreateFromDiscriminatorValue, default, cancellationToken).ConfigureAwait(false);
+            return await RequestAdapter.SendAsync<global::Farkle.ApiClient.Models.StartGameResponse>(requestInfo, global::Farkle.ApiClient.Models.StartGameResponse.CreateFromDiscriminatorValue, default, cancellationToken).ConfigureAwait(false);
         }
+        /// <summary>
+        /// POST_api_games
+        /// </summary>
         /// <returns>A <see cref="RequestInformation"/></returns>
         /// <param name="requestConfiguration">Configuration for the request such as headers, query parameters, and middleware options.</param>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER

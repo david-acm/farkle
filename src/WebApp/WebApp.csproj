@@ -5,6 +5,9 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>93421bc4-e479-40e2-80fe-1138d1aa7207</UserSecretsId>
+    <!-- Only boot the host to emit the OpenAPI document when explicitly asked (verify-generated);
+         a normal build must not run the GetDocument tool. -->
+    <OpenApiGenerateDocumentsOnBuild>false</OpenApiGenerateDocumentsOnBuild>
   </PropertyGroup>
 
   <ItemGroup>
@@ -15,14 +18,12 @@
     <PackageReference Include="Azure.Monitor.OpenTelemetry.AspNetCore" Version="1.5.0" />
     <PackageReference Include="serilog.aspnetcore" Version="10.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="10.0.7" />
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.7" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.7" />
-    <!-- Transitive pin (via Swashbuckle / FastEndpoints.Swagger / Microsoft.AspNetCore.OpenApi):
-         force off 2.4.1, which has a high-severity advisory (GHSA-v5pm-xwqc-g5wc, NU1903). Remove
-         once the direct deps pull a patched version themselves. -->
+    <!-- Transitive pin (via Microsoft.AspNetCore.OpenApi): force off 2.4.1, which has a
+         high-severity advisory (GHSA-v5pm-xwqc-g5wc, NU1903). Remove once the direct deps
+         pull a patched version themselves. -->
     <PackageReference Include="Microsoft.OpenApi" Version="2.8.0" />
-    <PackageReference Include="FastEndpoints.Security" Version="8.1.0" />
-    <PackageReference Include="FastEndpoints.Swagger" Version="8.1.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.5" />
     <!-- Persistence (EF/Npgsql/Identity), event store and health checks now live in
          Farkle.Infrastructure; the host references them transitively through that project. -->
   </ItemGroup>
@@ -34,20 +35,25 @@
     </Content>
   </ItemGroup>
 
+  <!-- #303 — build-time OpenAPI generation (replaces the NSwag pipeline). When GenerateSwagger=true
+       the GetDocument tool boots the host (in the NSwag environment: DB-free lightweight Marten,
+       static-asset + seed guards) and writes the document straight to the shared swagger.json that
+       Kiota consumes. verify-generated builds with -p:GenerateSwagger=true and diffs the result. -->
   <ItemGroup>
-    <PackageReference Include="NSwag.MSBuild" Version="14.2.0">
+    <PackageReference Include="Microsoft.Extensions.ApiDescription.Server" Version="10.0.7">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
   </ItemGroup>
 
-  <Target Name="GenerateSwaggerJson" AfterTargets="Build" Condition="'$(GenerateSwagger)' == 'true'">
-    <Exec Command="$(NSwagExe_Net80) run nswag.json /variables:Configuration=$(Configuration)" EnvironmentVariables="ASPNETCORE_ENVIRONMENT=NSwag" />
-  </Target>
+  <PropertyGroup Condition="'$(GenerateSwagger)' == 'true'">
+    <OpenApiGenerateDocumentsOnBuild>true</OpenApiGenerateDocumentsOnBuild>
+    <OpenApiDocumentsDirectory>$(MSBuildProjectDirectory)/../WebApp.Client</OpenApiDocumentsDirectory>
+    <OpenApiGenerateDocumentsOptions>--file-name swagger</OpenApiGenerateDocumentsOptions>
+  </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Farkle\Farkle.csproj" />
-    <ProjectReference Include="..\Farkle.Endpoints\Farkle.Endpoints.csproj" />
     <ProjectReference Include="..\WebApp.Client\WebApp.Client.csproj" />
     <ProjectReference Include="..\Farkle.Infrastructure\Farkle.Infrastructure.csproj" />
   </ItemGroup>

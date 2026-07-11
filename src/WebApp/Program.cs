@@ -1,9 +1,9 @@
 using System.Reflection;
+using System.Text;
 using Farkle;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
-using FastEndpoints;
-using FastEndpoints.Security;
-using FastEndpoints.Swagger;
+using Microsoft.IdentityModel.Tokens;
 using Wolverine.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -48,8 +48,10 @@ var services = builder.Services;
 var appInsightsConn = builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"];
 services.AddFarkleTelemetry(appInsightsConn);
 
-services.AddEndpointsApiExplorer();
-services.AddSwaggerGen();
+// #303 — OpenAPI is now sourced from ASP.NET's built-in document generator (Microsoft.AspNetCore.
+// OpenApi), which sees the Wolverine.HTTP endpoints. It replaces FastEndpoints.Swagger + NSwag; the
+// committed swagger.json is produced by dumping this document (see verify-generated).
+services.AddOpenApi();
 
 // Identity persistence (DbContext + stores + the Entra/managed-identity data-source decision)
 // lives in Farkle.Infrastructure; it returns the data source so the read model reuses it.
@@ -59,20 +61,24 @@ var identityDataSource = services.AddFarkleIdentity(identityConn);
 // Readiness checks for the two backing services (tagged "ready"); liveness runs none.
 services.AddFarkleHealthChecks();
 
+// #303 — standard ASP.NET JWT bearer (replacing FastEndpoints.Security). HMAC-SHA256 over
+// Auth:JwtSecret; issuer/audience are not used, so validate signature + lifetime only. The login
+// endpoint mints matching tokens with the IdentityModel handler.
+var jwtSecret = builder.Configuration["Auth:JwtSecret"] ?? "farkle-fallback-signing-key-not-used-for-real-tokens";
 services
-  .AddAuthenticationJwtBearer(s =>
+  .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+  .AddJwtBearer(o =>
   {
-    s.SigningKey = builder.Configuration["Auth:JwtSecret"];
-  })
-  .AddAuthorization()
-  .SwaggerDocument()
-  .AddFastEndpoints(o =>
-  {
-      // Game endpoints migrated to Wolverine.HTTP slices (#303); only the auth endpoints
-      // (register/login) remain on FastEndpoints, in the WebApp assembly.
-      o.Assemblies = new[] { typeof(RegisterEndpoint).Assembly };
-      o.DisableAutoDiscovery = true;
+    o.TokenValidationParameters = new TokenValidationParameters
+    {
+      ValidateIssuer           = false,
+      ValidateAudience         = false,
+      ValidateIssuerSigningKey = true,
+      IssuerSigningKey         = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
+      ValidateLifetime         = true,
+    };
   });
+services.AddAuthorization();
 
 // Real-time delivery (SignalR + the IGameEventBroadcaster) lives in Farkle.Infrastructure.
 services.AddFarkleRealtime();
@@ -92,7 +98,8 @@ services.AddCors(o =>
 // boots DB-free (lightweight: Marten lazy, Wolverine mediator-only) for swagger extraction.
 services.AddFarkleModuleServices(builder.Configuration, logger, new List<Assembly>());
 var martenConn = identityConn ?? "Host=localhost;Database=farkle;Username=postgres;Password=postgres";
-services.AddFarkleCritterStack(martenConn, lightweight: builder.Environment.IsEnvironment("NSwag"));
+services.AddFarkleCritterStack(martenConn, lightweight: builder.Environment.IsEnvironment("NSwag"),
+  additionalEndpointAssemblies: typeof(Program).Assembly);   // #303 — discover the host's auth endpoints
 
 // #303 — Wolverine.HTTP hosts the game endpoints from their slices (migrating off FastEndpoints).
 services.AddWolverineHttp();
@@ -160,15 +167,13 @@ if(requireAuth)
   app.UseAuthentication()
       .UseAuthorization();
 
-app.UseFastEndpoints(c =>
-  {
-    c.Endpoints.Configurator = ep => { if (requireAuth) ep.Options(b => b.RequireAuthorization()); else ep.Options(b => b.AllowAnonymous());};
-  })
-   .UseSwaggerGen();
+// #303 — the OpenAPI document (Microsoft.AspNetCore.OpenApi), served at /openapi/v1.json. The
+// verify-generated pipeline fetches it to produce the committed swagger.json + Kiota client.
+app.MapOpenApi();
 
-// #303 — Wolverine.HTTP endpoints (migrating slices off FastEndpoints). Mapped alongside
-// FastEndpoints during the migration; routes are byte-identical so the two never collide.
-// When auth is required, gate the whole group (SubmitFeedback opts out via [AllowAnonymous]).
+// #303 — every game/feedback/auth endpoint is a Wolverine.HTTP method now (FastEndpoints is gone).
+// When auth is required, gate the whole group; the anonymous endpoints (login, register, feedback)
+// opt out via [AllowAnonymous].
 app.MapWolverineEndpoints(opts =>
 {
   if (requireAuth)
