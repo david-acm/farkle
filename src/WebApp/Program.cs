@@ -115,6 +115,12 @@ services.AddFarkleCritterStack(martenConn, lightweight: builder.Environment.IsEn
 var useStaticCodegen = builder.Environment.IsProduction();
 services.AddJasperFx(opts =>
 {
+  // The generated handler/endpoint code is committed under this host project (src/WebApp/Internal/
+  // Generated) and compiled into WebApp. AddWolverine is called from the Farkle assembly, so without
+  // this JasperFx would look for the pre-built types in Farkle and throw ExpectedTypeMissingException
+  // under Static. Point it at the host assembly where the code actually lives.
+  opts.ApplicationAssembly = typeof(Program).Assembly;
+
   opts.Development.GeneratedCodeMode  = TypeLoadMode.Dynamic;
   opts.Development.ResourceAutoCreate  = AutoCreate.CreateOrUpdate;
   opts.Production.GeneratedCodeMode   = useStaticCodegen ? TypeLoadMode.Static : TypeLoadMode.Dynamic;

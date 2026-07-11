@@ -1,7 +1,10 @@
 name: Farkle CodeQL config
 
-# The Kiota API client is generated (never hand-edited — see docs/api-client-generation.md), so
-# excluding it keeps generated-code style findings (e.g. missing doc-comment summaries) out of the
-# results. Application code is still fully analysed.
+# Generated code is never hand-edited, so excluding it keeps generated-code style findings (missing
+# doc-comments, empty blocks, redundant upcasts, etc.) out of the results. Application code is still
+# fully analysed.
+#   - Farkle.ApiClient   — Kiota HTTP client (see docs/api-client-generation.md)
+#   - Internal/Generated — JasperFx/Wolverine pre-generated handlers + endpoints (#305)
 paths-ignore:
   - src/Farkle.ApiClient
+  - src/WebApp/Internal/Generated
