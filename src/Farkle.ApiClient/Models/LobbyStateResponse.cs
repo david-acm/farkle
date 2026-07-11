@@ -15,29 +15,11 @@ namespace Farkle.ApiClient.Models
         /// <summary>Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.</summary>
         public IDictionary<string, object> AdditionalData { get; set; }
         /// <summary>The currentPlayerId property</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? CurrentPlayerId { get; set; }
-#nullable restore
-#else
-        public UntypedNode CurrentPlayerId { get; set; }
-#endif
+        public int? CurrentPlayerId { get; set; }
         /// <summary>The gameId property</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? GameId { get; set; }
-#nullable restore
-#else
-        public UntypedNode GameId { get; set; }
-#endif
+        public int? GameId { get; set; }
         /// <summary>The hostPlayerId property</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? HostPlayerId { get; set; }
-#nullable restore
-#else
-        public UntypedNode HostPlayerId { get; set; }
-#endif
+        public int? HostPlayerId { get; set; }
         /// <summary>The roster property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
@@ -55,13 +37,7 @@ namespace Farkle.ApiClient.Models
         public string Stage { get; set; }
 #endif
         /// <summary>The turnNumber property</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? TurnNumber { get; set; }
-#nullable restore
-#else
-        public UntypedNode TurnNumber { get; set; }
-#endif
+        public int? TurnNumber { get; set; }
         /// <summary>
         /// Instantiates a new <see cref="global::Farkle.ApiClient.Models.LobbyStateResponse"/> and sets the default values.
         /// </summary>
@@ -87,12 +63,12 @@ namespace Farkle.ApiClient.Models
         {
             return new Dictionary<string, Action<IParseNode>>
             {
-                { "currentPlayerId", n => { CurrentPlayerId = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
-                { "gameId", n => { GameId = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
-                { "hostPlayerId", n => { HostPlayerId = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
+                { "currentPlayerId", n => { CurrentPlayerId = n.GetIntValue(); } },
+                { "gameId", n => { GameId = n.GetIntValue(); } },
+                { "hostPlayerId", n => { HostPlayerId = n.GetIntValue(); } },
                 { "roster", n => { Roster = n.GetCollectionOfObjectValues<global::Farkle.ApiClient.Models.LobbyPlayer>(global::Farkle.ApiClient.Models.LobbyPlayer.CreateFromDiscriminatorValue)?.AsList(); } },
                 { "stage", n => { Stage = n.GetStringValue(); } },
-                { "turnNumber", n => { TurnNumber = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
+                { "turnNumber", n => { TurnNumber = n.GetIntValue(); } },
             };
         }
         /// <summary>
@@ -102,12 +78,12 @@ namespace Farkle.ApiClient.Models
         public virtual void Serialize(ISerializationWriter writer)
         {
             if(ReferenceEquals(writer, null)) throw new ArgumentNullException(nameof(writer));
-            writer.WriteObjectValue<UntypedNode>("currentPlayerId", CurrentPlayerId);
-            writer.WriteObjectValue<UntypedNode>("gameId", GameId);
-            writer.WriteObjectValue<UntypedNode>("hostPlayerId", HostPlayerId);
+            writer.WriteIntValue("currentPlayerId", CurrentPlayerId);
+            writer.WriteIntValue("gameId", GameId);
+            writer.WriteIntValue("hostPlayerId", HostPlayerId);
             writer.WriteCollectionOfObjectValues<global::Farkle.ApiClient.Models.LobbyPlayer>("roster", Roster);
             writer.WriteStringValue("stage", Stage);
-            writer.WriteObjectValue<UntypedNode>("turnNumber", TurnNumber);
+            writer.WriteIntValue("turnNumber", TurnNumber);
             writer.WriteAdditionalData(AdditionalData);
         }
     }

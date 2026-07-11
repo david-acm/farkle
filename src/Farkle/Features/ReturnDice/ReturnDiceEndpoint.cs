@@ -14,7 +14,7 @@ public static class ReturnDiceEndpoint
 {
   public static string StreamId(int gameId) => $"game-{gameId}";
 
-  [WolverinePost("/api/games/{gameId}/players/{playerId}/putbacks")]
+  [WolverinePost("/api/games/{gameId:int}/players/{playerId:int}/putbacks")]
   public static (Results<Ok<SetAsideResponse>, ProblemHttpResult>, Events, GameNotifications.TableChanged?) Post(
     int gameId, int playerId, ReturnDiceRequest body,
     [WriteAggregate(FromMethod = nameof(StreamId))] GameState state)

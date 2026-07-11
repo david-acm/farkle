@@ -1,18 +1,17 @@
 using Farkle.Infrastructure.Identity;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
-using Wolverine.Http;
 
 namespace WebApp.Auth;
 
-// #303 — registration on Wolverine.HTTP (migrated off FastEndpoints). Anonymous. Creates an ASP.NET
-// Identity user; identity errors become a 400 ValidationProblem. Never logs the password.
+// #303 — registration as a minimal-API endpoint (migrated off FastEndpoints, mapped in Program.cs).
+// Anonymous. Creates an ASP.NET Identity user; identity errors become a 400 ValidationProblem. Auth
+// endpoints stay minimal-API rather than Wolverine.HTTP because Identity's UserManager can't be
+// resolved by Wolverine's static code-gen (its AppDbContext uses an opaque options factory). Never
+// logs the password.
 public static class RegisterEndpoint
 {
-  [AllowAnonymous]
-  [WolverinePost("/api/auth/register")]
   public static async Task<Results<NoContent, ValidationProblem>> Post(
     RegisterRequest body, UserManager<AppUser> userManager, ILoggerFactory loggerFactory, CancellationToken ct)
   {

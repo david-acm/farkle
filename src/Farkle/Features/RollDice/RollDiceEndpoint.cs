@@ -18,7 +18,7 @@ public static class RollDiceEndpoint
   // Maps the route's int game code to the Marten stream key (string stream identity, ADR 0002/0004).
   public static string StreamId(int gameId) => $"game-{gameId}";
 
-  [WolverinePost("/api/games/{gameId}/players/{playerId}/rolls")]
+  [WolverinePost("/api/games/{gameId:int}/players/{playerId:int}/rolls")]
   public static (Results<Ok<RollDiceResponse>, ProblemHttpResult>, Events, GameNotifications.DiceRolled?) Post(
     int gameId, int playerId,
     [WriteAggregate(FromMethod = nameof(StreamId))] GameState state,

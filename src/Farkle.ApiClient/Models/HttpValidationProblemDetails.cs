@@ -42,13 +42,7 @@ namespace Farkle.ApiClient.Models
         /// <summary>The primary error message.</summary>
         public override string Message { get => base.Message; }
         /// <summary>The status property</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? Status { get; set; }
-#nullable restore
-#else
-        public UntypedNode Status { get; set; }
-#endif
+        public int? Status { get; set; }
         /// <summary>The title property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
@@ -93,7 +87,7 @@ namespace Farkle.ApiClient.Models
                 { "detail", n => { Detail = n.GetStringValue(); } },
                 { "errors", n => { Errors = n.GetObjectValue<global::Farkle.ApiClient.Models.HttpValidationProblemDetails_errors>(global::Farkle.ApiClient.Models.HttpValidationProblemDetails_errors.CreateFromDiscriminatorValue); } },
                 { "instance", n => { Instance = n.GetStringValue(); } },
-                { "status", n => { Status = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
+                { "status", n => { Status = n.GetIntValue(); } },
                 { "title", n => { Title = n.GetStringValue(); } },
                 { "type", n => { Type = n.GetStringValue(); } },
             };
@@ -108,7 +102,7 @@ namespace Farkle.ApiClient.Models
             writer.WriteStringValue("detail", Detail);
             writer.WriteObjectValue<global::Farkle.ApiClient.Models.HttpValidationProblemDetails_errors>("errors", Errors);
             writer.WriteStringValue("instance", Instance);
-            writer.WriteObjectValue<UntypedNode>("status", Status);
+            writer.WriteIntValue("status", Status);
             writer.WriteStringValue("title", Title);
             writer.WriteStringValue("type", Type);
             writer.WriteAdditionalData(AdditionalData);

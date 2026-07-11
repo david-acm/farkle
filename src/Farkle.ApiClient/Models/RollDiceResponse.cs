@@ -17,19 +17,13 @@ namespace Farkle.ApiClient.Models
         /// <summary>The diceValues property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
-        public List<UntypedNode>? DiceValues { get; set; }
+        public List<int?>? DiceValues { get; set; }
 #nullable restore
 #else
-        public List<UntypedNode> DiceValues { get; set; }
+        public List<int?> DiceValues { get; set; }
 #endif
         /// <summary>The id property</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? Id { get; set; }
-#nullable restore
-#else
-        public UntypedNode Id { get; set; }
-#endif
+        public int? Id { get; set; }
         /// <summary>
         /// Instantiates a new <see cref="global::Farkle.ApiClient.Models.RollDiceResponse"/> and sets the default values.
         /// </summary>
@@ -55,8 +49,8 @@ namespace Farkle.ApiClient.Models
         {
             return new Dictionary<string, Action<IParseNode>>
             {
-                { "diceValues", n => { DiceValues = n.GetCollectionOfPrimitiveValues<UntypedNode>()?.AsList(); } },
-                { "id", n => { Id = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
+                { "diceValues", n => { DiceValues = n.GetCollectionOfPrimitiveValues<int?>()?.AsList(); } },
+                { "id", n => { Id = n.GetIntValue(); } },
             };
         }
         /// <summary>
@@ -66,8 +60,8 @@ namespace Farkle.ApiClient.Models
         public virtual void Serialize(ISerializationWriter writer)
         {
             if(ReferenceEquals(writer, null)) throw new ArgumentNullException(nameof(writer));
-            writer.WriteCollectionOfPrimitiveValues<UntypedNode>("diceValues", DiceValues);
-            writer.WriteObjectValue<UntypedNode>("id", Id);
+            writer.WriteCollectionOfPrimitiveValues<int?>("diceValues", DiceValues);
+            writer.WriteIntValue("id", Id);
             writer.WriteAdditionalData(AdditionalData);
         }
     }

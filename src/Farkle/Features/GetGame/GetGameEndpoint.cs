@@ -12,7 +12,7 @@ namespace Farkle.Features.GetGame;
 // store. 404 when the game stream doesn't exist. Live play is pushed over SignalR, not polled here.
 public static class GetGameEndpoint
 {
-  [WolverineGet("/api/games/{gameId}")]
+  [WolverineGet("/api/games/{gameId:int}")]
   public static async Task<Results<Ok<GameStateResponse>, NotFound>> Get(
     int gameId, IQuerySession query, CancellationToken ct)
   {

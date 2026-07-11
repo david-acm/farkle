@@ -15,21 +15,9 @@ namespace Farkle.ApiClient.Models
         /// <summary>Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.</summary>
         public IDictionary<string, object> AdditionalData { get; set; }
         /// <summary>The id property</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? Id { get; set; }
-#nullable restore
-#else
-        public UntypedNode Id { get; set; }
-#endif
+        public int? Id { get; set; }
         /// <summary>The turnScore property</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? TurnScore { get; set; }
-#nullable restore
-#else
-        public UntypedNode TurnScore { get; set; }
-#endif
+        public int? TurnScore { get; set; }
         /// <summary>
         /// Instantiates a new <see cref="global::Farkle.ApiClient.Models.KeepDiceResponse"/> and sets the default values.
         /// </summary>
@@ -55,8 +43,8 @@ namespace Farkle.ApiClient.Models
         {
             return new Dictionary<string, Action<IParseNode>>
             {
-                { "id", n => { Id = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
-                { "turnScore", n => { TurnScore = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
+                { "id", n => { Id = n.GetIntValue(); } },
+                { "turnScore", n => { TurnScore = n.GetIntValue(); } },
             };
         }
         /// <summary>
@@ -66,8 +54,8 @@ namespace Farkle.ApiClient.Models
         public virtual void Serialize(ISerializationWriter writer)
         {
             if(ReferenceEquals(writer, null)) throw new ArgumentNullException(nameof(writer));
-            writer.WriteObjectValue<UntypedNode>("id", Id);
-            writer.WriteObjectValue<UntypedNode>("turnScore", TurnScore);
+            writer.WriteIntValue("id", Id);
+            writer.WriteIntValue("turnScore", TurnScore);
             writer.WriteAdditionalData(AdditionalData);
         }
     }

@@ -14,7 +14,7 @@ public static class KeepDiceEndpoint
 {
   public static string StreamId(int gameId) => $"game-{gameId}";
 
-  [WolverinePost("/api/games/{gameId}/players/{playerId}/keeps")]
+  [WolverinePost("/api/games/{gameId:int}/players/{playerId:int}/keeps")]
   public static (Results<Ok<KeepDiceResponse>, ProblemHttpResult>, Events, GameNotifications.TableChanged?) Post(
     int gameId, int playerId, KeepDiceRequest body,
     [WriteAggregate(FromMethod = nameof(StreamId))] GameState state)

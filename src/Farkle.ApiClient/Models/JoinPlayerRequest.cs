@@ -15,13 +15,7 @@ namespace Farkle.ApiClient.Models
         /// <summary>Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.</summary>
         public IDictionary<string, object> AdditionalData { get; set; }
         /// <summary>The gameId property</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? GameId { get; set; }
-#nullable restore
-#else
-        public UntypedNode GameId { get; set; }
-#endif
+        public int? GameId { get; set; }
         /// <summary>The playerName property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
@@ -55,7 +49,7 @@ namespace Farkle.ApiClient.Models
         {
             return new Dictionary<string, Action<IParseNode>>
             {
-                { "gameId", n => { GameId = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
+                { "gameId", n => { GameId = n.GetIntValue(); } },
                 { "playerName", n => { PlayerName = n.GetStringValue(); } },
             };
         }
@@ -66,7 +60,7 @@ namespace Farkle.ApiClient.Models
         public virtual void Serialize(ISerializationWriter writer)
         {
             if(ReferenceEquals(writer, null)) throw new ArgumentNullException(nameof(writer));
-            writer.WriteObjectValue<UntypedNode>("gameId", GameId);
+            writer.WriteIntValue("gameId", GameId);
             writer.WriteStringValue("playerName", PlayerName);
             writer.WriteAdditionalData(AdditionalData);
         }

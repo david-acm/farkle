@@ -23,21 +23,9 @@ namespace Farkle.ApiClient.Models
         public string Name { get; set; }
 #endif
         /// <summary>The playerId property</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? PlayerId { get; set; }
-#nullable restore
-#else
-        public UntypedNode PlayerId { get; set; }
-#endif
+        public int? PlayerId { get; set; }
         /// <summary>The score property</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? Score { get; set; }
-#nullable restore
-#else
-        public UntypedNode Score { get; set; }
-#endif
+        public int? Score { get; set; }
         /// <summary>
         /// Instantiates a new <see cref="global::Farkle.ApiClient.Models.WinnerResponse"/> and sets the default values.
         /// </summary>
@@ -64,8 +52,8 @@ namespace Farkle.ApiClient.Models
             return new Dictionary<string, Action<IParseNode>>
             {
                 { "name", n => { Name = n.GetStringValue(); } },
-                { "playerId", n => { PlayerId = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
-                { "score", n => { Score = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
+                { "playerId", n => { PlayerId = n.GetIntValue(); } },
+                { "score", n => { Score = n.GetIntValue(); } },
             };
         }
         /// <summary>
@@ -76,8 +64,8 @@ namespace Farkle.ApiClient.Models
         {
             if(ReferenceEquals(writer, null)) throw new ArgumentNullException(nameof(writer));
             writer.WriteStringValue("name", Name);
-            writer.WriteObjectValue<UntypedNode>("playerId", PlayerId);
-            writer.WriteObjectValue<UntypedNode>("score", Score);
+            writer.WriteIntValue("playerId", PlayerId);
+            writer.WriteIntValue("score", Score);
             writer.WriteAdditionalData(AdditionalData);
         }
     }

@@ -1,7 +1,6 @@
 using System.Security.Claims;
 using System.Text;
 using Farkle.Infrastructure.Identity;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
@@ -10,13 +9,13 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace WebApp.Auth;
 
-// #303 — login on Wolverine.HTTP (migrated off FastEndpoints.Security). Anonymous. Verifies the
-// credentials and mints a 4-hour HMAC-SHA256 JWT with the standard IdentityModel handler (replacing
-// FastEndpoints' JwtBearer.CreateToken). Never logs the password or the issued token.
+// #303 — login as a minimal-API endpoint (migrated off FastEndpoints.Security, mapped in Program.cs).
+// Anonymous. Verifies the credentials and mints a 4-hour HMAC-SHA256 JWT with the standard
+// IdentityModel handler (replacing FastEndpoints' JwtBearer.CreateToken). Kept minimal-API (not
+// Wolverine.HTTP) because Identity's UserManager isn't resolvable by Wolverine's static code-gen.
+// Never logs the password or the issued token.
 public static class LoginEndpoint
 {
-  [AllowAnonymous]
-  [Wolverine.Http.WolverinePost("/api/auth/login")]
   public static async Task<Results<Ok<LoginResponse>, UnauthorizedHttpResult>> Post(
     LoginRequest body,
     UserManager<AppUser> userManager,

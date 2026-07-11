@@ -42,10 +42,10 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
         const string password = "Test@123!";
 
         await _client.Api.Auth.Register.PostAsync(
-            new WebAppAuthRegisterRequest { Email = email, Password = password });
+            new RegisterRequest { Email = email, Password = password });
 
         var login = await _client.Api.Auth.Login.PostAsync(
-            new WebAppAuthLoginRequest { Email = email, Password = password });
+            new LoginRequest { Email = email, Password = password });
 
         _httpClient.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", login!.Token);
@@ -234,9 +234,9 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
     {
         var gameId = await StartGameAsync();
         await _client.Api.Games[gameId].Players.PostAsync(
-            new FarkleContractsHttpRequests_JoinPlayerRequest { PlayerName = "David" });
+            new JoinPlayerRequest { PlayerName = "David" });
         var second = await _client.Api.Games[gameId].Players.PostAsync(
-            new FarkleContractsHttpRequests_JoinPlayerRequest { PlayerName = "Allison" });
+            new JoinPlayerRequest { PlayerName = "Allison" });
 
         Assert.NotNull(second);
         Assert.Equal("WaitingForPlayers", second!.Stage);
@@ -287,7 +287,7 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
 
         // GET reads the GameView projection (#156), which is updated asynchronously by the
         // $all subscription — so poll until it reflects the roll (eventual consistency).
-        FarkleContractsHttpResponses_GameStateResponse? snapshot = null;
+        GameStateResponse? snapshot = null;
         for (var attempt = 0; attempt < 50; attempt++)
         {
             snapshot = await _client.Api.Games[gameId].GetAsync();
@@ -365,26 +365,26 @@ public class GameApiShould : IClassFixture<GameApiWebAppFactory>
     private async Task<int> JoinGameAsync(int gameId, string playerName)
     {
         var response = await _client.Api.Games[gameId].Players.PostAsync(
-            new FarkleContractsHttpRequests_JoinPlayerRequest { PlayerName = playerName });
+            new JoinPlayerRequest { PlayerName = playerName });
         return response?.Id ?? 0;
     }
 
     // The host (player 1) begins play, moving the game out of the lobby into Rolling.
-    private Task<FarkleContractsHttpResponses_LobbyStateResponse?> BeginGameAsync(int gameId, int hostId = 1)
+    private Task<LobbyStateResponse?> BeginGameAsync(int gameId, int hostId = 1)
         => _client.Api.Games[gameId].Start.PostAsync(
-            new FarkleContractsHttpRequests_BeginGameRequest { PlayerId = hostId });
+            new BeginGameRequest { PlayerId = hostId });
 
     private Task RollDiceAsync(int gameId, int playerId)
         => _client.Api.Games[gameId].Players[playerId].Rolls.PostAsync();
 
-    private Task<FarkleContractsHttpResponses_KeepDiceResponse?> KeepDiceAsync(int gameId, int playerId, int[] dice)
+    private Task<KeepDiceResponse?> KeepDiceAsync(int gameId, int playerId, int[] dice)
         => _client.Api.Games[gameId].Players[playerId].Keeps.PostAsync(
-            new FarkleContractsHttpRequests_KeepDiceRequest
+            new KeepDiceRequest
             {
                 DiceValues = dice.Select(v => (int?)v).ToList()
             });
 
-    private Task<FarkleContractsHttpResponses_PassTurnResponse?> PassTurnAsync(int gameId, int playerId)
+    private Task<PassTurnResponse?> PassTurnAsync(int gameId, int playerId)
         => _client.Api.Games[gameId].Players[playerId].Turns.PostAsync();
 }
 

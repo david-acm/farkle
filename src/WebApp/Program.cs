@@ -98,11 +98,17 @@ services.AddCors(o =>
 // boots DB-free (lightweight: Marten lazy, Wolverine mediator-only) for swagger extraction.
 services.AddFarkleModuleServices(builder.Configuration, logger, new List<Assembly>());
 var martenConn = identityConn ?? "Host=localhost;Database=farkle;Username=postgres;Password=postgres";
-services.AddFarkleCritterStack(martenConn, lightweight: builder.Environment.IsEnvironment("NSwag"),
-  additionalEndpointAssemblies: typeof(Program).Assembly);   // #303 — discover the host's auth endpoints
+services.AddFarkleCritterStack(martenConn, lightweight: builder.Environment.IsEnvironment("NSwag"));
 
 // #303 — Wolverine.HTTP hosts the game endpoints from their slices (migrating off FastEndpoints).
 services.AddWolverineHttp();
+
+// #303 — Wolverine.HTTP defaults the HTTP JSON options to AllowReadingFromString, which makes the
+// OpenAPI generator emit integers as a ["integer","string"] union that Kiota can't map to a typed
+// property (it falls back to UntypedNode). Force strict number handling so ints stay plain integers
+// in the document and the generated client keeps typed int properties.
+services.ConfigureHttpJsonOptions(o =>
+  o.SerializerOptions.NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.Strict);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
@@ -179,6 +185,11 @@ app.MapWolverineEndpoints(opts =>
   if (requireAuth)
     opts.RequireAuthorizeOnAll();
 });
+
+// #303 — auth endpoints as anonymous minimal APIs (migrated off FastEndpoints). Kept minimal-API
+// rather than Wolverine.HTTP because Identity's UserManager isn't resolvable by Wolverine code-gen.
+app.MapPost("/api/auth/register", WebApp.Auth.RegisterEndpoint.Post).AllowAnonymous().WithTags("Auth");
+app.MapPost("/api/auth/login", WebApp.Auth.LoginEndpoint.Post).AllowAnonymous().WithTags("Auth");
 
 app.MapFarkleRealtime();
 

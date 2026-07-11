@@ -15,29 +15,11 @@ namespace Farkle.ApiClient.Models
         /// <summary>Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.</summary>
         public IDictionary<string, object> AdditionalData { get; set; }
         /// <summary>The currentPlayerId property</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? CurrentPlayerId { get; set; }
-#nullable restore
-#else
-        public UntypedNode CurrentPlayerId { get; set; }
-#endif
+        public int? CurrentPlayerId { get; set; }
         /// <summary>The hostPlayerId property</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? HostPlayerId { get; set; }
-#nullable restore
-#else
-        public UntypedNode HostPlayerId { get; set; }
-#endif
+        public int? HostPlayerId { get; set; }
         /// <summary>The id property</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? Id { get; set; }
-#nullable restore
-#else
-        public UntypedNode Id { get; set; }
-#endif
+        public int? Id { get; set; }
         /// <summary>The roster property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
@@ -79,9 +61,9 @@ namespace Farkle.ApiClient.Models
         {
             return new Dictionary<string, Action<IParseNode>>
             {
-                { "currentPlayerId", n => { CurrentPlayerId = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
-                { "hostPlayerId", n => { HostPlayerId = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
-                { "id", n => { Id = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
+                { "currentPlayerId", n => { CurrentPlayerId = n.GetIntValue(); } },
+                { "hostPlayerId", n => { HostPlayerId = n.GetIntValue(); } },
+                { "id", n => { Id = n.GetIntValue(); } },
                 { "roster", n => { Roster = n.GetCollectionOfObjectValues<global::Farkle.ApiClient.Models.LobbyPlayer>(global::Farkle.ApiClient.Models.LobbyPlayer.CreateFromDiscriminatorValue)?.AsList(); } },
                 { "stage", n => { Stage = n.GetStringValue(); } },
             };
@@ -93,9 +75,9 @@ namespace Farkle.ApiClient.Models
         public virtual void Serialize(ISerializationWriter writer)
         {
             if(ReferenceEquals(writer, null)) throw new ArgumentNullException(nameof(writer));
-            writer.WriteObjectValue<UntypedNode>("currentPlayerId", CurrentPlayerId);
-            writer.WriteObjectValue<UntypedNode>("hostPlayerId", HostPlayerId);
-            writer.WriteObjectValue<UntypedNode>("id", Id);
+            writer.WriteIntValue("currentPlayerId", CurrentPlayerId);
+            writer.WriteIntValue("hostPlayerId", HostPlayerId);
+            writer.WriteIntValue("id", Id);
             writer.WriteCollectionOfObjectValues<global::Farkle.ApiClient.Models.LobbyPlayer>("roster", Roster);
             writer.WriteStringValue("stage", Stage);
             writer.WriteAdditionalData(AdditionalData);

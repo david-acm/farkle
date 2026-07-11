@@ -14,7 +14,7 @@ public static class SetDiceAsideEndpoint
 {
   public static string StreamId(int gameId) => $"game-{gameId}";
 
-  [WolverinePost("/api/games/{gameId}/players/{playerId}/setasides")]
+  [WolverinePost("/api/games/{gameId:int}/players/{playerId:int}/setasides")]
   public static (Results<Ok<SetAsideResponse>, ProblemHttpResult>, Events, GameNotifications.TableChanged?) Post(
     int gameId, int playerId, SetDiceAsideRequest body,
     [WriteAggregate(FromMethod = nameof(StreamId))] GameState state)

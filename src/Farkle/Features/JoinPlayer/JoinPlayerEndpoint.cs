@@ -14,7 +14,7 @@ public static class JoinPlayerEndpoint
 {
   public static string StreamId(int gameId) => $"game-{gameId}";
 
-  [WolverinePost("/api/games/{gameId}/players")]
+  [WolverinePost("/api/games/{gameId:int}/players")]
   public static (Results<Ok<JoinPlayerResponse>, ProblemHttpResult>, Events, GameNotifications.LobbyChanged?) Post(
     int gameId, JoinPlayerRequest body,
     [WriteAggregate(FromMethod = nameof(StreamId))] GameState state)

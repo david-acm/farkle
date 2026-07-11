@@ -111,10 +111,10 @@ public class GameIdGenerationShould : IClassFixture<ScriptedIdGameApiWebAppFacto
         const string password = "Test@123!";
 
         await _client.Api.Auth.Register.PostAsync(
-            new WebAppAuthRegisterRequest { Email = email, Password = password });
+            new RegisterRequest { Email = email, Password = password });
 
         var login = await _client.Api.Auth.Login.PostAsync(
-            new WebAppAuthLoginRequest { Email = email, Password = password });
+            new LoginRequest { Email = email, Password = password });
 
         _httpClient.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", login!.Token);

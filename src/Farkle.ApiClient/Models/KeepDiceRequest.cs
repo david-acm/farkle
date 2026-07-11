@@ -17,27 +17,15 @@ namespace Farkle.ApiClient.Models
         /// <summary>The diceValues property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
-        public List<UntypedNode>? DiceValues { get; set; }
+        public List<int?>? DiceValues { get; set; }
 #nullable restore
 #else
-        public List<UntypedNode> DiceValues { get; set; }
+        public List<int?> DiceValues { get; set; }
 #endif
         /// <summary>The gameId property</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? GameId { get; set; }
-#nullable restore
-#else
-        public UntypedNode GameId { get; set; }
-#endif
+        public int? GameId { get; set; }
         /// <summary>The playerId property</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? PlayerId { get; set; }
-#nullable restore
-#else
-        public UntypedNode PlayerId { get; set; }
-#endif
+        public int? PlayerId { get; set; }
         /// <summary>
         /// Instantiates a new <see cref="global::Farkle.ApiClient.Models.KeepDiceRequest"/> and sets the default values.
         /// </summary>
@@ -63,9 +51,9 @@ namespace Farkle.ApiClient.Models
         {
             return new Dictionary<string, Action<IParseNode>>
             {
-                { "diceValues", n => { DiceValues = n.GetCollectionOfPrimitiveValues<UntypedNode>()?.AsList(); } },
-                { "gameId", n => { GameId = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
-                { "playerId", n => { PlayerId = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
+                { "diceValues", n => { DiceValues = n.GetCollectionOfPrimitiveValues<int?>()?.AsList(); } },
+                { "gameId", n => { GameId = n.GetIntValue(); } },
+                { "playerId", n => { PlayerId = n.GetIntValue(); } },
             };
         }
         /// <summary>
@@ -75,9 +63,9 @@ namespace Farkle.ApiClient.Models
         public virtual void Serialize(ISerializationWriter writer)
         {
             if(ReferenceEquals(writer, null)) throw new ArgumentNullException(nameof(writer));
-            writer.WriteCollectionOfPrimitiveValues<UntypedNode>("diceValues", DiceValues);
-            writer.WriteObjectValue<UntypedNode>("gameId", GameId);
-            writer.WriteObjectValue<UntypedNode>("playerId", PlayerId);
+            writer.WriteCollectionOfPrimitiveValues<int?>("diceValues", DiceValues);
+            writer.WriteIntValue("gameId", GameId);
+            writer.WriteIntValue("playerId", PlayerId);
             writer.WriteAdditionalData(AdditionalData);
         }
     }

@@ -28,7 +28,7 @@ public class GameService : IGameService
   public async Task<JoinPlayerResponse> JoinPlayerAsync(int gameId, string playerName)
   {
     var response = await _client.Api.Games[gameId].Players.PostAsync(
-      new KiotaModels.FarkleContractsHttpRequests_JoinPlayerRequest { PlayerName = playerName });
+      new KiotaModels.JoinPlayerRequest { PlayerName = playerName });
     _logger.LogInformation("JoinPlayer: assignedId={Id} currentPlayer={CurrentPlayerId}",
       response?.Id, response?.CurrentPlayerId);
     return new JoinPlayerResponse(
@@ -42,7 +42,7 @@ public class GameService : IGameService
   public async Task<LobbyStateResponse> BeginGameAsync(int gameId, int playerId)
   {
     var response = await _client.Api.Games[gameId].Start.PostAsync(
-      new KiotaModels.FarkleContractsHttpRequests_BeginGameRequest { PlayerId = playerId });
+      new KiotaModels.BeginGameRequest { PlayerId = playerId });
     _logger.LogInformation("BeginGame: game={GameId} stage={Stage}", gameId, response?.Stage);
     return new LobbyStateResponse(
       response?.GameId ?? gameId,
@@ -54,13 +54,13 @@ public class GameService : IGameService
   }
 
   private static IReadOnlyList<LobbyPlayer>? ToRoster(
-    List<KiotaModels.FarkleContractsHttpResponses_LobbyPlayer>? roster) =>
+    List<KiotaModels.LobbyPlayer>? roster) =>
     roster?.Select(p => new LobbyPlayer(p.PlayerId ?? 0, p.Name ?? "", p.Color ?? "")).ToArray();
 
   public async Task<KeepDiceResponse> KeepDiceAsync(int gameId, int playerId, IEnumerable<int> diceToKeep)
   {
     var response = await _client.Api.Games[gameId].Players[playerId].Keeps.PostAsync(
-      new KiotaModels.FarkleContractsHttpRequests_KeepDiceRequest { DiceValues = diceToKeep.Select(v => (int?)v).ToList() });
+      new KiotaModels.KeepDiceRequest { DiceValues = diceToKeep.Select(v => (int?)v).ToList() });
     _logger.LogInformation("KeepDice response: {TurnScore}", response?.TurnScore);
     return new KeepDiceResponse(response?.Id ?? 0, response?.TurnScore ?? 0);
   }
@@ -68,14 +68,14 @@ public class GameService : IGameService
   public async Task SetDiceAsideAsync(int gameId, int playerId, int dieValue)
   {
     await _client.Api.Games[gameId].Players[playerId].Setasides.PostAsync(
-      new KiotaModels.FarkleContractsHttpRequests_SetDiceAsideRequest { DieValue = dieValue });
+      new KiotaModels.SetDiceAsideRequest { DieValue = dieValue });
     _logger.LogDebug("SetDiceAside: game={GameId} player={PlayerId} die={Die}", gameId, playerId, dieValue);
   }
 
   public async Task ReturnDiceAsync(int gameId, int playerId, int dieValue)
   {
     await _client.Api.Games[gameId].Players[playerId].Putbacks.PostAsync(
-      new KiotaModels.FarkleContractsHttpRequests_ReturnDiceRequest { DieValue = dieValue });
+      new KiotaModels.ReturnDiceRequest { DieValue = dieValue });
     _logger.LogDebug("ReturnDice: game={GameId} player={PlayerId} die={Die}", gameId, playerId, dieValue);
   }
 
@@ -95,7 +95,7 @@ public class GameService : IGameService
 
   public async Task<GameStateResponse?> GetGameStateAsync(int gameId)
   {
-    KiotaModels.FarkleContractsHttpResponses_GameStateResponse? r;
+    KiotaModels.GameStateResponse? r;
     try
     {
       r = await _client.Api.Games[gameId].GetAsync();
@@ -119,22 +119,23 @@ public class GameService : IGameService
       Scoreboard: (r.Scoreboard ?? [])
         .Select(p => new PlayerScore(p.PlayerId ?? 0, p.Name ?? "", p.Score ?? 0, p.Color ?? ""))
         .ToArray(),
-      Winner: r.Winner is null
+      // The nullable WinnerResponse is emitted as a oneOf, so Kiota nests it under WinnerResponse.
+      Winner: r.Winner?.WinnerResponse is not { } w
         ? null
-        : new WinnerResponse(r.Winner.PlayerId ?? 0, r.Winner.Name ?? "", r.Winner.Score ?? 0),
+        : new WinnerResponse(w.PlayerId ?? 0, w.Name ?? "", w.Score ?? 0),
       TableCenter: (r.TableCenter ?? []).Select(v => v ?? 0).ToArray(),
       DiceKept: (r.DiceKept ?? []).Select(v => v ?? 0).ToArray(),
       DiceSetAside: (r.DiceSetAside ?? []).Select(v => v ?? 0).ToArray(),
       TurnNumber: r.TurnNumber ?? 0);
   }
 
-  private static PassTurnResponse ToPassTurnResponse(KiotaModels.FarkleContractsHttpResponses_PassTurnResponse? r)
+  private static PassTurnResponse ToPassTurnResponse(KiotaModels.PassTurnResponse? r)
   {
     var scoreboard = r?.Scoreboard?
       .Select(p => new PlayerScore(p.PlayerId ?? 0, p.Name ?? "", p.Score ?? 0, p.Color ?? ""))
       .ToArray();
-    var winner = r?.Winner is null ? null
-      : new WinnerResponse(r.Winner.PlayerId ?? 0, r.Winner.Name ?? "", r.Winner.Score ?? 0);
+    var winner = r?.Winner?.WinnerResponse is not { } w ? null
+      : new WinnerResponse(w.PlayerId ?? 0, w.Name ?? "", w.Score ?? 0);
     return new PassTurnResponse(
       r?.GameId ?? 0, r?.PlayerId ?? 0, r?.NewScore ?? 0,
       winner, r?.CurrentPlayerId ?? 0, scoreboard, r?.TurnNumber ?? 0);

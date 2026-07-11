@@ -21,12 +21,25 @@ namespace Farkle.ApiClient.Api.Games.Item.Players
         /// <summary>Gets an item from the Farkle.ApiClient.api.games.item.players.item collection</summary>
         /// <param name="position">Unique identifier of the item</param>
         /// <returns>A <see cref="global::Farkle.ApiClient.Api.Games.Item.Players.Item.WithPlayerItemRequestBuilder"/></returns>
-        public global::Farkle.ApiClient.Api.Games.Item.Players.Item.WithPlayerItemRequestBuilder this[string position]
+        public global::Farkle.ApiClient.Api.Games.Item.Players.Item.WithPlayerItemRequestBuilder this[int position]
         {
             get
             {
                 var urlTplParams = new Dictionary<string, object>(PathParameters);
                 urlTplParams.Add("playerId", position);
+                return new global::Farkle.ApiClient.Api.Games.Item.Players.Item.WithPlayerItemRequestBuilder(urlTplParams, RequestAdapter);
+            }
+        }
+        /// <summary>Gets an item from the Farkle.ApiClient.api.games.item.players.item collection</summary>
+        /// <param name="position">Unique identifier of the item</param>
+        /// <returns>A <see cref="global::Farkle.ApiClient.Api.Games.Item.Players.Item.WithPlayerItemRequestBuilder"/></returns>
+        [Obsolete("This indexer is deprecated and will be removed in the next major version. Use the one with the typed parameter instead.")]
+        public global::Farkle.ApiClient.Api.Games.Item.Players.Item.WithPlayerItemRequestBuilder this[string position]
+        {
+            get
+            {
+                var urlTplParams = new Dictionary<string, object>(PathParameters);
+                if (!string.IsNullOrWhiteSpace(position)) urlTplParams.Add("playerId", position);
                 return new global::Farkle.ApiClient.Api.Games.Item.Players.Item.WithPlayerItemRequestBuilder(urlTplParams, RequestAdapter);
             }
         }

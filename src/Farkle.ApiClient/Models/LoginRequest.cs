@@ -9,9 +9,11 @@ namespace Farkle.ApiClient.Models
 {
     [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
     #pragma warning disable CS1591
-    public partial class WebAppAuthRegisterRequest : IParsable
+    public partial class LoginRequest : IAdditionalDataHolder, IParsable
     #pragma warning restore CS1591
     {
+        /// <summary>Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.</summary>
+        public IDictionary<string, object> AdditionalData { get; set; }
         /// <summary>The email property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
@@ -29,14 +31,21 @@ namespace Farkle.ApiClient.Models
         public string Password { get; set; }
 #endif
         /// <summary>
+        /// Instantiates a new <see cref="global::Farkle.ApiClient.Models.LoginRequest"/> and sets the default values.
+        /// </summary>
+        public LoginRequest()
+        {
+            AdditionalData = new Dictionary<string, object>();
+        }
+        /// <summary>
         /// Creates a new instance of the appropriate class based on discriminator value
         /// </summary>
-        /// <returns>A <see cref="global::Farkle.ApiClient.Models.WebAppAuthRegisterRequest"/></returns>
+        /// <returns>A <see cref="global::Farkle.ApiClient.Models.LoginRequest"/></returns>
         /// <param name="parseNode">The parse node to use to read the discriminator value and create the object</param>
-        public static global::Farkle.ApiClient.Models.WebAppAuthRegisterRequest CreateFromDiscriminatorValue(IParseNode parseNode)
+        public static global::Farkle.ApiClient.Models.LoginRequest CreateFromDiscriminatorValue(IParseNode parseNode)
         {
             if(ReferenceEquals(parseNode, null)) throw new ArgumentNullException(nameof(parseNode));
-            return new global::Farkle.ApiClient.Models.WebAppAuthRegisterRequest();
+            return new global::Farkle.ApiClient.Models.LoginRequest();
         }
         /// <summary>
         /// The deserialization information for the current model
@@ -59,6 +68,7 @@ namespace Farkle.ApiClient.Models
             if(ReferenceEquals(writer, null)) throw new ArgumentNullException(nameof(writer));
             writer.WriteStringValue("email", Email);
             writer.WriteStringValue("password", Password);
+            writer.WriteAdditionalData(AdditionalData);
         }
     }
 }

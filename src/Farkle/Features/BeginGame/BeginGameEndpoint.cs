@@ -14,7 +14,7 @@ public static class BeginGameEndpoint
 {
   public static string StreamId(int gameId) => $"game-{gameId}";
 
-  [WolverinePost("/api/games/{gameId}/start")]
+  [WolverinePost("/api/games/{gameId:int}/start")]
   public static (Results<Ok<LobbyStateResponse>, ProblemHttpResult>, Events, GameNotifications.GameBegan?) Post(
     int gameId, BeginGameRequest body,
     [WriteAggregate(FromMethod = nameof(StreamId))] GameState state)

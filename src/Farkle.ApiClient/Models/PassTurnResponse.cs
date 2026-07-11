@@ -15,37 +15,13 @@ namespace Farkle.ApiClient.Models
         /// <summary>Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.</summary>
         public IDictionary<string, object> AdditionalData { get; set; }
         /// <summary>The currentPlayerId property</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? CurrentPlayerId { get; set; }
-#nullable restore
-#else
-        public UntypedNode CurrentPlayerId { get; set; }
-#endif
+        public int? CurrentPlayerId { get; set; }
         /// <summary>The gameId property</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? GameId { get; set; }
-#nullable restore
-#else
-        public UntypedNode GameId { get; set; }
-#endif
+        public int? GameId { get; set; }
         /// <summary>The newScore property</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? NewScore { get; set; }
-#nullable restore
-#else
-        public UntypedNode NewScore { get; set; }
-#endif
+        public int? NewScore { get; set; }
         /// <summary>The playerId property</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? PlayerId { get; set; }
-#nullable restore
-#else
-        public UntypedNode PlayerId { get; set; }
-#endif
+        public int? PlayerId { get; set; }
         /// <summary>The scoreboard property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
@@ -55,13 +31,7 @@ namespace Farkle.ApiClient.Models
         public List<global::Farkle.ApiClient.Models.PlayerScore> Scoreboard { get; set; }
 #endif
         /// <summary>The turnNumber property</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? TurnNumber { get; set; }
-#nullable restore
-#else
-        public UntypedNode TurnNumber { get; set; }
-#endif
+        public int? TurnNumber { get; set; }
         /// <summary>The winner property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
@@ -95,12 +65,12 @@ namespace Farkle.ApiClient.Models
         {
             return new Dictionary<string, Action<IParseNode>>
             {
-                { "currentPlayerId", n => { CurrentPlayerId = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
-                { "gameId", n => { GameId = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
-                { "newScore", n => { NewScore = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
-                { "playerId", n => { PlayerId = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
+                { "currentPlayerId", n => { CurrentPlayerId = n.GetIntValue(); } },
+                { "gameId", n => { GameId = n.GetIntValue(); } },
+                { "newScore", n => { NewScore = n.GetIntValue(); } },
+                { "playerId", n => { PlayerId = n.GetIntValue(); } },
                 { "scoreboard", n => { Scoreboard = n.GetCollectionOfObjectValues<global::Farkle.ApiClient.Models.PlayerScore>(global::Farkle.ApiClient.Models.PlayerScore.CreateFromDiscriminatorValue)?.AsList(); } },
-                { "turnNumber", n => { TurnNumber = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
+                { "turnNumber", n => { TurnNumber = n.GetIntValue(); } },
                 { "winner", n => { Winner = n.GetObjectValue<global::Farkle.ApiClient.Models.PassTurnResponse.PassTurnResponse_winner>(global::Farkle.ApiClient.Models.PassTurnResponse.PassTurnResponse_winner.CreateFromDiscriminatorValue); } },
             };
         }
@@ -111,12 +81,12 @@ namespace Farkle.ApiClient.Models
         public virtual void Serialize(ISerializationWriter writer)
         {
             if(ReferenceEquals(writer, null)) throw new ArgumentNullException(nameof(writer));
-            writer.WriteObjectValue<UntypedNode>("currentPlayerId", CurrentPlayerId);
-            writer.WriteObjectValue<UntypedNode>("gameId", GameId);
-            writer.WriteObjectValue<UntypedNode>("newScore", NewScore);
-            writer.WriteObjectValue<UntypedNode>("playerId", PlayerId);
+            writer.WriteIntValue("currentPlayerId", CurrentPlayerId);
+            writer.WriteIntValue("gameId", GameId);
+            writer.WriteIntValue("newScore", NewScore);
+            writer.WriteIntValue("playerId", PlayerId);
             writer.WriteCollectionOfObjectValues<global::Farkle.ApiClient.Models.PlayerScore>("scoreboard", Scoreboard);
-            writer.WriteObjectValue<UntypedNode>("turnNumber", TurnNumber);
+            writer.WriteIntValue("turnNumber", TurnNumber);
             writer.WriteObjectValue<global::Farkle.ApiClient.Models.PassTurnResponse.PassTurnResponse_winner>("winner", Winner);
             writer.WriteAdditionalData(AdditionalData);
         }

@@ -15,13 +15,7 @@ namespace Farkle.ApiClient.Models
         /// <summary>Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.</summary>
         public IDictionary<string, object> AdditionalData { get; set; }
         /// <summary>The gameId property</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? GameId { get; set; }
-#nullable restore
-#else
-        public UntypedNode GameId { get; set; }
-#endif
+        public int? GameId { get; set; }
         /// <summary>The message property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
@@ -31,13 +25,7 @@ namespace Farkle.ApiClient.Models
         public string Message { get; set; }
 #endif
         /// <summary>The playerId property</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? PlayerId { get; set; }
-#nullable restore
-#else
-        public UntypedNode PlayerId { get; set; }
-#endif
+        public int? PlayerId { get; set; }
         /// <summary>The route property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
@@ -95,9 +83,9 @@ namespace Farkle.ApiClient.Models
         {
             return new Dictionary<string, Action<IParseNode>>
             {
-                { "gameId", n => { GameId = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
+                { "gameId", n => { GameId = n.GetIntValue(); } },
                 { "message", n => { Message = n.GetStringValue(); } },
-                { "playerId", n => { PlayerId = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
+                { "playerId", n => { PlayerId = n.GetIntValue(); } },
                 { "route", n => { Route = n.GetStringValue(); } },
                 { "sentiment", n => { Sentiment = n.GetStringValue(); } },
                 { "sessionId", n => { SessionId = n.GetStringValue(); } },
@@ -111,9 +99,9 @@ namespace Farkle.ApiClient.Models
         public virtual void Serialize(ISerializationWriter writer)
         {
             if(ReferenceEquals(writer, null)) throw new ArgumentNullException(nameof(writer));
-            writer.WriteObjectValue<UntypedNode>("gameId", GameId);
+            writer.WriteIntValue("gameId", GameId);
             writer.WriteStringValue("message", Message);
-            writer.WriteObjectValue<UntypedNode>("playerId", PlayerId);
+            writer.WriteIntValue("playerId", PlayerId);
             writer.WriteStringValue("route", Route);
             writer.WriteStringValue("sentiment", Sentiment);
             writer.WriteStringValue("sessionId", SessionId);

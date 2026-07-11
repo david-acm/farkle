@@ -1,7 +1,7 @@
 using System.Net.Http.Headers;
 using System.Text;
 using Farkle.ApiClient;
-using Farkle.ApiClient.Models;
+using KiotaModels = Farkle.ApiClient.Models;
 using Farkle.SharedKernel.Scoring;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Kiota.Abstractions.Authentication;
@@ -39,10 +39,10 @@ public class GameHubShould : IClassFixture<GameApiWebAppFactory>
         const string password = "Test@123!";
 
         await _client.Api.Auth.Register.PostAsync(
-            new WebAppAuthRegisterRequest { Email = email, Password = password });
+            new KiotaModels.RegisterRequest { Email = email, Password = password });
 
         var login = await _client.Api.Auth.Login.PostAsync(
-            new WebAppAuthLoginRequest { Email = email, Password = password });
+            new KiotaModels.LoginRequest { Email = email, Password = password });
 
         _httpClient.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", login!.Token);
@@ -72,19 +72,19 @@ public class GameHubShould : IClassFixture<GameApiWebAppFactory>
         await connection.InvokeAsync("JoinGame", gameId);
 
         var player1 = (await _client.Api.Games[gameId].Players.PostAsync(
-            new FarkleContractsHttpRequests_JoinPlayerRequest { PlayerName = "David" }))?.Id ?? 0;
+            new KiotaModels.JoinPlayerRequest { PlayerName = "David" }))?.Id ?? 0;
 
         await _client.Api.Games[gameId].Players.PostAsync(
-            new FarkleContractsHttpRequests_JoinPlayerRequest { PlayerName = "Allison" });
+            new KiotaModels.JoinPlayerRequest { PlayerName = "Allison" });
 
         await _client.Api.Games[gameId].Start.PostAsync(
-            new FarkleContractsHttpRequests_BeginGameRequest { PlayerId = 1 });
+            new KiotaModels.BeginGameRequest { PlayerId = 1 });
 
         var roll = await _client.Api.Games[gameId].Players[player1].Rolls.PostAsync();
         var scoringDice = (roll!.DiceValues ?? []).Where(v => v == 1 || v == 5).Select(v => (int)v!).ToArray();
         if (scoringDice.Length > 0)
             await _client.Api.Games[gameId].Players[player1].Keeps.PostAsync(
-                new FarkleContractsHttpRequests_KeepDiceRequest
+                new KiotaModels.KeepDiceRequest
                 {
                     DiceValues = scoringDice.Select(v => (int?)v).ToList()
                 });
@@ -123,11 +123,11 @@ public class GameHubShould : IClassFixture<GameApiWebAppFactory>
         await connection.InvokeAsync("JoinGame", gameId);
 
         var player1 = (await _client.Api.Games[gameId].Players.PostAsync(
-            new FarkleContractsHttpRequests_JoinPlayerRequest { PlayerName = "David" }))?.Id ?? 0;
+            new KiotaModels.JoinPlayerRequest { PlayerName = "David" }))?.Id ?? 0;
         await _client.Api.Games[gameId].Players.PostAsync(
-            new FarkleContractsHttpRequests_JoinPlayerRequest { PlayerName = "Allison" });
+            new KiotaModels.JoinPlayerRequest { PlayerName = "Allison" });
         await _client.Api.Games[gameId].Start.PostAsync(
-            new FarkleContractsHttpRequests_BeginGameRequest { PlayerId = 1 });
+            new KiotaModels.BeginGameRequest { PlayerId = 1 });
 
         await _client.Api.Games[gameId].Players[player1].Rolls.PostAsync();
 
@@ -171,7 +171,7 @@ public class GameHubShould : IClassFixture<GameApiWebAppFactory>
         // Set aside the best trick — one die per command (SetDiceAside takes a single die).
         foreach (var die in bestKeep)
             await _client.Api.Games[gameId].Players[player1].Setasides.PostAsync(
-                new FarkleContractsHttpRequests_SetDiceAsideRequest { DieValue = die });
+                new KiotaModels.SetDiceAsideRequest { DieValue = die });
 
         var completed = await Task.WhenAny(tcs.Task, Task.Delay(5_000));
         Assert.True(completed == tcs.Task, "Hub did not broadcast the set-aside TableChanged within 5 seconds");
@@ -195,11 +195,11 @@ public class GameHubShould : IClassFixture<GameApiWebAppFactory>
             var gameId = (await _client.Api.Games.PostAsync())!.Id!.Value;
 
             var player1 = (await _client.Api.Games[gameId].Players.PostAsync(
-                new FarkleContractsHttpRequests_JoinPlayerRequest { PlayerName = "David" }))?.Id ?? 0;
+                new KiotaModels.JoinPlayerRequest { PlayerName = "David" }))?.Id ?? 0;
             await _client.Api.Games[gameId].Players.PostAsync(
-                new FarkleContractsHttpRequests_JoinPlayerRequest { PlayerName = "Allison" });
+                new KiotaModels.JoinPlayerRequest { PlayerName = "Allison" });
             await _client.Api.Games[gameId].Start.PostAsync(
-                new FarkleContractsHttpRequests_BeginGameRequest { PlayerId = 1 });
+                new KiotaModels.BeginGameRequest { PlayerId = 1 });
 
             var roll = await _client.Api.Games[gameId].Players[player1].Rolls.PostAsync();
             var dice = (roll!.DiceValues ?? []).Select(v => v ?? 0).ToList();
@@ -227,7 +227,7 @@ public class GameHubShould : IClassFixture<GameApiWebAppFactory>
         await connection.InvokeAsync("JoinGame", gameId);
 
         await _client.Api.Games[gameId].Players.PostAsync(
-            new FarkleContractsHttpRequests_JoinPlayerRequest { PlayerName = "David" });
+            new KiotaModels.JoinPlayerRequest { PlayerName = "David" });
 
         var completed = await Task.WhenAny(tcs.Task, Task.Delay(5_000));
         Assert.True(completed == tcs.Task, "Hub did not broadcast PlayerJoined within 5 seconds");
@@ -257,11 +257,11 @@ public class GameHubShould : IClassFixture<GameApiWebAppFactory>
         await connection.InvokeAsync("JoinGame", gameId);
 
         await _client.Api.Games[gameId].Players.PostAsync(
-            new FarkleContractsHttpRequests_JoinPlayerRequest { PlayerName = "David" });
+            new KiotaModels.JoinPlayerRequest { PlayerName = "David" });
         await _client.Api.Games[gameId].Players.PostAsync(
-            new FarkleContractsHttpRequests_JoinPlayerRequest { PlayerName = "Allison" });
+            new KiotaModels.JoinPlayerRequest { PlayerName = "Allison" });
         await _client.Api.Games[gameId].Start.PostAsync(
-            new FarkleContractsHttpRequests_BeginGameRequest { PlayerId = 1 });
+            new KiotaModels.BeginGameRequest { PlayerId = 1 });
 
         var completed = await Task.WhenAny(tcs.Task, Task.Delay(5_000));
         Assert.True(completed == tcs.Task, "Hub did not broadcast GameBegan within 5 seconds");
