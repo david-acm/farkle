@@ -1,62 +1,46 @@
 using DotNet.Testcontainers.Builders;
-using EventStore.Client;
+using Farkle.Infrastructure.Identity;
+using Marten;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Farkle.Infrastructure.Identity;
 
 namespace Farkle.WebTests;
 
+// Boots the app on one Postgres (ADR 0004): Identity + Marten (events, GameState snapshot) + the
+// Wolverine message store all share it. No ESDB container anymore. CI spins a Postgres Testcontainer;
+// a developer without Docker can point at a local Postgres via FARKLE_TEST_PG (e.g. the SessionStart
+// hook's instance) to run these without Docker.
 public class GameApiWebAppFactory : FarkleWebApplicationFactory
 {
-  private static Dictionary<string, string> Variables => new()
-  {
-    { "EVENTSTORE_ENABLE_ATOM_PUB_OVER_HTTP", "true" },
-    { "EVENTSTORE_INSECURE", "true" },
-    { "EVENTSTORE_CLUSTER_SIZE", "1" },
-    { "EVENTSTORE_EXT_TCP_PORT", "4113" },
-    { "EVENTSTORE_HTTP_PORT", "5113" },
-    { "EVENTSTORE_ENABLE_EXTERNAL_TCP", "true" },
-    { "EVENTSTORE_RUN_PROJECTIONS", "all" },
-    { "EVENTSTORE_START_STANDARD_PROJECTIONS", "true" },
-    { "PATH", "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" },
-    { "ASPNETCORE_URLS", "http://+:80" },
-    { "DOTNET_RUNNING_IN_CONTAINER", "true" }
-  };
-
   protected override void ConfigureWebHost(IWebHostBuilder builder)
   {
-    var path = Environment.GetEnvironmentVariable("PATH");
-    Environment.SetEnvironmentVariable("PATH", path + ":/usr/local/bin");
+    var localConn = Environment.GetEnvironmentVariable("FARKLE_TEST_PG");
+    string pgConn;
 
-    var esdbContainer = new ContainerBuilder("eventstore/eventstore:23.10.0-bookworm-slim")
-      .WithPortBinding(4113, true)
-      .WithPortBinding(5113, true)
-      .WithEnvironment(Variables)
-      .WithWaitStrategy(Wait.ForUnixContainer().UntilHttpRequestIsSucceeded(r => r.ForPort(5113)))
-      .WithAutoRemove(false).Build();
+    if (!string.IsNullOrWhiteSpace(localConn))
+    {
+      pgConn = localConn;
+    }
+    else
+    {
+      var pgContainer = new ContainerBuilder("postgres:16-alpine")
+        .WithPortBinding(5432, true)
+        .WithEnvironment("POSTGRES_USER", "farkle_test")
+        .WithEnvironment("POSTGRES_PASSWORD", "farkle_test")
+        .WithEnvironment("POSTGRES_DB", "farkle_test")
+        // The postgres image runs its init scripts under a temporary unix-socket-only server, then
+        // restarts with TCP. Force pg_isready over TCP (-h) so the wait only passes once the durable
+        // TCP server is up (otherwise tests connecting in the gap get "connection reset by peer").
+        .WithWaitStrategy(Wait.ForUnixContainer()
+          .UntilCommandIsCompleted("pg_isready", "-h", "127.0.0.1", "-U", "farkle_test"))
+        .WithAutoRemove(false).Build();
 
-    esdbContainer.StartAsync().GetAwaiter().GetResult();
-    var esdbPort = esdbContainer.GetMappedPublicPort(5113);
-
-    var pgContainer = new ContainerBuilder("postgres:16-alpine")
-      .WithPortBinding(5432, true)
-      .WithEnvironment("POSTGRES_USER", "farkle_test")
-      .WithEnvironment("POSTGRES_PASSWORD", "farkle_test")
-      .WithEnvironment("POSTGRES_DB", "farkle_test")
-      // The postgres image runs its init scripts under a *temporary* server that listens
-      // only on the unix socket, then restarts the real one with TCP. A socket-based
-      // `pg_isready` passes against that temp server, so tests that connect in the gap get
-      // "connection reset by peer" when it restarts. Force pg_isready over TCP (-h) so the
-      // wait only succeeds once the durable, TCP-listening server is up.
-      .WithWaitStrategy(Wait.ForUnixContainer()
-        .UntilCommandIsCompleted("pg_isready", "-h", "127.0.0.1", "-U", "farkle_test"))
-      .WithAutoRemove(false).Build();
-
-    pgContainer.StartAsync().GetAwaiter().GetResult();
-    var pgPort = pgContainer.GetMappedPublicPort(5432);
+      pgContainer.StartAsync().GetAwaiter().GetResult();
+      var pgPort = pgContainer.GetMappedPublicPort(5432);
+      pgConn = $"Host=localhost;Port={pgPort};Database=farkle_test;Username=farkle_test;Password=farkle_test";
+    }
 
     base.ConfigureWebHost(builder);
 
@@ -66,24 +50,16 @@ public class GameApiWebAppFactory : FarkleWebApplicationFactory
         ["Auth:RequireAuthorization"] = "true"
       }));
 
+    // Point both stores at the test Postgres. AddFarkleIdentity/AddFarkleCritterStack capture their
+    // connection at registration (from a config value that's unset here), so override the services
+    // directly: re-register the Identity DbContext, and layer a Marten Connection() (last one wins).
     builder.ConfigureServices(s =>
     {
-      var esClient = s.First(s => s.ServiceType == typeof(EventStoreClient));
-      s.Remove(esClient);
-      s.AddEventStoreClient(TestEnvironment.EsdbConnectionString(esdbPort));
+      var dbDesc = s.SingleOrDefault(d => d.ServiceType == typeof(DbContextOptions<AppDbContext>));
+      if (dbDesc != null) s.Remove(dbDesc);
+      s.AddDbContext<AppDbContext>(o => o.UseNpgsql(pgConn));
 
-      var dbContextDescriptor = s.SingleOrDefault(d => d.ServiceType == typeof(DbContextOptions<AppDbContext>));
-      if (dbContextDescriptor != null) s.Remove(dbContextDescriptor);
-
-      var pgConnectionString = $"Host=localhost;Port={pgPort};Database=farkle_test;Username=farkle_test;Password=farkle_test";
-      s.AddDbContext<AppDbContext>(o => o.UseNpgsql(pgConnectionString));
-
-      // The read model (#156) shares the same Postgres — point it at the Testcontainer too
-      // (own history table), so its migration applies and the projector can write.
-      var readDescriptor = s.SingleOrDefault(d => d.ServiceType == typeof(DbContextOptions<Farkle.Infrastructure.ReadModel.ReadModelDbContext>));
-      if (readDescriptor != null) s.Remove(readDescriptor);
-      s.AddDbContext<Farkle.Infrastructure.ReadModel.ReadModelDbContext>(o =>
-        o.UseNpgsql(pgConnectionString, b => b.MigrationsHistoryTable(Farkle.Infrastructure.ReadModel.ReadModelMigrations.HistoryTable)));
+      s.ConfigureMarten(opts => opts.Connection(pgConn));
     });
   }
 }

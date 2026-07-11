@@ -15,16 +15,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Event store (ESDB) — the concrete write-side transport. -->
-    <PackageReference Include="EventStore.Client.Grpc" Version="23.3.9" />
-    <PackageReference Include="EventStore.Client.Grpc.Streams" Version="23.3.9" />
-    <PackageReference Include="Eventuous.EventStore" Version="0.15.1" />
-    <PackageReference Include="Eventuous.Extensions.DependencyInjection" Version="0.15.1" />
-    <PackageReference Include="Serilog" Version="4.3.1" />
-
-    <!-- Read model (CQRS) persistence: Postgres via EF Core. -->
+    <!-- The event store is Marten (in the Farkle core, ADR 0004); this project owns only the
+         Identity persistence, which is still Postgres via EF Core. -->
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.1" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.7" />
+    <PackageReference Include="Serilog" Version="4.3.1" />
 
     <!-- Identity persistence (ASP.NET Identity + EF) and readiness health checks. -->
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.7" />

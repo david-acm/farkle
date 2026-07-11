@@ -1,12 +1,11 @@
 using System.Net.Http.Headers;
 using System.Text;
 using DotNet.Testcontainers.Builders;
-using EventStore.Client;
 using Farkle.Application;
 using Farkle.ApiClient;
 using Farkle.ApiClient.Models;
+using Marten;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,8 +16,8 @@ using Farkle.Infrastructure.Identity;
 
 namespace Farkle.WebTests;
 
-// A deterministic id generator that yields a scripted sequence of ids so the
-// collision-retry path in GameService.CreateGameAsync can be exercised.
+// A deterministic id generator that yields a scripted sequence of ids so the collision-retry path
+// in GameCreator.CreateGameAsync can be exercised.
 public sealed class ScriptedGameIdGenerator : IGameIdGenerator
 {
     private readonly Queue<int> _ids;
@@ -28,57 +27,38 @@ public sealed class ScriptedGameIdGenerator : IGameIdGenerator
     public int Next() => _ids.Dequeue();
 }
 
-// Factory variant that overrides IGameIdGenerator with a scripted sequence:
-// [424242, 424242, 424243] — the second create collides on 424242 and must
-// retry, landing on 424243.
+// Factory variant that overrides IGameIdGenerator with a scripted sequence [424242, 424242, 424243]:
+// the second create collides on 424242 (the Marten stream already exists) and must retry, landing on
+// 424243. Postgres-only (ADR 0004) — no ESDB. FARKLE_TEST_PG lets a developer run this without Docker.
 public sealed class ScriptedIdGameApiWebAppFactory : FarkleWebApplicationFactory
 {
     private static readonly ScriptedGameIdGenerator Scripted =
         new(424242, 424242, 424243);
 
-    private static Dictionary<string, string> Variables => new()
-    {
-        { "EVENTSTORE_ENABLE_ATOM_PUB_OVER_HTTP", "true" },
-        { "EVENTSTORE_INSECURE", "true" },
-        { "EVENTSTORE_CLUSTER_SIZE", "1" },
-        { "EVENTSTORE_EXT_TCP_PORT", "4113" },
-        { "EVENTSTORE_HTTP_PORT", "5113" },
-        { "EVENTSTORE_ENABLE_EXTERNAL_TCP", "true" },
-        { "EVENTSTORE_RUN_PROJECTIONS", "all" },
-        { "EVENTSTORE_START_STANDARD_PROJECTIONS", "true" },
-        { "PATH", "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" },
-        { "ASPNETCORE_URLS", "http://+:80" },
-        { "DOTNET_RUNNING_IN_CONTAINER", "true" }
-    };
-
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        var path = Environment.GetEnvironmentVariable("PATH");
-        Environment.SetEnvironmentVariable("PATH", path + ":/usr/local/bin");
+        var localConn = Environment.GetEnvironmentVariable("FARKLE_TEST_PG");
+        string pgConn;
 
-        var esdbContainer = new ContainerBuilder("eventstore/eventstore:23.10.0-bookworm-slim")
-            .WithPortBinding(4113, true)
-            .WithPortBinding(5113, true)
-            .WithEnvironment(Variables)
-            .WithWaitStrategy(Wait.ForUnixContainer().UntilHttpRequestIsSucceeded(r => r.ForPort(5113)))
-            .WithAutoRemove(false).Build();
+        if (!string.IsNullOrWhiteSpace(localConn))
+        {
+            pgConn = localConn;
+        }
+        else
+        {
+            var pgContainer = new ContainerBuilder("postgres:16-alpine")
+                .WithPortBinding(5432, true)
+                .WithEnvironment("POSTGRES_USER", "farkle_test")
+                .WithEnvironment("POSTGRES_PASSWORD", "farkle_test")
+                .WithEnvironment("POSTGRES_DB", "farkle_test")
+                .WithWaitStrategy(Wait.ForUnixContainer()
+                    .UntilCommandIsCompleted("pg_isready", "-h", "127.0.0.1", "-U", "farkle_test"))
+                .WithAutoRemove(false).Build();
 
-        esdbContainer.StartAsync().GetAwaiter().GetResult();
-        var esdbPort = esdbContainer.GetMappedPublicPort(5113);
-
-        var pgContainer = new ContainerBuilder("postgres:16-alpine")
-            .WithPortBinding(5432, true)
-            .WithEnvironment("POSTGRES_USER", "farkle_test")
-            .WithEnvironment("POSTGRES_PASSWORD", "farkle_test")
-            .WithEnvironment("POSTGRES_DB", "farkle_test")
-            // TCP pg_isready (-h): the postgres image's temporary init server listens only
-            // on the unix socket, so a socket-based check passes too early and tests race
-            // the restart ("connection reset by peer"). Wait for the real TCP server.
-            .WithWaitStrategy(Wait.ForUnixContainer().UntilCommandIsCompleted("pg_isready", "-h", "127.0.0.1", "-U", "farkle_test"))
-            .WithAutoRemove(false).Build();
-
-        pgContainer.StartAsync().GetAwaiter().GetResult();
-        var pgPort = pgContainer.GetMappedPublicPort(5432);
+            pgContainer.StartAsync().GetAwaiter().GetResult();
+            var pgPort = pgContainer.GetMappedPublicPort(5432);
+            pgConn = $"Host=localhost;Port={pgPort};Database=farkle_test;Username=farkle_test;Password=farkle_test";
+        }
 
         base.ConfigureWebHost(builder);
 
@@ -90,21 +70,11 @@ public sealed class ScriptedIdGameApiWebAppFactory : FarkleWebApplicationFactory
 
         builder.ConfigureServices(s =>
         {
-            var esClient = s.First(d => d.ServiceType == typeof(EventStoreClient));
-            s.Remove(esClient);
-            s.AddEventStoreClient(TestEnvironment.EsdbConnectionString(esdbPort));
-
             var dbContextDescriptor = s.SingleOrDefault(d => d.ServiceType == typeof(DbContextOptions<AppDbContext>));
             if (dbContextDescriptor != null) s.Remove(dbContextDescriptor);
+            s.AddDbContext<AppDbContext>(o => o.UseNpgsql(pgConn));
 
-            var pgConnectionString = $"Host=localhost;Port={pgPort};Database=farkle_test;Username=farkle_test;Password=farkle_test";
-            s.AddDbContext<AppDbContext>(o => o.UseNpgsql(pgConnectionString));
-
-            // Read model (#156) shares the same Postgres — point it at the Testcontainer too.
-            var readDescriptor = s.SingleOrDefault(d => d.ServiceType == typeof(DbContextOptions<Farkle.Infrastructure.ReadModel.ReadModelDbContext>));
-            if (readDescriptor != null) s.Remove(readDescriptor);
-            s.AddDbContext<Farkle.Infrastructure.ReadModel.ReadModelDbContext>(o =>
-                o.UseNpgsql(pgConnectionString, b => b.MigrationsHistoryTable(Farkle.Infrastructure.ReadModel.ReadModelMigrations.HistoryTable)));
+            s.ConfigureMarten(opts => opts.Connection(pgConn));
 
             // Override the id generator with the scripted sequence to drive a collision.
             s.RemoveAll<IGameIdGenerator>();

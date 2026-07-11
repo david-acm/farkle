@@ -18,6 +18,6 @@ public class LoadShould
 
     // Assert
     game.State.GameStage.Should().Be(GameStage.WaitingForPlayers);
-    game.State.Id.Should().Be((GameId)events[0].Id);
+    game.State.Code.Should().Be(events[0].Id);
   }
 }

@@ -1,7 +1,7 @@
 using Farkle.Domain.GameAggregate;
 using static Farkle.Contracts.HttpResponses;
 
-namespace Farkle.Application;
+namespace Farkle.Features;
 
 internal static class PassTurnMapper
 {
@@ -11,7 +11,7 @@ internal static class PassTurnMapper
   // V1.TurnPassed event.
   public static PassTurnResponse ToPassTurnResponse(GameState s, int passedByPlayerId) =>
     new(
-      s.Id!.Id,
+      s.Code,
       passedByPlayerId,
       s.GameScoreFor(passedByPlayerId),
       s.Winner == null

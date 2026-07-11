@@ -7,18 +7,18 @@ namespace Farkle.ArchitectureTests;
 
 /// <summary>
 /// Convention guardrail: concrete implementations of the core's outbound ports live in the
-/// dedicated infrastructure project (the in-core no-op fallbacks are the only exception). This is
-/// RED until the read-model store and the SignalR broadcaster move into Farkle.Infrastructure.
+/// dedicated infrastructure project (the in-core no-op fallbacks are the only exception). The
+/// read-model store port is gone post-cutover (ADR 0004 — the Inline GameState snapshot is the
+/// read model), so the SignalR broadcaster is the remaining outbound port to guard.
 /// </summary>
 public class PortImplementationShould
 {
   [Theory]
-  [InlineData("Farkle.Application.IGameViewStore")]
   [InlineData("Farkle.Application.IGameEventBroadcaster")]
   public void LiveInTheInfrastructureProject(string port)
   {
-    // The in-core no-op defaults (e.g. NullGameViewStore) keep the module runnable without
-    // infrastructure, so they are allowed to stay in the core assembly.
+    // In-core no-op defaults (types named Null*) keep the module runnable without infrastructure,
+    // so they are allowed to stay in the core assembly.
     var misplaced = ConcreteImplementationsOf(port)
       .Where(t => t.Assembly.Name != InfraAsm
                   && !(t.Assembly.Name == CoreAsm && t.Name.StartsWith("Null")))

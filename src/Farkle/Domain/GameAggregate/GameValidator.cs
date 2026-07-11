@@ -1,76 +1,12 @@
-using Eventuous;
 using Farkle.SharedKernel.Turns;
 using static Farkle.Domain.GameAggregate.GameEvents.V1;
 
 namespace Farkle.Domain.GameAggregate;
 
-internal static class GameValidator
-{
-  public static ValidationResult ValidatePreconditions(Game game, object @event)
-  {
-    var state = game.State;
-    var valid = @event switch
-    {
-      GameStarted e => Validate(
-        state.GameStage == GameStage.None,
-        new GameAlreadyStarted(e.Id)),
-      PlayerJoined => Validate(
-        state.GameStage == GameStage.WaitingForPlayers,
-        new GameHasNotStarted(state.GameStage)),
-      GameEvents.V2.PlayerJoined => Validate(
-        state.GameStage == GameStage.WaitingForPlayers,
-        new GameHasNotStarted(state.GameStage)),
-      GamePlayStarted e =>
-        new GameIsWaitingForPlayers(state)
-          .And(new HasMinimumPlayers(state))
-          .And(new RequesterIsHost(state, e.StartedByPlayerId))
-          .IsSatisfied(),
-      GameEvents.V1.DiceRolled e =>
-        new PlayerIsInTurn(state, e.PlayerId).And(new SingleRoll(state, e.PlayerId)).IsSatisfied(),
-      GameEvents.V2.DiceRolled e =>
-        new PlayerIsInTurn(state, e.PlayerId).And(new SingleRoll(state, e.PlayerId)).IsSatisfied(),
-      TurnPassed e =>
-        new PlayerIsInTurn(state, e.PlayerId).And(new PlayerCanPass(game, e.PlayerId)).IsSatisfied(),
-      GameEvents.V1.DiceKept e =>
-        new PlayerIsInTurn(state, e.PlayerId).And(new PlayerHasThoseDice(GetDice(e), state))
-          .And(new CanKeepDice(GetDice(e)))
-          .IsSatisfied(),
-      GameEvents.V2.DiceKept e =>
-        new PlayerIsInTurn(state, e.PlayerId).And(new PlayerHasThoseDice(GetDice(e), state))
-          .And(new CanKeepDice(GetDice(e)))
-          .IsSatisfied(),
-      GameEvents.V1.DiceSetAside e =>
-        new PlayerIsInTurn(state, e.PlayerId)
-          .And(new DieIsAvailableToSetAside(state, e.PlayerId, e.Die))
-          .IsSatisfied(),
-      GameEvents.V1.DiceReturned e =>
-        new PlayerIsInTurn(state, e.PlayerId)
-          .And(new DieIsSetAside(state, e.PlayerId, e.Die))
-          .IsSatisfied(),
-
-      _ => Validate(false, $"No validation performed for event {@event}")
-    };
-
-    return valid;
-  }
-
-  private static Dice GetDice(GameEvents.V2.DiceKept e)
-  {
-    return Dice.FromValues(e.Dice.ToList());
-  }
-
-
-  private static Dice GetDice(GameEvents.V1.DiceKept e)
-  {
-    return Dice.FromValues(e.Dice.ToList());
-  }
-
-  private static ValidationResult Validate(bool validation, object failedValidationEvent)
-  {
-    return new ValidationResult(validation, failedValidationEvent);
-  }
-}
-
+// The composite validators the pure #301 deciders use to express validation-as-events. The old
+// Eventuous ValidatePreconditions(Game, @event) switch and the game.Current-scanning PlayerCanPass
+// are gone (ADR 0004): each decider composes the validators it needs, and PassTurn reads the pure
+// GameState.HasActedThisTurn flag instead of scanning event history.
 internal class SingleRoll : Validator
 {
   private readonly int       _playerId;
@@ -161,14 +97,11 @@ internal class DieIsSetAside : Validator
   }
 }
 
-[EventType("V1.GameAlreadyStarted")]
-internal record GameAlreadyStarted(int Id);
+public record GameAlreadyStarted(int Id);
 
-[EventType("V1.GameHasNotStarted")]
-internal record GameHasNotStarted(GameStage GameStage);
+public record GameHasNotStarted(GameStage GameStage);
 
-[EventType("V1.DiceNotAllowedToBeKept")]
-internal record DiceNotAllowedToBeKept(string Reason, IEnumerable<int> Dice) : IErrorEvent;
+public record DiceNotAllowedToBeKept(string Reason, IEnumerable<int> Dice) : IErrorEvent;
 
 internal class CanKeepDice : Validator
 {
@@ -260,50 +193,24 @@ internal class RequesterIsHost : Validator
   }
 }
 
+// #286 — "can I pass now?" is the shared policy's Pass rule: you may pass only once you've acted
+// this turn. The signal is the pure GameState.HasActedThisTurn flag (set by roll/keep, reset on
+// pass), so the check is a pure (state) decision with no event-history scan.
 internal class PlayerCanPass : Validator
 {
-  private readonly Game _game;
-  private readonly int  _playerId;
+  private readonly GameState _state;
+  private readonly int       _playerId;
 
-  public PlayerCanPass(Game game, int playerId)
+  public PlayerCanPass(GameState state, int playerId)
   {
-    _game     = game;
+    _state    = state;
     _playerId = playerId;
   }
 
   public override ValidationResult IsSatisfied()
   {
-    // #286 — "can I pass now?" is the shared policy's Pass rule: you may pass only once you've
-    // acted this turn. "Acted" here is the domain's own signal — the last event is a Roll or Keep.
-    var hasActedThisTurn =
-      _game.Current.LastEventsWhere(typeof(GameEvents.V2.DiceRolled))
-      ||
-      _game.Current.LastEventsWhere(typeof(GameEvents.V1.DiceRolled))
-      ||
-      _game.Current.LastEventsWhere(typeof(GameEvents.V2.DiceKept)) ||
-      _game.Current.LastEventsWhere(typeof(GameEvents.V1.DiceKept));
-
     var availability = TurnActionPolicy.Evaluate(
-      _game.State.GameStage, hasActedThisTurn, selectionScores: false);
+      _state.GameStage, _state.HasActedThisTurn, selectionScores: false);
     return new ValidationResult(availability.CanPass, new PassedWithoutRolling(_playerId));
-  }
-}
-
-internal static class EnumerableExtensions
-{
-  public static bool LastEventsWhere<T>(
-    this IEnumerable<T> events,
-    IList<Type>         expectedEvents)
-  {
-    var itemList = events.Where(i => i is not IErrorEvent).Select(e => e!.GetType()).Reverse().ToList();
-
-    return !expectedEvents.Where((t, index) => itemList[index] != t).Any();
-  }
-
-  public static bool LastEventsWhere<T>(
-    this IEnumerable<T> events,
-    Type                expectedEvent)
-  {
-    return events.LastEventsWhere(new[] { expectedEvent });
   }
 }

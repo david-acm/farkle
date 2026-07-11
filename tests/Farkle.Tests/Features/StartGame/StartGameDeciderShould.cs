@@ -31,15 +31,6 @@ public class StartGameDeciderShould
       .Which.Should().BeEquivalentTo(new GameAlreadyStarted(42));
   }
 
-  private static GameState StartedGame(int id) => GameState.FromSnapshot(
-    id: id,
-    gameStage: GameStage.WaitingForPlayers,
-    winner: null,
-    turnScore: 0,
-    players: ImmutableArray<Player>.Empty,
-    tableCenter: ImmutableArray<DieValue>.Empty,
-    diceKept: ImmutableArray<DieValue>.Empty,
-    diceSetAside: ImmutableArray<DieValue>.Empty,
-    straightsKeptThisTurn: 0,
-    scoreTable: ImmutableDictionary<int, int>.Empty);
+  // Arrange a started state by folding the GameStarted event (the pure #301/#302 way).
+  private static GameState StartedGame(int id) => GameState.Fold(new GameStarted(id));
 }

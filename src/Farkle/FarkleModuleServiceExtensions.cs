@@ -1,5 +1,4 @@
 ﻿using System.Reflection;
-using Eventuous;
 using Farkle.Application;
 using Farkle.Domain.GameAggregate;
 using Microsoft.AspNetCore.Builder;
@@ -18,28 +17,23 @@ public static class FarkleModuleServiceExtensions
   {
     mediatrAssemblies.Add(typeof(FarkleModuleServiceExtensions).Assembly);
 
-    services.AddCommandService<GameService, GameState>();
-    services.AddSingleton<IGameService, GameService>();
+    // The command path is now Wolverine [AggregateHandler]s over Marten (AddFarkleCritterStack),
+    // not an Eventuous CommandService (ADR 0004).
     services.AddSingleton<IGameIdGenerator, RandomGameIdGenerator>();
     services.AddSingleton<IGameCreator, GameCreator>();
-    // Dice source seam (#93): the default RNG, injected into the Game aggregate via
-    // GameService's aggregate factory. Hosts/tests can replace it (e.g. a deterministic
-    // ScriptedRandom) by registering their own IRandom.
+    // Dice source seam (#93): the default RNG, resolved by Wolverine's generated handler code into
+    // the RollDice handler. Hosts/tests can replace it (e.g. a deterministic ScriptedRandom).
     services.AddSingleton<IRandom, DefaultRandomProvider>();
 
-    // Read-side (#156): default to the no-op store so GetGameStateEndpoint always resolves
-    // IGameViewStore and falls back to replay. Farkle.Infrastructure registers the real
-    // EfGameViewStore + the projector subscription when the read model is enabled.
-    services.TryAddSingleton<IGameViewStore, NullGameViewStore>();
+    // Post-commit SignalR broadcast (ADR 0004): the endpoints call this after a committed command
+    // to push the up-to-date GameState snapshot. Scoped — it uses Marten's scoped IQuerySession.
+    services.AddScoped<GameNotifier>();
 
-    // #277 — thin append-only feedback writer (no aggregate). Singleton: IEventStore is a
-    // singleton and the writer is stateless. The FeedbackView read model + projector are wired
-    // separately in Farkle.Infrastructure when the read model is enabled.
+    // #277 — thin append-only feedback writer (no aggregate), now appending to a Marten stream.
     services.AddSingleton<IFeedbackWriter, FeedbackWriter>();
 
-    // The concrete event-store transport (ESDB client, aggregate store, broadcast subscription)
-    // lives in Farkle.Infrastructure and is wired by the host via AddFarkleEventStore — the core
-    // depends only on Eventuous' IAggregateStore abstraction (resolved at runtime).
+    // The write/read store (Marten) + command bus (Wolverine) are wired by the host via
+    // AddFarkleCritterStack; SignalR delivery via AddFarkleRealtime.
 
     logger.Information("{Module} module services registered", "Farkle.Domain");
 
@@ -48,10 +42,8 @@ public static class FarkleModuleServiceExtensions
 
   public static WebApplication SetUpFarkleModule(this WebApplication app)
   {
-    TypeMap.RegisterKnownEventTypes();
-
-    // app.MapCommands(); // Commented out to prevent duplicate routes with FastEndpoints
-
+    // Marten registers event types by CLR type (greenfield data, ADR 0002/0004), so the Eventuous
+    // TypeMap.RegisterKnownEventTypes() bootstrap is gone.
     return app;
   }
 }

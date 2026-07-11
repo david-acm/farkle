@@ -1,6 +1,6 @@
 using System.Net;
 using DotNet.Testcontainers.Builders;
-using EventStore.Client;
+using Marten;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
@@ -17,60 +17,44 @@ public class E2EWebAppFactory : WebApplicationFactory<Program>
 {
     public string ServerAddress { get; private set; } = string.Empty;
 
-    // EventStore runs in insecure mode in the test container; these are its
-    // well-known default credentials, named rather than inlined.
-    private const string EsdbUser     = "admin";
-    private const string EsdbPassword = "changeit";
-
     private IHost?                  _kestrelHost;
     private readonly InMemoryLoggerProvider _logProvider = new();
 
     /// <summary>Removes and returns all buffered API log entries since the last drain.</summary>
     public IReadOnlyList<string> DrainApiLogs() => _logProvider.Drain();
 
-    private static Dictionary<string, string> EsdbVariables => new()
-    {
-        { "EVENTSTORE_ENABLE_ATOM_PUB_OVER_HTTP", "true" },
-        { "EVENTSTORE_INSECURE", "true" },
-        { "EVENTSTORE_CLUSTER_SIZE", "1" },
-        { "EVENTSTORE_EXT_TCP_PORT", "4113" },
-        { "EVENTSTORE_HTTP_PORT", "5113" },
-        { "EVENTSTORE_ENABLE_EXTERNAL_TCP", "true" },
-        { "EVENTSTORE_RUN_PROJECTIONS", "all" },
-        { "EVENTSTORE_START_STANDARD_PROJECTIONS", "true" },
-        { "PATH", "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" },
-        { "ASPNETCORE_URLS", "http://+:80" },
-        { "DOTNET_RUNNING_IN_CONTAINER", "true" }
-    };
-
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         var path = Environment.GetEnvironmentVariable("PATH");
         Environment.SetEnvironmentVariable("PATH", path + ":/usr/local/bin");
 
-        var esdbContainer = new ContainerBuilder("eventstore/eventstore:23.10.0-bookworm-slim")
-            .WithPortBinding(4113, true)
-            .WithPortBinding(5113, true)
-            .WithEnvironment(EsdbVariables)
-            .WithWaitStrategy(Wait.ForUnixContainer().UntilHttpRequestIsSucceeded(r => r.ForPort(5113)))
-            .WithAutoRemove(false).Build();
+        // One Postgres for the whole app (ADR 0004): Identity + Marten (events + GameState snapshot)
+        // + the Wolverine message store. No ESDB anymore. FARKLE_TEST_PG lets a developer without
+        // Docker point at a local Postgres (e.g. the SessionStart hook's instance).
+        var localConn = Environment.GetEnvironmentVariable("FARKLE_TEST_PG");
+        string pgConnectionString;
 
-        esdbContainer.StartAsync().GetAwaiter().GetResult();
-        var esdbPort = esdbContainer.GetMappedPublicPort(5113);
+        if (!string.IsNullOrWhiteSpace(localConn))
+        {
+            pgConnectionString = localConn;
+        }
+        else
+        {
+            var pgContainer = new ContainerBuilder("postgres:16-alpine")
+                .WithPortBinding(5432, true)
+                .WithEnvironment("POSTGRES_USER", "farkle_e2e")
+                .WithEnvironment("POSTGRES_PASSWORD", "farkle_e2e")
+                .WithEnvironment("POSTGRES_DB", "farkle_e2e")
+                // TCP pg_isready (-h): the postgres image's temporary init server listens only
+                // on the unix socket, so a socket-based check passes too early and connections
+                // race the restart ("connection reset by peer"). Wait for the real TCP server.
+                .WithWaitStrategy(Wait.ForUnixContainer().UntilCommandIsCompleted("pg_isready", "-h", "127.0.0.1", "-U", "farkle_e2e"))
+                .WithAutoRemove(false).Build();
 
-        var pgContainer = new ContainerBuilder("postgres:16-alpine")
-            .WithPortBinding(5432, true)
-            .WithEnvironment("POSTGRES_USER", "farkle_e2e")
-            .WithEnvironment("POSTGRES_PASSWORD", "farkle_e2e")
-            .WithEnvironment("POSTGRES_DB", "farkle_e2e")
-            // TCP pg_isready (-h): the postgres image's temporary init server listens only
-            // on the unix socket, so a socket-based check passes too early and connections
-            // race the restart ("connection reset by peer"). Wait for the real TCP server.
-            .WithWaitStrategy(Wait.ForUnixContainer().UntilCommandIsCompleted("pg_isready", "-h", "127.0.0.1", "-U", "farkle_e2e"))
-            .WithAutoRemove(false).Build();
-
-        pgContainer.StartAsync().GetAwaiter().GetResult();
-        var pgPort = pgContainer.GetMappedPublicPort(5432);
+            pgContainer.StartAsync().GetAwaiter().GetResult();
+            var pgPort = pgContainer.GetMappedPublicPort(5432);
+            pgConnectionString = $"Host=localhost;Port={pgPort};Database=farkle_e2e;Username=farkle_e2e;Password=farkle_e2e";
+        }
 
         base.ConfigureWebHost(builder);
 
@@ -85,22 +69,14 @@ public class E2EWebAppFactory : WebApplicationFactory<Program>
 
         builder.ConfigureServices(s =>
         {
-            var esClient = s.First(d => d.ServiceType == typeof(EventStoreClient));
-            s.Remove(esClient);
-            s.AddEventStoreClient($"esdb://{EsdbUser}:{EsdbPassword}@localhost:{esdbPort}?tls=false");
-
-            var pgConnectionString = $"Host=localhost;Port={pgPort};Database=farkle_e2e;Username=farkle_e2e;Password=farkle_e2e";
-
+            // AddFarkleIdentity/AddFarkleCritterStack capture their connection at registration (from a
+            // config value that's unset here), so override the services: re-register the Identity
+            // DbContext and layer a Marten Connection() (last one wins).
             var dbDescriptor = s.SingleOrDefault(d => d.ServiceType == typeof(DbContextOptions<AppDbContext>));
             if (dbDescriptor != null) s.Remove(dbDescriptor);
             s.AddDbContext<AppDbContext>(o => o.UseNpgsql(pgConnectionString));
 
-            // Read model (#156) shares the same Postgres — point it at the e2e container too
-            // (own history table), so its migration applies and the projector can write.
-            var readDescriptor = s.SingleOrDefault(d => d.ServiceType == typeof(DbContextOptions<Farkle.Infrastructure.ReadModel.ReadModelDbContext>));
-            if (readDescriptor != null) s.Remove(readDescriptor);
-            s.AddDbContext<Farkle.Infrastructure.ReadModel.ReadModelDbContext>(o =>
-                o.UseNpgsql(pgConnectionString, b => b.MigrationsHistoryTable(Farkle.Infrastructure.ReadModel.ReadModelMigrations.HistoryTable)));
+            s.ConfigureMarten(opts => opts.Connection(pgConnectionString));
         });
     }
 
@@ -123,12 +99,10 @@ public class E2EWebAppFactory : WebApplicationFactory<Program>
 
     public override async ValueTask DisposeAsync()
     {
-        // Both hosts run the broadcast subscription, whose shutdown trips a known Eventuous bug
-        // (CheckpointCommitHandler double-disposes a CancellationTokenSource). Host.StopAsync
-        // surfaces it *wrapped in an AggregateException*, so swallowing only ObjectDisposedException
-        // let it escape and fail the collection-fixture cleanup — failing the whole run despite the
-        // tests passing. Swallow ODE and an AggregateException whose inners are all ODE; rethrow
-        // anything else.
+        // Two hosts (in-memory + Kestrel) share one Marten/Wolverine store; racing their shutdown can
+        // surface an ObjectDisposedException (sometimes wrapped in an AggregateException) from the
+        // background durability agent. That's harmless teardown noise — swallow ODE and an
+        // AggregateException whose inners are all ODE; rethrow anything else.
         if (_kestrelHost != null)
         {
             try { await _kestrelHost.StopAsync(); } catch (Exception ex) when (IsHarmlessTeardown(ex)) { }

@@ -1,6 +1,9 @@
+using Ardalis.Result;
+using Ardalis.Result.AspNetCore;
 using Farkle.Application;
 using Farkle.Domain.GameAggregate;
 using Microsoft.Extensions.Logging;
+using Wolverine;
 using static Farkle.Contracts.HttpRequests;
 using static Farkle.Contracts.HttpResponses;
 
@@ -10,7 +13,8 @@ namespace Farkle.Endpoints;
 // so spectators see the in-turn player's selection live; Keep remains the commit.
 internal class SetDiceAsideEndpoint(
   ILogger<SetDiceAsideEndpoint> logger,
-  IGameService                  service)
+  IMessageBus                   bus,
+  GameNotifier                  notifier)
   : TypedEndpoint<SetDiceAsideRequest, SetAsideResponse>
 {
   public override void Configure()
@@ -24,11 +28,8 @@ internal class SetDiceAsideEndpoint(
       req.GameId, req.PlayerId, req.DieValue);
 
     var command = new Command.SetDiceAside(req.GameId, req.PlayerId, DieValue.FromValue(req.DieValue));
-
-    var result = await service
-      .HandleAsync<Command.SetDiceAside, SetAsideResponse>(command, ct,
-        s => new SetAsideResponse(s.Id ?? 0, s.DiceSetAside.Select(d => d.Value).ToArray()));
-
-    await Send.ResultAsync(result);
+    var result = await bus.InvokeAsync<Result<SetAsideResponse>>(command, ct);
+    if (result.IsSuccess) await notifier.TableChangedAsync(req.GameId, ct);
+    await Send.ResultAsync(result.ToMinimalApiResult());
   }
 }

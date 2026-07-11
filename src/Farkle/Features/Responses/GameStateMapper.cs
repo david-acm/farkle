@@ -1,13 +1,13 @@
 using Farkle.Domain.GameAggregate;
 using static Farkle.Contracts.HttpResponses;
 
-namespace Farkle.Application;
+namespace Farkle.Features;
 
 internal static class GameStateMapper
 {
   public static GameStateResponse ToGameState(GameState s) =>
     new(
-      GameId: s.Id!.Id,
+      GameId: s.Code,
       Stage: s.GameStage.ToString(),
       CurrentPlayerId: s.PlayerInTurn,
       // Host = the first player who joined. `Players` rotates each turn (front = current

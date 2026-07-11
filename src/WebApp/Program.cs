@@ -17,8 +17,6 @@ using WebApp.Client;
 using WebApp.Telemetry;
 using Farkle.Infrastructure;
 using Farkle.Infrastructure.Identity;
-using Farkle.Infrastructure.Persistence;
-using Farkle.Infrastructure.ReadModel;
 using Farkle.Infrastructure.Realtime;
 
 var logger = Log.Logger = new LoggerConfiguration()
@@ -43,8 +41,8 @@ builder.Host.UseSerilog(
 
 var services = builder.Services;
 
-// #216 — OpenTelemetry (Azure Monitor distro): traces (requests, dependencies, Eventuous
-// produce/consume spans with causation across the async event-store hop), metrics, and logs to
+// #216 — OpenTelemetry (Azure Monitor distro): traces (requests, dependencies, Marten/Wolverine
+// event-store spans with causation across the async handling hop), metrics, and logs to
 // Application Insights. Gated on the connection string so local dev/tests don't phone home.
 var appInsightsConn = builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"];
 services.AddFarkleTelemetry(appInsightsConn);
@@ -89,21 +87,13 @@ services.AddCors(o =>
     .AllowAnyHeader()
     .AllowAnyMethod()));
 
-// Add module services (domain + application) and the EventStoreDB infrastructure plug-in.
+// Add module services (domain + application) and the Critter Stack write/read path: Marten as the
+// PostgreSQL event store (GameState is the Inline self-aggregating snapshot GET reads) + Wolverine as
+// the command bus (ADR 0004). Marten shares the one Postgres with Identity (its own schema). NSwag
+// boots DB-free (lightweight: Marten lazy, Wolverine mediator-only) for swagger extraction.
 services.AddFarkleModuleServices(builder.Configuration, logger, new List<Assembly>());
-services.AddFarkleEventStore(builder.Configuration, logger);
-
-// CQRS read side (#156): a GameView projection in Postgres, kept current by a $all catch-up
-// subscription, that GET reads instead of replaying the stream. Disabled for hosts without
-// Postgres/ESDB (NSwag spec extraction, the in-memory storyboard capture). It reuses the
-// Identity Postgres database (own migrations-history table) — see ReadModelDbContext.
-var readModelEnabled = !builder.Environment.IsEnvironment("NSwag")
-    && !builder.Configuration.GetValue<bool>("Storyboard:SkipIdentitySeed")
-    && builder.Configuration.GetValue("Farkle:ReadModelEnabled", true);
-if (readModelEnabled)
-{
-    services.AddFarkleReadModel(identityConn, identityDataSource);
-}
+var martenConn = identityConn ?? "Host=localhost;Database=farkle;Username=postgres;Password=postgres";
+services.AddFarkleCritterStack(martenConn, lightweight: builder.Environment.IsEnvironment("NSwag"));
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
@@ -121,8 +111,9 @@ var app = builder.Build();
 
 // Health endpoints, mapped before CORS/auth/FastEndpoints so they always answer
 // anonymously (never gated by Auth:RequireAuthorization). Liveness runs no checks
-// (just "process is up"); readiness runs the "ready"-tagged Postgres + EventStore
-// checks. These are minimal-API endpoints, so they're absent from the Swagger doc.
+// (just "process is up"); readiness runs the "ready"-tagged Postgres check (which
+// also covers Marten's event store — it shares the DB). These are minimal-API
+// endpoints, so they're absent from the Swagger doc.
 app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false });
 app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = c => c.Tags.Contains("ready") });
 
@@ -210,9 +201,8 @@ if (!app.Environment.IsEnvironment("NSwag") && !skipIdentitySeed)
 
     MigrateTolerant(scope.ServiceProvider.GetRequiredService<AppDbContext>().Database);
 
-    // Apply the read-model schema alongside Identity (same database, separate history table).
-    if (readModelEnabled)
-        MigrateTolerant(scope.ServiceProvider.GetRequiredService<ReadModelDbContext>().Database);
+    // Marten manages its own schema (auto-create); no read-model DbContext migration to apply —
+    // the GameView read model is now the Inline GameState snapshot (ADR 0004).
 
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
     const string seedEmail = "player1@email.com";

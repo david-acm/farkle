@@ -1,5 +1,4 @@
 using System.Collections.Immutable;
-using Eventuous;
 using Farkle.SharedKernel.Scoring;
 using Farkle.SharedKernel.Turns;
 using static Farkle.Domain.GameAggregate.Command;
@@ -7,97 +6,70 @@ using static Farkle.Domain.GameAggregate.GameEvents;
 
 namespace Farkle.Domain.GameAggregate;
 
-internal record GameState : State<GameState>
+// GameState is the Marten self-aggregating snapshot (ADR 0004): Marten's conventional Create/Apply
+// methods fold the "game-{code}" event stream into it, and it is stored as the game document — so it
+// is both the write-side aggregate (via FetchForWriting) and the read model (mapped to GameView).
+// Properties are public-init so Marten's STJ serializer can rehydrate the stored document.
+public record GameState
 {
-  public GameState()
-  {
-    On<V1.GameStarted>(HandleGameStarted);
-    On<V1.PlayerJoined>(HandlePlayerJoined);
-    On<V2.PlayerJoined>(HandlePlayerJoinedV2);
-    On<V1.GamePlayStarted>(HandleGamePlayStarted);
-    On<V1.DiceRolled>(HandleDiceRolled);
-    On<V2.DiceRolled>(HandleDiceRolledV2);
-    On<V1.TurnPassed>(HandleTurnPassed);
-    On<V1.DiceKept>(HandleDiceKept);
-    On<V2.DiceKept>(HandleDiceKeptV2);
-    On<V1.DiceSetAside>(HandleDiceSetAside);
-    On<V1.DiceReturned>(HandleDiceReturned);
-    On<V1.GameWon>(HandleGameWon);
-  }
+  // Marten document id == the "game-{code}" stream key (ADR 0002). Empty on the initial state and
+  // assigned by Create(GameStarted); "does this game exist?" is Code == 0 (or an empty Id).
+  public string    Id        { get; init; } = "";
 
-  // Non-nullable (#32): the empty initial state carries the GameId.None sentinel until a
-  // GameStarted event assigns the real id. "Does this game exist?" is GameId.None vs a real id.
-  public GameId    Id        { get; private init; } = GameId.None;
-  public GameStage GameStage { get; private init; }
-  public Player?   Winner    { get; private init; }
-  public Score     TurnScore { get; private init; } = new(0);
+  // The int game code players type to join — the user-facing/API identity (the string Id derives
+  // from it). 0 until a GameStarted event assigns the real code (#32's GameId.None sentinel).
+  public int       Code      { get; init; }
 
-  // #301 — whether the in-turn player has rolled or kept this turn. Replaces the old
-  // event-history peek (PlayerCanPass reading game.Current) so "can I pass?" is a pure
-  // (command, state) decision: you may pass only once you've acted. Set by roll/keep, reset
-  // on pass. A write-model signal only — the read model (GameView) never reads it.
-  public bool HasActedThisTurn { get; private init; }
+  public GameStage GameStage { get; init; }
+  public Player?   Winner    { get; init; }
+  public Score     TurnScore { get; init; } = new(0);
 
-  public ImmutableArray<Player>    Players     { get; private init; } = ImmutableArray<Player>.Empty;
-  public ImmutableArray<DieValue> TableCenter { get; private init; } = ImmutableArray<DieValue>.Empty;
-  public ImmutableArray<DieValue> DiceKept    { get; private init; } = ImmutableArray<DieValue>.Empty;
+  // #301 — whether the in-turn player has rolled or kept this turn. Replaces the old event-history
+  // peek so "can I pass?" is a pure (command, state) decision: you may pass only once you've acted.
+  public bool HasActedThisTurn { get; init; }
 
-  // #159 — the in-turn player's transient set-aside selection: a non-destructive overlay
-  // on TableCenter (the dice stay on the table). Reset whenever the roll moves on (roll,
-  // keep, pass) so it never leaks across rolls or turns.
-  public ImmutableArray<DieValue> DiceSetAside { get; private init; } = ImmutableArray<DieValue>.Empty;
-  public int StraightsKeptThisTurn { get; private init; } = 0;
+  public ImmutableArray<Player>    Players     { get; init; } = ImmutableArray<Player>.Empty;
+  public ImmutableArray<DieValue> TableCenter { get; init; } = ImmutableArray<DieValue>.Empty;
+  public ImmutableArray<DieValue> DiceKept    { get; init; } = ImmutableArray<DieValue>.Empty;
 
-  // #244 — a server-assigned, replay-derived turn ordinal. 0 before play begins; 1 once the game
-  // starts; increments on every TurnPassed. The single source of truth all players agree on, used
-  // as a telemetry entity key so a turn (and a game) can be reconstructed across players. Derived
-  // purely from events, so no event-schema change is needed.
-  public int TurnNumber { get; private init; } = 0;
+  // #159 — the in-turn player's transient set-aside selection: a non-destructive overlay on
+  // TableCenter. Reset whenever the roll moves on (roll, keep, pass) so it never leaks across turns.
+  public ImmutableArray<DieValue> DiceSetAside { get; init; } = ImmutableArray<DieValue>.Empty;
+  public int StraightsKeptThisTurn { get; init; } = 0;
 
-  public ImmutableDictionary<int, int> ScoreTable { get; private init; } =
+  // #244 — a server-assigned, replay-derived turn ordinal. 0 before play; 1 once the game starts;
+  // increments on every TurnPassed. The single source of truth all players agree on.
+  public int TurnNumber { get; init; } = 0;
+
+  public ImmutableDictionary<int, int> ScoreTable { get; init; } =
     ImmutableDictionary<int, int>.Empty;
 
   internal int PlayerInTurn => Players.IsEmpty ? 0 : Players[0].Id;
 
-  // How many dice the next roll throws: the six minus whatever is already kept this turn (a fresh
-  // turn rolls all six; kept dice wrap at six). Pure, so the roll side effect (rolling that many)
-  // lives in the handler while the count stays domain logic the decider and handler share.
+  // How many dice the next roll throws: the six minus whatever is already kept this turn.
   internal int DiceToRoll => 6 - DiceKept.Length % 6;
 
-  // #156 — the single sanctioned seam for rebuilding a state from a persisted read-model
-  // snapshot, so the incremental projector can fold the next event onto it via When(). Keeps
-  // the init-properties private (the aggregate is still the only thing that mutates state
-  // through events) while letting the read-side serializer reconstruct a value object.
-  internal static GameState FromSnapshot(
-    GameId                           id,
-    GameStage                        gameStage,
-    Player?                          winner,
-    Score                            turnScore,
-    ImmutableArray<Player>           players,
-    ImmutableArray<DieValue>         tableCenter,
-    ImmutableArray<DieValue>         diceKept,
-    ImmutableArray<DieValue>         diceSetAside,
-    int                              straightsKeptThisTurn,
-    ImmutableDictionary<int, int>    scoreTable) =>
-    new()
-    {
-      Id                    = id,
-      GameStage             = gameStage,
-      Winner                = winner,
-      TurnScore             = turnScore,
-      Players               = players,
-      TableCenter           = tableCenter,
-      DiceKept              = diceKept,
-      DiceSetAside          = diceSetAside,
-      StraightsKeptThisTurn = straightsKeptThisTurn,
-      ScoreTable            = scoreTable
-    };
+  // ── Marten self-aggregation conventions (ADR 0004) ──
+  // Create builds the initial document from the stream's first event; Apply folds each subsequent
+  // event. Error events (IErrorEvent) deliberately have no Apply overload — they are appended as
+  // stored facts but are inert on replay (Marten ignores event types with no matching method).
+  public static GameState Create(V1.GameStarted e) => HandleGameStarted(new GameState(), e);
 
-  // Pure event fold — the framework-free way to rebuild state (used by decider tests to arrange
-  // a state, and the Marten SingleStreamProjection<GameView> in #302). Reuses the same static
-  // Handle* methods the Eventuous On<> registrations point at; error events and unknowns are
-  // no-ops (they never mutate state). The On<> registrations above disappear at the #302 cutover,
-  // leaving this as the single fold.
+  public GameState Apply(V1.PlayerJoined e)    => HandlePlayerJoined(this, e);
+  public GameState Apply(V2.PlayerJoined e)    => HandlePlayerJoinedV2(this, e);
+  public GameState Apply(V1.GamePlayStarted e) => HandleGamePlayStarted(this, e);
+  public GameState Apply(V1.DiceRolled e)      => HandleDiceRolled(this, e);
+  public GameState Apply(V2.DiceRolled e)      => HandleDiceRolledV2(this, e);
+  public GameState Apply(V1.TurnPassed e)      => HandleTurnPassed(this, e);
+  public GameState Apply(V1.DiceKept e)        => HandleDiceKept(this, e);
+  public GameState Apply(V2.DiceKept e)        => HandleDiceKeptV2(this, e);
+  public GameState Apply(V1.DiceSetAside e)    => HandleDiceSetAside(this, e);
+  public GameState Apply(V1.DiceReturned e)    => HandleDiceReturned(this, e);
+  public GameState Apply(V1.GameWon e)         => HandleGameWon(this, e);
+
+  // Pure event fold — the framework-free way to rebuild state, used by decider/handler unit tests to
+  // arrange a state. Delegates to the same static Handle* methods as the Marten Apply overloads;
+  // error events and unknowns are no-ops (they never mutate state).
   internal static GameState Fold(GameState state, object @event) => @event switch
   {
     V1.GameStarted e     => HandleGameStarted(state, e),
@@ -173,8 +145,7 @@ internal record GameState : State<GameState>
   {
     return state with
     {
-      // Re-derive each player's colour from its id so the rotated order always carries a
-      // colour, even for TurnPassed events serialized before colours existed.
+      // Re-derive each player's colour from its id so the rotated order always carries a colour.
       Players = e.PlayerOrder
         .Select(p => p with { Color = PlayerColors.For(p.Id) })
         .ToImmutableArray(),
@@ -218,8 +189,7 @@ internal record GameState : State<GameState>
 
   private static GameState HandlePlayerJoined(GameState state, GameEvents.V1.PlayerJoined playerJoined)
   {
-    // V1 events predate player colours — derive the colour from the id so old streams still
-    // render the same deterministic palette colour as a freshly joined player would.
+    // V1 events predate player colours — derive the colour from the id so old streams still render.
     return state with
     {
       Players = state.Players.Add(
@@ -240,7 +210,7 @@ internal record GameState : State<GameState>
 
   private static GameState HandleGameStarted(GameState gameState, GameEvents.V1.GameStarted e)
   {
-    return gameState with { Id = e.Id, GameStage = GameStage.WaitingForPlayers };
+    return gameState with { Id = $"game-{e.Id}", Code = e.Id, GameStage = GameStage.WaitingForPlayers };
   }
 
   private static GameState HandleGamePlayStarted(GameState state, GameEvents.V1.GamePlayStarted e)
@@ -258,7 +228,7 @@ internal record GameState : State<GameState>
   }
 }
 
-internal record Score(int Value)
+public record Score(int Value)
 {
   public static implicit operator int(Score score)
   {
@@ -271,11 +241,12 @@ internal record Score(int Value)
   }
 }
 
-internal record GameId(int Id) : Id($"{Id}")
+// GameId is a plain int wrapper (the user-facing game code) now that Eventuous' Id base type is gone
+// (ADR 0004). Commands still carry it; the Marten stream/document key derives from it as "game-{Id}".
+public record GameId(int Id)
 {
-  // Sentinel for "no game yet" — the empty GameState's default before a GameStarted event.
-  // Real game ids are generated in [100_000, 1_000_000) (RandomGameIdGenerator), so 0 never
-  // collides with a live game. (#32 — replaces the former nullable GameState.Id.)
+  // Sentinel for "no game yet". Real game ids are generated in [100_000, 1_000_000)
+  // (RandomGameIdGenerator), so 0 never collides with a live game. (#32)
   public static readonly GameId None = new(0);
 
   public static implicit operator GameId(int id)
@@ -288,3 +259,8 @@ internal record GameId(int Id) : Id($"{Id}")
     return id.Id;
   }
 }
+
+// Color is the player's identity colour (a hex string), assigned by join order from PlayerColors.
+// Always derived from the player's id, so it is stable across replays and snapshot round-trips.
+// (Moved from the deleted Eventuous Game aggregate.)
+public record Player(int Id, string Name, string Color = "");

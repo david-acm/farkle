@@ -51,7 +51,6 @@ jobs:
 
       - name: Pull Docker images for integration tests
         run: |
-          docker pull eventstore/eventstore:23.10.0-bookworm-slim
           docker pull postgres:16-alpine
 
       - name: Integration tests

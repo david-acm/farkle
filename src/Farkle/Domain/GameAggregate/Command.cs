@@ -1,14 +1,27 @@
 namespace Farkle.Domain.GameAggregate;
 
-internal static class Command
+// Commands are public — they are the Wolverine messages (the write-side's contract). The computed
+// `Id` on each stream-mutating command yields the "game-{code}" stream key so Wolverine's
+// [AggregateHandler] resolves the aggregate by convention (Option A, ADR 0004). StartGame is handled
+// by a StartStream handler, so it needs no Id.
+public static class Command
 {
-  internal record KeepDice(GameId GameId, PlayerId PlayerId, IEnumerable<DieValue> DiceValues);
+  public record KeepDice(GameId GameId, PlayerId PlayerId, IEnumerable<DieValue> DiceValues)
+  {
+    public string Id => $"game-{GameId.Id}";
+  }
 
-  internal record SetDiceAside(GameId GameId, PlayerId PlayerId, DieValue Die);
+  public record SetDiceAside(GameId GameId, PlayerId PlayerId, DieValue Die)
+  {
+    public string Id => $"game-{GameId.Id}";
+  }
 
-  internal record ReturnDice(GameId GameId, PlayerId PlayerId, DieValue Die);
+  public record ReturnDice(GameId GameId, PlayerId PlayerId, DieValue Die)
+  {
+    public string Id => $"game-{GameId.Id}";
+  }
 
-  internal record StartGame(GameId GameId)
+  public record StartGame(GameId GameId)
   {
     public static implicit operator int(StartGame startGame)
     {
@@ -16,15 +29,27 @@ internal static class Command
     }
   }
 
-  internal record JoinPlayer(int GameId, string Name);
+  public record JoinPlayer(int GameId, string Name)
+  {
+    public string Id => $"game-{GameId}";
+  }
 
-  internal record BeginGame(GameId GameId, PlayerId PlayerId);
+  public record BeginGame(GameId GameId, PlayerId PlayerId)
+  {
+    public string Id => $"game-{GameId.Id}";
+  }
 
-  internal record RollDice(GameId GameId, PlayerId PlayerId);
+  public record RollDice(GameId GameId, PlayerId PlayerId)
+  {
+    public string Id => $"game-{GameId.Id}";
+  }
 
-  internal record PassTurn(GameId GameId, PlayerId PlayerId);
+  public record PassTurn(GameId GameId, PlayerId PlayerId)
+  {
+    public string Id => $"game-{GameId.Id}";
+  }
 
-  internal record PlayerId(int Id)
+  public record PlayerId(int Id)
   {
     public static implicit operator int(PlayerId id)
     {

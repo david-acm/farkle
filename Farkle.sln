@@ -20,8 +20,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Farkle.WebTests", "tests\Fa
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Farkle.SpaTests", "tests\Farkle.SpaTests\Farkle.SpaTests.csproj", "{8F53ED31-033E-45FA-9700-9CD3DC29D6D2}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".github", ".github", "{A6E29EB8-B644-41A8-A5DF-D06369BC4797}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{7D7CA886-DF51-4B34-81D0-E837F62E9DD1}"
 	ProjectSection(SolutionItems) = preProject
 		docker-compose.yml = docker-compose.yml
