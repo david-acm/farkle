@@ -98,12 +98,7 @@ services.AddCors(o =>
 // boots DB-free (lightweight: Marten lazy, Wolverine mediator-only) for swagger extraction.
 services.AddFarkleModuleServices(builder.Configuration, logger, new List<Assembly>());
 var martenConn = identityConn ?? "Host=localhost;Database=farkle;Username=postgres;Password=postgres";
-// Lightweight (Wolverine mediator-only, no durability agents) for swagger extraction and for test
-// hosts that don't need durable async messaging. The storyboard factory sets the flag so its two
-// hosts (test client + Kestrel-for-Playwright) don't race on multi-node Wolverine leadership.
-var lightweightWolverine = builder.Environment.IsEnvironment("NSwag")
-  || builder.Configuration.GetValue<bool>("Farkle:LightweightWolverine");
-services.AddFarkleCritterStack(martenConn, lightweight: lightweightWolverine);
+services.AddFarkleCritterStack(martenConn, lightweight: builder.Environment.IsEnvironment("NSwag"));
 
 // #303 — Wolverine.HTTP hosts the game endpoints from their slices (migrating off FastEndpoints).
 services.AddWolverineHttp();

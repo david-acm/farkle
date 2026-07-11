@@ -62,13 +62,6 @@ public sealed class StoryboardWebAppFactory : WebApplicationFactory<Program>
                 ["Storyboard:SkipIdentitySeed"] = "true",
                 // Keep the game endpoints anonymous so the UI renders without logging in.
                 ["Auth:RequireAuthorization"]   = "false",
-                // #303 — the storyboard drives a single browser (no live SignalR broadcasts to
-                // spectators), so run Wolverine mediator-only. This factory builds two hosts (the
-                // test client + the Kestrel host for Playwright); full durability would start two
-                // Wolverine nodes racing on leadership over one Postgres — the source of a flaky
-                // BackendStubShould boot error. Mediator-only removes the agents (broadcasts, unused
-                // here, still deliver in-process).
-                ["Farkle:LightweightWolverine"]  = "true",
             });
         });
 
