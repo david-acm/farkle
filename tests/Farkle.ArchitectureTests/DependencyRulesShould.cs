@@ -31,12 +31,14 @@ public class DependencyRulesShould
   }
 
   [Fact]
-  public void KeepTheCoreFreeOfTheWebFramework()
+  public void KeepTheSharedKernelFreeOfTheWebFramework()
   {
-    // #292 — the HTTP endpoints moved to Farkle.Endpoints, so the domain/application core no
-    // longer compiles against the web framework. Keep it that way.
-    ForbiddenDependencies(CoreAsm, "FastEndpoints")
-      .Should().BeEmpty("the Farkle core must not depend on the web framework (FastEndpoints) — that belongs in Farkle.Endpoints");
+    // #303 — the vertical slices now own their Wolverine.HTTP endpoints, so the Farkle core does
+    // compile against the web framework (Wolverine.Http + ASP.NET). The guardrail generalizes: the
+    // *shared kernel* — the pure leaf shared with the WASM client — must stay web-framework-free.
+    // Deciders staying pure is covered separately by KeepDecidersPureAndFrameworkFree.
+    ForbiddenDependencies(SharedKernelAsm, "FastEndpoints", "Wolverine", "Microsoft.AspNetCore")
+      .Should().BeEmpty("the shared kernel must not depend on any web framework — it is shared with the Blazor client");
   }
 
   [Fact]
@@ -78,13 +80,14 @@ public class DependencyRulesShould
   }
 
   [Fact]
-  public void KeepSlicesOffTheApplicationAndInfrastructureLayers()
+  public void KeepSlicesOffTheInfrastructureAndHostLayers()
   {
-    // #301 — a slice depends inward only (domain + shared kernel). It must not reach into the
-    // application/host/infrastructure layers; cross-slice coupling goes through the shared kernel.
-    ForbiddenDependencies(IsFeatureSlice,
-        "Farkle.Application", InfraAsm, HostAsm, EndpointsAsm)
-      .Should().BeEmpty("vertical slices point inward — no dependency on application/host/infra");
+    // #303 — a slice is now the complete use case: command + decider + Wolverine.HTTP endpoint +
+    // response. The endpoint may use application ports (IGameCreator, IFeedbackWriter, GameNotifier),
+    // so the slice→application edge is allowed. It must still not reach into the infrastructure or
+    // host projects, and the extracted-endpoints project is gone.
+    ForbiddenDependencies(IsFeatureSlice, InfraAsm, HostAsm, EndpointsAsm)
+      .Should().BeEmpty("vertical slices may front the application layer but must not depend on infrastructure or the host");
   }
 
   [Fact]

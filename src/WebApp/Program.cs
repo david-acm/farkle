@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using FastEndpoints;
 using FastEndpoints.Security;
 using FastEndpoints.Swagger;
+using Wolverine.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
@@ -67,11 +68,9 @@ services
   .SwaggerDocument()
   .AddFastEndpoints(o =>
   {
-      o.Assemblies = new[]
-      {
-          typeof(Farkle.Endpoints.StartGame).Assembly,
-          typeof(RegisterEndpoint).Assembly
-      };
+      // Game endpoints migrated to Wolverine.HTTP slices (#303); only the auth endpoints
+      // (register/login) remain on FastEndpoints, in the WebApp assembly.
+      o.Assemblies = new[] { typeof(RegisterEndpoint).Assembly };
       o.DisableAutoDiscovery = true;
   });
 
@@ -94,6 +93,9 @@ services.AddCors(o =>
 services.AddFarkleModuleServices(builder.Configuration, logger, new List<Assembly>());
 var martenConn = identityConn ?? "Host=localhost;Database=farkle;Username=postgres;Password=postgres";
 services.AddFarkleCritterStack(martenConn, lightweight: builder.Environment.IsEnvironment("NSwag"));
+
+// #303 — Wolverine.HTTP hosts the game endpoints from their slices (migrating off FastEndpoints).
+services.AddWolverineHttp();
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
@@ -163,6 +165,15 @@ app.UseFastEndpoints(c =>
     c.Endpoints.Configurator = ep => { if (requireAuth) ep.Options(b => b.RequireAuthorization()); else ep.Options(b => b.AllowAnonymous());};
   })
    .UseSwaggerGen();
+
+// #303 — Wolverine.HTTP endpoints (migrating slices off FastEndpoints). Mapped alongside
+// FastEndpoints during the migration; routes are byte-identical so the two never collide.
+// When auth is required, gate the whole group (SubmitFeedback opts out via [AllowAnonymous]).
+app.MapWolverineEndpoints(opts =>
+{
+  if (requireAuth)
+    opts.RequireAuthorizeOnAll();
+});
 
 app.MapFarkleRealtime();
 

@@ -6,7 +6,7 @@ using Npgsql;
 
 namespace Farkle.Application;
 
-internal interface IGameCreator
+public interface IGameCreator
 {
   Task<int> CreateGameAsync(CancellationToken cancellationToken);
 }
