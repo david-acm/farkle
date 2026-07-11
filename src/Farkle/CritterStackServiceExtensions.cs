@@ -1,7 +1,5 @@
 using Ardalis.SmartEnum.SystemTextJson;
 using Farkle.Domain.GameAggregate;
-using JasperFx;
-using JasperFx.CodeGeneration;
 using JasperFx.Events;
 using JasperFx.Events.Projections;
 using Marten;
@@ -70,22 +68,6 @@ public static class CritterStackServiceExtensions
 
       if (lightweight)
         opts.Durability.Mode = DurabilityMode.MediatorOnly;   // no message-store/agents at startup
-    });
-
-    // #305 — JasperFx owns the Critter Stack codegen + resource strategy per environment and lights up
-    // the `dotnet run -- describe | resources | codegen | db-apply | projections` CLI. Marten manages
-    // its own schema (CreateOrUpdate — no hand-written event/projection migrations); Identity keeps its
-    // EF migrations. The runtime codegen mode stays Dynamic (in-memory: nothing written into the tree
-    // or raced across test hosts) for both profiles; static pre-generation for prod cold-start is a
-    // scoped follow-up. Set explicitly so JasperFx doesn't default Production to Static (which would
-    // need committed generated code that isn't wired yet — and would break the OpenAPI GetDocument
-    // boot that runs in a non-Development environment).
-    services.AddJasperFx(opts =>
-    {
-      opts.Development.GeneratedCodeMode = TypeLoadMode.Dynamic;
-      opts.Development.ResourceAutoCreate = AutoCreate.CreateOrUpdate;
-      opts.Production.GeneratedCodeMode  = TypeLoadMode.Dynamic;
-      opts.Production.ResourceAutoCreate = AutoCreate.CreateOrUpdate;
     });
 
     return services;

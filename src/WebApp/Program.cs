@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Text;
 using Farkle;
 using JasperFx;
+using JasperFx.CodeGeneration;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
@@ -100,6 +101,27 @@ services.AddCors(o =>
 services.AddFarkleModuleServices(builder.Configuration, logger, new List<Assembly>());
 var martenConn = identityConn ?? "Host=localhost;Database=farkle;Username=postgres;Password=postgres";
 services.AddFarkleCritterStack(martenConn, lightweight: builder.Environment.IsEnvironment("NSwag"));
+
+// #305 — JasperFx owns the Critter Stack codegen + resource strategy per environment and lights up the
+// `dotnet run -- describe | resources | codegen | db-apply | projections` CLI (dispatched at the bottom
+// of this file). Marten manages its own schema (CreateOrUpdate — no hand-written event/projection
+// migrations); Identity keeps its EF migrations.
+//
+// Codegen mode: real Production runs on committed, pre-generated code (TypeLoadMode.Static, in
+// src/WebApp/Internal/Generated) → fast cold start, no runtime Roslyn, and it fails fast if that code
+// is missing. Development (tests + local dev) and the OpenAPI GetDocument boot (the "NSwag" environment,
+// which maps to the Production profile but must not depend on committed code being current) generate
+// in-memory (Dynamic). verify-codegen keeps the committed code in sync.
+var useStaticCodegen = builder.Environment.IsProduction();
+services.AddJasperFx(opts =>
+{
+  opts.Development.GeneratedCodeMode  = TypeLoadMode.Dynamic;
+  opts.Development.ResourceAutoCreate  = AutoCreate.CreateOrUpdate;
+  opts.Production.GeneratedCodeMode   = useStaticCodegen ? TypeLoadMode.Static : TypeLoadMode.Dynamic;
+  opts.Production.ResourceAutoCreate   = AutoCreate.CreateOrUpdate;
+  // Fail startup (rather than silently regenerating) if the committed code is missing in prod.
+  opts.Production.AssertAllPreGeneratedTypesExist = useStaticCodegen;
+});
 
 // #303 — Wolverine.HTTP hosts the game endpoints from their slices (migrating off FastEndpoints).
 services.AddWolverineHttp();

@@ -111,12 +111,18 @@ dotnet run --project src/WebApp -- describe            # configuration + discove
 dotnet run --project src/WebApp -- resources list      # Marten/Wolverine resources this app owns
 dotnet run --project src/WebApp -- resources setup     # apply schema explicitly (a.k.a. db-apply)
 dotnet run --project src/WebApp -- projections rebuild # rebuild projections if one is added later
-dotnet run --project src/WebApp -- codegen write       # pre-generate handler/endpoint code (see below)
+dotnet run --project src/WebApp -- codegen write       # regenerate the committed prod codegen (see below)
 ```
 
+**Codegen (dev fast, prod static).** Development and tests generate the Wolverine handler/endpoint code
+in-memory (`TypeLoadMode.Dynamic`, zero friction). **Production** (`ASPNETCORE_ENVIRONMENT=Production`)
+loads committed, pre-generated code from `src/WebApp/Internal/Generated` (`TypeLoadMode.Static`) → fast
+cold start, no runtime Roslyn, and it fails fast if that code is missing. After changing a handler or
+endpoint, run `dotnet run --project src/WebApp -- codegen write` and commit the result; the
+`verify-codegen` CI job regenerates and fails on drift (the codegen analogue of `verify-generated`).
+
 > Projection rebuild is listed for completeness — `GameState` is an **Inline** snapshot today, so there
-> is no async projection to rebuild yet. Static codegen (`codegen write` + `TypeLoadMode.Static` for a
-> faster prod cold start) is a scoped follow-up on #305; the app currently generates code in-memory.
+> is no async projection to rebuild yet.
 
 ## Auth model
 
