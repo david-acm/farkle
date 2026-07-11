@@ -11,7 +11,7 @@ Two resource groups in **East US 2** (`eastus2`):
 | RG | Lifecycle | Contents |
 |---|---|---|
 | `rg-hotdice-eus2-shared` | **persistent** (survives teardown) | ACR, Key Vault, user-assigned managed identity |
-| `rg-hotdice-eus2-prod` | **disposable** (recreated each cycle) | Postgres, EventStore, Container Apps env, WebApp, budget |
+| `rg-hotdice-eus2-prod` | **disposable** (recreated each cycle) | Postgres (Marten events + Identity), Container Apps env, WebApp, budget |
 
 > **Region note:** the stack runs in **eastus2, not eastus** — the subscription is
 > offer-restricted for PostgreSQL Flexible Server in `eastus` (`LocationIsOfferRestricted`).
@@ -88,13 +88,35 @@ the `AZURE_*` OIDC ids (harmless; gated jobs resolve either scope).
 ```bash
 BASE=https://<webapp-fqdn>
 curl -s -o /dev/null -w '%{http_code}\n' $BASE/health/live    # 200
-curl -s $BASE/health/ready                                    # "Healthy" (Postgres + EventStore)
+curl -s $BASE/health/ready                                    # "Healthy" (Postgres — Marten events + Identity)
 curl -s -X POST $BASE/api/games -H 'Content-Type: application/json' -d '{"id":123}'  # {"id":...} 200
 ```
 
 - Health probes are **TCP** (port 8080), not HTTP — `/health/*` is auth-gated and would 403 HTTP probes.
 - **Container App secret changes don't roll a revision by themselves** — the WebApp sets a
   per-deploy `revisionSuffix` (off `utcNow()`) so each deploy rolls a fresh revision that re-reads secrets.
+
+## Schema & Critter Stack CLI (ADR 0004)
+
+Postgres is the single stateful store: **Marten owns its own schema** (events + the `GameState`
+snapshot) and **EF Core owns the Identity schema**. There are no hand-written migrations for the
+event store — Marten reconciles its schema on startup (`AutoCreate.CreateOrUpdate`), and EF applies
+its Identity migrations on startup as today.
+
+The JasperFx command line is wired into the host (`dotnet run -- <command>`), so the same binary can
+inspect or manage the stack:
+
+```bash
+dotnet run --project src/WebApp -- describe            # configuration + discovered endpoints/handlers
+dotnet run --project src/WebApp -- resources list      # Marten/Wolverine resources this app owns
+dotnet run --project src/WebApp -- resources setup     # apply schema explicitly (a.k.a. db-apply)
+dotnet run --project src/WebApp -- projections rebuild # rebuild projections if one is added later
+dotnet run --project src/WebApp -- codegen write       # pre-generate handler/endpoint code (see below)
+```
+
+> Projection rebuild is listed for completeness — `GameState` is an **Inline** snapshot today, so there
+> is no async projection to rebuild yet. Static codegen (`codegen write` + `TypeLoadMode.Static` for a
+> faster prod cold start) is a scoped follow-up on #305; the app currently generates code in-memory.
 
 ## Auth model
 
@@ -109,6 +131,6 @@ the identity params and `AZURE_CLIENT_ID` env are still wired.
 ## Teardown / cleanup
 
 - Workload teardown: `infra-teardown.yml` (deletes `rg-hotdice-eus2-prod` — **destructive**,
-  includes Postgres + EventStore data). The persistent RG is untouched.
+  includes all Postgres data: Marten's events + Identity). The persistent RG is untouched.
 - Deleting an RG soft-deletes its Key Vault; purge before re-creating the same name:
   `az keyvault purge --name <kv> --location eastus2`.
