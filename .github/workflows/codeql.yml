@@ -32,6 +32,8 @@ jobs:
           languages: csharp
           # Fail the workflow on high or critical severity findings
           queries: security-and-quality
+          # Excludes the generated Kiota client from analysis (see the config).
+          config-file: ./.github/codeql/codeql-config.yml
 
       - name: Restore
         run: dotnet restore Farkle.sln
