@@ -9,8 +9,8 @@ namespace Farkle.E2eTests;
 /// and round-trips events through the real domain. Drives the HTTP API directly via the factory's
 /// test client, so it needs no Playwright.
 ///
-/// Tagged Storyboard so the infra-light workflow selects it; it shares the
-/// <see cref="StoryboardWebAppFactory"/> (a lightweight Postgres Testcontainer, no ESDB).
+/// Tagged Storyboard so the infra-light workflow selects it; it uses the
+/// <see cref="StoryboardWebAppFactory"/> (Postgres Testcontainer, no ESDB).
 /// </summary>
 [Trait("Category", "Storyboard")]
 public class BackendStubShould(StoryboardWebAppFactory factory) : IClassFixture<StoryboardWebAppFactory>
