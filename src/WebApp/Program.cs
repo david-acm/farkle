@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Text;
 using Farkle;
+using JasperFx;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
@@ -241,6 +242,9 @@ if (!app.Environment.IsEnvironment("NSwag") && !skipIdentitySeed)
     }
 }
 
-app.Run();
+// #305 — dispatch through the JasperFx command line: no args runs the host as before, while
+// `dotnet run -- describe | resources | codegen | db-apply | projections` runs the matching tool
+// (schema management, codegen, diagnostics) against this exact configuration.
+return await app.RunJasperFxCommands(args);
 
 public partial class Program { }

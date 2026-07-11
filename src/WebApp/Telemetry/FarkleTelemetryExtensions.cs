@@ -30,7 +30,13 @@ public static class FarkleTelemetryExtensions
         .AddSource("Wolverine")
         // #220 — drop redundant event-infrastructure spans (sub.* / handler.* / checkpoint*) so
         // traces stay readable; everything else keeps flowing, correlated by trace id.
-        .SetSampler(new SubscriptionNoiseSampler(new AlwaysOnSampler())));
+        .SetSampler(new SubscriptionNoiseSampler(new AlwaysOnSampler())))
+      // #305 — Marten + Wolverine also publish OTel meters (message throughput, handler timing, event
+      // append/query counters). Collect them alongside the Azure Monitor distro's default runtime +
+      // HTTP metrics so the Critter Stack's own health is visible in App Insights.
+      .WithMetrics(metrics => metrics
+        .AddMeter("Marten")
+        .AddMeter("Wolverine"));
 
     // Domain-event logs (carrying the "EventType" attribute from GameTelemetryHandler) become
     // Application Insights customEvents — the mapping lives here in the host, so the app/core
