@@ -30,14 +30,14 @@ public class DependencyRulesShould
   }
 
   [Fact]
-  public void KeepTheSharedKernelFreeOfTheWebFramework()
+  public void KeepFarkleSharedFreeOfTheWebFramework()
   {
-    // #303 — the vertical slices now own their Wolverine.HTTP endpoints, so the Farkle core does
-    // compile against the web framework (Wolverine.Http + ASP.NET). The guardrail generalizes: the
-    // *shared kernel* — the pure leaf shared with the WASM client — must stay web-framework-free.
-    // Deciders staying pure is covered separately by KeepDecidersPureAndFrameworkFree.
-    ForbiddenDependencies(SharedKernelAsm, "FastEndpoints", "Wolverine", "Microsoft.AspNetCore")
-      .Should().BeEmpty("the shared kernel must not depend on any web framework — it is shared with the Blazor client");
+    // #303 — the vertical slices own their Wolverine.HTTP endpoints, so the Farkle core compiles
+    // against the web framework (Wolverine.Http + ASP.NET). The guardrail generalizes: Farkle.Shared
+    // (the merged Contracts + SharedKernel leaf) must stay web-framework-free — it is shared with the
+    // WASM client. Deciders staying pure is covered separately by KeepDecidersPureAndFrameworkFree.
+    ForbiddenDependencies(SharedAsm, "FastEndpoints", "Wolverine", "Microsoft.AspNetCore")
+      .Should().BeEmpty("Farkle.Shared must not depend on any web framework — it is shared with the Blazor client");
   }
 
   [Fact]
@@ -48,22 +48,15 @@ public class DependencyRulesShould
   }
 
   [Fact]
-  public void KeepContractsAsADependencyFreeLeaf()
+  public void KeepFarkleSharedAsAPureDependencyFreeLeaf()
   {
-    ForbiddenDependencies(ContractsAsm,
-        "Farkle.Domain", "Farkle.Application", "Farkle.Endpoints",
-        SharedKernelAsm, InfraAsm, HostAsm)
-      .Should().BeEmpty("Farkle.Contracts is a shared leaf — it must not depend on other Farkle projects");
-  }
-
-  [Fact]
-  public void KeepTheSharedKernelPureAndDependencyFree()
-  {
-    ForbiddenDependencies(SharedKernelAsm,
+    // Farkle.Shared (the merged Contracts + SharedKernel) is the pure leaf shared by the server core
+    // and the WASM client: it must not depend on any other Farkle project or infrastructure library.
+    ForbiddenDependencies(SharedAsm,
         [.. InfrastructureLibraries,
          "Farkle.Domain", "Farkle.Application", "Farkle.Endpoints",
-         ContractsAsm, InfraAsm, HostAsm])
-      .Should().BeEmpty("Farkle.SharedKernel is a pure, infra-free leaf shared by server and client");
+         InfraAsm, HostAsm])
+      .Should().BeEmpty("Farkle.Shared is a pure, infra-free leaf — it must not depend on other Farkle projects");
   }
 
   [Fact]

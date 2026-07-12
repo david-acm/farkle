@@ -21,8 +21,7 @@ internal static class ArchitectureModel
   // Production assembly simple-names (what IType.Assembly.Name reports). The "Asm" suffix avoids
   // colliding with the same-named Farkle.* namespaces when imported via `using static`.
   public const string CoreAsm         = "Farkle";              // domain + application (#292 — endpoints extracted)
-  public const string ContractsAsm    = "Farkle.Contracts";
-  public const string SharedKernelAsm = "Farkle.SharedKernel";
+  public const string SharedAsm       = "Farkle.Shared";       // merged Contracts + SharedKernel leaf
   public const string ApiClientAsm    = "Farkle.ApiClient";
   public const string InfraAsm        = "Farkle.Infrastructure";
   public const string EndpointsAsm    = "Farkle.Endpoints";    // #292 — the extracted HTTP delivery layer
@@ -31,7 +30,7 @@ internal static class ArchitectureModel
 
   private static readonly string[] AssemblyDlls =
   [
-    "Farkle.dll", "Farkle.Contracts.dll", "Farkle.SharedKernel.dll", "Farkle.ApiClient.dll",
+    "Farkle.dll", "Farkle.Shared.dll", "Farkle.ApiClient.dll",
     "WebApp.dll", "WebApp.Client.dll",
     "Farkle.Infrastructure.dll",
     "Farkle.Endpoints.dll", // #292 — the extracted endpoints assembly

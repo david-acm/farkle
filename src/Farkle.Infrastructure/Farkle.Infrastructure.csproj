@@ -29,7 +29,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Farkle\Farkle.csproj" />
-    <ProjectReference Include="..\Farkle.Contracts\Farkle.Contracts.csproj" />
+    <ProjectReference Include="..\Farkle.Shared\Farkle.Shared.csproj" />
   </ItemGroup>
 
 </Project>
