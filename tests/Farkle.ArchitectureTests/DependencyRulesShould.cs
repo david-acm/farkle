@@ -41,17 +41,17 @@ public class DependencyRulesShould
   }
 
   [Fact]
-  public void KeepTheCoreFreeOfInfrastructureHostAndEndpointProjects()
+  public void KeepTheCoreFreeOfInfrastructureAndHost()
   {
-    ForbiddenDependencies(CoreAsm, InfraAsm, HostAsm, EndpointsAsm)
-      .Should().BeEmpty("the core must not depend on Farkle.Infrastructure, Farkle.Endpoints or the WebApp host (dependencies point inward)");
+    ForbiddenDependencies(CoreAsm, InfraAsm, HostAsm)
+      .Should().BeEmpty("the core must not depend on Farkle.Infrastructure or the WebApp host (dependencies point inward)");
   }
 
   [Fact]
   public void KeepContractsAsADependencyFreeLeaf()
   {
     ForbiddenDependencies(ContractsAsm,
-        "Farkle.Domain", "Farkle.Application", "Farkle.Endpoints",
+        "Farkle.Domain", "Farkle.Application",
         SharedKernelAsm, InfraAsm, HostAsm)
       .Should().BeEmpty("Farkle.Contracts is a shared leaf — it must not depend on other Farkle projects");
   }
@@ -61,7 +61,7 @@ public class DependencyRulesShould
   {
     ForbiddenDependencies(SharedKernelAsm,
         [.. InfrastructureLibraries,
-         "Farkle.Domain", "Farkle.Application", "Farkle.Endpoints",
+         "Farkle.Domain", "Farkle.Application",
          ContractsAsm, InfraAsm, HostAsm])
       .Should().BeEmpty("Farkle.SharedKernel is a pure, infra-free leaf shared by server and client");
   }
@@ -84,8 +84,8 @@ public class DependencyRulesShould
     // #303 — a slice is now the complete use case: command + decider + Wolverine.HTTP endpoint +
     // response. The endpoint may use application ports (IGameCreator, IFeedbackWriter, GameNotifier),
     // so the slice→application edge is allowed. It must still not reach into the infrastructure or
-    // host projects, and the extracted-endpoints project is gone.
-    ForbiddenDependencies(IsFeatureSlice, InfraAsm, HostAsm, EndpointsAsm)
+    // host projects.
+    ForbiddenDependencies(IsFeatureSlice, InfraAsm, HostAsm)
       .Should().BeEmpty("vertical slices may front the application layer but must not depend on infrastructure or the host");
   }
 
@@ -94,7 +94,7 @@ public class DependencyRulesShould
   {
     // The WASM client may use Farkle.Contracts / Farkle.SharedKernel / Farkle.ApiClient only.
     ForbiddenDependencies(ClientAsm,
-        "Farkle.Domain", "Farkle.Application", "Farkle.Endpoints", InfraAsm)
+        "Farkle.Domain", "Farkle.Application", InfraAsm)
       .Should().BeEmpty("the Blazor client must talk to the server over the API client + contracts, not the server core/infrastructure");
   }
 }
