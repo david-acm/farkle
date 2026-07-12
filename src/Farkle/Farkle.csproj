@@ -23,7 +23,7 @@
     <PackageReference Include="WolverineFx.RuntimeCompilation" Version="6.16.0" />
     <PackageReference Include="Azure.Identity" Version="1.21.0" />
     <PackageReference Include="Azure.Messaging.EventGrid" Version="5.0.0" />
-    <PackageReference Include="Azure.Messaging.ServiceBus" Version="7.20.1" />
+    <PackageReference Include="Azure.Messaging.ServiceBus" Version="7.20.2" />
     <!-- #292 — FastEndpoints moved to the Farkle.Endpoints project with the HTTP endpoints, so
          the domain/application core no longer compiles against the web framework. -->
     <PackageReference Include="Mapster" Version="10.0.7" />
