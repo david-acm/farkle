@@ -20,7 +20,7 @@ using WebApp.Client;
 using WebApp.Telemetry;
 using Farkle.Infrastructure;
 using Farkle.Infrastructure.Identity;
-using Farkle.Infrastructure.Realtime;
+using Farkle.Realtime;
 
 var logger = Log.Logger = new LoggerConfiguration()
   .Enrich.FromLogContext()
@@ -82,9 +82,9 @@ services
   });
 services.AddAuthorization();
 
-// Real-time delivery: SignalR + the GameHub mapping. The broadcast is done directly through
-// IHubContext<GameHub> by GameNotifier in the core (ADR 0005).
-services.AddFarkleRealtime();
+// Real-time delivery: register SignalR (the hub is mapped below). The broadcast is done directly
+// through IHubContext<GameHub> by GameNotifier in the core (ADR 0005).
+services.AddSignalR();
 
 // CORS: allow only the origins listed in Cors:AllowedOrigins (empty by default, so
 // no cross-origin access until configured). Never combine AllowAnyOrigin with
@@ -258,7 +258,7 @@ app.MapWolverineEndpoints(opts =>
 app.MapPost("/api/auth/register", WebApp.Auth.RegisterEndpoint.Post).AllowAnonymous().WithTags("Auth");
 app.MapPost("/api/auth/login", WebApp.Auth.LoginEndpoint.Post).AllowAnonymous().WithTags("Auth");
 
-app.MapFarkleRealtime();
+app.MapHub<GameHub>("/hubs/game");
 
 app.UseAntiforgery();
 
