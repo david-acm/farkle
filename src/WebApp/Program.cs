@@ -202,6 +202,43 @@ if(requireAuth)
   app.UseAuthentication()
       .UseAuthorization();
 
+// #310 (was #237): Wolverine.HTTP endpoints do NOT run through Wolverine's message-retry policies, so
+// a Marten optimistic-concurrency conflict on a concurrent same-stream write (two players / a rapid
+// double-tap racing FetchForWriting) otherwise surfaces to the client as a 500. Retry the request
+// in-process with a short backoff: on JasperFx.ConcurrencyException re-execute the endpoint, which
+// re-fetches the now-advanced stream via [WriteAggregate], re-runs the pure decider, and either
+// succeeds or returns a genuine domain error. Safe because the conflict is thrown at commit — before
+// any response is written (guarded by !Response.HasStarted). Buffer the body so a retried POST rebinds.
+app.Use(async (context, next) =>
+{
+  // Scope to the game write endpoints (POST /api/games/**) — only they append to a stream and can
+  // conflict. SignalR, static assets, auth, and the OpenAPI doc pass straight through, un-buffered.
+  var isGameWrite = HttpMethods.IsPost(context.Request.Method)
+    && context.Request.Path.StartsWithSegments("/api/games");
+  if (!isGameWrite)
+  {
+    await next(context);
+    return;
+  }
+
+  TimeSpan[] cooldowns =
+    [TimeSpan.FromMilliseconds(50), TimeSpan.FromMilliseconds(100), TimeSpan.FromMilliseconds(250)];
+  context.Request.EnableBuffering();   // so a retried POST can re-bind its body
+  for (var attempt = 0; ; attempt++)
+  {
+    try
+    {
+      await next(context);
+      return;
+    }
+    catch (JasperFx.ConcurrencyException) when (attempt < cooldowns.Length && !context.Response.HasStarted)
+    {
+      await Task.Delay(cooldowns[attempt]);
+      context.Request.Body.Position = 0;
+    }
+  }
+});
+
 // #303 — the OpenAPI document (Microsoft.AspNetCore.OpenApi), served at /openapi/v1.json. The
 // verify-generated pipeline fetches it to produce the committed swagger.json + Kiota client.
 app.MapOpenApi();

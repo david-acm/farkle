@@ -251,3 +251,25 @@ These refine the checklist above with what the actual cutover required:
   lazy connect, Wolverine mediator-only) — `verify-generated` produces no drift. The storyboard
   capture and the e2e happy-path both boot the real Marten + Wolverine backend on a lightweight
   Postgres Testcontainer (the storyboard is no longer in-memory / DB-free).
+
+## Optimistic-concurrency retry on the HTTP write path (#310)
+
+Two commands against the **same** `game-{id}` stream (the classic #237 race — a rapid
+set-aside/set-aside/keep, or two players around a turn flip) both `FetchForWriting` at the same
+version and race to append; the loser trips Marten's optimistic-concurrency check
+(`JasperFx.ConcurrencyException` / `EventStreamUnexpectedMaxEventIdException`).
+
+**Wolverine's message-retry policies (`opts.OnException<…>().RetryWithCooldown(…)`) do _not_ apply to
+Wolverine.HTTP endpoints** — only to the message bus (verified empirically; see also
+[JasperFx/wolverine#2033](https://github.com/JasperFx/wolverine/discussions/2033)). Left unhandled the
+conflict surfaces to the client as an HTTP **500**.
+
+**Decision:** retry at the ASP.NET pipeline instead. A small terminal-wrapping middleware in
+`Program.cs` catches `JasperFx.ConcurrencyException` and **re-executes the request** with a short
+backoff (50/100/250 ms). The retry re-runs the endpoint, which re-fetches the now-advanced stream via
+`[WriteAggregate]`, re-runs the pure decider, and either succeeds or returns a genuine domain error
+(e.g. `RolledTwice` → 400). It is safe because the conflict is thrown at commit, before any response
+is written (guarded by `!Response.HasStarted`); the request body is buffered so a retried POST rebinds.
+This keeps every slice unchanged (no `[WriteAggregate]` → manual-loop rewrite, no move to
+`IMessageBus.InvokeAsync`). Covered by `tests/Farkle.WebTests/CrossCutting/ConcurrencyShould.cs`, which
+fires concurrent rolls at one stream and asserts no 412/500 leaks (it failed with a 500 before the fix).
