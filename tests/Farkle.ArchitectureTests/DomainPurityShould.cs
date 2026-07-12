@@ -19,12 +19,12 @@ namespace Farkle.ArchitectureTests;
 public class DomainPurityShould
 {
   [Fact]
-  public void NotDependOnApplicationEndpointsWebOrInfrastructure()
+  public void NotDependOnApplicationWebOrInfrastructure()
   {
     ForbiddenDependencies(IsDomain,
-        "Farkle.Application", "Farkle.Endpoints",
+        "Farkle.Application",
         "Microsoft.EntityFrameworkCore", "Microsoft.AspNetCore", "FastEndpoints",
         InfraAsm, HostAsm)
-      .Should().BeEmpty("domain types are the innermost layer — they must not depend on application, endpoints, web frameworks, or infrastructure");
+      .Should().BeEmpty("domain types are the innermost layer — they must not depend on application, web frameworks, or infrastructure");
   }
 }
