@@ -69,6 +69,15 @@ public abstract class IntegrationTest : IAsyncLifetime
   protected Task<ITrackedSession> TrackAsync(Func<Task> request) =>
     Host.ExecuteAndWaitAsync(request);
 
+  // Fires a raw authorized POST (empty JSON body, like the WASM client) and returns just the status
+  // code — the Kiota client throws on non-2xx, which is awkward when a test wants to inspect the code
+  // (e.g. asserting a concurrency race never surfaces 412/500).
+  protected async Task<System.Net.HttpStatusCode> PostStatusAsync(string relativeUrl)
+  {
+    using var response = await _http.PostAsync(relativeUrl, content: null);
+    return response.StatusCode;
+  }
+
   // Drops the client's bearer token for the duration of the action (to assert the 401 path).
   protected async Task AsAnonymous(Func<Task> action)
   {
