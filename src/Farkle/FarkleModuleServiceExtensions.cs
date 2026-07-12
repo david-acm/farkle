@@ -33,7 +33,7 @@ public static class FarkleModuleServiceExtensions
     services.AddSingleton<IFeedbackWriter, FeedbackWriter>();
 
     // The write/read store (Marten) + command bus (Wolverine) are wired by the host via
-    // AddFarkleCritterStack; SignalR delivery via AddFarkleRealtime.
+    // AddFarkleCritterStack; SignalR delivery via AddSignalR + MapHub in the host.
 
     logger.Information("{Module} module services registered", "Farkle.Domain");
 
