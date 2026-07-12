@@ -12,10 +12,11 @@ WORKDIR /src
 # solution-wide build config + every project file in WebApp's reference graph
 # first, so `dotnet restore` is cached independently of source changes.
 COPY ["global.json", "Directory.Build.props", "./"]
-COPY ["src/Farkle.Contracts/Farkle.Contracts.csproj", "src/Farkle.Contracts/"]
-COPY ["src/Farkle.SharedKernel/Farkle.SharedKernel.csproj", "src/Farkle.SharedKernel/"]
+COPY ["src/Farkle.Shared/Farkle.Shared.csproj", "src/Farkle.Shared/"]
 COPY ["src/Farkle.ApiClient/Farkle.ApiClient.csproj", "src/Farkle.ApiClient/"]
+COPY ["src/Blazor.Dice/Blazor.Dice.csproj", "src/Blazor.Dice/"]
 COPY ["src/Farkle/Farkle.csproj", "src/Farkle/"]
+COPY ["src/Farkle.Infrastructure/Farkle.Infrastructure.csproj", "src/Farkle.Infrastructure/"]
 COPY ["src/WebApp.Client/WebApp.Client.csproj", "src/WebApp.Client/"]
 COPY ["src/WebApp/WebApp.csproj", "src/WebApp/"]
 RUN dotnet restore "src/WebApp/WebApp.csproj"
