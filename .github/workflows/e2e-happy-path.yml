@@ -163,6 +163,44 @@ jobs:
             exit 1
           fi
 
+  # #305 — Production runs on committed, pre-generated Wolverine handler/endpoint code
+  # (TypeLoadMode.Static) for a fast cold start. This job is the codegen analogue of verify-generated:
+  # regenerate the JasperFx code and fail if it drifts from what's committed. `codegen write` runs in
+  # the NSwag environment (--no-launch-profile) so it skips the Identity migrate + static-asset manifest
+  # and needs no database.
+  verify-codegen:
+    name: Verify JasperFx codegen is up to date
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install wasm-tools workload
+        run: dotnet workload install wasm-tools
+
+      - name: Restore
+        run: dotnet restore src/WebApp/WebApp.csproj
+
+      - name: Regenerate JasperFx codegen
+        env:
+          ASPNETCORE_ENVIRONMENT: NSwag
+          Auth__JwtSecret: "ci-codegen-signing-key-0123456789abcdef"
+        run: dotnet run --project src/WebApp/WebApp.csproj --no-launch-profile -- codegen write
+
+      - name: Fail if generated code differs from committed
+        run: |
+          if ! git diff --exit-code -- src/WebApp/Internal/Generated; then
+            echo "::error::src/WebApp/Internal/Generated is out of sync with the source."
+            echo "::error::Run 'dotnet run --project src/WebApp -- codegen write' and commit the result."
+            exit 1
+          fi
+
   e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 30

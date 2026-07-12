@@ -58,23 +58,15 @@ param budgetThresholds array = [ 80, 100 ]
 param budgetAlertEmails array = [ 'changeme@example.com' ]
 
 // ---------------------------------------------------------------------------
-// Naming. Resource names follow the CAF convention "<abbreviation>-<workload>-<env>",
-// dropping the hyphens for the globally-unique storage account whose name rules
-// forbid them (3-24 lowercase alphanumerics). A short deterministic suffix off the
-// resource group + environment keeps the globally-unique names collision-free.
+// Naming. Resource names follow the CAF convention "<abbreviation>-<workload>-<env>".
+// A short deterministic suffix off the resource group + environment keeps the
+// globally-unique names (e.g. the Postgres server) collision-free.
 // ---------------------------------------------------------------------------
 var suffix = take(uniqueString(resourceGroup().id, environmentName), 8)
-var storageName = take(toLower('${resourceAbbreviations.storageAccount}${namePrefix}${suffix}'), 24)
-var fileShareName = 'esdb-data'
 var databaseName = 'farkle_identity'
 
-var esdbAppName = '${resourceAbbreviations.containerApp}-${namePrefix}-esdb-${environmentName}'
 var webAppName = '${resourceAbbreviations.containerApp}-${namePrefix}-web-${environmentName}'
 var budgetName = '${namePrefix}-budget-${environmentName}'
-
-// ESDB runs insecure inside the Container Apps environment; app-to-app TCP is
-// addressed by the container app name on its exposed port.
-var esdbConnectionString = 'esdb://${esdbAppName}:2113?tls=false'
 
 // ---------------------------------------------------------------------------
 // Observability + identity
@@ -142,37 +134,12 @@ module postgres 'br/public:avm/res/db-for-postgre-sql/flexible-server:0.15.4' = 
 var postgresFqdn = postgres.outputs.?fqdn ?? ''
 
 // ---------------------------------------------------------------------------
-// Storage: Azure Files share that backs the EventStore data volume.
-// ---------------------------------------------------------------------------
-module storage 'br/public:avm/res/storage/storage-account:0.32.1' = {
-  name: 'storage'
-  params: {
-    name: storageName
-    location: location
-    skuName: 'Standard_LRS'
-    // The AVM module firewalls the account by default (networkAcls.defaultAction =
-    // Deny), which blocks the Container Apps environment from mounting the Azure Files
-    // share (CIFS "mount error(13): Permission denied") so ESDB never starts. Allow
-    // access so the file mount works.
-    publicNetworkAccess: 'Enabled'
-    networkAcls: {
-      defaultAction: 'Allow'
-      bypass: 'AzureServices'
-    }
-    fileServices: {
-      shares: [ { name: fileShareName } ]
-    }
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Container Apps environment + the Azure Files storage definition for ESDB.
-// AVM looks up the storage account key from storageAccountName internally; the
-// env storage `name` doubles as the file share name (esdb-data).
+// Container Apps environment. Postgres is the single stateful store (ADR 0004):
+// Marten's event store + Identity share the managed Postgres above, so there is
+// no Azure Files share / storage account to mount anymore.
 // ---------------------------------------------------------------------------
 module containerEnv 'br/public:avm/res/app/managed-environment:0.13.3' = {
   name: 'container-env'
-  dependsOn: [ storage ]
   params: {
     name: '${resourceAbbreviations.containerAppsEnvironment}-${namePrefix}-${environmentName}'
     location: location
@@ -185,56 +152,6 @@ module containerEnv 'br/public:avm/res/app/managed-environment:0.13.3' = {
       destination: 'log-analytics'
       logAnalyticsWorkspaceResourceId: logAnalytics.outputs.resourceId
     }
-    storages: [
-      {
-        name: fileShareName
-        accessMode: 'ReadWrite'
-        kind: 'SMB'
-        storageAccountName: storageName
-      }
-    ]
-  }
-}
-
-// ---------------------------------------------------------------------------
-// EventStore container app — internal TCP on 2113, persistent Azure Files volume.
-// ---------------------------------------------------------------------------
-module esdbApp 'br/public:avm/res/app/container-app:0.22.1' = {
-  name: 'esdb-app'
-  params: {
-    name: esdbAppName
-    location: location
-    environmentResourceId: containerEnv.outputs.resourceId
-    ingressExternal: false
-    ingressTargetPort: 2113
-    ingressTransport: 'tcp'
-    ingressAllowInsecure: true
-    scaleSettings: { minReplicas: 1, maxReplicas: 1 }
-    volumes: [
-      {
-        name: fileShareName
-        storageType: 'AzureFile'
-        storageName: fileShareName
-      }
-    ]
-    containers: [
-      {
-        name: 'esdb'
-        image: 'eventstore/eventstore:23.10.0-bookworm-slim'
-        resources: { cpu: json('0.5'), memory: '1Gi' }
-        env: [
-          { name: 'EVENTSTORE_INSECURE', value: 'true' }
-          { name: 'EVENTSTORE_CLUSTER_SIZE', value: '1' }
-          { name: 'EVENTSTORE_RUN_PROJECTIONS', value: 'All' }
-          { name: 'EVENTSTORE_START_STANDARD_PROJECTIONS', value: 'true' }
-          { name: 'EVENTSTORE_HTTP_PORT', value: '2113' }
-          { name: 'EVENTSTORE_ENABLE_ATOM_PUB_OVER_HTTP', value: 'true' }
-        ]
-        volumeMounts: [
-          { volumeName: fileShareName, mountPath: '/var/lib/eventstore' }
-        ]
-      }
-    ]
   }
 }
 
@@ -282,10 +199,6 @@ module webApp 'br/public:avm/res/app/container-app:0.22.1' = {
         // uses plain password auth whenever the connection string carries a password.
         value: 'Host=${postgresFqdn};Database=${databaseName};Username=${postgresAdminLogin};Password=${postgresAdminPassword};SSL Mode=Require;Trust Server Certificate=true'
       }
-      {
-        name: 'connectionstrings-esdb'
-        value: esdbConnectionString
-      }
     ]
     containers: [
       {
@@ -301,7 +214,6 @@ module webApp 'br/public:avm/res/app/container-app:0.22.1' = {
           { name: 'Auth__RequireAuthorization', value: 'false' }
           { name: 'Auth__JwtSecret', secretRef: 'auth-jwtsecret' }
           { name: 'ConnectionStrings__Identity', secretRef: 'connectionstrings-identity' }
-          { name: 'ConnectionStrings__Esdb', secretRef: 'connectionstrings-esdb' }
           // Tells DefaultAzureCredential which user-assigned identity to use for the Postgres token.
           { name: 'AZURE_CLIENT_ID', value: identityClientId }
           // #33 — Serilog reads this to enable the Application Insights sink (absent locally → console only).

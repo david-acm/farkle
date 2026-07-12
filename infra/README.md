@@ -24,18 +24,16 @@ Created/destroyed each lifecycle cycle; references the persistent stack by outpu
 | Resource | AVM module | Notes |
 |---|---|---|
 | Log Analytics workspace | `operational-insights/workspace` | Container Apps logs |
-| PostgreSQL Flexible Server | `db-for-postgre-sql/flexible-server` | managed Identity DB (`farkle_identity`) |
-| Storage account + file share | `storage/storage-account` | Azure Files volume for EventStore data |
-| Container Apps environment | `app/managed-environment` | wired to Log Analytics + the file share |
-| EventStore container app | `app/container-app` | internal TCP `:2113`, persistent volume |
+| PostgreSQL Flexible Server | `db-for-postgre-sql/flexible-server` | the single stateful store (ADR 0004): Marten's event store + Identity, DB `farkle_identity` |
+| Container Apps environment | `app/managed-environment` | wired to Log Analytics |
 | WebApp container app | `app/container-app` | external `:8080`, pulls **privately** from the persistent ACR via the persistent identity; health probes |
 | Cost budget | `consumption/budget/rg-scope` | monthly RG budget; emails at the configured thresholds |
 
 **Secrets** never live in source. `jwt-secret` lives in the persistent Key Vault and the
 WebApp reads it via a KV reference using the persistent managed identity (`Auth__JwtSecret`).
 The Postgres connection string (`ConnectionStrings__Identity`) is assembled as a Container App
-**value secret** from the disposable Postgres FQDN + the `@secure()` admin password. EventStore
-runs insecure inside the environment, so its connection string is assembled in Bicep.
+**value secret** from the disposable Postgres FQDN + the `@secure()` admin password. Marten shares
+that same Postgres (its own schema), so there is no separate event-store connection string.
 
 **Health probes** target the app's `/health/live` (liveness) and `/health/ready`
 (readiness) endpoints.
@@ -200,7 +198,7 @@ spend via OIDC rather than receiving a push. The Azure budget still sends its th
 **emails** — that's the alert.
 
 **Teardown deletes the whole *disposable* resource group** (`az group delete`), including
-**all Postgres/EventStore data**. The **persistent** RG (ACR + Key Vault + identity) is untouched,
+**all Postgres data** (Marten's events + Identity). The **persistent** RG (ACR + Key Vault + identity) is untouched,
 so the image survives and "provision" just **redeploys the latest image** — no rebuild. Acceptable
 for a dev environment; do not point this at anything whose data you need to keep. Teardown is
 idempotent (a no-op if the RG is already gone).

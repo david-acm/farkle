@@ -1,6 +1,8 @@
 using System.Reflection;
 using System.Text;
 using Farkle;
+using JasperFx;
+using JasperFx.CodeGeneration;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
@@ -99,6 +101,33 @@ services.AddCors(o =>
 services.AddFarkleModuleServices(builder.Configuration, logger, new List<Assembly>());
 var martenConn = identityConn ?? "Host=localhost;Database=farkle;Username=postgres;Password=postgres";
 services.AddFarkleCritterStack(martenConn, lightweight: builder.Environment.IsEnvironment("NSwag"));
+
+// #305 — JasperFx owns the Critter Stack codegen + resource strategy per environment and lights up the
+// `dotnet run -- describe | resources | codegen | db-apply | projections` CLI (dispatched at the bottom
+// of this file). Marten manages its own schema (CreateOrUpdate — no hand-written event/projection
+// migrations); Identity keeps its EF migrations.
+//
+// Codegen mode: real Production runs on committed, pre-generated code (TypeLoadMode.Static, in
+// src/WebApp/Internal/Generated) → fast cold start, no runtime Roslyn, and it fails fast if that code
+// is missing. Development (tests + local dev) and the OpenAPI GetDocument boot (the "NSwag" environment,
+// which maps to the Production profile but must not depend on committed code being current) generate
+// in-memory (Dynamic). verify-codegen keeps the committed code in sync.
+var useStaticCodegen = builder.Environment.IsProduction();
+services.AddJasperFx(opts =>
+{
+  // The generated handler/endpoint code is committed under this host project (src/WebApp/Internal/
+  // Generated) and compiled into WebApp. AddWolverine is called from the Farkle assembly, so without
+  // this JasperFx would look for the pre-built types in Farkle and throw ExpectedTypeMissingException
+  // under Static. Point it at the host assembly where the code actually lives.
+  opts.ApplicationAssembly = typeof(Program).Assembly;
+
+  opts.Development.GeneratedCodeMode  = TypeLoadMode.Dynamic;
+  opts.Development.ResourceAutoCreate  = AutoCreate.CreateOrUpdate;
+  opts.Production.GeneratedCodeMode   = useStaticCodegen ? TypeLoadMode.Static : TypeLoadMode.Dynamic;
+  opts.Production.ResourceAutoCreate   = AutoCreate.CreateOrUpdate;
+  // Fail startup (rather than silently regenerating) if the committed code is missing in prod.
+  opts.Production.AssertAllPreGeneratedTypesExist = useStaticCodegen;
+});
 
 // #303 — Wolverine.HTTP hosts the game endpoints from their slices (migrating off FastEndpoints).
 services.AddWolverineHttp();
@@ -241,6 +270,9 @@ if (!app.Environment.IsEnvironment("NSwag") && !skipIdentitySeed)
     }
 }
 
-app.Run();
+// #305 — dispatch through the JasperFx command line: no args runs the host as before, while
+// `dotnet run -- describe | resources | codegen | db-apply | projections` runs the matching tool
+// (schema management, codegen, diagnostics) against this exact configuration.
+return await app.RunJasperFxCommands(args);
 
 public partial class Program { }

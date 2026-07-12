@@ -5,21 +5,92 @@
     "version": "1.0.0"
   },
   "paths": {
-    "/api/games": {
+    "/api/games/{gameId}/start": {
       "post": {
         "tags": [
-          "Farkle.Features.StartGame.StartGameEndpoint"
+          "Farkle.Features.BeginGame.BeginGameEndpoint"
         ],
-        "summary": "POST_api_games",
-        "description": "POST_api_games",
-        "operationId": "POST_api_games",
+        "summary": "POST_api_games_gameId_start",
+        "description": "POST_api_games_gameId_start",
+        "operationId": "POST_api_games_gameId_start",
+        "parameters": [
+          {
+            "name": "gameId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BeginGameRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/StartGameResponse"
+                  "$ref": "#/components/schemas/LobbyStateResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": { }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/feedback": {
+      "post": {
+        "tags": [
+          "Farkle.Features.Feedback.SubmitFeedbackEndpoint"
+        ],
+        "summary": "POST_api_feedback",
+        "description": "POST_api_feedback",
+        "operationId": "POST_api_feedback",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitFeedbackRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmitFeedbackResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
                 }
               }
             }
@@ -27,14 +98,106 @@
         }
       }
     },
-    "/api/games/{gameId}/players/{playerId}/setasides": {
+    "/api/games/{gameId}": {
+      "get": {
+        "tags": [
+          "Farkle.Features.GetGame.GetGameEndpoint"
+        ],
+        "summary": "GET_api_games_gameId",
+        "description": "GET_api_games_gameId",
+        "operationId": "GET_api_games_gameId",
+        "parameters": [
+          {
+            "name": "gameId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GameStateResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": { }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/games/{gameId}/players": {
       "post": {
         "tags": [
-          "Farkle.Features.SetDiceAside.SetDiceAsideEndpoint"
+          "Farkle.Features.JoinPlayer.JoinPlayerEndpoint"
         ],
-        "summary": "POST_api_games_gameId_players_playerId_setasides",
-        "description": "POST_api_games_gameId_players_playerId_setasides",
-        "operationId": "POST_api_games_gameId_players_playerId_setasides",
+        "summary": "POST_api_games_gameId_players",
+        "description": "POST_api_games_gameId_players",
+        "operationId": "POST_api_games_gameId_players",
+        "parameters": [
+          {
+            "name": "gameId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JoinPlayerRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JoinPlayerResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": { }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/games/{gameId}/players/{playerId}/keeps": {
+      "post": {
+        "tags": [
+          "Farkle.Features.KeepDice.KeepDiceEndpoint"
+        ],
+        "summary": "POST_api_games_gameId_players_playerId_keeps",
+        "description": "POST_api_games_gameId_players_playerId_keeps",
+        "operationId": "POST_api_games_gameId_players_playerId_keeps",
         "parameters": [
           {
             "name": "gameId",
@@ -59,7 +222,117 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SetDiceAsideRequest"
+                "$ref": "#/components/schemas/KeepDiceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KeepDiceResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": { }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/games/{gameId}/players/{playerId}/turns": {
+      "post": {
+        "tags": [
+          "Farkle.Features.PassTurn.PassTurnEndpoint"
+        ],
+        "summary": "POST_api_games_gameId_players_playerId_turns",
+        "description": "POST_api_games_gameId_players_playerId_turns",
+        "operationId": "POST_api_games_gameId_players_playerId_turns",
+        "parameters": [
+          {
+            "name": "gameId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "playerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PassTurnResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": { }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/games/{gameId}/players/{playerId}/putbacks": {
+      "post": {
+        "tags": [
+          "Farkle.Features.ReturnDice.ReturnDiceEndpoint"
+        ],
+        "summary": "POST_api_games_gameId_players_playerId_putbacks",
+        "description": "POST_api_games_gameId_players_playerId_putbacks",
+        "operationId": "POST_api_games_gameId_players_playerId_putbacks",
+        "parameters": [
+          {
+            "name": "gameId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "playerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReturnDiceRequest"
               }
             }
           },
@@ -137,14 +410,14 @@
         }
       }
     },
-    "/api/games/{gameId}/players/{playerId}/putbacks": {
+    "/api/games/{gameId}/players/{playerId}/setasides": {
       "post": {
         "tags": [
-          "Farkle.Features.ReturnDice.ReturnDiceEndpoint"
+          "Farkle.Features.SetDiceAside.SetDiceAsideEndpoint"
         ],
-        "summary": "POST_api_games_gameId_players_playerId_putbacks",
-        "description": "POST_api_games_gameId_players_playerId_putbacks",
-        "operationId": "POST_api_games_gameId_players_playerId_putbacks",
+        "summary": "POST_api_games_gameId_players_playerId_setasides",
+        "description": "POST_api_games_gameId_players_playerId_setasides",
+        "operationId": "POST_api_games_gameId_players_playerId_setasides",
         "parameters": [
           {
             "name": "gameId",
@@ -169,7 +442,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ReturnDiceRequest"
+                "$ref": "#/components/schemas/SetDiceAsideRequest"
               }
             }
           },
@@ -197,295 +470,22 @@
         }
       }
     },
-    "/api/games/{gameId}/players/{playerId}/turns": {
+    "/api/games": {
       "post": {
         "tags": [
-          "Farkle.Features.PassTurn.PassTurnEndpoint"
+          "Farkle.Features.StartGame.StartGameEndpoint"
         ],
-        "summary": "POST_api_games_gameId_players_playerId_turns",
-        "description": "POST_api_games_gameId_players_playerId_turns",
-        "operationId": "POST_api_games_gameId_players_playerId_turns",
-        "parameters": [
-          {
-            "name": "gameId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          },
-          {
-            "name": "playerId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          }
-        ],
+        "summary": "POST_api_games",
+        "description": "POST_api_games",
+        "operationId": "POST_api_games",
         "responses": {
           "200": {
             "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PassTurnResponse"
+                  "$ref": "#/components/schemas/StartGameResponse"
                 }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": { }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/games/{gameId}/players/{playerId}/keeps": {
-      "post": {
-        "tags": [
-          "Farkle.Features.KeepDice.KeepDiceEndpoint"
-        ],
-        "summary": "POST_api_games_gameId_players_playerId_keeps",
-        "description": "POST_api_games_gameId_players_playerId_keeps",
-        "operationId": "POST_api_games_gameId_players_playerId_keeps",
-        "parameters": [
-          {
-            "name": "gameId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          },
-          {
-            "name": "playerId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/KeepDiceRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/KeepDiceResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": { }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/games/{gameId}/players": {
-      "post": {
-        "tags": [
-          "Farkle.Features.JoinPlayer.JoinPlayerEndpoint"
-        ],
-        "summary": "POST_api_games_gameId_players",
-        "description": "POST_api_games_gameId_players",
-        "operationId": "POST_api_games_gameId_players",
-        "parameters": [
-          {
-            "name": "gameId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/JoinPlayerRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/JoinPlayerResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": { }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/games/{gameId}": {
-      "get": {
-        "tags": [
-          "Farkle.Features.GetGame.GetGameEndpoint"
-        ],
-        "summary": "GET_api_games_gameId",
-        "description": "GET_api_games_gameId",
-        "operationId": "GET_api_games_gameId",
-        "parameters": [
-          {
-            "name": "gameId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GameStateResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": { }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/feedback": {
-      "post": {
-        "tags": [
-          "Farkle.Features.Feedback.SubmitFeedbackEndpoint"
-        ],
-        "summary": "POST_api_feedback",
-        "description": "POST_api_feedback",
-        "operationId": "POST_api_feedback",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SubmitFeedbackRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SubmitFeedbackResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/games/{gameId}/start": {
-      "post": {
-        "tags": [
-          "Farkle.Features.BeginGame.BeginGameEndpoint"
-        ],
-        "summary": "POST_api_games_gameId_start",
-        "description": "POST_api_games_gameId_start",
-        "operationId": "POST_api_games_gameId_start",
-        "parameters": [
-          {
-            "name": "gameId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/BeginGameRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LobbyStateResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": { }
               }
             }
           }
@@ -1147,34 +1147,34 @@
   },
   "tags": [
     {
-      "name": "Farkle.Features.StartGame.StartGameEndpoint"
-    },
-    {
-      "name": "Farkle.Features.SetDiceAside.SetDiceAsideEndpoint"
-    },
-    {
-      "name": "Farkle.Features.RollDice.RollDiceEndpoint"
-    },
-    {
-      "name": "Farkle.Features.ReturnDice.ReturnDiceEndpoint"
-    },
-    {
-      "name": "Farkle.Features.PassTurn.PassTurnEndpoint"
-    },
-    {
-      "name": "Farkle.Features.KeepDice.KeepDiceEndpoint"
-    },
-    {
-      "name": "Farkle.Features.JoinPlayer.JoinPlayerEndpoint"
-    },
-    {
-      "name": "Farkle.Features.GetGame.GetGameEndpoint"
+      "name": "Farkle.Features.BeginGame.BeginGameEndpoint"
     },
     {
       "name": "Farkle.Features.Feedback.SubmitFeedbackEndpoint"
     },
     {
-      "name": "Farkle.Features.BeginGame.BeginGameEndpoint"
+      "name": "Farkle.Features.GetGame.GetGameEndpoint"
+    },
+    {
+      "name": "Farkle.Features.JoinPlayer.JoinPlayerEndpoint"
+    },
+    {
+      "name": "Farkle.Features.KeepDice.KeepDiceEndpoint"
+    },
+    {
+      "name": "Farkle.Features.PassTurn.PassTurnEndpoint"
+    },
+    {
+      "name": "Farkle.Features.ReturnDice.ReturnDiceEndpoint"
+    },
+    {
+      "name": "Farkle.Features.RollDice.RollDiceEndpoint"
+    },
+    {
+      "name": "Farkle.Features.SetDiceAside.SetDiceAsideEndpoint"
+    },
+    {
+      "name": "Farkle.Features.StartGame.StartGameEndpoint"
     },
     {
       "name": "Auth"

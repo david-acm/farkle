@@ -66,11 +66,6 @@ public static class CritterStackServiceExtensions
       foreach (var assembly in additionalEndpointAssemblies)
         opts.Discovery.IncludeAssembly(assembly);
 
-      // #303 — compile the generated handler/endpoint code in-memory rather than writing it to the
-      // build output. Dynamic avoids concurrent app instances (the per-class WebApplicationFactory
-      // tests) racing to write the same generated .cs files. Static pre-compilation is #305.
-      opts.CodeGeneration.TypeLoadMode = JasperFx.CodeGeneration.TypeLoadMode.Dynamic;
-
       if (lightweight)
         opts.Durability.Mode = DurabilityMode.MediatorOnly;   // no message-store/agents at startup
     });
