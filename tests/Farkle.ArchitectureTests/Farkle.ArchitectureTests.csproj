@@ -27,12 +27,11 @@
 
   <!-- References every production project so the architecture model can load all assemblies
        (via Mono.Cecil) and assert cross-project dependency rules. WebApp transitively brings
-       Farkle, WebApp.Client, Farkle.Contracts and Farkle.SharedKernel; reference them explicitly
+       Farkle, WebApp.Client, Farkle.Shared; reference them explicitly
        too so their DLLs are guaranteed in the test output for the directory-based loader. -->
   <ItemGroup>
     <ProjectReference Include="..\..\src\Farkle\Farkle.csproj" />
-    <ProjectReference Include="..\..\src\Farkle.Contracts\Farkle.Contracts.csproj" />
-    <ProjectReference Include="..\..\src\Farkle.SharedKernel\Farkle.SharedKernel.csproj" />
+    <ProjectReference Include="..\..\src\Farkle.Shared\Farkle.Shared.csproj" />
     <ProjectReference Include="..\..\src\Farkle.ApiClient\Farkle.ApiClient.csproj" />
     <ProjectReference Include="..\..\src\WebApp\WebApp.csproj" />
     <ProjectReference Include="..\..\src\WebApp.Client\WebApp.Client.csproj" />

@@ -46,8 +46,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Farkle.Contracts\Farkle.Contracts.csproj" />
-    <ProjectReference Include="..\Farkle.SharedKernel\Farkle.SharedKernel.csproj" />
+    <ProjectReference Include="..\Farkle.Shared\Farkle.Shared.csproj" />
   </ItemGroup>
 
 </Project>
