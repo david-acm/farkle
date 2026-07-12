@@ -1,9 +1,10 @@
 namespace Farkle.Domain.GameAggregate;
 
-// Commands are public — they are the Wolverine messages (the write-side's contract). The computed
-// `Id` on each stream-mutating command yields the "game-{code}" stream key so Wolverine's
-// [AggregateHandler] resolves the aggregate by convention (Option A, ADR 0004). StartGame is handled
-// by a StartStream handler, so it needs no Id.
+// Commands are the write-side's contract. Each slice's Wolverine.HTTP endpoint constructs its command
+// inline and passes it to the pure decider (`Decide(command, state) -> events`); the endpoint loads the
+// aggregate via [WriteAggregate(FromMethod = nameof(StreamId))] where `StreamId(int)` yields the
+// "game-{code}" stream key (ADR 0004, as-shipped Option C). Commands are not dispatched as messages.
+// StartGame has no existing stream, so it goes through IGameCreator (StartStream) instead.
 public static class Command
 {
   public record KeepDice(GameId GameId, PlayerId PlayerId, IEnumerable<DieValue> DiceValues)

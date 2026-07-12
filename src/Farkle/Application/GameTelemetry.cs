@@ -8,7 +8,7 @@ namespace Farkle.Application;
 /// #33 — emits one structured log event per committed domain event, so every game action
 /// (roll, keep, pass, join, win, and rejected commands) lands in Azure Monitor / Application
 /// Insights as a queryable custom event. Pure and infra-free: it takes an <see cref="ILogger"/>
-/// and the event, so it's trivially unit-testable; the Eventuous wiring lives in
+/// and the event, so it's trivially unit-testable; the Wolverine handler wiring lives in
 /// <see cref="GameTelemetryHandler"/>.
 ///
 /// Structured properties (EventType, GameId, PlayerId, Position, and the destructured GameEvent)

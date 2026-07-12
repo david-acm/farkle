@@ -2,6 +2,16 @@
 
 Status: **Accepted** (#302). Supersedes ADR 0001 and ADR 0003.
 
+> **Outcome (as shipped, #303).** This ADR plans Option A (`[AggregateHandler]` methods) for #302
+> and Option C (Wolverine.HTTP `[WriteAggregate]` route-binding) as the #303 target — see *Handler
+> identity* below. The code shipped **Option C**: there is **no `[AggregateHandler]` in the final
+> codebase**. Each slice's Wolverine.HTTP endpoint takes `[WriteAggregate(FromMethod = nameof(StreamId))]
+> GameState state`, calls the pure decider directly, and returns a
+> `(Results<Ok<T>, ProblemHttpResult>, Events, GameNotifications.X?)` tuple; commands are constructed
+> inline, never dispatched. Read the decision text below as the *rationale that led there* — where it says
+> "`[AggregateHandler]`", the as-shipped equivalent is the `[WriteAggregate]` endpoint. See
+> [`../critter-stack-onboarding.md`](../critter-stack-onboarding.md) for the current shape.
+
 ## Context
 
 ADR 0001 kept the domain **framework-free** — no Marten/Wolverine reference in `Farkle`,

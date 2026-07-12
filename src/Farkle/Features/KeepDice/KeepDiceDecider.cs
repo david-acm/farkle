@@ -6,7 +6,7 @@ namespace Farkle.Features.KeepDice;
 
 // Pure decision for the KeepDice slice: move scoring dice from the table into the hand and update
 // the turn score. Validation-as-events: must be in turn, actually hold those dice, and they must
-// score. Emits the V1.DiceKept the production command path uses (GameService wires game.KeepDice).
+// score. Emits V1.DiceKept, which the slice endpoint appends to the game-{id} stream.
 internal static class KeepDiceDecider
 {
   public static IEnumerable<object> Decide(Command.KeepDice command, GameState state)

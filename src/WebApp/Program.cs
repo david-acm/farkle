@@ -153,7 +153,7 @@ builder.Services.RegisterClientServices();
 
 var app = builder.Build();
 
-// Health endpoints, mapped before CORS/auth/FastEndpoints so they always answer
+// Health endpoints, mapped before CORS/auth/the Wolverine endpoints so they always answer
 // anonymously (never gated by Auth:RequireAuthorization). Liveness runs no checks
 // (just "process is up"); readiness runs the "ready"-tagged Postgres check (which
 // also covers Marten's event store — it shares the DB). These are minimal-API
@@ -193,7 +193,7 @@ if (!app.Environment.IsEnvironment("NSwag"))
 if (!app.Environment.IsEnvironment("NSwag"))
     app.SetUpFarkleModule();
 
-// Before authentication and the endpoints so preflight + FastEndpoints/Swagger
+// Before authentication and the endpoints so preflight + Wolverine.HTTP/OpenAPI
 // responses carry the CORS headers.
 app.UseCors("FarklePolicy");
 
