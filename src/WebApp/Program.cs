@@ -82,7 +82,8 @@ services
   });
 services.AddAuthorization();
 
-// Real-time delivery (SignalR + the IGameEventBroadcaster) lives in Farkle.Infrastructure.
+// Real-time delivery: SignalR + the GameHub mapping. The broadcast is done directly through
+// IHubContext<GameHub> by GameNotifier in the core (ADR 0005).
 services.AddFarkleRealtime();
 
 // CORS: allow only the origins listed in Cors:AllowedOrigins (empty by default, so
