@@ -4,27 +4,36 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Overview
 
-**Farkle** is a sample .NET application demonstrating Event Sourcing, CQRS, Clean Architecture, and Event Modelling patterns. It implements the Greedy/Farkle dice game as a backend API (WebApi) and a frontend (Blazor Server host + WASM client) with **real-time multiplayer** over SignalR.
+**Farkle** is a sample .NET application demonstrating Event Sourcing, CQRS, and **vertical-slice
+architecture** on the **Critter Stack** (Marten + Wolverine). It implements the Greedy/Farkle dice
+game as a backend API + a frontend (Blazor Server host + WASM client) with **real-time multiplayer**
+over SignalR.
 
 The codebase prioritizes architectural patterns and test-driven development:
-- **Event Sourcing** with the Eventuous framework and EventStore (ESDB)
-- **CQRS** separation of commands and queries
-- **Domain-Driven Design** with an aggregate root and validation
-- **Real-time multiplayer** via a SignalR hub broadcasting turn changes
-- **Comprehensive testing** (unit, integration, component, E2E with Playwright)
+- **Event Sourcing** with **Marten** on a single PostgreSQL (events + the `GameState` snapshot)
+- **CQRS** — commands mutate one event stream; a Marten `Inline` snapshot is the read model
+- **Vertical slices** — one feature = one folder (command + pure decider + Wolverine.HTTP endpoint + response + tests)
+- **Real-time multiplayer** — a cascaded notification through the Marten/Wolverine **outbox** → SignalR
+- **Comprehensive testing** (domain unit, Alba + TrackedSession integration, bUnit component, Playwright E2E)
+
+> **New here? Read [`docs/critter-stack-onboarding.md`](docs/critter-stack-onboarding.md) first** — slice
+> anatomy, the Critter Stack mindset, dev heuristics, and an "add a slice" walkthrough. This file is the
+> reference; that doc is the tour.
 
 ### Key Technologies
 
 | Layer | Stack |
 |-------|-------|
-| Backend API | .NET 10, FastEndpoints 8.x, Eventuous 0.15.1 |
-| Event Store | EventStore DB (ESDB) via `EventStore.Client.Grpc` |
-| Identity DB | PostgreSQL + EF Core (ASP.NET Identity) |
+| Backend API | .NET 10, **Wolverine.HTTP 6.16** (endpoints + message bus + Marten-backed outbox) |
+| Event store + read model | **Marten 9.12** on **PostgreSQL** (one store: events + the `GameState` snapshot) |
+| Identity DB | PostgreSQL + EF Core (ASP.NET Identity) — the only EF-managed schema |
 | Real-time | ASP.NET Core SignalR (`/hubs/game`) |
+| OpenAPI | Built-in `Microsoft.AspNetCore.OpenApi` (`/openapi/v1.json`) |
 | Frontend | Blazor Server host + Blazor WASM client, MudBlazor, BlazorState |
 | API Client | Kiota-generated `Farkle.ApiClient` (shared by WASM client and tests) |
-| Auth | JWT bearer (FastEndpoints.Security), ASP.NET Identity |
-| Testing | xUnit, FluentAssertions, Playwright, Testcontainers, bUnit, Moq, AutoFixture |
+| Auth | JWT bearer (ASP.NET `AddJwtBearer`), ASP.NET Identity |
+| Tooling | **JasperFx CLI** (`describe`/`resources`/`codegen`/`projections`), static prod codegen |
+| Testing | xUnit, FluentAssertions, **Alba**, Playwright, Testcontainers, bUnit, Moq, AutoFixture |
 | Infrastructure | Docker Compose, GitHub Actions CI/CD, CodeQL |
 
 > **.NET version note:** `Directory.Build.props` sets a default `TargetFramework` of `net8.0`, but every project explicitly overrides it to `net10.0`. The repo targets **.NET 10** (`global.json` pins SDK `10.0.0`, roll-forward `feature`). The `verify-generated` CI job installs both 8.0.x and 10.0.x SDKs because the Kiota tooling needs 8.0.
@@ -35,159 +44,175 @@ The codebase prioritizes architectural patterns and test-driven development:
 
 ```
 src/
-├── Farkle/                    # Core domain + application + endpoints (Event Sourcing)
-│   ├── Domain/GameAggregate/  # Aggregate root, events, validators, scoring
-│   ├── Application/           # GameService (command service), IGameEventBroadcaster
-│   ├── Endpoints/             # FastEndpoints (StartGame, RollDice, KeepDice, PassTurn, JoinPlayer)
-│   └── FarkleModuleServiceExtensions.cs  # DI registration (domain/application only — infra-free)
-├── Farkle.Contracts/          # HTTP request/response DTOs (no dependencies)
-├── Farkle.SharedKernel/       # Shared utilities (Result extensions, TypedEndpoint base)
-├── Farkle.Infrastructure/     # All server infrastructure (depends on Farkle; implements its ports)
-│   ├── Persistence/           # ESDB event store + AddFarkleEventStore + EventStoreHealthCheck
-│   ├── ReadModel/             # EF/Postgres GameView store, projector subscription, checkpoints
-│   ├── Realtime/              # GameHub + SignalRGameEventBroadcaster (AddFarkleRealtime)
-│   ├── Identity/              # AppUser, AppDbContext, Entra data source (AddFarkleIdentity)
-│   └── Migrations/            # EF Core Identity + ReadModel migrations (PostgreSQL)
-├── Farkle.ApiClient/          # GENERATED Kiota client (do not hand-edit) — shared client
-├── WebApp/                    # Blazor Server host (thin composition root)
-│   ├── Auth/                  # Register/login endpoints + JWT (DTOs); persistence lives in Farkle.Infrastructure
-│   └── Program.cs             # Composition root (wires Farkle module + Farkle.Infrastructure, WASM)
-├── WebApp.Client/             # Blazor WASM client
-│   ├── Features/              # BlazorState GameState + Actions/ (Redux-like reducers)
-│   ├── Pages/Game/Components/ # Dice, Scoreboard, buttons, drag-and-drop UI
-│   └── Services/              # IGameService, IGameHubService, RotationCalculator
+├── Farkle/                        # Core: shared aggregate kernel + vertical slices (framework-embracing)
+│   ├── Features/                  # ONE FOLDER PER SLICE — command handled by the endpoint, pure decider
+│   │   ├── StartGame/  JoinPlayer/  BeginGame/  RollDice/  KeepDice/
+│   │   ├── SetDiceAside/  ReturnDice/  PassTurn/  GetGame/  Feedback/
+│   │   │                          #   each: <Command>Decider.cs (pure) + <Command>Endpoint.cs (Wolverine.HTTP)
+│   │   ├── Responses/             # GameState→DTO mappers (GameStateMapper/LobbyMapper/PassTurnMapper)
+│   │   └── GameNotifications.cs   # cascaded outbox notifications (LobbyChanged, GameBegan, …, TurnChanged)
+│   ├── Domain/GameAggregate/      # SHARED KERNEL: GameState (Marten snapshot), GameEvents (V1/V2),
+│   │                              #   Command, GameValidator, value objects (DieValue, GameId, Score, Player)
+│   ├── Application/               # GameCreator, GameNotifier, GameBroadcastHandler, GameTelemetryHandler, feedback
+│   ├── CritterStackServiceExtensions.cs   # AddFarkleCritterStack (AddMarten + IntegrateWithWolverine + AddWolverine)
+│   └── FarkleModuleServiceExtensions.cs   # domain/application DI (IGameCreator, IRandom, GameNotifier, …)
+├── Farkle.Contracts/              # HTTP request/response DTOs (dependency-free leaf)
+├── Farkle.SharedKernel/           # Pure domain logic shared with the WASM client (ScoreCalculator, TurnActionPolicy, GameStage)
+├── Farkle.Infrastructure/         # Server infrastructure that isn't Marten/Wolverine
+│   ├── Realtime/                  # GameHub + SignalRGameEventBroadcaster (AddFarkleRealtime)
+│   ├── Identity/                  # AppUser, AppDbContext, Entra data source (AddFarkleIdentity)
+│   └── Migrations/                # EF Core Identity migrations (PostgreSQL)
+├── Farkle.ApiClient/              # GENERATED Kiota client (do not hand-edit) — shared client
+├── WebApp/                        # Blazor Server host (composition root)
+│   ├── Internal/Generated/        # GENERATED Wolverine handler/endpoint code (static prod codegen — do not hand-edit)
+│   ├── Auth/                      # Register/login minimal-API endpoints + JWT
+│   └── Program.cs                 # Composition root (Critter Stack + Wolverine.HTTP + WASM)
+├── WebApp.Client/                 # Blazor WASM client
+│   ├── Features/                  # BlazorState GameState + Actions/ (Redux-like reducers)
+│   ├── Pages/Game/Components/     # Dice, Scoreboard, buttons, drag-and-drop UI
+│   └── Services/                  # IGameService, IGameHubService, RotationCalculator
+└── Blazor.Dice/                   # Reusable CSS-3D dice component (RCL)
 
-infra/                         # Azure Bicep IaC (AVM) — main.bicep + modules + env/*.bicepparam
-└── modules/workload.bicep     # Container Apps env, ESDB + WebApp apps, Postgres, Key Vault, ACR
+infra/                             # Azure Bicep IaC (AVM) — main.bicep + modules + env/*.bicepparam
+└── modules/workload.bicep         # Container Apps env, WebApp app, Postgres, Key Vault, ACR, budget
 
 tests/
-├── Farkle.Tests/              # Unit tests for the domain (Game, validators, state)
-├── Farkle.WebTests/           # Integration tests (API + SignalR via WebApplicationFactory + Testcontainers)
-├── Farkle.E2eTests/           # End-to-end tests (Playwright, two-player happy path, video + screenshots)
-├── Farkle.SpaTests/           # Component tests (bUnit) for WASM components
-└── Farkle.ArchitectureTests/  # ArchUnitNET guardrails for solution organization + dependency rules
+├── Farkle.Tests/                  # Domain unit + pure decider tests (Features/<Command>/*DeciderShould)
+├── Farkle.WebTests/               # Integration (Alba + TrackedSession, Postgres via Testcontainers) — Slices/ per feature
+├── Farkle.E2eTests/               # Playwright two-player happy path (+ Storyboard capture)
+├── Farkle.SpaTests/               # bUnit component + BlazorState handler tests
+├── Blazor.Dice.Tests/             # Dice component rendering tests
+└── Farkle.ArchitectureTests/      # ArchUnitNET guardrails (decider purity, slices inward-only)
 ```
 
 Two solution files exist: **`Farkle.sln`** (full solution — use this) and `src/WebApp.sln` (web-only subset).
 
 ---
 
-## Architecture: Event Sourcing & CQRS
+## Architecture: Event Sourcing, CQRS & vertical slices
 
-### Event Sourcing Pipeline
+> Full detail — with real slice code — is in
+> [`docs/critter-stack-onboarding.md`](docs/critter-stack-onboarding.md). This is the summary.
 
-All game state mutations are captured as immutable events persisted to EventStore:
+### The request pipeline (one slice)
 
-1. **Commands** (`Command.*`) → HTTP request mapped at a FastEndpoint
-2. **Aggregate** (`Game`) → applies the command, emits event(s)
-3. **Validators** (`GameValidator`) → pre-conditions checked in `Game.Apply(...)` before the event is stored
-4. **Events** (`GameEvents.V1.*`, `V2.*`) → immutable facts stored in ESDB
-5. **State** (`GameState`) → rebuilt by replaying events via `On<EventType>()` handlers
+1. **Endpoint** (`Features/<Command>/<Command>Endpoint.cs`) — a static `[WolverinePost(...)]` method.
+   Wolverine loads the aggregate via `[WriteAggregate(FromMethod = nameof(StreamId))] GameState state`
+   (`StreamId(int) => $"game-{id}"` maps the int game code to the Marten stream key).
+2. **Decider** (`Features/<Command>/<Command>Decider.cs`) — a **pure** `Decide(command, state) → events`
+   the endpoint calls directly (commands are *not* dispatched as messages — the endpoint is the handler).
+3. **Events** — the endpoint returns a tuple `(Results<Ok<T>, ProblemHttpResult>, Events, GameNotifications.X?)`.
+   Wolverine appends `Events` to the stream; the response is built with `GameState.Fold(state, events)`
+   (in-memory, no re-read).
+4. **Snapshot** (`GameState`) — a Marten **`Inline` self-aggregating snapshot** rebuilt by conventional
+   `Create`/`Apply` methods; it *is* both the aggregate and the read model (read-your-own-writes, no daemon).
+5. **Broadcast** — if the endpoint returns a `GameNotifications.*`, Wolverine publishes it through the
+   Marten **outbox** post-commit → `GameBroadcastHandler` → `GameNotifier` → SignalR (see below).
 
 **Key files:**
-- `src/Farkle/Domain/GameAggregate/Game.cs` — aggregate root, command handlers, scoring (`GetNewTurnScore`)
-- `src/Farkle/Domain/GameAggregate/GameState.cs` — immutable state, event-replay handlers
-- `src/Farkle/Domain/GameAggregate/GameValidator.cs` — pre-condition + scoring validators
-- `src/Farkle/Domain/GameAggregate/GameEvents.cs` — versioned event records (V1 & V2)
-- `src/Farkle/Domain/GameAggregate/Command.cs` — command records
+- `src/Farkle/Domain/GameAggregate/GameState.cs` — the snapshot: `Create`/`Apply` (Marten replay) **and** a separate pure static `Fold` (deciders/tests/endpoints), plus `Score`, `GameId`, `Player`.
+- `src/Farkle/Domain/GameAggregate/GameEvents.cs` — versioned event records (`V1` & `V2`), `IErrorEvent` marker, `DieValue` SmartEnum.
+- `src/Farkle/Domain/GameAggregate/GameValidator.cs` — validator primitives (`PlayerIsInTurn`, `SingleRoll`, `PlayerCanPass`, …).
+- `src/Farkle/Domain/GameAggregate/Command.cs` — command records.
+- `src/Farkle/CritterStackServiceExtensions.cs` — `AddFarkleCritterStack` (Marten + Wolverine wiring).
 
-### Validation-as-Events
+### Validation-as-events
 
-Invalid operations do **not** throw to the caller. `Game.Apply(object @event)` runs `GameValidator.ValidatePreconditions(this, @event)`; on failure it applies a **failed-validation error event** (implementing `IErrorEvent`) instead of the intended event. The application layer detects `IErrorEvent` instances in `Changes` and converts them to HTTP errors. Error events include `PlayedOutOfTurn`, `RolledTwice`, `PassedWithoutRolling`, and `DiceNotAllowedToBeKept`.
+Invalid operations do **not** throw. The decider returns an event implementing **`IErrorEvent`**
+(`PlayedOutOfTurn`, `RolledTwice`, `PassedWithoutRolling`, `DieNotAvailableToSetAside`, …). The
+endpoint inspects the produced events, maps the **first** `IErrorEvent` to a **400 `ProblemDetails`**
+(`TypedResults.Problem(statusCode: 400, title: error.GetType().Name)`), and returns an **empty
+`new Events()`** so nothing is appended. Error events have **no `Apply` overload** — they're recorded
+as facts but inert on replay. No rule is duplicated in HTTP middleware or the client.
 
-### Event Versioning
+### Event versioning
 
-Two event versions coexist:
-- **V1** events: original `DiceRolled` / `DiceKept` without game-stage tracking, plus `GameStarted`, `PlayerJoined`, `TurnPassed`, `GameWon`, and the error events.
-- **V2** events: `DiceRolled` and `DiceKept` carry an extra `GameStage` field for clearer state-machine semantics.
+`V1` and `V2` events coexist. `V2` adds fields (e.g. `PlayerJoined` +Color, `DiceRolled`/`DiceKept`
++`GameStage`). `GameState` has `Apply`/`Fold` handlers for **both**. **Never modify a stored `V1`
+schema — add a new `V2` record.**
 
-`GameState` registers handlers for both versions. The aggregate uses **V2 for rolling** (`RollDiceV2`) going forward. Never modify a V1 event schema — add a new version instead.
+### Real-time multiplayer (SignalR via the outbox)
 
-### Command Service & Validation Composition
-
-`GameService` (extends `Eventuous.CommandService<Game, GameState, GameId>`) orchestrates:
-- Command routing via fluent builder: `.On<Command.StartGame>().InState(New).Execute(...)`
-- Aggregate load/save via Eventuous + `EsdbEventStore`
-- `CommandHandlerBuilderExtensions.Execute(...)` wraps handlers in a try/catch for `DomainException` so error events still persist instead of failing the whole operation.
-- `IGameService.HandleAsync<TCommand, TResponse>(cmd, ct, mapper)` runs the command, scans `Changes` for `IErrorEvent`, and either returns an HTTP error or maps `GameState` → the endpoint's response DTO.
-
-**Validators** use the **Composite Pattern** with a fluent `.And()` builder:
-```csharp
-new PlayerIsInTurn(state, e.PlayerId)
-  .And(new SingleRoll(state, e.PlayerId))
-  .IsSatisfied()
 ```
-`AndValidator` short-circuits on the first failing validator.
+Features/GameNotifications.cs            # LobbyChanged, GameBegan, DiceRolled, TableChanged, TurnChanged
+  → Application/GameBroadcastHandler.cs  # Wolverine Handle(...) per notification (runs after commit)
+  → Application/GameNotifier.cs          # reloads the fresh GameState via IQuerySession
+  → Infrastructure/Realtime/SignalRGameEventBroadcaster.cs   # pushes to SignalR group "game-{id}"
+```
 
-### Real-Time Multiplayer (SignalR)
-
-Turn changes are pushed to all players in a game in real time:
-
-1. **Server hub** — `src/WebApp/Hubs/GameHub.cs` exposes `JoinGame(int gameId)` / `LeaveGame(int gameId)`, which add/remove the connection to the SignalR group `game-{gameId}`. Mapped at `/hubs/game` in `Program.cs`.
-2. **Broadcaster** — `IGameEventBroadcaster` (in `src/Farkle/Application/`) is implemented by `SignalRGameEventBroadcaster` (in `src/WebApp/Hubs/`), registered scoped in `Program.cs`. Its `BroadcastTurnChangedAsync(PassTurnResponse, ct)` sends the `"TurnChanged"` message (carrying a `PassTurnResponse`) to group `game-{GameId}`.
-3. **Trigger** — `PassTurnEndpoint` injects `IGameEventBroadcaster` and, after a successful pass, broadcasts the turn change (broadcast failures are logged, not propagated to the HTTP response).
-4. **Client** — `IGameHubService` / `GameHubService` (in `src/WebApp.Client/Services/`) builds an auto-reconnecting `HubConnection`, registers `.On<PassTurnResponse>("TurnChanged", ...)`, calls `JoinGame`, and raises `OnTurnChanged`. `Game.razor.cs` subscribes and dispatches the `RemoteTurnChanged` BlazorState action so other players' UIs update live.
+A slice broadcasts by **returning** a `GameNotifications.*` from its endpoint — never by calling the hub
+directly. Because it rides the Marten outbox, a broadcast only fires for events that actually committed.
+The client (`GameHubService`) listens and dispatches a BlazorState action so other players' UIs update live.
 
 ---
 
 ## Domain Model Concepts
 
 ### Commands (`Command.cs`)
-`StartGame`, `JoinPlayer`, `RollDice`, `KeepDice`, `PassTurn` (plus the `PlayerId` value object).
+`StartGame`, `JoinPlayer`, `BeginGame`, `RollDice`, `KeepDice`, `SetDiceAside`, `ReturnDice`, `PassTurn`.
 
-### Game Stages
+### Game stages (`Farkle.SharedKernel/Turns/GameStage.cs`)
 ```csharp
-internal enum GameStage { None, Rolling, Keeping, Finished }
+public enum GameStage { None, Rolling, Keeping, Finished, WaitingForPlayers }
 ```
+Persisted **by ordinal** (it's stored on `V2` events / the snapshot as `(int)`), so **only append new
+members at the end — never reorder or renumber.**
 
-### Game Flow
-1. `StartGame` → `GameStarted` (stage = Rolling)
-2. `JoinPlayer` (one per player; player IDs assigned sequentially)
-3. `RollDice` → dice appear in the table center (`RollDiceV2` → stage = Keeping)
-4. `KeepDice` → move scoring dice to hand, update turn score
-5. `PassTurn` → lock in score, rotate to next player. If score ≥ **10,000** → `GameWon` (stage = Finished)
+### Game flow
+1. `StartGame` → `GameStarted` (a fresh `game-{id}` stream via `IGameCreator` with id-collision retry)
+2. `JoinPlayer` (one per player; ids assigned sequentially) → `BeginGame` once enough players joined
+3. `RollDice` → dice appear in the table center (stage → Keeping)
+4. `SetDiceAside` / `ReturnDice` → move scoring dice between zones (local selection)
+5. `KeepDice` → lock the set-aside dice into the hand, update the turn score
+6. `PassTurn` → bank the score, rotate to the next player. Reaching the winning score (`WinningScore`) → `GameWon` (stage → Finished)
 
-### Score Calculation (`Game.GetNewTurnScore`)
-Scoring iterates a priority-ordered set of validators and takes the first satisfied trick:
+### Scoring
+Scoring lives in the pure **`Farkle.SharedKernel/Scoring/ScoreCalculator.cs`** (shared by the server
+decider *and* the WASM client's live turn-score preview — one source of truth, no duplicated rules).
+Tricks include a straight, three-of-a-kind (face × 100), ones/fives, and a full run; the exact
+pattern semantics + any combo multipliers live in `ScoreCalculator.cs`. `TurnActionPolicy`
+(same project) is the single source of truth for which action (`CanRoll`/`CanKeep`/`CanPass`) is legal
+at the current stage — consulted by both `GameValidator` and the client's button gating.
 
-| Trick (validator) | Points |
-|-------------------|--------|
-| `DiceAreStraight` | 1,000 |
-| `DiceAreTrips` (three of a kind) | face value × 100 (e.g. three 4s = 400) |
-| `DiceAreOnesOrFives` | 100 per `1` + 50 per `5` |
-| `DiceAreStair` (full 1-2-3-4-5-6) | 1,500 |
-
-**Combo multiplier:** if the kept dice form a straight **and** at least one straight was already kept this turn (`StraightsKeptThisTurn > 0`), the running total is doubled: `(currentScore + turnScore) * 2`. Exact dice-pattern semantics for each validator live in `GameValidator.cs`.
-
-### Key Value Types
-- **DieValue** (Ardalis SmartEnum): One…Six (with Unicode pip glyphs ⚀⚁⚂⚃⚄⚅), plus `None`
-- **Player** (record): `(int Id, string Name)`
-- **GameId** (extends `Eventuous.Id`): implicit conversions to/from `int`
+### Key value types (`GameState.cs`, `GameEvents.cs`)
+- **DieValue** (Ardalis SmartEnum): One…Six (Unicode pip glyphs ⚀⚁⚂⚃⚄⚅), plus `None`
+- **Player** (record): `(int Id, string Name, string Color)`
+- **GameId** (record): int wrapper, `None = new(0)` sentinel
 - **Score** (record): int wrapper with implicit conversions
-- **Dice**: value object over a collection of `DieValue`
-- **GameState** (record): immutable; `Players`, `TableCenter`, `DiceKept`, `TurnScore`, `ScoreTable`, `StraightsKeptThisTurn`, `Winner`, `GameStage`
+- **GameState** (public record): the Marten snapshot — `Id` (`"game-{code}"`), `Code`, `GameStage`, `Winner`, `TurnScore`, `HasActedThisTurn`, `Players`, `TableCenter`, `DiceKept`, `DiceSetAside`, `TurnNumber`, `ScoreTable`
 
 ---
 
 ## HTTP API
 
-All game endpoints are FastEndpoints extending `TypedEndpoint<TRequest, TResponse>` (base in `Farkle.SharedKernel`). They inject `ILogger` + `IGameService` and call `service.HandleAsync<Command, Response>(cmd, ct, mapper)`.
+All game/feedback endpoints are **Wolverine.HTTP** static methods (`Features/<Command>/<Command>Endpoint.cs`),
+hosted via `app.MapWolverineEndpoints(...)`. Mutating endpoints take
+`[WriteAggregate(FromMethod = nameof(StreamId))] GameState state` and return a tuple
+`(Results<Ok<TResponse>, ProblemHttpResult>, Events, GameNotifications.X?)`.
 
-| Endpoint | Route (POST) | Request → Response |
-|----------|--------------|--------------------|
-| StartGame | `/api/games` | `StartGameRequest(Id)` → `StartGameResponse(Id)` |
-| JoinPlayer | `/api/games/{gameId}/players` | `JoinPlayerRequest(GameId, PlayerName)` → `JoinPlayerResponse(Id, CurrentPlayerId)` |
-| RollDice | `/api/games/{gameId}/players/{playerId}/rolls` | `RollDiceRequest(GameId, PlayerId)` → `RollDiceResponse(Id, DiceValues)` |
-| KeepDice | `/api/games/{gameId}/players/{playerId}/keeps` | `KeepDiceRequest(GameId, PlayerId, DiceValues)` → `KeepDiceResponse(Id, TurnScore)` |
-| PassTurn | `/api/games/{gameId}/players/{playerId}/turns` | `PassTurnHttp(GameId, PlayerId)` → `PassTurnResponse(...)` (also broadcast over SignalR) |
+| Endpoint | Route (POST unless noted) | Response |
+|----------|---------------------------|----------|
+| StartGame | `/api/games` | `StartGameResponse(Id)` |
+| JoinPlayer | `/api/games/{gameId}/players` | `JoinPlayerResponse` → `LobbyChanged` |
+| BeginGame | `/api/games/{gameId}/start` | → `GameBegan` |
+| RollDice | `/api/games/{gameId}/players/{playerId}/rolls` | `RollDiceResponse` → `DiceRolled` |
+| SetDiceAside | `/api/games/{gameId}/players/{playerId}/setasides` | `SetAsideResponse` → `TableChanged` |
+| ReturnDice | `/api/games/{gameId}/players/{playerId}/putbacks` | → `TableChanged` |
+| KeepDice | `/api/games/{gameId}/players/{playerId}/keeps` | `KeepDiceResponse` → `TableChanged` |
+| PassTurn | `/api/games/{gameId}/players/{playerId}/turns` | `PassTurnResponse` → `TurnChanged` |
+| GetGame | `GET /api/games/{gameId}` | `GameStateResponse` (reads the snapshot; no decider) |
+| Feedback | `/api/feedback` | `SubmitFeedbackResponse` (append-only; no decider) |
 
-`PassTurnResponse` also carries the full scoreboard (`PlayerScore[]`) + optional winner and is broadcast over SignalR. All DTOs live in `src/Farkle.Contracts/HttpRequests.cs` / `HttpResponses.cs`.
+`PassTurnResponse` carries the full scoreboard (`PlayerScore[]`) + optional winner. All DTOs live in
+`src/Farkle.Contracts/HttpRequests.cs` / `HttpResponses.cs`.
 
-**Auth endpoints** (`src/WebApp/Auth/`, FastEndpoints, `AllowAnonymous`):
+**Auth endpoints** (`src/WebApp/Auth/`, **minimal APIs**, anonymous — Identity's `UserManager` isn't
+Wolverine-codegen-resolvable, so they're not slices):
 - `POST /api/auth/register` — creates an Identity user
-- `POST /api/auth/login` — verifies credentials, returns a JWT (`Auth:JwtSecret`, 4-hour expiry)
+- `POST /api/auth/login` — verifies credentials, returns a JWT (`Auth:JwtSecret`, HMAC-SHA256)
 
-Auth is **off by default**; game endpoints `AllowAnonymous` unless `Auth:RequireAuthorization` is `true` in config (see `Program.cs`).
+Auth is **off by default**; game endpoints are anonymous unless `Auth:RequireAuthorization` is `true`
+(then `Program.cs` calls `opts.RequireAuthorizeOnAll()`).
 
 ---
 
@@ -212,7 +237,7 @@ WASM uses **BlazorState** (a Redux/MediatR-like pattern). `GameState` (`src/WebA
 Registered via `services.AddBlazorState(...)` in `ClientServiceExtensions.RegisterClientServices`.
 
 ### Services (`src/WebApp.Client/Services/`)
-- **`IGameService` / `GameService`** — adapter over the Kiota `FarkleApiClient`; one method per game command (`StartGameAsync`, `JoinPlayerAsync`, `RollDiceAsync`, `KeepDiceAsync`, `PassTurnAsync`). Returns Ardalis `Result<>` where a roll can fail.
+- **`IGameService` / `GameService`** — adapter over the Kiota `FarkleApiClient`; one method per game command. Returns Ardalis `Result<>` where a call can fail. *(This is the **client** service — unrelated to the removed server-side Eventuous `GameService`.)*
 - **`IGameHubService` / `GameHubService`** — SignalR client connection (connect/disconnect, `OnTurnChanged`).
 - **`IRotationCalculator` / `RotationCalculator`** — maps a `DieValue` to CSS 3D rotation angles `(x, y, z)` for rendering a die face (optional random spin). Registered as a singleton.
 
@@ -246,59 +271,62 @@ dotnet build Farkle.sln -c Release
 
 ### Run Tests
 
-**All tests:**
-```bash
-dotnet test Farkle.sln
-```
+**All tests:** `dotnet test Farkle.sln`
 
 **Single test by name:**
 ```bash
 dotnet test --filter "FullyQualifiedName~GameHappyPath"
-dotnet test tests/Farkle.Tests/Farkle.Tests.csproj --filter "FullyQualifiedName~RollShould"
+dotnet test tests/Farkle.Tests/Farkle.Tests.csproj --filter "FullyQualifiedName~PassTurnDecider"
 ```
 
 **By category:**
-- Unit: `dotnet test tests/Farkle.Tests/Farkle.Tests.csproj`
-- Integration (API + SignalR): `dotnet test tests/Farkle.WebTests/Farkle.WebTests.csproj`
+- Domain unit + deciders: `dotnet test tests/Farkle.Tests/Farkle.Tests.csproj`
+- Integration (Alba + TrackedSession, needs Postgres): `dotnet test tests/Farkle.WebTests/Farkle.WebTests.csproj`
 - Component (bUnit WASM): `dotnet test tests/Farkle.SpaTests/Farkle.SpaTests.csproj`
 - E2E (Playwright): `dotnet test tests/Farkle.E2eTests/Farkle.E2eTests.csproj --filter "FullyQualifiedName~GameHappyPath"`
 
-**E2E artifacts** are written to `test-results/`: videos (`videos/*.webm`), screenshots (`screenshots/*.png`), logs (`logs/`), and TRX results — all uploaded as GitHub artifacts in CI.
+`Farkle.WebTests` boots the real host with **Alba**; provide Postgres via **`FARKLE_TEST_PG`** (a
+connection string) or let it spin a **Testcontainers** `postgres:16-alpine`. There is **no EventStore** —
+Postgres is the only dependency.
+
+### JasperFx CLI (runs against the real configuration)
+```bash
+dotnet run --project src/WebApp -- describe            # resolved Marten/Wolverine config
+dotnet run --project src/WebApp -- resources list      # endpoints, subscriptions, …
+dotnet run --project src/WebApp -- codegen write       # (re)write static handler/endpoint code
+dotnet run --project src/WebApp -- codegen test        # compile every handler/endpoint (CI + a WebTest use this)
+dotnet run --project src/WebApp -- db-apply            # apply the Marten schema
+dotnet run --project src/WebApp -- projections rebuild  # rebuild projections
+```
 
 ### Run the Application Locally
 
-**Prerequisites:** Docker & Docker Compose.
+**Prerequisites:** Docker & Docker Compose (just PostgreSQL now).
 ```bash
-# Start dependencies (PostgreSQL + EventStore)
-docker-compose up -d
-
-# Run the Blazor Server host (serves the WASM client too)
-dotnet run --project src/WebApp/WebApp.csproj
-
+docker-compose up -d                              # PostgreSQL
+dotnet run --project src/WebApp/WebApp.csproj     # Blazor Server host (serves the WASM client too)
 # Browse to https://localhost:5001 (or http://localhost:5000)
 ```
 
-**Default seeded user** (created on startup if missing):
-- Email: `player1@email.com`
-- Password: `Pass@word1`
+**Default seeded user** (created on startup if missing): `player1@email.com` / `Pass@word1`.
 
-**Configuration** (`appsettings.Development.json`):
-- EventStore: `esdb://admin:changeit@localhost:2113?tls=false`
-- PostgreSQL (Identity): `farkle_identity` on localhost:5432
-- Backend URL the WASM client calls: `http://localhost:5157` (`BackendUrl`)
+**Configuration** (`appsettings.Development.json`): the Marten/Identity Postgres connection (localhost:5432),
+and the backend URL the WASM client calls (`BackendUrl`). Marten auto-creates its schema on boot; there's
+no EventStore connection string.
 
-### Database Migrations (EF Core / PostgreSQL Identity)
+### Database Migrations (EF Core — **Identity only**)
+Marten manages its own schema (`AutoCreate.CreateOrUpdate`). **Only ASP.NET Identity uses EF migrations:**
 ```bash
-dotnet ef migrations add <MigrationName> -p src/Farkle.Infrastructure/Farkle.Infrastructure.csproj -s src/WebApp/WebApp.csproj
-dotnet ef database update -p src/Farkle.Infrastructure/Farkle.Infrastructure.csproj -s src/WebApp/WebApp.csproj
+dotnet ef migrations add <Name> -p src/Farkle.Infrastructure/Farkle.Infrastructure.csproj -s src/WebApp/WebApp.csproj
+dotnet ef database update  -p src/Farkle.Infrastructure/Farkle.Infrastructure.csproj -s src/WebApp/WebApp.csproj
 ```
-Migrations are applied automatically on startup (outside the `NSwag` environment); the app also re-seeds the default user.
+Identity migrations are applied automatically on startup (outside the `NSwag` environment); the app re-seeds the default user.
 
 ### Linting & Code Quality
 - **.editorconfig** — formatting rules
 - **`TreatWarningsAsErrors = true`** (`Directory.Build.props`) — all warnings must be fixed
 - **Nullable reference types enabled**
-- **CodeQL** SAST runs in CI (`security-and-quality` query suite for C#)
+- **CodeQL** SAST runs in CI (`security-and-quality` query suite for C#); generated code is excluded via `.github/codeql/codeql-config.yml`
 - No StyleCop/Roslyn analyzer beyond compiler settings
 
 ---
@@ -306,42 +334,34 @@ Migrations are applied automatically on startup (outside the `NSwag` environment
 ## Continuous Integration
 
 ### `.github/workflows/e2e-happy-path.yml` (name: **CI - Tests**) — runs on PRs to `main`
-Four jobs:
-1. **`test` (Unit & Integration Tests)** — restores/builds `Farkle.sln`, runs unit → integration (pulls `eventstore:23.10.0` + `postgres:16-alpine` for Testcontainers) → SPA component tests, with coverage uploaded to Codecov and TRX artifacts.
-2. **`verify-generated`** — regenerates `swagger.json` (`-p:GenerateSwagger=true`) and the Kiota client, then **fails if the committed generated files differ**. Installs both .NET 8 and 10 SDKs + `wasm-tools`.
-3. **`e2e`** — installs Playwright Chromium, runs the `GameHappyPath` E2E test (two players, Alice + Bob), and uploads videos/screenshots/logs/TRX. On failure it parses failing test names + messages from the TRX into job outputs (`fail_names`/`fail_msgs`) for the `deploy-pages` job to surface.
-4. **`deploy-pages`** (`needs: e2e`, `if: always()`) — publishes the E2E videos to GitHub Pages so reviewers can **watch recordings inline**, and **upserts** a PR comment (marker `<!-- e2e-video-report -->`) linking `runs/{run_id}/`. Runs `.github/scripts/generate-pages.sh`, which writes per-run pages + a newest-first root table and prunes runs >90 days / beyond the newest 50 (generator covered by `tests/scripts/generate-pages.test.sh`); uses only `GITHUB_TOKEN`. **One-time setup:** a repo admin must enable Pages (Settings → Pages → branch `gh-pages` / `/`).
+1. **`test` (Unit & Integration Tests)** — restores/builds `Farkle.sln`, runs unit → integration (pulls `postgres:16-alpine` for Testcontainers; **no EventStore**) → SPA component tests, coverage to Codecov + TRX artifacts.
+2. **`verify-generated`** — regenerates the OpenAPI doc (`-p:GenerateSwagger=true`) and the Kiota client, then **fails if the committed generated files differ**. Installs .NET 8 + 10 + `wasm-tools`.
+3. **`verify-codegen`** — regenerates the Wolverine static codegen (`codegen write` in the NSwag env — no DB/WASM) and **fails if `src/WebApp/Internal/Generated` drifts**.
+4. **`e2e`** — installs Playwright Chromium, runs `GameHappyPath` (Alice + Bob), uploads videos/screenshots/logs/TRX, parses failures into job outputs.
+5. **`deploy-pages`** (`needs: e2e`, `if: always()`) — publishes the E2E videos to GitHub Pages and **upserts** a PR comment (marker `<!-- e2e-video-report -->`) linking `runs/{run_id}/`. Runs `.github/scripts/generate-pages.sh`. **One-time setup:** an admin must enable Pages (branch `gh-pages` / `/`).
 
-### `.github/workflows/storyboard.yml` (name: **CI - Storyboard**) — runs on PRs to `main`
-Runs **in parallel** with the `CI - Tests` workflow. It builds `Farkle.E2eTests` and runs only the storyboard-tagged tests (`--filter "Category=Storyboard"`), which boot an **in-memory backend (no Testcontainers / Docker)** and capture multi-viewport screenshots of the opening flow. Two jobs:
-1. **`storyboard`** — installs Playwright Chromium, runs the capture, uploads `storyboard-screenshots-<run_id>` + TRX.
-2. **`deploy-screenshots`** — publishes the frames to GitHub Pages via `generate-pages.sh` (`MODE=screenshots`) and **upserts** a PR comment (marker `<!-- e2e-storyboard-report -->`) linking `runs/{run_id}/storyboard.html`.
+### `.github/workflows/storyboard.yml` (name: **CI - Storyboard**) — PRs to `main`
+Runs in parallel with `CI - Tests`; runs the storyboard-tagged E2E tests (`--filter "Category=Storyboard"`), captures multi-viewport screenshots, and **upserts** a PR comment (marker `<!-- e2e-storyboard-report -->`) linking `runs/{run_id}/storyboard.html`.
 
-`generate-pages.sh` is **dual-mode** (`MODE=videos` default | `screenshots`); the e2e and storyboard publishers both write into the same `runs/{id}/` tree and share a `concurrency: gh-pages-publish` group so they don't race on `gh-pages` (its generator logic is covered by `tests/scripts/generate-pages.test.sh`, run manually).
+`generate-pages.sh` is **dual-mode** (`MODE=videos` default | `screenshots`); both publishers write into the same `runs/{id}/` tree and share a `concurrency: gh-pages-publish` group.
 
-> **`gh-pages` is kept to a single commit.** Each publisher re-roots the branch to one orphan commit and force-pushes (`git checkout --orphan publish-root … git push --force`), so the large `.webm`/screenshot blobs never accumulate in history (videos also live as `e2e-videos-<run_id>` artifacts). Because the publishers are serialised by the concurrency group and each clones the latest `gh-pages` first, collapsing preserves both publishers' run directories. This is what keeps the repo from ballooning — a prior incremental-commit approach grew `.git` to ~4.6 GB of dead video blobs. **Do not** switch these steps back to an incremental `git commit … && git push`.
+> **`gh-pages` is kept to a single commit.** Each publisher re-roots the branch to one orphan commit and force-pushes, so the large `.webm`/screenshot blobs never accumulate in history. **Do not** switch these steps back to an incremental `git commit … && git push` — a prior incremental approach grew `.git` to ~4.6 GB of dead video blobs.
 
 ### `.github/workflows/codeql.yml` (name: **CI - CodeQL**)
-Runs on push/PR to `main` and weekly (Mon 08:00 UTC). Builds the solution and runs CodeQL C# analysis.
+Push/PR to `main` + weekly. Builds the solution and runs CodeQL C# analysis (generated code excluded via `.github/codeql/codeql-config.yml`).
+
+### `.github/workflows/infra-validate.yml` (name: **CI - Infra Validate**) — PRs touching `infra/**`
+Builds + lints the Bicep + PSRule, credential-free. This is the gate for infra changes (Bicep can't be linted in remote dev containers).
 
 ### Deployment (CD) — two paths
 Deploys to Azure run on push to `main` (full runbook in [`infra/OPERATIONS.md`](../infra/OPERATIONS.md)). The line is *resource topology/config vs. just the running app version*:
-- **`CD - App Release` (`app-release.yml`)** — the everyday path. A `src/**` change triggers **`CI - Image`** (`build-image.yml`), which builds/pushes `webapp:<sha>` + `:latest` to the persistent ACR, then chains App Release: a fast `az containerapp update --image …:<sha>` (no ARM, seconds). It is **ungated** (auto-deploys; gated only by `DEPLOY_ENABLED`), so its OIDC ids come from **repository** variables, not the gated `production` environment.
-- **`CD - Infra Deploy (workload)` (`infra-deploy.yml`)** — full-stack ARM (`az deployment sub create`) for `infra/**` changes and the scheduled re-provision. Stays **gated** on `production` (required reviewer) and keeps the real secrets (`JWT_SECRET`, `PG_ADMIN_PASSWORD`).
+- **`CD - App Release` (`app-release.yml`)** — the everyday path. A `src/**` change triggers **`CI - Image`** (`build-image.yml`), which builds/pushes `webapp:<sha>` + `:latest` to the persistent ACR, then chains App Release: a fast `az containerapp update` (no ARM, seconds). **Ungated** except `vars.DEPLOY_ENABLED == 'true'`, so its OIDC ids come from **repository** variables, not the gated `production` environment.
+- **`CD - Infra Deploy (workload)` (`infra-deploy.yml`)** — full-stack ARM (`az deployment sub create`) for `infra/**` changes and the scheduled re-provision. Deploys the WebApp on `:latest`, so it also rolls the app. Stays **gated** on the `production` environment (required reviewer) and holds the real secrets.
 
-Both share a `concurrency: cd-deploy` lock so they never run at once; since `:<sha>` and `:latest` are pushed together and full deploys use `:latest`, the two never diverge (an infra deploy never reverts an app release).
+Both share a `concurrency: workload-deploy` lock so they never run at once. Since `:<sha>` and `:latest` are pushed together and full deploys use `:latest`, the two never diverge. **Gotcha:** if a run in that shared lock is *cancelled while queued*, the group can wedge and stop dispatching — cancel the wedged run to clear it. **Budget gotcha:** the Azure consumption budget's `startDate` is pinned in `workload.bicep` (Azure forbids changing it on redeploy); keep it first-of-month.
 
 ### Diagnosing E2E Failures
-The `e2e` job uploads:
-
-| Artifact | Contents |
-|----------|----------|
-| `e2e-trx-<run_id>` | Full TRX with error messages and stack traces |
-| `e2e-logs-<run_id>` | Structured log output captured during the run |
-| `e2e-videos-<run_id>` | `.webm` recordings (e.g. `HappyPath.webm`, `HappyPath-Bob.webm`) |
-| `e2e-screenshots-<run_id>` | PNGs (e.g. `before-first-keep.png`) |
-
-The workflow also posts failing test names + truncated error messages directly to the PR (in the upserted `deploy-pages` comment, alongside the inline-video link). **Check the PR comment first** before downloading artifacts — and use the GitHub Pages link to watch the recordings in-browser.
+The `e2e` job uploads `e2e-trx-<run_id>` (TRX + stack traces), `e2e-logs-<run_id>`, `e2e-videos-<run_id>` (`.webm`), `e2e-screenshots-<run_id>` (PNGs). **Check the upserted PR comment first** (failing test names + messages + the inline-video Pages link) before downloading artifacts.
 
 ---
 
@@ -353,103 +373,110 @@ Pick the layer that can answer the question with the least machinery. Overlap is
 
 | Layer | Project | Owns | Does **not** own | Heuristic |
 |---|---|---|---|---|
-| **Domain unit** | `Farkle.Tests` | All business rules: validators, scoring, state replay, event emission. Pure aggregate behaviour with `IRandom` mocked. | HTTP, DOM, DI wiring, SignalR. | *"If the test wouldn't change when we swap FastEndpoints for ASP.NET MVC, it belongs here."* |
-| **Handler unit (frontend)** | `Farkle.SpaTests/Handlers` | BlazorState `Handler` classes in isolation: mocked `IGameService`, dispatch the action, assert `GameState` mutation (`DiceInPlay`, `TurnScore`, `Scoreboard`, `Error`). No bUnit context, no DOM. | Business rules — the client is a thin shell over the API; trust service responses. Component rendering. | *"Given a state and a mocked service response, what does the store look like after?"* |
-| **Component (bUnit)** | `Farkle.SpaTests/Components` | Rendering, conditional UI (`Disabled`, visibility), event wiring (clicking Roll dispatches `RollDice.Action`), CSS-class invariants. Mocked `IGameService` + `IGameHubService`. | State-machine internals — that's the handler's job. End-to-end flows — that's E2E. | *"Given this state, does the DOM look right and do clicks fire the right actions?"* |
-| **Web integration** | `Farkle.WebTests` | HTTP contract (status codes, JSON shape), FastEndpoints routing, Eventuous round-trip, SignalR broadcast, Identity/JWT, EF migrations. Real Postgres + EventStore via Testcontainers. | Exhaustive business-rule coverage (already in domain unit) — keep to one happy + one representative error path per endpoint. Frontend rendering. | *"Does the wire format and the wiring still hold together?"* |
-| **E2E** | `Farkle.E2eTests` | Real-browser flow: WASM hydration, two-player happy path, SignalR turn flip, CSS layout, win condition. Playwright + real backend + real DB. | Edge-case business rules; every error path. Anything that would be faster and just as informative as a unit test. | *"Can a real user, in a real browser, complete a meaningful journey?"* |
+| **Domain unit / decider** | `Farkle.Tests` | All business rules: deciders (`(command, state) → events`), scoring, state fold, validators. Pure, no I/O. | HTTP, DOM, DI wiring, SignalR. | *"If the test wouldn't change when we swap Wolverine.HTTP for ASP.NET MVC, it belongs here."* |
+| **Handler unit (frontend)** | `Farkle.SpaTests/Handlers` | BlazorState `Handler` classes in isolation: mocked client `IGameService`, dispatch the action, assert `GameState` mutation. No bUnit, no DOM. | Business rules (the client is a thin shell). Component rendering. | *"Given a state and a mocked service response, what does the store look like after?"* |
+| **Component (bUnit)** | `Farkle.SpaTests/Components` | Rendering, conditional UI (`Disabled`, visibility), event wiring, CSS-class invariants. Mocked `IGameService`/`IGameHubService`. | State-machine internals (handler's job). End-to-end flows (E2E's job). | *"Given this state, does the DOM look right and do clicks fire the right actions?"* |
+| **Web integration** | `Farkle.WebTests` | HTTP contract (status/JSON shape), Wolverine.HTTP routing, Marten round-trip, **outbox broadcast** (TrackedSession), Identity/JWT. Real Postgres via Testcontainers. | Exhaustive business rules (in domain unit) — one happy + one representative error path per slice. Frontend rendering. | *"Does the wire format and the wiring still hold together?"* |
+| **E2E** | `Farkle.E2eTests` | Real-browser flow: WASM hydration, two-player happy path, SignalR turn flip, CSS layout, win condition. Playwright + real backend + Postgres. | Edge-case business rules; every error path. | *"Can a real user, in a real browser, complete a meaningful journey?"* |
 
 **Anti-patterns to avoid:**
-- Re-asserting "can't roll out of turn" in `Farkle.WebTests` — already covered by `RollShould.cs`. Integration should prove the rejection becomes an HTTP 400 with the right error payload, not re-prove the rule.
-- Driving the BlazorState `Sender` inside a bUnit component test to set up state. If the test is about handler behaviour, write it under `Handlers/` without bUnit. If it's about DOM, set state through the store and render the component.
-- Adding a UI-side copy of a domain rule (e.g. "Pass disabled until rolled") just to test it. The validator is the source of truth; the client surfaces the resulting error.
+- Re-asserting "can't roll out of turn" in `Farkle.WebTests` — already covered by the decider test. Integration should prove the rejection becomes an HTTP 400 with the right `ProblemDetails`, not re-prove the rule.
+- Driving the BlazorState `Sender` inside a bUnit component test to set up state. Handler behaviour → `Handlers/` without bUnit. DOM → set state through the store and render.
+- Adding a UI-side copy of a domain rule just to test it. The decider/`TurnActionPolicy` is the source of truth; the client surfaces the resulting error.
 
 ### Layer-specific setup
 
-#### Unit Tests (`Farkle.Tests`)
-Base class `GameWithThreePlayersTest` mocks `IRandom` and pre-loads a three-player game:
-```csharp
-var game = new Game(_randomProvider);
-game.Start(new StartGame(1));
-game.JoinPlayer(new JoinPlayer(1, "David"));
-game.JoinPlayer(new JoinPlayer(1, "Cristian"));
-game.JoinPlayer(new JoinPlayer(1, "German"));
-```
-Tests assert on `game.State` and `game.Changes` (emitted events). Domain tests live under `tests/Farkle.Tests/Domain/`.
+#### Domain / decider tests (`Farkle.Tests`)
+Pure decider tests live under `tests/Farkle.Tests/Features/<Command>/*DeciderShould.cs`. They arrange
+state with **`GameState.Fold(...events)`** and assert the events `Decide(command, state)` emits — no host,
+no mocks beyond `IRandom` where relevant. `Domain/*Should.cs` cover state/scoring/turn rules;
+`GameTestAggregate.cs` is a test-only helper that drives `GameState.Fold` like an aggregate.
 
-#### Integration Tests (`Farkle.WebTests`)
-`WebApplicationFactory<Program>` + Testcontainers (PostgreSQL, EventStore): full DI pipeline, real HTTP client, containers per fixture, auto-applied migrations. `GameHubShould` covers the SignalR hub.
+#### Integration tests (`Farkle.WebTests`) — Alba + TrackedSession
+- **Collection fixtures** (`Harness/IntegrationCollections.cs`) — `AppFixture` boots the real `Program`
+  once per collection as an **`IAlbaHost`**, on Postgres (`FARKLE_TEST_PG` or a Testcontainer), with a
+  distinct Marten schema; `ResetAllData` between tests.
+- **`FarkleTestHost`** sets `Auth:RequireAuthorization=true`, points both stores at the test Postgres, and
+  **`DisableAllExternalWolverineTransports()`** so cascaded broadcasts stay in-process for tracking.
+- **`IntegrationTest`** base drives requests through the generated **Kiota client**; `TrackAsync(...)` =
+  `Host.ExecuteAndWaitAsync(...)` (the **TrackedSession** — await outbox side effects deterministically,
+  never `Task.Delay`). Assert both the HTTP result and `tracked.Executed.SingleMessage<GameNotifications.X>()`.
+- **`Slices/`** — one test class per slice. `CrossCutting/WolverineConfigurationShould.cs` runs
+  `codegen test` to compile every handler/endpoint (replaces the retired `AssertWolverineConfigurationIsValid`).
 
-#### E2E Tests (`Farkle.E2eTests`)
-Playwright (`Microsoft.Playwright` 1.50.0) drives two browser contexts (Alice + Bob) through the happy path until a win. `PlaywrightFixture.NewContextWithVideoAsync` records a `.webm` per session; `InMemoryLoggerProvider` captures structured logs into the `e2e-logs` artifact. Waits for WASM hydration (≈30s) before interacting.
+#### E2E tests (`Farkle.E2eTests`)
+Playwright drives two browser contexts (Alice + Bob) through the happy path until a win, against a real
+host on Postgres (`E2eWebAppFactory` — no ESDB). Records a `.webm` per session; captures structured logs.
+Waits for WASM hydration before interacting.
 
 #### Storyboard screenshots (`Farkle.E2eTests`, `Category=Storyboard`)
-Multi-viewport screenshots of the opening flow live **in the E2E project** so they reuse the player-advancing helpers (`GameFlow`), but are tagged `[Trait("Category","Storyboard")]` and use a separate, lazy collection fixture (`StoryboardFixture` → in-memory `IEventStore`; deterministic dice come from a `ScriptedRandom` registered against the `IRandom` DI seam, #93). xUnit instantiates a fixture only when a selected test needs it, so `--filter "Category=Storyboard"` runs **without** booting Testcontainers. Frames land in `test-results/storyboard/{step}-{viewport}.png` (steps `01-landing … 06-pass`; viewports mobile/medium/large).
+Multi-viewport screenshots of the opening flow, tagged `[Trait("Category","Storyboard")]`. Deterministic dice
+come from a `ScriptedRandom` on the `IRandom` DI seam. Frames land in `test-results/storyboard/{step}-{viewport}.png`.
 
-**This is the loop for iterating on UI changes locally:**
+**The loop for iterating on UI changes locally:**
 ```bash
 dotnet build tests/Farkle.E2eTests/Farkle.E2eTests.csproj
 PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/microsoft-edge \
-  dotnet test tests/Farkle.E2eTests/Farkle.E2eTests.csproj --no-build \
-  --filter "Category=Storyboard"
+  dotnet test tests/Farkle.E2eTests/Farkle.E2eTests.csproj --no-build --filter "Category=Storyboard"
 ```
-- **Chromium in restricted sandboxes:** the Playwright CDN is blocked. Install Edge from `packages.microsoft.com` and point the fixture at it via `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` (the fixture honours that env var). `pwsh` (for `playwright.ps1`) is also installable from there.
+- **Chromium in restricted sandboxes:** the Playwright CDN is blocked; install Edge from `packages.microsoft.com` and point the fixture at it via `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`.
 - **No-scroll check:** the capture is full-page, so a frame's PNG height *equal to* the viewport height (mobile 844 / medium 800 / large 1080) means it fits; greater means it scrolls.
-- **Seeing multi-pip dice:** `ScriptedRandom` returns the minimum (six `1`s) for determinism. To eyeball faces 2–6, *temporarily* vary it, capture, then revert.
 
 #### SPA Tests (`Farkle.SpaTests`)
-Two sub-layers in one project, separated by folder:
-
-- **`Components/`** — bUnit (`bunit` 2.7.2) component tests. Inherit `GameBunitContext` (registers MudBlazor, BlazorState, mocked `IGameService`/`IGameHubService`). Assert on rendered DOM and on what user interactions dispatch.
-- **`Handlers/`** — Plain xUnit tests against `Handler` classes. Use `HandlerTestContext` (minimal `IStore` + mocked `IGameService`). No bUnit, no DOM. Assert state-after-action.
-- `Services/` covers the `IGameService` adapter over the Kiota client (mocked HTTP).
-- `Architecture/` holds `ComponentArchitectureShould.cs` and similar invariants.
+- **`Components/`** — bUnit component tests (`GameBunitContext` registers MudBlazor, BlazorState, mocked services). DOM + interaction dispatch.
+- **`Handlers/`** — plain xUnit against `Handler` classes (`HandlerTestContext`). State-after-action.
+- `Services/` covers the client `IGameService` adapter (mocked HTTP). `Architecture/` holds component invariants.
 
 ---
 
 ## Important Implementation Notes
 
-### Observability / Telemetry (#33, #216)
-Telemetry goes to Application Insights via the **Azure Monitor OpenTelemetry distro**, all keyed off `APPLICATIONINSIGHTS_CONNECTION_STRING` (injected in Azure from the `applicationInsights` component in `infra/modules/workload.bicep`); absent locally → console only, **no crash** (`AddFarkleTelemetry` in `src/WebApp/Telemetry/` is a no-op without it).
-1. **Traces (requests/dependencies/causation)** — `AddOpenTelemetry().UseAzureMonitor(...)` collects HTTP requests, HttpClient + Npgsql dependencies, and **Eventuous produce/consume spans**. Eventuous persists the W3C trace context into event metadata on append and restores it on consume, so the async read-model projector / broadcaster / event-telemetry handlers correlate back to the request that produced the event.
-2. **Logs** — Serilog owns the console; `UseSerilog(..., writeToProviders: true)` forwards log events to the OTel logging provider → AI, correlated to the active span. Domain-event logs (those with an `EventType` attribute, from `GameTelemetryHandler`) are promoted to AI **`customEvents`** by `DomainEventLogProcessor` (adds `microsoft.custom_event.name`) — the mapping lives in the host, so the app/core stays AI-agnostic (plain `ILogger`).
-3. **Browser/UI** — the AI JavaScript SDK is rendered into `src/WebApp/Components/App.razor` (page views with SPA route tracking, AJAX, JS exceptions) when the connection string is present.
+### Observability / Telemetry (#33, #216, #305)
+Telemetry goes to Application Insights via the **Azure Monitor OpenTelemetry distro**, keyed off `APPLICATIONINSIGHTS_CONNECTION_STRING` (injected in Azure from `infra/modules/workload.bicep`); absent locally → console only, **no crash** (`AddFarkleTelemetry` in `src/WebApp/Telemetry/` is a no-op without it).
+1. **Traces + metrics** — `UseAzureMonitor(...)` collects HTTP requests, HttpClient + Npgsql dependencies, and the **Marten + Wolverine trace sources and meters**. Wolverine carries the trace context through the outbox, so the async broadcast/telemetry handlers correlate back to the request that produced the event.
+2. **Logs** — Serilog owns the console; `UseSerilog(..., writeToProviders: true)` forwards to the OTel logging provider → AI. Domain-event logs (from `GameTelemetryHandler`, tagged `EventType`) are promoted to AI **`customEvents`** by `DomainEventLogProcessor`.
+3. **Browser/UI** — the AI JavaScript SDK is rendered into `src/WebApp/Components/App.razor` when the connection string is present.
 
-Every committed domain event is logged by `GameTelemetryHandler` (`src/Farkle/Application/`, its own durable subscription in `Farkle.Infrastructure`); the pure `GameTelemetry.Log` shape is unit-tested. Auth endpoints log login/registration success/failure. **Always use structured properties** (`{gameId}`, `{playerId}`, `{@GameEvent}`) — never string interpolation — so they stay queryable in Azure Monitor, and **never log passwords or tokens**.
+`GameTelemetryHandler` (`src/Farkle/Application/`) is a Wolverine handler on the committed notifications; the pure `GameTelemetry.Log` shape is unit-tested. **Always use structured properties** (`{gameId}`, `{playerId}`, `{@GameEvent}`) — never string interpolation — and **never log passwords or tokens**.
 
-### Event Type Registration
-`SetUpFarkleModule()` calls `TypeMap.RegisterKnownEventTypes()` to register the versioned event types with Eventuous for serialization. This runs at startup outside the `NSwag` environment.
-
-### FastEndpoints Discovery
-Auto-discovery is **disabled**; assemblies are listed explicitly in `Program.cs`:
+### Critter Stack registration (`AddFarkleCritterStack`)
+`src/Farkle/CritterStackServiceExtensions.cs` wires the stack:
 ```csharp
-.AddFastEndpoints(o =>
+services.AddMarten(opts =>
 {
-  o.Assemblies = new[]
-  {
-    typeof(Farkle.Endpoints.StartGame).Assembly,
-    typeof(RegisterEndpoint).Assembly
-  };
-  o.DisableAutoDiscovery = true;
+  opts.Connection(connectionString);
+  opts.Events.StreamIdentity = StreamIdentity.AsString;             // "game-{code}" (ADR 0002)
+  opts.Projections.Snapshot<GameState>(SnapshotLifecycle.Inline);   // self-aggregating read model, no daemon
+  opts.UseSystemTextJsonForSerialization(o => o.Converters.Add(new SmartEnumValueConverter<DieValue,int>()));
+}).IntegrateWithWolverine();                                        // Marten backs the Wolverine outbox
+
+services.AddWolverine(opts =>
+{
+  opts.Policies.AutoApplyTransactions();
+  opts.Discovery.IncludeAssembly(typeof(CritterStackServiceExtensions).Assembly);
+  if (lightweight) opts.Durability.Mode = DurabilityMode.MediatorOnly;   // NSwag: boot without a live DB
 });
 ```
-When adding endpoints, ensure their assembly is in this list.
+`GameState` is an **`Inline`** snapshot (read-your-own-writes) — there is **no async daemon**. New domain
+services go in `FarkleModuleServiceExtensions` (`IGameCreator`, `IRandom`, `GameNotifier`, `IFeedbackWriter`);
+`SetUpFarkleModule()` is now a no-op (the Eventuous `TypeMap` bootstrap is gone).
 
-### Module Composition
-The `Farkle` module is registered as a self-contained extension in `Program.cs`:
-```csharp
-services.AddFarkleModuleServices(builder.Configuration, logger, new List<Assembly>());
-app.SetUpFarkleModule();   // skipped in the NSwag environment
-```
-New infrastructure (stores, clients) should be added in `FarkleModuleServiceExtensions`, not directly in `Program.cs`.
+### Wolverine.HTTP + codegen
+`Program.cs` calls `AddWolverineHttp()` and `MapWolverineEndpoints(...)`. `AddJasperFx(...)` sets
+`opts.ApplicationAssembly = typeof(Program).Assembly` (the committed generated code lives in the **WebApp**
+host assembly, not `Farkle`), Production → `TypeLoadMode.Static` (+ `AssertAllPreGeneratedTypesExist`),
+Development/tests/NSwag → `Dynamic`. The host entrypoint is `return await app.RunJasperFxCommands(args);`.
+`ConfigureHttpJsonOptions(... NumberHandling = Strict)` keeps ints typed so the OpenAPI doc → Kiota stays correct.
 
-### NSwag Environment
-NSwag runs the host with `noBuild=true` to extract the OpenAPI spec. In that environment the static-asset manifest and the Farkle module setup are skipped (`!app.Environment.IsEnvironment("NSwag")` guards). Don't break those guards.
+### NSwag environment (OpenAPI extraction)
+`verify-generated` boots the host in the **`NSwag`** environment with `GenerateSwagger=true` to extract the
+OpenAPI doc. There, `AddFarkleCritterStack(lightweight: true)` → Wolverine mediator-only + lazy Marten, so it
+boots **without a live database**; codegen stays `Dynamic`. Don't break the `IsEnvironment("NSwag")` guards.
 
-### Pinned Versions
-- **Eventuous** `0.15.1` (latest 0.15; the next bump to **0.16.x** is a further command-service API change, tracked separately). Note 0.15.1's shape: `CommandService` takes an **`IEventStore`** (the `IAggregateStore` abstraction is retired); load/store go through the `LoadAggregate`/`StoreAggregate` extensions; results are a single `Result<TState>` record (nested `Ok`/`Error`), not `OkResult`/`ErrorResult` subclasses.
-- **FastEndpoints** `8.1.0` (core + `.Security` + `.Swagger`). Response-sending is on the `Send` property — `Send.OkAsync` / `Send.ResultAsync` / `Send.NoContentAsync` (the old endpoint-base `Send*Async` methods are gone). The next major (9.x) is unverified; the project notes FE is heading toward "bugfix-only" mode upstream.
-- **Kiota** `1.31.1` (pinned in `.config/dotnet-tools.json`) — still the one deliberately-pinned tool; needs the .NET 8 SDK to run.
+### Pinned / notable versions
+- **Marten** `9.12.0`, **Wolverine** `6.16.0` (+ `Wolverine.Http`, `Wolverine.Marten`) — the Critter Stack.
+- **Kiota** `1.31.1` (pinned in `.config/dotnet-tools.json`) — the deliberately-pinned tool; needs the .NET 8 SDK.
+- OpenAPI is the **built-in** `Microsoft.AspNetCore.OpenApi` (NSwag/Swashbuckle removed from the runtime path; `Microsoft.OpenApi` is pinned for a CVE).
 
 ---
 
@@ -457,77 +484,73 @@ NSwag runs the host with `noBuild=true` to extract the OpenAPI spec. In that env
 
 **Never hand-edit these files** — they are auto-generated and any manual changes will be overwritten:
 
-- `src/WebApp.Client/swagger.json` — generated by NSwag from the ASP.NET app
+- `src/WebApp.Client/swagger.json` — the OpenAPI doc, generated from the ASP.NET app (built-in `Microsoft.AspNetCore.OpenApi`, extracted via `GetDocument` with `-p:GenerateSwagger=true`)
 - `src/Farkle.ApiClient/**` — generated by Kiota from `swagger.json` (single shared client used by both `WebApp.Client` and `Farkle.WebTests`)
-- `src/WebApp/Internal/Generated/**` — JasperFx/Wolverine pre-generated handler + HTTP-endpoint code (#305). Production loads it via `TypeLoadMode.Static` for a fast cold start; dev/tests regenerate in-memory (`Dynamic`).
+- `src/WebApp/Internal/Generated/**` — JasperFx/Wolverine pre-generated handler + HTTP-endpoint code (#305). Production loads it via `TypeLoadMode.Static` for a fast cold start; dev/tests/NSwag regenerate in-memory (`Dynamic`).
 
-After any API-contract change (edit the DTO in `src/Farkle.Contracts/`), **regenerate `swagger.json` + the Kiota client and commit the result** — CI's `verify-generated` job fails if the committed files differ. Step-by-step commands: [`docs/api-client-generation.md`](docs/api-client-generation.md).
+After any API-contract change (edit a DTO in `src/Farkle.Contracts/` or a route), **regenerate `swagger.json` + the Kiota client and commit** — CI's `verify-generated` fails on drift. Commands: [`docs/api-client-generation.md`](docs/api-client-generation.md).
 
-After changing a Wolverine handler or endpoint (adding/removing a slice, changing a signature), **regenerate the JasperFx codegen and commit it**: `dotnet run --project src/WebApp --no-launch-profile -- codegen write` (runs in the NSwag environment — no database needed). CI's `verify-codegen` job fails if `src/WebApp/Internal/Generated` drifts from source.
+After changing a Wolverine handler or endpoint (adding/removing a slice, changing a signature), **regenerate the codegen and commit**: `dotnet run --project src/WebApp --no-launch-profile -- codegen write` (runs in the NSwag env — no database). CI's `verify-codegen` fails if `src/WebApp/Internal/Generated` drifts.
 
 ---
 
 ## Common Workflows
 
-### Adding a New Game Command
-1. Define the command record in `Domain/GameAggregate/Command.cs`.
-2. Add a handler method to `Game` (e.g. `public void RollDice(Command.RollDice cmd)`), applying the appropriate (V2) event.
-3. Register it in `GameService`: `.On<Command.X>().InState(Existing).Execute((game, cmd) => game.X(cmd))`.
-4. Create an endpoint in `Endpoints/` extending `TypedEndpoint<Request, Response>`.
-5. Add request/response DTOs to `Contracts/HttpRequests.cs` / `HttpResponses.cs`.
-6. Ensure the endpoint assembly is listed in `Program.cs` FastEndpoints config.
-7. Regenerate `swagger.json` + the Kiota client (see Generated Files Policy).
+### Adding a slice (a new game command)
+See the end-to-end walkthrough in
+[`docs/critter-stack-onboarding.md` §7](docs/critter-stack-onboarding.md). In short:
+1. `Features/<Command>/` folder; add the command to `Domain/GameAggregate/Command.cs`.
+2. Add the event(s) to `GameEvents.cs` + a `Handle`/`Apply`/`Fold` case in `GameState.cs`.
+3. **Decider test first** (`tests/Farkle.Tests/Features/<Command>/`), then the pure `Decide`.
+4. `<Command>Endpoint.cs` — `[WolverinePost]` + `[WriteAggregate(FromMethod = nameof(StreamId))]`, error→400, tuple return.
+5. Response DTO in `Farkle.Contracts` + a mapper under `Features/Responses/`.
+6. Integration test in `tests/Farkle.WebTests/Slices/` (use `TrackAsync` if it broadcasts).
+7. Regenerate: `codegen write`; and if the contract changed, `swagger.json` + the Kiota client.
 
-### Adding Validation to a Command
-1. Create a `Validator` subclass in `GameValidator.cs`.
-2. Add a case to `GameValidator.ValidatePreconditions()`.
-3. Compose with `.And()` where multiple validators apply.
-4. On failure, return an event implementing `IErrorEvent` so the application layer surfaces it as an HTTP error.
+### Adding validation to a slice
+Add a `Validator` primitive in `GameValidator.cs`, compose it with `.And()` in the decider, and on failure
+return an `IErrorEvent` — the endpoint maps the first one to a 400 `ProblemDetails`.
 
-### Extending Game State
-1. Add a property to the `GameState` record with `private init`.
-2. Add a static handler: `private static GameState HandleX(GameState state, XEvent e) => state with { ... }`.
-3. Register it in the `GameState` constructor: `On<XEvent>(HandleX)`.
+### Extending game state
+Add a property to the `GameState` record, a `Handle<Event>` static, **and** wire it in **both** the Marten
+convention (`Create`/`Apply(<Event>)`) **and** the pure `Fold` switch, so replay and deciders/tests agree.
 
-### Adding/Changing Real-Time Updates
-1. Add a method to `IGameEventBroadcaster` and implement it in `SignalRGameEventBroadcaster` (server) using `IHubContext<GameHub>` and group `game-{gameId}`.
-2. Add the matching `.On<T>("MessageName", ...)` listener + event in `GameHubService` (client).
-3. Dispatch a BlazorState action from the component subscribing to the client event.
+### Adding/changing real-time updates
+Add a record to `Features/GameNotifications.cs`, return it from the slice endpoint, add a `Handle(...)` in
+`GameBroadcastHandler`, extend `SignalRGameEventBroadcaster`, and add the client `.On<T>("MessageName", …)` listener + BlazorState action.
 
 ---
 
 ## Troubleshooting
 
 ### E2E Tests Time Out on WASM Hydration
-- Ensure dependencies are up: `docker-compose ps`
+- Ensure Postgres is up: `docker-compose ps`
 - Check the browser console / `e2e-logs` artifact for JS errors
 - Slow machines may need a longer hydration wait in the test
 
-### EventStore Connection Failed
-Verify `ConnectionStrings:Esdb` in `appsettings.Development.json`:
-```json
-"Esdb": "esdb://admin:changeit@localhost:2113?tls=false"
-```
-EventStore must be running: `docker-compose up esdb`.
+### Marten / Postgres connection failed
+Verify the Postgres connection string in `appsettings.Development.json` and that Postgres is running
+(`docker-compose up -d`). Marten auto-creates its schema on boot; there's no separate event-store service.
+Inspect the resolved config with `dotnet run --project src/WebApp -- describe`.
 
-### Database Migration Issues
+### Identity migration issues
 ```bash
-dotnet ef database drop -p src/Farkle.Infrastructure/Farkle.Infrastructure.csproj -s src/WebApp/WebApp.csproj -f
+dotnet ef database drop   -p src/Farkle.Infrastructure/Farkle.Infrastructure.csproj -s src/WebApp/WebApp.csproj -f
 dotnet ef database update -p src/Farkle.Infrastructure/Farkle.Infrastructure.csproj -s src/WebApp/WebApp.csproj
 ```
-The app re-seeds `player1@email.com` on startup if missing.
+The app re-seeds `player1@email.com` on startup if missing. (Only Identity uses EF migrations; Marten schema is self-managed.)
 
 ---
 
 ## Contributing & PR Standards
 
 - **Warnings as errors**: all compiler warnings must be resolved.
-- **Event versioning**: never modify V1 events; create a V2 with the new schema.
-- **Generated files**: regenerate and commit `swagger.json` + `Farkle.ApiClient/` after any contract change (CI enforces this).
-- **E2E test videos**: ensure videos/screenshots are uploaded and linked on the PR.
-- **Architecture/domain isolation**: keep the domain layer free of infrastructure dependencies.
-- **Test coverage**: new domain logic requires unit tests; endpoints require integration tests; every new feature requires at least one E2E test covering the happy path.
-- **UI changes**: verify with the storyboard capture and keep the no-scroll constraint at all three viewports (mobile/medium/large); style via component-scoped CSS (`::deep` for MudBlazor children), not inline styles, and don't rename button labels the tests select by text.
+- **Event versioning**: never modify a stored V1 event; create a V2 with the new schema.
+- **Generated files**: regenerate + commit `swagger.json` + `Farkle.ApiClient/` after a contract change, and `Internal/Generated` after a handler/endpoint change (CI's `verify-generated` + `verify-codegen` enforce both).
+- **Decider purity**: keep `Decide` free of Marten/Wolverine/ASP.NET/Npgsql — the arch-test enforces it.
+- **Slice isolation**: a slice may use the shared kernel + application layer, but must not reach another slice, Infrastructure, or the host.
+- **Test coverage**: new domain logic needs a decider/unit test; new slices need an integration test; new features need at least one E2E happy-path test.
+- **UI changes**: verify with the storyboard capture and keep the no-scroll constraint at all three viewports; style via component-scoped CSS (`::deep` for MudBlazor children), not inline styles, and don't rename button labels the tests select by text.
 - **Close issues via PR**: every PR that resolves an issue MUST include `Closes #<issue>` (or `Fixes #<issue>`) in the body. A bare `#N` is not enough — the keyword is required.
 - **TDD commit convention** (Red–Green):
   - **Commit 1 (Red):** failing tests only — must fail before the fix.
@@ -540,22 +563,17 @@ The app re-seeds `player1@email.com` on startup if missing.
 ### Starting a New Feature
 Always sync with the latest `main` first, then branch from it:
 ```bash
-git checkout main
-git pull origin main
+git checkout main && git pull origin main
 ```
 Never start new work from a stale or unrelated branch.
 
 ### PR & CI Loop
-1. **Write E2E tests** for the happy path before/alongside the implementation.
+1. **Write the decider/E2E tests** for the happy path before/alongside the implementation.
 2. **Open a PR** targeting `main` once the feature and tests are committed.
 3. **Subscribe to PR activity** with `subscribe_pr_activity` immediately after opening so CI results and review comments arrive automatically — do not poll.
-4. **Wait for CI**. The relevant signals are the `test` job and the `e2e` job:
+4. **Wait for CI**. The relevant signals are the `test`, `verify-codegen`/`verify-generated`, and `e2e` jobs:
    - Pass → wait for the PR to be **merged** before starting the next feature.
    - Fail → diagnose from the PR comment / artifacts and push a fix.
 
 ### 5-Commit Limit
-If E2E tests are still failing after **5 commits** on the PR branch:
-1. **Close the PR** without merging.
-2. **Delete the branch**.
-3. **Open a new issue** (or comment on the originating issue) summarizing: the intended implementation, each approach tried and why it failed (with error messages from the TRX/logs artifacts), and the test(s) still failing with the last observed failure reason.
-4. **Stop work** — leave the summary for the next session to start fresh with full context.
+If E2E tests are still failing after **5 commits** on the PR branch: close the PR, delete the branch, open a new issue (or comment on the originating one) summarizing the intended implementation, each approach tried and why it failed (with TRX/log error messages), and the still-failing test(s) with the last failure reason — then stop and leave the summary for a fresh start.
