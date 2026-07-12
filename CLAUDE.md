@@ -461,6 +461,14 @@ services.AddWolverine(opts =>
 services go in `FarkleModuleServiceExtensions` (`IGameCreator`, `IRandom`, `GameNotifier`, `IFeedbackWriter`);
 `SetUpFarkleModule()` is now a no-op (the Eventuous `TypeMap` bootstrap is gone).
 
+### Optimistic-concurrency retry (#310)
+Concurrent writes to the same `game-{id}` stream trip Marten's optimistic-concurrency check
+(`JasperFx.ConcurrencyException`). **Wolverine's `OnException`/`RetryWithCooldown` retry policies do NOT
+apply to Wolverine.HTTP endpoints** — only to the message bus. So the retry is a small ASP.NET
+middleware in `Program.cs` that catches the exception and re-executes the request (short backoff, body
+buffered, guarded by `!Response.HasStarted`); the retried endpoint re-fetches the advanced stream and
+re-runs the decider. See ADR 0004's concurrency note; guarded by `CrossCutting/ConcurrencyShould.cs`.
+
 ### Wolverine.HTTP + codegen
 `Program.cs` calls `AddWolverineHttp()` and `MapWolverineEndpoints(...)`. `AddJasperFx(...)` sets
 `opts.ApplicationAssembly = typeof(Program).Assembly` (the committed generated code lives in the **WebApp**
