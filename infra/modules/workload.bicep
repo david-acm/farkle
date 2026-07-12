@@ -57,6 +57,16 @@ param budgetThresholds array = [ 80, 100 ]
 @description('Emails notified when a budget threshold is crossed.')
 param budgetAlertEmails array = [ 'changeme@example.com' ]
 
+// Azure forbids changing a budget's startDate once created, and the AVM module otherwise
+// defaults it to the *first of the current month* (utcNow) — so redeploying an existing budget
+// in a later month than it was created fails with 400 "Start date of budgets cannot be updated".
+// Pin it to a fixed first-of-month (the budget's original creation month) so every redeploy
+// re-sends the same value → the budget step is an idempotent no-op. Must stay first-of-month.
+// If the disposable RG is ever fully torn down and recreated in a later month, bump this to that
+// month's first (a past first-of-month is rejected on a *fresh* create).
+@description('Fixed budget start date (first of the month, ISO 8601). Pinned so redeploys do not try to move it.')
+param budgetStartDate string = '2026-06-01T00:00:00Z'
+
 // ---------------------------------------------------------------------------
 // Naming. Resource names follow the CAF convention "<abbreviation>-<workload>-<env>".
 // A short deterministic suffix off the resource group + environment keeps the
@@ -256,6 +266,7 @@ module budget 'br/public:avm/res/consumption/budget/rg-scope:0.1.0' = {
     amount: monthlyBudgetAmount
     category: 'Cost'
     resetPeriod: 'Monthly'
+    startDate: budgetStartDate
     thresholds: budgetThresholds
     contactEmails: budgetAlertEmails
   }
