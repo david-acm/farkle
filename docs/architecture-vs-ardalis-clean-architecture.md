@@ -95,10 +95,11 @@ event vocabulary, value objects, and `Farkle.SharedKernel`. Event sourcing force
 sharing that *vocabulary* is legitimate — it is not the horizontal scatter VSA fights.
 
 ### 3.3 What still inverts (and why)
-Not everything is embraced-in-place. **`Farkle.Infrastructure`** keeps the two concerns that are genuinely
-swappable and don't belong in a slice: **SignalR** (`Realtime/SignalRGameEventBroadcaster` behind the
-broadcast chain) and **ASP.NET Identity** (`Identity/`, its own EF `AppDbContext` + migrations). These are
-the only ports left — the event store is *not* one (that's the ADR 0004 decision).
+Almost nothing. **SignalR is embraced too** now (ADR 0005 / #317): `GameNotifier` in the core pushes
+straight through `IHubContext<GameHub>` (the hub lives in `Farkle/Realtime/`) — the `IGameEventBroadcaster`
+port was ceremony and was deleted. The one concern left in **`Farkle.Infrastructure`** is **ASP.NET Identity**
+(`Identity/`, its own EF `AppDbContext` + migrations) — a genuinely separate persistence stack from Marten,
+and the only real port that remains. The event store is *not* one (ADR 0004).
 
 ---
 

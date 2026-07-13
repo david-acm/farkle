@@ -53,13 +53,13 @@ src/
 │   │   └── GameNotifications.cs   # cascaded outbox notifications (LobbyChanged, GameBegan, …, TurnChanged)
 │   ├── Domain/GameAggregate/      # SHARED KERNEL: GameState (Marten snapshot), GameEvents (V1/V2),
 │   │                              #   Command, GameValidator, value objects (DieValue, GameId, Score, Player)
-│   ├── Application/               # GameCreator, GameNotifier, GameBroadcastHandler, GameTelemetryHandler, feedback
+│   ├── Application/               # GameCreator, GameNotifier (pushes via IHubContext), GameBroadcastHandler, GameTelemetryHandler, feedback
+│   ├── Realtime/                  # GameHub — the SignalR hub lives in the core; GameNotifier broadcasts to it directly (ADR 0005)
 │   ├── CritterStackServiceExtensions.cs   # AddFarkleCritterStack (AddMarten + IntegrateWithWolverine + AddWolverine)
 │   └── FarkleModuleServiceExtensions.cs   # domain/application DI (IGameCreator, IRandom, GameNotifier, …)
-├── Farkle.Contracts/              # HTTP request/response DTOs (dependency-free leaf)
-├── Farkle.SharedKernel/           # Pure domain logic shared with the WASM client (ScoreCalculator, TurnActionPolicy, GameStage)
-├── Farkle.Infrastructure/         # Server infrastructure that isn't Marten/Wolverine
-│   ├── Realtime/                  # GameHub + SignalRGameEventBroadcaster (AddFarkleRealtime)
+├── Farkle.Shared/                 # Merged dependency-free leaf shared with the WASM client (ADR 0006):
+│   │                              #   Contracts/ (HTTP + SignalR DTOs) + Turns/ + Scoring/ (ScoreCalculator, TurnActionPolicy, GameStage)
+├── Farkle.Infrastructure/         # Auth/Identity infrastructure only (realtime moved to the core in #323)
 │   ├── Identity/                  # AppUser, AppDbContext, Entra data source (AddFarkleIdentity)
 │   └── Migrations/                # EF Core Identity migrations (PostgreSQL)
 ├── Farkle.ApiClient/              # GENERATED Kiota client (do not hand-edit) — shared client
@@ -136,8 +136,8 @@ schema — add a new `V2` record.**
 ```
 Features/GameNotifications.cs            # LobbyChanged, GameBegan, DiceRolled, TableChanged, TurnChanged
   → Application/GameBroadcastHandler.cs  # Wolverine Handle(...) per notification (runs after commit)
-  → Application/GameNotifier.cs          # reloads the fresh GameState via IQuerySession
-  → Infrastructure/Realtime/SignalRGameEventBroadcaster.cs   # pushes to SignalR group "game-{id}"
+  → Application/GameNotifier.cs          # reloads the fresh GameState via IQuerySession, then pushes it
+  → IHubContext<GameHub> → SignalR group "game-{id}"   # GameHub is in Farkle/Realtime/ (core); no port (ADR 0005)
 ```
 
 A slice broadcasts by **returning** a `GameNotifications.*` from its endpoint — never by calling the hub
@@ -525,7 +525,8 @@ convention (`Create`/`Apply(<Event>)`) **and** the pure `Fold` switch, so replay
 
 ### Adding/changing real-time updates
 Add a record to `Features/GameNotifications.cs`, return it from the slice endpoint, add a `Handle(...)` in
-`GameBroadcastHandler`, extend `SignalRGameEventBroadcaster`, and add the client `.On<T>("MessageName", …)` listener + BlazorState action.
+`GameBroadcastHandler`, have `GameNotifier` push the new message through `IHubContext<GameHub>`, and add the
+client `.On<T>("MessageName", …)` listener + BlazorState action.
 
 ---
 

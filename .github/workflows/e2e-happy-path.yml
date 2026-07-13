@@ -201,6 +201,20 @@ jobs:
             exit 1
           fi
 
+  docker-build:
+    name: Validate WebApp Docker build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+
+      # Build the production image the same way CI - Image does (BuildKit, context = repo root) but with
+      # NO push and NO Azure — so Dockerfile drift fails the PR instead of only surfacing on the
+      # push-to-main CI - Image build. A stale per-project COPY line after a project rename/merge (the
+      # Farkle.Shared merge, #322) broke CI - Image post-merge precisely because PRs never built the image.
+      - name: docker build (no push)
+        run: docker build -f src/WebApp/Dockerfile -t farkle-webapp:pr-validate .
+
   e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 30

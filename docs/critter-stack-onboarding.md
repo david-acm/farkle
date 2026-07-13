@@ -93,8 +93,9 @@ When a slice returns a `GameNotifications.*` record, Wolverine publishes it thro
 ```
 Features/GameNotifications.cs            (LobbyChanged, GameBegan, DiceRolled, TableChanged, TurnChanged)
   -> Application/GameBroadcastHandler.cs (Wolverine Handle(...) per notification)
-  -> Application/GameNotifier.cs         (reloads the fresh GameState via IQuerySession)
-  -> Infrastructure/Realtime/SignalRGameEventBroadcaster.cs  (pushes to SignalR group "game-{id}")
+  -> Application/GameNotifier.cs         (reloads the fresh GameState via IQuerySession, then pushes it
+                                          straight through IHubContext<GameHub> — no port, ADR 0005)
+  -> SignalR group "game-{id}"           (GameHub lives in Farkle/Realtime/, in the core)
 ```
 
 The client (`WebApp.Client`) listens on the SignalR hub and dispatches a BlazorState action so
