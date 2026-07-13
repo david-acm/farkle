@@ -17,14 +17,10 @@ public static class BeginGameEndpoint
   [WolverinePost("/api/games/{gameId:int}/start")]
   public static (Results<Ok<LobbyStateResponse>, ProblemHttpResult>, Events, GameNotifications.GameBegan?) Post(
     int gameId, BeginGameRequest body,
-    [WriteAggregate(FromMethod = nameof(StreamId))] GameState state)
-  {
-    var events = BeginGameDecider.Decide(new Command.BeginGame(gameId, body.PlayerId), state).ToArray();
-
-    if (events.OfType<IErrorEvent>().FirstOrDefault() is { } error)
-      return (TypedResults.Problem(statusCode: 400, title: error.GetType().Name), new Events(), null);
-
-    var response = LobbyMapper.ToLobbyState(GameState.Fold(state, events));
-    return (TypedResults.Ok(response), new Events(events), new GameNotifications.GameBegan(gameId));
-  }
+    [WriteAggregate(FromMethod = nameof(StreamId))] GameState state) =>
+    SliceOutcome.From(
+      state,
+      BeginGameDecider.Decide(new Command.BeginGame(gameId, body.PlayerId), state),
+      LobbyMapper.ToLobbyState,
+      new GameNotifications.GameBegan(gameId));
 }

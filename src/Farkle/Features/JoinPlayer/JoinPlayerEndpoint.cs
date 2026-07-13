@@ -17,17 +17,15 @@ public static class JoinPlayerEndpoint
   [WolverinePost("/api/games/{gameId:int}/players")]
   public static (Results<Ok<JoinPlayerResponse>, ProblemHttpResult>, Events, GameNotifications.LobbyChanged?) Post(
     int gameId, JoinPlayerRequest body,
-    [WriteAggregate(FromMethod = nameof(StreamId))] GameState state)
-  {
-    var events = JoinPlayerDecider.Decide(new Command.JoinPlayer(gameId, body.PlayerName), state).ToArray();
-
-    if (events.OfType<IErrorEvent>().FirstOrDefault() is { } error)
-      return (TypedResults.Problem(statusCode: 400, title: error.GetType().Name), new Events(), null);
-
-    var s     = GameState.Fold(state, events);
-    var lobby = LobbyMapper.ToLobbyState(s);
-    var response = new JoinPlayerResponse(
-      s.Players.Last().Id, s.PlayerInTurn, lobby.HostPlayerId, lobby.Stage, lobby.Roster);
-    return (TypedResults.Ok(response), new Events(events), new GameNotifications.LobbyChanged(gameId));
-  }
+    [WriteAggregate(FromMethod = nameof(StreamId))] GameState state) =>
+    SliceOutcome.From(
+      state,
+      JoinPlayerDecider.Decide(new Command.JoinPlayer(gameId, body.PlayerName), state),
+      s =>
+      {
+        var lobby = LobbyMapper.ToLobbyState(s);
+        return new JoinPlayerResponse(
+          s.Players.Last().Id, s.PlayerInTurn, lobby.HostPlayerId, lobby.Stage, lobby.Roster);
+      },
+      new GameNotifications.LobbyChanged(gameId));
 }

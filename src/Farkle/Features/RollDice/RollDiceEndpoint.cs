@@ -24,14 +24,11 @@ public static class RollDiceEndpoint
     [WriteAggregate(FromMethod = nameof(StreamId))] GameState state,
     IRandom rng)
   {
-    var roll   = Dice.FromNewRoll(rng, state.DiceToRoll);
-    var events = RollDiceDecider.Decide(new Command.RollDice(gameId, playerId), state, roll).ToArray();
-
-    if (events.OfType<IErrorEvent>().FirstOrDefault() is { } error)
-      return (TypedResults.Problem(statusCode: 400, title: error.GetType().Name), new Events(), null);
-
-    var s = GameState.Fold(state, events);
-    var response = new RollDiceResponse(s.Code, s.TableCenter.Select(d => d.Value).ToArray());
-    return (TypedResults.Ok(response), new Events(events), new GameNotifications.DiceRolled(gameId));
+    var roll = Dice.FromNewRoll(rng, state.DiceToRoll);
+    return SliceOutcome.From(
+      state,
+      RollDiceDecider.Decide(new Command.RollDice(gameId, playerId), state, roll),
+      s => new RollDiceResponse(s.Code, s.TableCenter.Select(d => d.Value).ToArray()),
+      new GameNotifications.DiceRolled(gameId));
   }
 }
