@@ -1,8 +1,8 @@
-using System.Collections.Immutable;
 using Farkle.Domain.GameAggregate;
 using Farkle.Features.PassTurn;
 using Farkle.SharedKernel.Turns;
 using FluentAssertions;
+using System.Collections.Immutable;
 using static Farkle.Domain.GameAggregate.GameEvents;
 
 namespace Farkle.Tests.Features.PassTurn;
@@ -20,7 +20,7 @@ public class PassTurnDeciderShould
   [Fact]
   public void BankTheScoreAndRotateToTheNextPlayer()
   {
-    var events = PassTurnDecider.Decide(new Command.PassTurn(1, 1), AfterRolling());
+    var events = PassTurnDecider.Decide(new PassTurnCommand(1, 1), AfterRolling());
 
     var passed = events.Should().ContainSingle().Which.Should().BeOfType<V1.TurnPassed>().Subject;
     passed.PlayerId.Should().Be(1);
@@ -37,7 +37,7 @@ public class PassTurnDeciderShould
       new V2.PlayerJoined(2, "Bob", PlayerColors.For(2)),
       new V1.GamePlayStarted(1));
 
-    var events = PassTurnDecider.Decide(new Command.PassTurn(1, 1), freshTurn);
+    var events = PassTurnDecider.Decide(new PassTurnCommand(1, 1), freshTurn);
 
     events.Should().ContainSingle()
       .Which.Should().BeEquivalentTo(new V1.PassedWithoutRolling(1));
@@ -46,7 +46,7 @@ public class PassTurnDeciderShould
   [Fact]
   public void RejectPassingOutOfTurn()
   {
-    var events = PassTurnDecider.Decide(new Command.PassTurn(1, 2), AfterRolling());
+    var events = PassTurnDecider.Decide(new PassTurnCommand(1, 2), AfterRolling());
 
     events.Should().ContainSingle().Which.Should().BeEquivalentTo(new V1.PlayedOutOfTurn(2, 1));
   }
@@ -63,7 +63,7 @@ public class PassTurnDeciderShould
       new V2.DiceRolled(1, new[] { 1, 1, 5, 2, 3, 4 }, new Score(0), GameStage.Keeping),
       new V1.DiceKept(1, new[] { 1, 1 }, new[] { 5, 2, 3, 4 }, 200));
 
-    var events = PassTurnDecider.Decide(new Command.PassTurn(1, 1), nearWin).ToList();
+    var events = PassTurnDecider.Decide(new PassTurnCommand(1, 1), nearWin).ToList();
 
     events.Should().HaveCount(2);
     events.Should().ContainEquivalentOf(new V1.GameWon(1, 5100));

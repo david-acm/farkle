@@ -7,7 +7,7 @@ namespace Farkle.Features.ReturnDice;
 // is currently set aside.
 internal static class ReturnDiceDecider
 {
-  public static IEnumerable<object> Decide(Command.ReturnDice command, GameState state)
+  public static IEnumerable<object> Decide(ReturnDiceCommand command, GameState state)
   {
     var validation = new PlayerIsInTurn(state, command.PlayerId)
       .And(new DieIsSetAside(state, command.PlayerId, command.Die.Value))

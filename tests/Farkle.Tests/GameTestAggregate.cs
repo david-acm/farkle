@@ -1,5 +1,4 @@
 using Farkle.Domain.GameAggregate;
-using Farkle.SharedKernel.Turns;
 using Farkle.Features.BeginGame;
 using Farkle.Features.JoinPlayer;
 using Farkle.Features.KeepDice;
@@ -8,6 +7,7 @@ using Farkle.Features.ReturnDice;
 using Farkle.Features.RollDice;
 using Farkle.Features.SetDiceAside;
 using Farkle.Features.StartGame;
+using Farkle.SharedKernel.Turns;
 
 namespace Farkle.Tests;
 
@@ -41,26 +41,26 @@ internal sealed class Game
     }
   }
 
-  public void Start(Command.StartGame c)        => Apply(StartGameDecider.Decide(c, State));
-  public void JoinPlayer(Command.JoinPlayer c)  => Apply(JoinPlayerDecider.Decide(c, State));
-  public void BeginGame(Command.BeginGame c)    => Apply(BeginGameDecider.Decide(c, State));
-  public void KeepDice(Command.KeepDice c)      => Apply(KeepDiceDecider.Decide(c, State));
-  public void PassTurn(Command.PassTurn c)      => Apply(PassTurnDecider.Decide(c, State));
-  public void SetDiceAside(Command.SetDiceAside c) => Apply(SetDiceAsideDecider.Decide(c, State));
-  public void ReturnDice(Command.ReturnDice c)  => Apply(ReturnDiceDecider.Decide(c, State));
+  public void Start(StartGameCommand c)        => Apply(StartGameDecider.Decide(c, State));
+  public void JoinPlayer(JoinPlayerCommand c)  => Apply(JoinPlayerDecider.Decide(c, State));
+  public void BeginGame(BeginGameCommand c)    => Apply(BeginGameDecider.Decide(c, State));
+  public void KeepDice(KeepDiceCommand c)      => Apply(KeepDiceDecider.Decide(c, State));
+  public void PassTurn(PassTurnCommand c)      => Apply(PassTurnDecider.Decide(c, State));
+  public void SetDiceAside(SetDiceAsideCommand c) => Apply(SetDiceAsideDecider.Decide(c, State));
+  public void ReturnDice(ReturnDiceCommand c)  => Apply(ReturnDiceDecider.Decide(c, State));
 
-  public void RollDiceV2(Command.RollDice c) =>
+  public void RollDiceV2(RollDiceCommand c) =>
     Apply(RollDiceDecider.Decide(c, State, Dice.FromNewRoll(_random, State.DiceToRoll)));
 
   // V1 roll/keep paths retained for the tests that exercise the older event shapes: reuse the
   // decider's validation + scoring, then downcast the emitted V2 event to its V1 counterpart.
-  public void RollDiceV1(Command.RollDice c) =>
+  public void RollDiceV1(RollDiceCommand c) =>
     Apply(RollDiceDecider.Decide(c, State, Dice.FromNewRoll(_random, State.DiceToRoll))
       .Select(e => e is GameEvents.V2.DiceRolled r
         ? new GameEvents.V1.DiceRolled(r.PlayerId, r.Dice, r.TurnScore)
         : e));
 
-  public void KeepDiceV2(Command.KeepDice c) =>
+  public void KeepDiceV2(KeepDiceCommand c) =>
     Apply(KeepDiceDecider.Decide(c, State)
       .Select(e => e is GameEvents.V1.DiceKept k
         ? new GameEvents.V2.DiceKept(k.PlayerId, k.Dice, k.TableCenter, k.NewTurnScore, GameStage.Rolling)

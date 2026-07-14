@@ -27,7 +27,7 @@ public static class RollDiceEndpoint
     var roll = Dice.FromNewRoll(rng, state.DiceToRoll);
     return SliceOutcome.From(
       state,
-      RollDiceDecider.Decide(new Command.RollDice(gameId, playerId), state, roll),
+      RollDiceDecider.Decide(new RollDiceCommand(gameId, playerId), state, roll),
       s => new RollDiceResponse(s.Code, s.TableCenter.Select(d => d.Value).ToArray()),
       new GameNotifications.DiceRolled(gameId));
   }

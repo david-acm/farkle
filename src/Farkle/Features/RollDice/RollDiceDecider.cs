@@ -9,7 +9,7 @@ namespace Farkle.Features.RollDice;
 // Score-after-roll is the current turn score if anything is keepable, else 0 (a farkle).
 internal static class RollDiceDecider
 {
-  public static IEnumerable<object> Decide(Command.RollDice command, GameState state, Dice roll)
+  public static IEnumerable<object> Decide(RollDiceCommand command, GameState state, Dice roll)
   {
     var validation = new PlayerIsInTurn(state, command.PlayerId)
       .And(new SingleRoll(state, command.PlayerId))

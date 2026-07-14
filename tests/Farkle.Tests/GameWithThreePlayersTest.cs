@@ -1,7 +1,9 @@
 using Farkle.Domain.GameAggregate;
+using Farkle.Features.BeginGame;
+using Farkle.Features.JoinPlayer;
+using Farkle.Features.StartGame;
 using Moq;
 using Xunit.Abstractions;
-using static Farkle.Domain.GameAggregate.Command;
 
 namespace Farkle.Tests;
 
@@ -31,12 +33,12 @@ public class GameWithThreePlayersTest
     var game = new Game(_randomProvider);
 
     // Act
-    game.Start(new StartGame(1));
-    game.JoinPlayer(new JoinPlayer(1, "David"));
-    game.JoinPlayer(new JoinPlayer(1, "Cristian"));
-    game.JoinPlayer(new JoinPlayer(1, "German"));
+    game.Start(new StartGameCommand(1));
+    game.JoinPlayer(new JoinPlayerCommand(1, "David"));
+    game.JoinPlayer(new JoinPlayerCommand(1, "Cristian"));
+    game.JoinPlayer(new JoinPlayerCommand(1, "German"));
     // The host (player 1) begins play, moving the game out of the lobby into Rolling.
-    game.BeginGame(new BeginGame(1, 1));
+    game.BeginGame(new BeginGameCommand(1, 1));
 
     Game = new Game(_randomProvider);
     Game.Load(game.Changes.ToList());
@@ -45,7 +47,6 @@ public class GameWithThreePlayersTest
   internal GameState                   State   => Game.State;
   protected IReadOnlyCollection<object> Changes => Game.Changes;
   protected IReadOnlyCollection<object> Current => Game.Current.ToList().AsReadOnly();
-
 
   protected void SetupDiceToRoll(IEnumerable<int> values)
   {

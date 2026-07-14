@@ -8,7 +8,7 @@ namespace Farkle.Features.JoinPlayer;
 // before the lobby is open returns GameHasNotStarted.
 internal static class JoinPlayerDecider
 {
-  public static IEnumerable<object> Decide(Command.JoinPlayer command, GameState state)
+  public static IEnumerable<object> Decide(JoinPlayerCommand command, GameState state)
   {
     if (state.GameStage != GameStage.WaitingForPlayers)
       return [new GameHasNotStarted(state.GameStage)];

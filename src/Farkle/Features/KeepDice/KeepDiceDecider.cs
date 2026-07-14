@@ -9,7 +9,7 @@ namespace Farkle.Features.KeepDice;
 // score. Emits V1.DiceKept, which the slice endpoint appends to the game-{id} stream.
 internal static class KeepDiceDecider
 {
-  public static IEnumerable<object> Decide(Command.KeepDice command, GameState state)
+  public static IEnumerable<object> Decide(KeepDiceCommand command, GameState state)
   {
     var dice = Dice.FromValues(command.DiceValues.ToPrimitiveArray());
 

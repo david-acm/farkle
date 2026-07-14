@@ -21,7 +21,7 @@ public static class ReturnDiceEndpoint
     SliceOutcome.From(
       state,
       ReturnDiceDecider.Decide(
-        new Command.ReturnDice(gameId, playerId, DieValue.FromValue(body.DieValue)), state),
+        new ReturnDiceCommand(gameId, playerId, DieValue.FromValue(body.DieValue)), state),
       s => new SetAsideResponse(s.Code, s.DiceSetAside.Select(d => d.Value).ToArray()),
       new GameNotifications.TableChanged(gameId));
 }

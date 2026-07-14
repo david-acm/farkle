@@ -21,7 +21,7 @@ public static class KeepDiceEndpoint
     SliceOutcome.From(
       state,
       KeepDiceDecider.Decide(
-        new Command.KeepDice(gameId, playerId, body.DiceValues.Select(DieValue.FromValue)), state),
+        new KeepDiceCommand(gameId, playerId, body.DiceValues.Select(DieValue.FromValue)), state),
       s => new KeepDiceResponse(s.Code, s.TurnScore),
       new GameNotifications.TableChanged(gameId));
 }

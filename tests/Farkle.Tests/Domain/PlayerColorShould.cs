@@ -1,6 +1,7 @@
 using Farkle.Domain.GameAggregate;
+using Farkle.Features.JoinPlayer;
+using Farkle.Features.StartGame;
 using FluentAssertions;
-using static Farkle.Domain.GameAggregate.Command;
 using V2 = Farkle.Domain.GameAggregate.GameEvents.V2;
 
 namespace Farkle.Tests.Domain;
@@ -12,12 +13,12 @@ public class PlayerColorShould
   {
     // Arrange
     var game = new Game();
-    game.Start(new StartGame(1));
+    game.Start(new StartGameCommand(1));
 
     // Act
-    game.JoinPlayer(new JoinPlayer(1, "David"));
-    game.JoinPlayer(new JoinPlayer(1, "Cristian"));
-    game.JoinPlayer(new JoinPlayer(1, "German"));
+    game.JoinPlayer(new JoinPlayerCommand(1, "David"));
+    game.JoinPlayer(new JoinPlayerCommand(1, "Cristian"));
+    game.JoinPlayer(new JoinPlayerCommand(1, "German"));
 
     // Assert — every player carries a non-empty colour, all distinct, assigned by join order.
     var colors = game.State.Players.Select(p => p.Color).ToList();
@@ -33,10 +34,10 @@ public class PlayerColorShould
   {
     // Arrange
     var game = new Game();
-    game.Start(new StartGame(1));
+    game.Start(new StartGameCommand(1));
 
     // Act
-    game.JoinPlayer(new JoinPlayer(1, "David"));
+    game.JoinPlayer(new JoinPlayerCommand(1, "David"));
 
     // Assert — the new V2 event carries the assigned colour (V1 is left untouched).
     var joined = game.Changes.OfType<V2.PlayerJoined>().Single();

@@ -1,7 +1,10 @@
 using Farkle.Domain.GameAggregate;
+using Farkle.Features.BeginGame;
+using Farkle.Features.JoinPlayer;
+using Farkle.Features.RollDice;
+using Farkle.Features.StartGame;
 using Farkle.Tests.Framework;
 using FluentAssertions;
-using static Farkle.Domain.GameAggregate.Command;
 using static Farkle.Domain.GameAggregate.GameEvents.V1;
 using static Farkle.SharedKernel.Turns.GameStage;
 
@@ -12,9 +15,9 @@ public class BeginGameShould
   private static Game LobbyWith(int players)
   {
     var game = new Game();
-    game.Start(new StartGame(1));
+    game.Start(new StartGameCommand(1));
     for (var i = 1; i <= players; i++)
-      game.JoinPlayer(new JoinPlayer(1, $"Player{i}"));
+      game.JoinPlayer(new JoinPlayerCommand(1, $"Player{i}"));
     return game;
   }
 
@@ -31,7 +34,7 @@ public class BeginGameShould
   {
     var game = LobbyWith(2);
 
-    game.BeginGame(new BeginGame(1, 1));
+    game.BeginGame(new BeginGameCommand(1, 1));
 
     game.State.GameStage.Should().Be(Rolling);
     game.Changes.Should().ContainSingleEvent<GamePlayStarted>();
@@ -42,7 +45,7 @@ public class BeginGameShould
   {
     var game = LobbyWith(2);
 
-    game.BeginGame(new BeginGame(1, 2));
+    game.BeginGame(new BeginGameCommand(1, 2));
 
     game.State.GameStage.Should().Be(WaitingForPlayers);
     var error = game.Changes.Should().ContainSingleEvent<OnlyHostCanStartGame>();
@@ -54,7 +57,7 @@ public class BeginGameShould
   {
     var game = LobbyWith(1);
 
-    game.BeginGame(new BeginGame(1, 1));
+    game.BeginGame(new BeginGameCommand(1, 1));
 
     game.State.GameStage.Should().Be(Rolling);
     game.Changes.Should().ContainSingleEvent<GamePlayStarted>();
@@ -65,7 +68,7 @@ public class BeginGameShould
   {
     var game = LobbyWith(0);
 
-    game.BeginGame(new BeginGame(1, 1));
+    game.BeginGame(new BeginGameCommand(1, 1));
 
     game.State.GameStage.Should().Be(WaitingForPlayers);
     var error = game.Changes.Should().ContainSingleEvent<NotEnoughPlayers>();
@@ -77,9 +80,9 @@ public class BeginGameShould
   public void RejectBeginWhenGameAlreadyInPlay()
   {
     var game = LobbyWith(2);
-    game.BeginGame(new BeginGame(1, 1));
+    game.BeginGame(new BeginGameCommand(1, 1));
 
-    game.BeginGame(new BeginGame(1, 1));
+    game.BeginGame(new BeginGameCommand(1, 1));
 
     game.Changes.Should().ContainSingleEvent<GameAlreadyInPlay>();
     game.Changes.Should().ContainSingleEvent<GamePlayStarted>();
@@ -90,7 +93,7 @@ public class BeginGameShould
   {
     var game = LobbyWith(2);
 
-    game.RollDiceV2(new RollDice(1, 1));
+    game.RollDiceV2(new RollDiceCommand(1, 1));
 
     game.State.GameStage.Should().Be(WaitingForPlayers);
     game.State.TableCenter.Should().BeEmpty();
@@ -101,9 +104,9 @@ public class BeginGameShould
   public void RejectJoinAfterPlayHasBegun()
   {
     var game = LobbyWith(2);
-    game.BeginGame(new BeginGame(1, 1));
+    game.BeginGame(new BeginGameCommand(1, 1));
 
-    game.JoinPlayer(new JoinPlayer(1, "Latecomer"));
+    game.JoinPlayer(new JoinPlayerCommand(1, "Latecomer"));
 
     game.State.Players.Should().HaveCount(2);
   }

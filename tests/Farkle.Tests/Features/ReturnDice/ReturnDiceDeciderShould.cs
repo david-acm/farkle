@@ -20,7 +20,7 @@ public class ReturnDiceDeciderShould
   public void EmitDiceReturnedForASetAsideDie()
   {
     var events = ReturnDiceDecider.Decide(
-      new Command.ReturnDice(1, 1, DieValue.One), WithOneSetAside());
+      new ReturnDiceCommand(1, 1, DieValue.One), WithOneSetAside());
 
     events.Should().ContainSingle().Which.Should().BeEquivalentTo(new V1.DiceReturned(1, 1));
   }
@@ -29,7 +29,7 @@ public class ReturnDiceDeciderShould
   public void RejectReturningADieThatIsNotSetAside()
   {
     var events = ReturnDiceDecider.Decide(
-      new Command.ReturnDice(1, 1, DieValue.Five), WithOneSetAside());
+      new ReturnDiceCommand(1, 1, DieValue.Five), WithOneSetAside());
 
     events.Should().ContainSingle().Which.Should().BeEquivalentTo(new V1.DieNotSetAside(1, 5));
   }

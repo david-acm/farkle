@@ -7,7 +7,7 @@ namespace Farkle.Features.SetDiceAside;
 // keeps; a die may be set aside only if a not-yet-set-aside copy is still on the table.
 internal static class SetDiceAsideDecider
 {
-  public static IEnumerable<object> Decide(Command.SetDiceAside command, GameState state)
+  public static IEnumerable<object> Decide(SetDiceAsideCommand command, GameState state)
   {
     var validation = new PlayerIsInTurn(state, command.PlayerId)
       .And(new DieIsAvailableToSetAside(state, command.PlayerId, command.Die.Value))

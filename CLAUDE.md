@@ -113,7 +113,8 @@ Two solution files exist: **`Farkle.sln`** (full solution — use this) and `src
 - `src/Farkle/Domain/GameAggregate/GameState.cs` — the snapshot: `Create`/`Apply` (Marten replay) **and** a separate pure static `Fold` (deciders/tests/endpoints), plus `Score`, `GameId`, `Player`.
 - `src/Farkle/Domain/GameAggregate/GameEvents.cs` — versioned event records (`V1` & `V2`), `IErrorEvent` marker, `DieValue` SmartEnum.
 - `src/Farkle/Domain/GameAggregate/GameValidator.cs` — validator primitives (`PlayerIsInTurn`, `SingleRoll`, `PlayerCanPass`, …).
-- `src/Farkle/Domain/GameAggregate/Command.cs` — command records.
+- `src/Farkle/Features/<Command>/<Command>Command.cs` — the slice's command record (each slice owns its own).
+- `src/Farkle/Domain/GameAggregate/PlayerId.cs` — the player-id value object (shared by the events, `GameState` and every command).
 - `src/Farkle/CritterStackServiceExtensions.cs` — `AddFarkleCritterStack` (Marten + Wolverine wiring).
 
 ### Validation-as-events
@@ -148,8 +149,12 @@ The client (`GameHubService`) listens and dispatches a BlazorState action so oth
 
 ## Domain Model Concepts
 
-### Commands (`Command.cs`)
-`StartGame`, `JoinPlayer`, `BeginGame`, `RollDice`, `KeepDice`, `SetDiceAside`, `ReturnDice`, `PassTurn`.
+### Commands (one per slice)
+`StartGameCommand`, `JoinPlayerCommand`, `BeginGameCommand`, `RollDiceCommand`, `KeepDiceCommand`,
+`SetDiceAsideCommand`, `ReturnDiceCommand`, `PassTurnCommand`. Each lives **in its own slice**
+(`Features/<Command>/<Command>Command.cs`) next to the decider and endpoint that use it — a command is
+one slice's write-side input, not shared kernel. Value objects the commands are built from (`GameId`,
+`PlayerId`, `DieValue`) stay in `Domain/GameAggregate/`.
 
 ### Game stages (`Farkle.SharedKernel/Turns/GameStage.cs`)
 ```csharp
@@ -507,7 +512,7 @@ After changing a Wolverine handler or endpoint (adding/removing a slice, changin
 ### Adding a slice (a new game command)
 See the end-to-end walkthrough in
 [`docs/critter-stack-onboarding.md` §7](docs/critter-stack-onboarding.md). In short:
-1. `Features/<Command>/` folder; add the command to `Domain/GameAggregate/Command.cs`.
+1. `Features/<Command>/` folder; add the command record as `Features/<Command>/<Command>Command.cs`.
 2. Add the event(s) to `GameEvents.cs` + a `Handle`/`Apply`/`Fold` case in `GameState.cs`.
 3. **Decider test first** (`tests/Farkle.Tests/Features/<Command>/`), then the pure `Decide`.
 4. `<Command>Endpoint.cs` — `[WolverinePost]` + `[WriteAggregate(FromMethod = nameof(StreamId))]`, error→400, tuple return.

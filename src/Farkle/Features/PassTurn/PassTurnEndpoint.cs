@@ -20,7 +20,7 @@ public static class PassTurnEndpoint
     [WriteAggregate(FromMethod = nameof(StreamId))] GameState state) =>
     SliceOutcome.From(
       state,
-      PassTurnDecider.Decide(new Command.PassTurn(gameId, playerId), state),
+      PassTurnDecider.Decide(new PassTurnCommand(gameId, playerId), state),
       s => PassTurnMapper.ToPassTurnResponse(s, playerId),
       new GameNotifications.TurnChanged(gameId, playerId));
 }

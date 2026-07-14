@@ -1,7 +1,7 @@
 using Farkle.Domain.GameAggregate;
+using Farkle.Features.StartGame;
 using Farkle.Tests.Framework;
 using FluentAssertions;
-using static Farkle.Domain.GameAggregate.Command;
 using static Farkle.Domain.GameAggregate.GameEvents.V1;
 using static Farkle.SharedKernel.Turns.GameStage;
 
@@ -17,7 +17,7 @@ public class StartShould
     var game = new Game();
 
     // Act
-    game.Start(new StartGame(gameId));
+    game.Start(new StartGameCommand(gameId));
 
     // Assert
     game.State.GameStage.Should().Be(WaitingForPlayers);
@@ -31,7 +31,7 @@ public class StartShould
     var game = new Game();
 
     // Act
-    game.Start(new StartGame(1));
+    game.Start(new StartGameCommand(1));
 
     // Assert
     game.Changes.Should().Contain(e => e is GameStarted);
@@ -42,10 +42,10 @@ public class StartShould
   {
     // Arrange
     var game = new Game();
-    game.Start(new StartGame(1));
+    game.Start(new StartGameCommand(1));
 
     // Act
-    game.Start(new StartGame(1));
+    game.Start(new StartGameCommand(1));
 
     // Assert
     game.Changes.Should().ContainSingleEvent<GameStarted>();

@@ -13,7 +13,7 @@ public class JoinPlayerDeciderShould
   {
     var lobby = GameState.Fold(new V1.GameStarted(1));
 
-    var events = JoinPlayerDecider.Decide(new Command.JoinPlayer(1, "Alice"), lobby);
+    var events = JoinPlayerDecider.Decide(new JoinPlayerCommand(1, "Alice"), lobby);
 
     events.Should().ContainSingle()
       .Which.Should().BeEquivalentTo(new V2.PlayerJoined(1, "Alice", PlayerColors.For(1)));
@@ -26,7 +26,7 @@ public class JoinPlayerDeciderShould
       new V1.GameStarted(1),
       new V2.PlayerJoined(1, "Alice", PlayerColors.For(1)));
 
-    var events = JoinPlayerDecider.Decide(new Command.JoinPlayer(1, "Bob"), lobbyWithOne);
+    var events = JoinPlayerDecider.Decide(new JoinPlayerCommand(1, "Bob"), lobbyWithOne);
 
     events.Should().ContainSingle()
       .Which.Should().BeEquivalentTo(new V2.PlayerJoined(2, "Bob", PlayerColors.For(2)));
@@ -35,7 +35,7 @@ public class JoinPlayerDeciderShould
   [Fact]
   public void RejectJoiningBeforeTheLobbyIsOpen()
   {
-    var events = JoinPlayerDecider.Decide(new Command.JoinPlayer(1, "Alice"), new GameState());
+    var events = JoinPlayerDecider.Decide(new JoinPlayerCommand(1, "Alice"), new GameState());
 
     events.Should().ContainSingle()
       .Which.Should().BeEquivalentTo(new GameHasNotStarted(GameStage.None));

@@ -1,6 +1,9 @@
 using Farkle.Domain.GameAggregate;
-using FluentAssertions;
+using Farkle.Features.KeepDice;
+using Farkle.Features.RollDice;
+using Farkle.Features.SetDiceAside;
 using Farkle.Tests.Framework;
+using FluentAssertions;
 using Xunit.Abstractions;
 using static Farkle.Domain.GameAggregate.GameEvents.V1;
 
@@ -20,10 +23,10 @@ public class SetDiceAsideShould : GameWithThreePlayersTest
   {
     // Arrange — table center is [1,2,3,4,5,6]
     SetupDiceToRoll(new List<int> { 1, 2, 3, 4, 5, 6 });
-    Game.RollDiceV2(new Command.RollDice(1, 1));
+    Game.RollDiceV2(new RollDiceCommand(1, 1));
 
     // Act
-    Game.SetDiceAside(new Command.SetDiceAside(1, 1, DieValue.One));
+    Game.SetDiceAside(new SetDiceAsideCommand(1, 1, DieValue.One));
 
     // Assert
     Changes.Should().ContainSingleEvent<DiceSetAside>();
@@ -35,10 +38,10 @@ public class SetDiceAsideShould : GameWithThreePlayersTest
   {
     // Arrange
     SetupDiceToRoll(new List<int> { 1, 2, 3, 4, 5, 6 });
-    Game.RollDiceV2(new Command.RollDice(1, 1));
+    Game.RollDiceV2(new RollDiceCommand(1, 1));
 
     // Act — setting a die aside is a non-destructive selection overlay.
-    Game.SetDiceAside(new Command.SetDiceAside(1, 1, DieValue.One));
+    Game.SetDiceAside(new SetDiceAsideCommand(1, 1, DieValue.One));
 
     // Assert — the table still holds all six dice; Keep (untouched) still validates
     // against the full table center.
@@ -50,11 +53,11 @@ public class SetDiceAsideShould : GameWithThreePlayersTest
   {
     // Arrange
     SetupDiceToRoll(new List<int> { 1, 1, 3, 4, 5, 6 });
-    Game.RollDiceV2(new Command.RollDice(1, 1));
+    Game.RollDiceV2(new RollDiceCommand(1, 1));
 
     // Act
-    Game.SetDiceAside(new Command.SetDiceAside(1, 1, DieValue.One));
-    Game.SetDiceAside(new Command.SetDiceAside(1, 1, DieValue.Five));
+    Game.SetDiceAside(new SetDiceAsideCommand(1, 1, DieValue.One));
+    Game.SetDiceAside(new SetDiceAsideCommand(1, 1, DieValue.Five));
 
     // Assert
     State.DiceSetAside.Should().BeEquivalentTo(new[] { DieValue.One, DieValue.Five });
@@ -64,10 +67,10 @@ public class SetDiceAsideShould : GameWithThreePlayersTest
   public void RejectSettingAsideByAPlayerOutOfTurn()
   {
     // Arrange
-    Game.RollDiceV2(new Command.RollDice(1, 1));
+    Game.RollDiceV2(new RollDiceCommand(1, 1));
 
     // Act — player 2 isn't in turn
-    Game.SetDiceAside(new Command.SetDiceAside(1, 2, DieValue.One));
+    Game.SetDiceAside(new SetDiceAsideCommand(1, 2, DieValue.One));
 
     // Assert
     Changes.Should().ContainSingleEvent<PlayedOutOfTurn>();
@@ -79,10 +82,10 @@ public class SetDiceAsideShould : GameWithThreePlayersTest
   {
     // Arrange — no 6 on the table
     SetupDiceToRoll(new List<int> { 1, 2, 3, 4, 5, 1 });
-    Game.RollDiceV2(new Command.RollDice(1, 1));
+    Game.RollDiceV2(new RollDiceCommand(1, 1));
 
     // Act
-    Game.SetDiceAside(new Command.SetDiceAside(1, 1, DieValue.Six));
+    Game.SetDiceAside(new SetDiceAsideCommand(1, 1, DieValue.Six));
 
     // Assert
     Changes.Should().ContainSingleEvent<DieNotAvailableToSetAside>();
@@ -94,11 +97,11 @@ public class SetDiceAsideShould : GameWithThreePlayersTest
   {
     // Arrange — exactly one 1 on the table
     SetupDiceToRoll(new List<int> { 1, 2, 3, 4, 5, 6 });
-    Game.RollDiceV2(new Command.RollDice(1, 1));
-    Game.SetDiceAside(new Command.SetDiceAside(1, 1, DieValue.One));
+    Game.RollDiceV2(new RollDiceCommand(1, 1));
+    Game.SetDiceAside(new SetDiceAsideCommand(1, 1, DieValue.One));
 
     // Act — try to set aside a second 1
-    Game.SetDiceAside(new Command.SetDiceAside(1, 1, DieValue.One));
+    Game.SetDiceAside(new SetDiceAsideCommand(1, 1, DieValue.One));
 
     // Assert — multiset semantics: only one 1 exists, so the second is rejected.
     Changes.Should().ContainSingleEvent<DieNotAvailableToSetAside>();
@@ -110,10 +113,10 @@ public class SetDiceAsideShould : GameWithThreePlayersTest
   {
     // Arrange
     SetupDiceToRoll(new List<int> { 1, 2, 3, 4, 5, 6 });
-    Game.RollDiceV2(new Command.RollDice(1, 1));
+    Game.RollDiceV2(new RollDiceCommand(1, 1));
 
     // Act — setting aside a scoring die does not add to the turn score nor keep it.
-    Game.SetDiceAside(new Command.SetDiceAside(1, 1, DieValue.One));
+    Game.SetDiceAside(new SetDiceAsideCommand(1, 1, DieValue.One));
 
     // Assert
     State.TurnScore.Should().Be(new Score(0));
@@ -125,11 +128,11 @@ public class SetDiceAsideShould : GameWithThreePlayersTest
   {
     // Arrange
     SetupDiceToRoll(new List<int> { 1, 2, 3, 4, 5, 6 });
-    Game.RollDiceV2(new Command.RollDice(1, 1));
-    Game.SetDiceAside(new Command.SetDiceAside(1, 1, DieValue.One));
+    Game.RollDiceV2(new RollDiceCommand(1, 1));
+    Game.SetDiceAside(new SetDiceAsideCommand(1, 1, DieValue.One));
 
     // Act — committing the selection via Keep ends the selection.
-    Game.KeepDice(new Command.KeepDice(1, 1, new[] { DieValue.One }));
+    Game.KeepDice(new KeepDiceCommand(1, 1, new[] { DieValue.One }));
 
     // Assert
     State.DiceSetAside.Should().BeEmpty();

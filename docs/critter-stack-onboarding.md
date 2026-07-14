@@ -28,7 +28,7 @@ Take `PassTurn` (`src/Farkle/Features/PassTurn/`):
 // PassTurnDecider.cs — PURE. (command, state) -> events. No framework types.
 internal static class PassTurnDecider
 {
-  public static IEnumerable<object> Decide(Command.PassTurn command, GameState state)
+  public static IEnumerable<object> Decide(PassTurnCommand command, GameState state)
   {
     if (!new PlayerIsInTurn(state, command.PlayerId).IsSatisfied())
       return [new GameEvents.V1.PlayedOutOfTurn(command.GameId, command.PlayerId)];
@@ -46,7 +46,7 @@ public static (Results<Ok<PassTurnResponse>, ProblemHttpResult>, Events, GameNot
   int gameId, int playerId,
   [WriteAggregate(FromMethod = nameof(StreamId))] GameState state)   // Marten loads the "game-{id}" stream
 {
-  var events = PassTurnDecider.Decide(new Command.PassTurn(gameId, playerId), state).ToArray();
+  var events = PassTurnDecider.Decide(new PassTurnCommand(gameId, playerId), state).ToArray();
 
   // validation-as-events -> HTTP 400 ProblemDetails, append nothing, broadcast nothing
   if (events.OfType<IErrorEvent>().FirstOrDefault() is { } error)
@@ -218,7 +218,7 @@ Say you're adding a `ForfeitGame` command. (This replaces the old FastEndpoints 
 recipe.)
 
 1. **Folder.** `src/Farkle/Features/ForfeitGame/`.
-2. **Command.** Add `ForfeitGame(int GameId, int PlayerId)` to `Domain/GameAggregate/Command.cs`.
+2. **Command.** Add `ForfeitGameCommand(GameId GameId, PlayerId PlayerId)` as `Features/ForfeitGame/ForfeitGameCommand.cs` — the command lives in the slice that owns it.
 3. **Event(s).** Add `V1.GameForfeited(int GameId, int PlayerId)` to `GameEvents.cs`, and a
    `HandleGameForfeited` + a `GameState.Apply(V1.GameForfeited)` overload *and* a `Fold` case in
    `GameState.cs` (so both Marten replay and the pure `Fold` see it). If it's an error path, mark the

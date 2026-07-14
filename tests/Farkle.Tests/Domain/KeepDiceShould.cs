@@ -1,6 +1,8 @@
 using Farkle.Domain.GameAggregate;
-using FluentAssertions;
+using Farkle.Features.KeepDice;
+using Farkle.Features.RollDice;
 using Farkle.Tests.Framework;
+using FluentAssertions;
 using Xunit.Abstractions;
 using static Farkle.Domain.GameAggregate.GameEvents.V1;
 
@@ -17,11 +19,11 @@ public class KeepDiceShould : GameWithThreePlayersTest
   {
     yield return new[]
     {
-      (Action<Game>)(g => g.KeepDice(new Command.KeepDice(1, 2, new[] { DieValue.Five, DieValue.One })))
+      (Action<Game>)(g => g.KeepDice(new KeepDiceCommand(1, 2, new[] { DieValue.Five, DieValue.One })))
     };
     yield return new[]
     {
-      (Action<Game>)(g => g.KeepDiceV2(new Command.KeepDice(1, 2, new[] { DieValue.Five, DieValue.One })))
+      (Action<Game>)(g => g.KeepDiceV2(new KeepDiceCommand(1, 2, new[] { DieValue.Five, DieValue.One })))
     };
   }
 
@@ -30,7 +32,7 @@ public class KeepDiceShould : GameWithThreePlayersTest
   internal void OnlyAllowToKeepByThePlayerInTurn(Action<Game> keepAction)
   {
     // Arrange
-    Game.RollDiceV2(new Command.RollDice(1, 1));
+    Game.RollDiceV2(new RollDiceCommand(1, 1));
 
     // Act
     keepAction(Game);
@@ -43,10 +45,10 @@ public class KeepDiceShould : GameWithThreePlayersTest
   public void OnlyAllowToKeepFivesAndOnes_WhenThePlayerDidntGetAnyOtherTricks()
   {
     // Arrange
-    Game.RollDiceV2(new Command.RollDice(1, 1));
+    Game.RollDiceV2(new RollDiceCommand(1, 1));
     
     // Act
-    Game.KeepDice(new Command.KeepDice(1, 1, new[] { DieValue.Four }));
+    Game.KeepDice(new KeepDiceCommand(1, 1, new[] { DieValue.Four }));
 
     // Assert
     Changes.Should().ContainSingleEvent<DiceNotAllowedToBeKept>();
@@ -66,10 +68,10 @@ public class KeepDiceShould : GameWithThreePlayersTest
       2,
       3
     });
-    Game.RollDiceV2(new Command.RollDice(1, 1));
+    Game.RollDiceV2(new RollDiceCommand(1, 1));
 
     // Act
-    Game.KeepDice(new Command.KeepDice(1, 1, new[] { DieValue.Four, DieValue.Four, DieValue.Four }));
+    Game.KeepDice(new KeepDiceCommand(1, 1, new[] { DieValue.Four, DieValue.Four, DieValue.Four }));
 
     // Assert
     Changes.Should().NotContainAnyEvent<DiceNotAllowedToBeKept>();
@@ -89,10 +91,10 @@ public class KeepDiceShould : GameWithThreePlayersTest
       2,
       3
     });
-    Game.RollDiceV2(new Command.RollDice(1, 1));
+    Game.RollDiceV2(new RollDiceCommand(1, 1));
 
     //Act
-    Game.KeepDice(new Command.KeepDice(1, 1,
+    Game.KeepDice(new KeepDiceCommand(1, 1,
         new[] { DieValue.Four, DieValue.Four, DieValue.Four, DieValue.Four }));
 
     Changes.Should().NotContainAnyEvent<DiceNotAllowedToBeKept>();
@@ -111,12 +113,11 @@ public class KeepDiceShould : GameWithThreePlayersTest
       5,
       6
     });
-    Game.RollDiceV2(new Command.RollDice(1, 1));
+    Game.RollDiceV2(new RollDiceCommand(1, 1));
     
     // Act
-    Game.KeepDice(new Command.KeepDice(1, 1,
+    Game.KeepDice(new KeepDiceCommand(1, 1,
       new[] { DieValue.One, DieValue.Two, DieValue.Three, DieValue.Four, DieValue.Five, DieValue.Six }));
-
 
     // Assert
     Changes.Should().NotContainAnyEvent<DiceNotAllowedToBeKept>();
@@ -127,10 +128,10 @@ public class KeepDiceShould : GameWithThreePlayersTest
   {
     // Arrange — a full six-dice three-pairs hand (no 1s/5s, no triplet).
     SetupDiceToRoll(new List<int> { 2, 2, 4, 4, 6, 6 });
-    Game.RollDiceV2(new Command.RollDice(1, 1));
+    Game.RollDiceV2(new RollDiceCommand(1, 1));
 
     // Act
-    Game.KeepDice(new Command.KeepDice(1, 1,
+    Game.KeepDice(new KeepDiceCommand(1, 1,
       new[] { DieValue.Two, DieValue.Two, DieValue.Four, DieValue.Four, DieValue.Six, DieValue.Six }));
 
     // Assert — keepable (the new keep-gate clause) and worth 1500.
@@ -143,10 +144,10 @@ public class KeepDiceShould : GameWithThreePlayersTest
   {
     // Arrange — two three-of-a-kinds in one roll.
     SetupDiceToRoll(new List<int> { 2, 2, 2, 5, 5, 5 });
-    Game.RollDiceV2(new Command.RollDice(1, 1));
+    Game.RollDiceV2(new RollDiceCommand(1, 1));
 
     // Act
-    Game.KeepDice(new Command.KeepDice(1, 1,
+    Game.KeepDice(new KeepDiceCommand(1, 1,
       new[] { DieValue.Two, DieValue.Two, DieValue.Two, DieValue.Five, DieValue.Five, DieValue.Five }));
 
     // Assert — two triplets scores 2500 (beats the per-triplet values).
@@ -158,7 +159,7 @@ public class KeepDiceShould : GameWithThreePlayersTest
   public void AllowToKeepOnlyDiceThatWereRolled()
   {
     // Arrange
-    Game.RollDiceV2(new Command.RollDice(1, 1));
+    Game.RollDiceV2(new RollDiceCommand(1, 1));
     var diceValues = new[]
     {
       DieValue.One, DieValue.Two, DieValue.Three, DieValue.Four, DieValue.Five, DieValue.Six
@@ -168,7 +169,7 @@ public class KeepDiceShould : GameWithThreePlayersTest
     var diceToKeep     = diceValues.Where(d => !last.Contains(d));
     
     // Act
-    Game.KeepDice(new Command.KeepDice(1, 1, diceToKeep));
+    Game.KeepDice(new KeepDiceCommand(1, 1, diceToKeep));
 
     // Assert
     Changes.Should().ContainSingleEvent<DiceNotAllowedToBeKept>();
@@ -179,10 +180,10 @@ public class KeepDiceShould : GameWithThreePlayersTest
   {
     // Arrange — a roll with exactly one 1 on the table.
     SetupDiceToRoll(new List<int> { 1, 2, 3, 4, 6, 2 });
-    Game.RollDiceV2(new Command.RollDice(1, 1));
+    Game.RollDiceV2(new RollDiceCommand(1, 1));
 
     // Act — try to keep two 1s when only one is on the table.
-    Game.KeepDice(new Command.KeepDice(1, 1, new[] { DieValue.One, DieValue.One }));
+    Game.KeepDice(new KeepDiceCommand(1, 1, new[] { DieValue.One, DieValue.One }));
 
     // Assert — the second 1 is unavailable, so the keep is rejected. This guards the
     // count (multiset) semantics of PlayerHasThoseDice, not just value presence.
@@ -203,19 +204,19 @@ public class KeepDiceShould : GameWithThreePlayersTest
       6
     };
     SetupDiceToRoll(values);
-    Game.RollDiceV2(new Command.RollDice(1, 1));
+    Game.RollDiceV2(new RollDiceCommand(1, 1));
     var diceValues = new[] { DieValue.One };
 
     var tableCenter = State.TableCenter!;
 
     var diceToKeep = diceValues.First(d => tableCenter.Contains(d) && d == DieValue.One);
 
-    Game.KeepDice(new Command.KeepDice(1, 1, new[] { diceToKeep }));
+    Game.KeepDice(new KeepDiceCommand(1, 1, new[] { diceToKeep }));
 
     diceToKeep = State.DiceKept.First();
 
     //Act
-    Game.KeepDice(new Command.KeepDice(1, 1, new[] { diceToKeep }));
+    Game.KeepDice(new KeepDiceCommand(1, 1, new[] { diceToKeep }));
 
     // Assert
     Changes.Should().NotContainAnyEvent<DiceNotAllowedToBeKept>();
@@ -237,8 +238,8 @@ public class KeepDiceShould : GameWithThreePlayersTest
     var diceToKeep = new[] { DieValue.One, DieValue.Five };
 
     // Act
-    Game.RollDiceV2(new Command.RollDice(1, 1));
-    Game.KeepDice(new Command.KeepDice(1, 1, diceToKeep));
+    Game.RollDiceV2(new RollDiceCommand(1, 1));
+    Game.KeepDice(new KeepDiceCommand(1, 1, diceToKeep));
 
     // Assert
     State.TableCenter.Should().HaveCount(4);
@@ -254,10 +255,10 @@ public class KeepDiceShould : GameWithThreePlayersTest
   {
     // Arrange
     SetupDiceToRoll(rolledDice);
-    Game.RollDiceV2(new Command.RollDice(1, 1));
+    Game.RollDiceV2(new RollDiceCommand(1, 1));
     
     // Act
-    Game.KeepDice(new Command.KeepDice(1, 1, diceToKeep));
+    Game.KeepDice(new KeepDiceCommand(1, 1, diceToKeep));
 
     // Assert
     State.TurnScore.Should()
@@ -278,8 +279,8 @@ public class KeepDiceShould : GameWithThreePlayersTest
       5,
       6
     });
-    Game.RollDiceV2(new Command.RollDice(1, 1));
-    Game.KeepDice(new Command.KeepDice(1, 1, new[] { DieValue.One }));
+    Game.RollDiceV2(new RollDiceCommand(1, 1));
+    Game.KeepDice(new KeepDiceCommand(1, 1, new[] { DieValue.One }));
 
     SetupDiceToRoll(new List<int>
     {
@@ -291,7 +292,7 @@ public class KeepDiceShould : GameWithThreePlayersTest
       6
     });
     // Act
-    Game.RollDiceV2(new Command.RollDice(1, 1));
+    Game.RollDiceV2(new RollDiceCommand(1, 1));
 
     // Assert
     State.TurnScore.Should().Be(new Score(0));
@@ -310,8 +311,8 @@ public class KeepDiceShould : GameWithThreePlayersTest
       5,
       6
     });
-    Game.RollDiceV2(new Command.RollDice(1, 1));
-    Game.KeepDice(new Command.KeepDice(1, 1, new[] { DieValue.One }));
+    Game.RollDiceV2(new RollDiceCommand(1, 1));
+    Game.KeepDice(new KeepDiceCommand(1, 1, new[] { DieValue.One }));
 
     SetupDiceToRoll(new List<int>
     {
@@ -321,8 +322,8 @@ public class KeepDiceShould : GameWithThreePlayersTest
       3,
       4
     });
-    Game.RollDiceV2(new Command.RollDice(1, 1));
-    Game.KeepDice(new Command.KeepDice(1, 1, new[] { DieValue.One }));
+    Game.RollDiceV2(new RollDiceCommand(1, 1));
+    Game.KeepDice(new KeepDiceCommand(1, 1, new[] { DieValue.One }));
 
     // Assert
     State.TurnScore.Should().Be(new Score(200));
@@ -341,12 +342,12 @@ public class KeepDiceShould : GameWithThreePlayersTest
       3,
       4
     });
-    Game.RollDiceV2(new Command.RollDice(1, 1));
-    Game.KeepDice(new Command.KeepDice(1, 1, new[] { DieValue.One, DieValue.One, DieValue.One }));
+    Game.RollDiceV2(new RollDiceCommand(1, 1));
+    Game.KeepDice(new KeepDiceCommand(1, 1, new[] { DieValue.One, DieValue.One, DieValue.One }));
 
     SetupDiceToRoll(new List<int> { 4, 4, 4 });
-    Game.RollDiceV2(new Command.RollDice(1, 1));
-    Game.KeepDice(new Command.KeepDice(1, 1, new[] { DieValue.Four, DieValue.Four, DieValue.Four }));
+    Game.RollDiceV2(new RollDiceCommand(1, 1));
+    Game.KeepDice(new KeepDiceCommand(1, 1, new[] { DieValue.Four, DieValue.Four, DieValue.Four }));
 
     // Assert
     State.TableCenter.Should().HaveCount(6);
@@ -360,14 +361,14 @@ public class KeepDiceShould : GameWithThreePlayersTest
     {
       4, 4, 4, 4, 1, 5
     });
-    Game.RollDiceV2(new Command.RollDice(1, 1));
+    Game.RollDiceV2(new RollDiceCommand(1, 1));
     
     // Act: Keep the straight
-    Game.KeepDice(new Command.KeepDice(1, 1,
+    Game.KeepDice(new KeepDiceCommand(1, 1,
         new[] { DieValue.Four, DieValue.Four, DieValue.Four, DieValue.Four }));
 
     // Keep the 1 and 5 to clear the table center (so we get 6 new dice)
-    Game.KeepDice(new Command.KeepDice(1, 1,
+    Game.KeepDice(new KeepDiceCommand(1, 1,
         new[] { DieValue.One, DieValue.Five }));
 
     // Score should be 1000 + 150 = 1150
@@ -378,13 +379,13 @@ public class KeepDiceShould : GameWithThreePlayersTest
     {
       3, 3, 3, 3, 2, 2
     });
-    Game.RollDiceV2(new Command.RollDice(1, 1));
+    Game.RollDiceV2(new RollDiceCommand(1, 1));
 
     Changes.Should().NotContainAnyEvent<IErrorEvent>();
     Changes.Should().NotContainAnyEvent<DiceNotAllowedToBeKept>();
 
     // Keep the second straight
-    Game.KeepDice(new Command.KeepDice(1, 1,
+    Game.KeepDice(new KeepDiceCommand(1, 1,
         new[] { DieValue.Three, DieValue.Three, DieValue.Three, DieValue.Three }));
 
     Changes.Should().NotContainAnyEvent<IErrorEvent>();
@@ -400,10 +401,10 @@ public class KeepDiceShould : GameWithThreePlayersTest
   public void NotAllowNonExistentPlayerToKeep()
   {
     // Arrange — the player in turn rolls
-    Game.RollDiceV2(new Command.RollDice(1, 1));
+    Game.RollDiceV2(new RollDiceCommand(1, 1));
 
     // Act — player 99 is not part of the game
-    Game.KeepDice(new Command.KeepDice(1, 99, new[] { DieValue.Five, DieValue.One }));
+    Game.KeepDice(new KeepDiceCommand(1, 99, new[] { DieValue.Five, DieValue.One }));
 
     // Assert — the in-turn check rejects any id that isn't the current player
     var playedOutOfTurn = Changes.Should().ContainSingleEvent<PlayedOutOfTurn>();
@@ -415,14 +416,14 @@ public class KeepDiceShould : GameWithThreePlayersTest
   {
     // Arrange — score a single 1 (100 pts) on the first roll
     SetupDiceToRoll(new List<int> { 1, 2, 3, 4, 5, 6 });
-    Game.RollDiceV2(new Command.RollDice(1, 1));
-    Game.KeepDice(new Command.KeepDice(1, 1, new[] { DieValue.One }));
+    Game.RollDiceV2(new RollDiceCommand(1, 1));
+    Game.KeepDice(new KeepDiceCommand(1, 1, new[] { DieValue.One }));
     State.TurnScore.Should().Be(new Score(100));
 
     // Act — re-roll the remaining five dice into a Farkle: no 1s, no 5s and
     // no three-of-a-kind, so nothing can be kept
     SetupDiceToRoll(new List<int> { 2, 3, 4, 6, 2 });
-    Game.RollDiceV2(new Command.RollDice(1, 1));
+    Game.RollDiceV2(new RollDiceCommand(1, 1));
 
     // Assert — busting wipes the accumulated turn score
     State.TurnScore.Should().Be(new Score(0));

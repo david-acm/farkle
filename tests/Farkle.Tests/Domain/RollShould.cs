@@ -1,9 +1,11 @@
 using Farkle.Domain.GameAggregate;
-using FluentAssertions;
+using Farkle.Features.KeepDice;
+using Farkle.Features.PassTurn;
+using Farkle.Features.RollDice;
 using Farkle.Tests.Framework;
+using FluentAssertions;
 using Moq;
 using Xunit.Abstractions;
-using static Farkle.Domain.GameAggregate.Command;
 using static Farkle.Domain.GameAggregate.DieValue;
 using static Farkle.Domain.GameAggregate.GameEvents;
 
@@ -19,10 +21,10 @@ public class RollShould : GameWithThreePlayersTest
   public void AllowPlayerToRoll()
   {
     // Arrange
-    Game.RollDiceV2(new RollDice(1, 1));
+    Game.RollDiceV2(new RollDiceCommand(1, 1));
     
     // Act
-    Game.PassTurn(new PassTurn(1, 1));
+    Game.PassTurn(new PassTurnCommand(1, 1));
 
     // Assert
     State.TableCenter.Should().HaveCount(6);
@@ -36,10 +38,10 @@ public class RollShould : GameWithThreePlayersTest
   public void V1AllowPlayerToRoll()
   {
     // Arrange
-    Game.RollDiceV1(new RollDice(1, 1));
+    Game.RollDiceV1(new RollDiceCommand(1, 1));
 
     // Act
-    Game.PassTurn(new PassTurn(1, 1));
+    Game.PassTurn(new PassTurnCommand(1, 1));
 
     // Assert
     State.TableCenter.Should().HaveCount(6);
@@ -53,7 +55,7 @@ public class RollShould : GameWithThreePlayersTest
   public void NotAllowPlayerToRollOutOfTurn()
   {
     // Act
-    Game.RollDiceV2(new RollDice(1, 2));
+    Game.RollDiceV2(new RollDiceCommand(1, 2));
 
     // Assert
     var playedOutOfTurn = Changes.Should().ContainSingleEvent<V1.PlayedOutOfTurn>();
@@ -64,7 +66,7 @@ public class RollShould : GameWithThreePlayersTest
   public void NotAllowNonExistentPlayerToRoll()
   {
     // Act — player 99 is not part of the game
-    Game.RollDiceV2(new RollDice(1, 99));
+    Game.RollDiceV2(new RollDiceCommand(1, 99));
 
     // Assert — the in-turn check rejects any id that isn't the current player;
     // there is no separate "player not found" error
@@ -76,7 +78,7 @@ public class RollShould : GameWithThreePlayersTest
   public void NotAllowPlayerToRollTwiceBeforeKeepingSomeDice()
   {
     // Arrange
-    Game.RollDiceV2(new RollDice(1, 1));
+    Game.RollDiceV2(new RollDiceCommand(1, 1));
     SetupDiceToRoll(new List<int>
     {
       4,
@@ -89,7 +91,7 @@ public class RollShould : GameWithThreePlayersTest
     });
     
     // Act
-    Game.RollDiceV2(new RollDice(1, 1));
+    Game.RollDiceV2(new RollDiceCommand(1, 1));
 
     // Assert
     State.TableCenter.Should().HaveCount(6);
@@ -101,7 +103,7 @@ public class RollShould : GameWithThreePlayersTest
   public void NotAllowNextPlayerToPlayUntilPlayerPasses()
   {
     // Arrange
-    Game.RollDiceV2(new RollDice(1, 1));
+    Game.RollDiceV2(new RollDiceCommand(1, 1));
     SetupDiceToRoll(new List<int>
     {
       4,
@@ -114,7 +116,7 @@ public class RollShould : GameWithThreePlayersTest
     });
     
     // Act
-    Game.RollDiceV2(new RollDice(1, 2));
+    Game.RollDiceV2(new RollDiceCommand(1, 2));
 
     // Assert
     var playedOutOfTurn = Changes.Where(e => e is V1.PlayedOutOfTurn).Should().ContainSingle().And.Subject;
@@ -128,7 +130,7 @@ public class RollShould : GameWithThreePlayersTest
   public void RequestDieValuesUpToAndIncludingSix()
   {
     // Act
-    Game.RollDiceV2(new RollDice(1, 1));
+    Game.RollDiceV2(new RollDiceCommand(1, 1));
 
     // Assert — Random.Next upper bound must be 7 (exclusive) so that 6 is reachable
     Mock.Get(RandomProvider)
@@ -149,9 +151,8 @@ public class RollShould : GameWithThreePlayersTest
       2
     });
     // Act
-    Game.RollDiceV2(new RollDice(1, 1));
-    Game.KeepDice(new KeepDice(1, 1, new[] { One }));
-
+    Game.RollDiceV2(new RollDiceCommand(1, 1));
+    Game.KeepDice(new KeepDiceCommand(1, 1, new[] { One }));
 
     SetupDiceToRoll(new List<int>
     {
@@ -162,7 +163,7 @@ public class RollShould : GameWithThreePlayersTest
       1
     });
 
-    Game.RollDiceV2(new RollDice(1, 1));
+    Game.RollDiceV2(new RollDiceCommand(1, 1));
 
     // Assert
     State.TableCenter!.Should().HaveCount(5);
