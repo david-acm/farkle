@@ -17,14 +17,10 @@ public static class PassTurnEndpoint
   [WolverinePost("/api/games/{gameId:int}/players/{playerId:int}/turns")]
   public static (Results<Ok<PassTurnResponse>, ProblemHttpResult>, Events, GameNotifications.TurnChanged?) Post(
     int gameId, int playerId,
-    [WriteAggregate(FromMethod = nameof(StreamId))] GameState state)
-  {
-    var events = PassTurnDecider.Decide(new Command.PassTurn(gameId, playerId), state).ToArray();
-
-    if (events.OfType<IErrorEvent>().FirstOrDefault() is { } error)
-      return (TypedResults.Problem(statusCode: 400, title: error.GetType().Name), new Events(), null);
-
-    var response = PassTurnMapper.ToPassTurnResponse(GameState.Fold(state, events), playerId);
-    return (TypedResults.Ok(response), new Events(events), new GameNotifications.TurnChanged(gameId, playerId));
-  }
+    [WriteAggregate(FromMethod = nameof(StreamId))] GameState state) =>
+    SliceOutcome.From(
+      state,
+      PassTurnDecider.Decide(new Command.PassTurn(gameId, playerId), state),
+      s => PassTurnMapper.ToPassTurnResponse(s, playerId),
+      new GameNotifications.TurnChanged(gameId, playerId));
 }

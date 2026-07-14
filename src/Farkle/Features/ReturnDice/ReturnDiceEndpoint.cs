@@ -17,16 +17,11 @@ public static class ReturnDiceEndpoint
   [WolverinePost("/api/games/{gameId:int}/players/{playerId:int}/putbacks")]
   public static (Results<Ok<SetAsideResponse>, ProblemHttpResult>, Events, GameNotifications.TableChanged?) Post(
     int gameId, int playerId, ReturnDiceRequest body,
-    [WriteAggregate(FromMethod = nameof(StreamId))] GameState state)
-  {
-    var command = new Command.ReturnDice(gameId, playerId, DieValue.FromValue(body.DieValue));
-    var events  = ReturnDiceDecider.Decide(command, state).ToArray();
-
-    if (events.OfType<IErrorEvent>().FirstOrDefault() is { } error)
-      return (TypedResults.Problem(statusCode: 400, title: error.GetType().Name), new Events(), null);
-
-    var s = GameState.Fold(state, events);
-    return (TypedResults.Ok(new SetAsideResponse(s.Code, s.DiceSetAside.Select(d => d.Value).ToArray())),
-            new Events(events), new GameNotifications.TableChanged(gameId));
-  }
+    [WriteAggregate(FromMethod = nameof(StreamId))] GameState state) =>
+    SliceOutcome.From(
+      state,
+      ReturnDiceDecider.Decide(
+        new Command.ReturnDice(gameId, playerId, DieValue.FromValue(body.DieValue)), state),
+      s => new SetAsideResponse(s.Code, s.DiceSetAside.Select(d => d.Value).ToArray()),
+      new GameNotifications.TableChanged(gameId));
 }
