@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Routing;
 using System;
 using System.Linq;
 using Wolverine.Http;
+using Wolverine.Http.FluentValidation;
 using Wolverine.Marten.Publishing;
 using Wolverine.Runtime;
 
@@ -14,12 +15,14 @@ namespace Internal.Generated.WolverineHandlers
     public sealed class POST_api_games_gameId_players_playerId_setasides : Wolverine.Http.HttpHandler
     {
         private readonly Wolverine.Http.WolverineHttpOptions _wolverineHttpOptions;
+        private readonly Wolverine.Http.FluentValidation.IProblemDetailSource<Farkle.Contracts.HttpRequests.SetDiceAsideRequest> _problemDetailSourceOfSetDiceAsideRequest;
         private readonly Wolverine.Marten.Publishing.OutboxedSessionFactory _outboxedSessionFactory;
         private readonly Wolverine.Runtime.IWolverineRuntime _wolverineRuntime;
 
-        public POST_api_games_gameId_players_playerId_setasides(Wolverine.Http.WolverineHttpOptions wolverineHttpOptions, Wolverine.Marten.Publishing.OutboxedSessionFactory outboxedSessionFactory, Wolverine.Runtime.IWolverineRuntime wolverineRuntime) : base(wolverineHttpOptions)
+        public POST_api_games_gameId_players_playerId_setasides(Wolverine.Http.WolverineHttpOptions wolverineHttpOptions, Wolverine.Http.FluentValidation.IProblemDetailSource<Farkle.Contracts.HttpRequests.SetDiceAsideRequest> problemDetailSourceOfSetDiceAsideRequest, Wolverine.Marten.Publishing.OutboxedSessionFactory outboxedSessionFactory, Wolverine.Runtime.IWolverineRuntime wolverineRuntime) : base(wolverineHttpOptions)
         {
             _wolverineHttpOptions = wolverineHttpOptions;
+            _problemDetailSourceOfSetDiceAsideRequest = problemDetailSourceOfSetDiceAsideRequest;
             _outboxedSessionFactory = outboxedSessionFactory;
             _wolverineRuntime = wolverineRuntime;
         }
@@ -31,6 +34,22 @@ namespace Internal.Generated.WolverineHandlers
             var messageContext = new Wolverine.Runtime.MessageContext(_wolverineRuntime);
             // Building the Marten session
             await using var documentSession = _outboxedSessionFactory.OpenSession(messageContext);
+            var setDiceAsideRequestValidator = new Farkle.Features.SetDiceAside.SetDiceAsideRequestValidator();
+            // Reading the request body via JSON deserialization
+            var (body, jsonContinue) = await ReadJsonAsync<Farkle.Contracts.HttpRequests.SetDiceAsideRequest>(httpContext);
+            if (jsonContinue == Wolverine.HandlerContinuation.Stop) return;
+            
+            // Execute FluentValidation validators
+            var result1 = await Wolverine.Http.FluentValidation.Internals.FluentValidationHttpExecutor.ExecuteOne<Farkle.Contracts.HttpRequests.SetDiceAsideRequest>(setDiceAsideRequestValidator, _problemDetailSourceOfSetDiceAsideRequest, body).ConfigureAwait(false);
+
+            // Evaluate whether or not the execution should be stopped based on the IResult value
+            if (result1 != null && !(result1 is Wolverine.Http.WolverineContinue))
+            {
+                await result1.ExecuteAsync(httpContext).ConfigureAwait(false);
+                return;
+            }
+
+
             System.Diagnostics.Activity.Current?.SetTag("handler.type", "Farkle.Features.SetDiceAside.SetDiceAsideEndpoint");
             string gameId_rawValue = (string?)httpContext.GetRouteValue("gameId");
             int gameId = default;
@@ -60,9 +79,6 @@ namespace Internal.Generated.WolverineHandlers
                 return;
             }
 
-            // Reading the request body via JSON deserialization
-            var (body, jsonContinue) = await ReadJsonAsync<Farkle.Contracts.HttpRequests.SetDiceAsideRequest>(httpContext);
-            if (jsonContinue == Wolverine.HandlerContinuation.Stop) return;
             var result_of_StreamId = Farkle.Features.SetDiceAside.SetDiceAsideEndpoint.StreamId(gameId);
             var batchedQuery = documentSession.CreateBatchQuery();
 

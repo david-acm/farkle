@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Routing;
 using System;
 using System.Linq;
 using Wolverine.Http;
+using Wolverine.Http.FluentValidation;
 using Wolverine.Marten.Publishing;
 using Wolverine.Runtime;
 
@@ -14,12 +15,14 @@ namespace Internal.Generated.WolverineHandlers
     public sealed class POST_api_games_gameId_players : Wolverine.Http.HttpHandler
     {
         private readonly Wolverine.Http.WolverineHttpOptions _wolverineHttpOptions;
+        private readonly Wolverine.Http.FluentValidation.IProblemDetailSource<Farkle.Contracts.HttpRequests.JoinPlayerRequest> _problemDetailSourceOfJoinPlayerRequest;
         private readonly Wolverine.Marten.Publishing.OutboxedSessionFactory _outboxedSessionFactory;
         private readonly Wolverine.Runtime.IWolverineRuntime _wolverineRuntime;
 
-        public POST_api_games_gameId_players(Wolverine.Http.WolverineHttpOptions wolverineHttpOptions, Wolverine.Marten.Publishing.OutboxedSessionFactory outboxedSessionFactory, Wolverine.Runtime.IWolverineRuntime wolverineRuntime) : base(wolverineHttpOptions)
+        public POST_api_games_gameId_players(Wolverine.Http.WolverineHttpOptions wolverineHttpOptions, Wolverine.Http.FluentValidation.IProblemDetailSource<Farkle.Contracts.HttpRequests.JoinPlayerRequest> problemDetailSourceOfJoinPlayerRequest, Wolverine.Marten.Publishing.OutboxedSessionFactory outboxedSessionFactory, Wolverine.Runtime.IWolverineRuntime wolverineRuntime) : base(wolverineHttpOptions)
         {
             _wolverineHttpOptions = wolverineHttpOptions;
+            _problemDetailSourceOfJoinPlayerRequest = problemDetailSourceOfJoinPlayerRequest;
             _outboxedSessionFactory = outboxedSessionFactory;
             _wolverineRuntime = wolverineRuntime;
         }
@@ -28,9 +31,25 @@ namespace Internal.Generated.WolverineHandlers
 
         public override async System.Threading.Tasks.Task Handle(Microsoft.AspNetCore.Http.HttpContext httpContext)
         {
+            var joinPlayerRequestValidator = new Farkle.Features.JoinPlayer.JoinPlayerRequestValidator();
             var messageContext = new Wolverine.Runtime.MessageContext(_wolverineRuntime);
             // Building the Marten session
             await using var documentSession = _outboxedSessionFactory.OpenSession(messageContext);
+            // Reading the request body via JSON deserialization
+            var (body, jsonContinue) = await ReadJsonAsync<Farkle.Contracts.HttpRequests.JoinPlayerRequest>(httpContext);
+            if (jsonContinue == Wolverine.HandlerContinuation.Stop) return;
+            
+            // Execute FluentValidation validators
+            var result1 = await Wolverine.Http.FluentValidation.Internals.FluentValidationHttpExecutor.ExecuteOne<Farkle.Contracts.HttpRequests.JoinPlayerRequest>(joinPlayerRequestValidator, _problemDetailSourceOfJoinPlayerRequest, body).ConfigureAwait(false);
+
+            // Evaluate whether or not the execution should be stopped based on the IResult value
+            if (result1 != null && !(result1 is Wolverine.Http.WolverineContinue))
+            {
+                await result1.ExecuteAsync(httpContext).ConfigureAwait(false);
+                return;
+            }
+
+
             System.Diagnostics.Activity.Current?.SetTag("handler.type", "Farkle.Features.JoinPlayer.JoinPlayerEndpoint");
             string gameId_rawValue = (string?)httpContext.GetRouteValue("gameId");
             int gameId = default;
@@ -46,9 +65,6 @@ namespace Internal.Generated.WolverineHandlers
                 return;
             }
 
-            // Reading the request body via JSON deserialization
-            var (body, jsonContinue) = await ReadJsonAsync<Farkle.Contracts.HttpRequests.JoinPlayerRequest>(httpContext);
-            if (jsonContinue == Wolverine.HandlerContinuation.Stop) return;
             var result_of_StreamId = Farkle.Features.JoinPlayer.JoinPlayerEndpoint.StreamId(gameId);
             var batchedQuery = documentSession.CreateBatchQuery();
 
