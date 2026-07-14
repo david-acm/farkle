@@ -78,6 +78,16 @@ public abstract class IntegrationTest : IAsyncLifetime
     return response.StatusCode;
   }
 
+  // Fires a raw authorized POST with a caller-supplied JSON body — used to send input the strongly
+  // typed Kiota models can't express (e.g. an out-of-range die) so a test can assert the input
+  // validation status (400 ValidationProblem) rather than a 500 from the domain mapping.
+  protected async Task<System.Net.HttpStatusCode> PostJsonAsync(string relativeUrl, string json)
+  {
+    using var content = new StringContent(json, Encoding.UTF8, "application/json");
+    using var response = await _http.PostAsync(relativeUrl, content);
+    return response.StatusCode;
+  }
+
   // Drops the client's bearer token for the duration of the action (to assert the 401 path).
   protected async Task AsAnonymous(Func<Task> action)
   {
