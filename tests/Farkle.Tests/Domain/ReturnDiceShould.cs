@@ -1,6 +1,9 @@
 using Farkle.Domain.GameAggregate;
-using FluentAssertions;
+using Farkle.Features.ReturnDice;
+using Farkle.Features.RollDice;
+using Farkle.Features.SetDiceAside;
 using Farkle.Tests.Framework;
+using FluentAssertions;
 using Xunit.Abstractions;
 using static Farkle.Domain.GameAggregate.GameEvents.V1;
 
@@ -20,12 +23,12 @@ public class ReturnDiceShould : GameWithThreePlayersTest
   {
     // Arrange — set aside a 1 and a 5
     SetupDiceToRoll(new List<int> { 1, 2, 3, 4, 5, 6 });
-    Game.RollDiceV2(new Command.RollDice(1, 1));
-    Game.SetDiceAside(new Command.SetDiceAside(1, 1, DieValue.One));
-    Game.SetDiceAside(new Command.SetDiceAside(1, 1, DieValue.Five));
+    Game.RollDiceV2(new RollDiceCommand(1, 1));
+    Game.SetDiceAside(new SetDiceAsideCommand(1, 1, DieValue.One));
+    Game.SetDiceAside(new SetDiceAsideCommand(1, 1, DieValue.Five));
 
     // Act — put the 1 back
-    Game.ReturnDice(new Command.ReturnDice(1, 1, DieValue.One));
+    Game.ReturnDice(new ReturnDiceCommand(1, 1, DieValue.One));
 
     // Assert
     Changes.Should().ContainSingleEvent<DiceReturned>();
@@ -37,12 +40,12 @@ public class ReturnDiceShould : GameWithThreePlayersTest
   {
     // Arrange — two 1s set aside
     SetupDiceToRoll(new List<int> { 1, 1, 3, 4, 5, 6 });
-    Game.RollDiceV2(new Command.RollDice(1, 1));
-    Game.SetDiceAside(new Command.SetDiceAside(1, 1, DieValue.One));
-    Game.SetDiceAside(new Command.SetDiceAside(1, 1, DieValue.One));
+    Game.RollDiceV2(new RollDiceCommand(1, 1));
+    Game.SetDiceAside(new SetDiceAsideCommand(1, 1, DieValue.One));
+    Game.SetDiceAside(new SetDiceAsideCommand(1, 1, DieValue.One));
 
     // Act — put one 1 back
-    Game.ReturnDice(new Command.ReturnDice(1, 1, DieValue.One));
+    Game.ReturnDice(new ReturnDiceCommand(1, 1, DieValue.One));
 
     // Assert — multiset semantics: exactly one 1 remains set aside.
     State.DiceSetAside.Should().ContainSingle().Which.Should().Be(DieValue.One);
@@ -53,10 +56,10 @@ public class ReturnDiceShould : GameWithThreePlayersTest
   {
     // Arrange
     SetupDiceToRoll(new List<int> { 1, 2, 3, 4, 5, 6 });
-    Game.RollDiceV2(new Command.RollDice(1, 1));
+    Game.RollDiceV2(new RollDiceCommand(1, 1));
 
     // Act — nothing has been set aside yet
-    Game.ReturnDice(new Command.ReturnDice(1, 1, DieValue.One));
+    Game.ReturnDice(new ReturnDiceCommand(1, 1, DieValue.One));
 
     // Assert
     Changes.Should().ContainSingleEvent<DieNotSetAside>();
@@ -68,11 +71,11 @@ public class ReturnDiceShould : GameWithThreePlayersTest
   {
     // Arrange
     SetupDiceToRoll(new List<int> { 1, 2, 3, 4, 5, 6 });
-    Game.RollDiceV2(new Command.RollDice(1, 1));
-    Game.SetDiceAside(new Command.SetDiceAside(1, 1, DieValue.One));
+    Game.RollDiceV2(new RollDiceCommand(1, 1));
+    Game.SetDiceAside(new SetDiceAsideCommand(1, 1, DieValue.One));
 
     // Act — player 2 isn't in turn
-    Game.ReturnDice(new Command.ReturnDice(1, 2, DieValue.One));
+    Game.ReturnDice(new ReturnDiceCommand(1, 2, DieValue.One));
 
     // Assert
     Changes.Should().ContainSingleEvent<PlayedOutOfTurn>();

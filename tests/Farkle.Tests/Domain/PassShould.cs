@@ -1,8 +1,10 @@
 using Farkle.Domain.GameAggregate;
-using FluentAssertions;
+using Farkle.Features.KeepDice;
+using Farkle.Features.PassTurn;
+using Farkle.Features.RollDice;
 using Farkle.Tests.Framework;
+using FluentAssertions;
 using Xunit.Abstractions;
-using static Farkle.Domain.GameAggregate.Command;
 using static Farkle.Domain.GameAggregate.DieValue;
 using static Farkle.Domain.GameAggregate.GameEvents.V1;
 
@@ -18,8 +20,8 @@ public class PassShould : GameWithThreePlayersTest
   public void AllowPlayerToPass()
   {
     // Act
-    Game.RollDiceV2(new RollDice(1, 1));
-    Game.PassTurn(new PassTurn(1, 1));
+    Game.RollDiceV2(new RollDiceCommand(1, 1));
+    Game.PassTurn(new PassTurnCommand(1, 1));
 
     // Assert
     Changes.Where(e => e is TurnPassed).Should().HaveCount(1);
@@ -29,10 +31,10 @@ public class PassShould : GameWithThreePlayersTest
   public void NotAllowPlayerNotInTurnToPass()
   {
     // Arrange
-    Game.RollDiceV2(new RollDice(1, 1));
+    Game.RollDiceV2(new RollDiceCommand(1, 1));
     
     // Act
-    Game.PassTurn(new PassTurn(1, 2));
+    Game.PassTurn(new PassTurnCommand(1, 2));
 
     // Assert
     var playedOutOfTurn = Changes.Should().ContainSingleEvent<PlayedOutOfTurn>();
@@ -43,8 +45,8 @@ public class PassShould : GameWithThreePlayersTest
   public void NotAllowPlayerToPassWithoutRolling()
   {
     // Arrange
-    Game.RollDiceV2(new RollDice(1, 1));
-    Game.PassTurn(new PassTurn(1, 1));
+    Game.RollDiceV2(new RollDiceCommand(1, 1));
+    Game.PassTurn(new PassTurnCommand(1, 1));
     SetupDiceToRoll(new List<int>
     {
       4,
@@ -55,11 +57,11 @@ public class PassShould : GameWithThreePlayersTest
       2,
       3
     });
-    Game.RollDiceV2(new RollDice(1, 1));
-    Game.PassTurn(new PassTurn(1, 1));
+    Game.RollDiceV2(new RollDiceCommand(1, 1));
+    Game.PassTurn(new PassTurnCommand(1, 1));
     
     // Act
-    Game.PassTurn(new PassTurn(1, 2));
+    Game.PassTurn(new PassTurnCommand(1, 2));
 
     // Assert
     var passedWithoutRolling = Changes.Should().ContainSingleEvent<PassedWithoutRolling>();
@@ -79,8 +81,8 @@ public class PassShould : GameWithThreePlayersTest
       5,
       6
     });
-    Game.RollDiceV2(new RollDice(1, 1));
-    Game.KeepDice(new KeepDice(1, 1, new[] { One }));
+    Game.RollDiceV2(new RollDiceCommand(1, 1));
+    Game.KeepDice(new KeepDiceCommand(1, 1, new[] { One }));
 
     SetupDiceToRoll(new List<int>
     {
@@ -91,9 +93,9 @@ public class PassShould : GameWithThreePlayersTest
       5,
       6
     });
-    Game.RollDiceV2(new RollDice(1, 1));
-    Game.KeepDice(new KeepDice(1, 1, new[] { Two, Two, Two }));
-    Game.PassTurn(new PassTurn(1, 1));
+    Game.RollDiceV2(new RollDiceCommand(1, 1));
+    Game.KeepDice(new KeepDiceCommand(1, 1, new[] { Two, Two, Two }));
+    Game.PassTurn(new PassTurnCommand(1, 1));
 
     // Assert
     var score = State.GameScoreFor(new PlayerId(1));
@@ -113,13 +115,13 @@ public class PassShould : GameWithThreePlayersTest
       5,
       6
     });
-    Game.RollDiceV2(new RollDice(1, 1));
-    Game.KeepDice(new KeepDice(1, 1, new[] { One, Five, One }));
+    Game.RollDiceV2(new RollDiceCommand(1, 1));
+    Game.KeepDice(new KeepDiceCommand(1, 1, new[] { One, Five, One }));
 
     SetupDiceToRoll(new List<int> { 1, 1, 4 });
-    Game.RollDiceV2(new RollDice(1, 1));
-    Game.KeepDice(new KeepDice(1, 1, new[] { One, One }));
-    Game.PassTurn(new PassTurn(1, 1));
+    Game.RollDiceV2(new RollDiceCommand(1, 1));
+    Game.KeepDice(new KeepDiceCommand(1, 1, new[] { One, One }));
+    Game.PassTurn(new PassTurnCommand(1, 1));
 
     // Assert
     var score = State.GameScoreFor(new PlayerId(1));

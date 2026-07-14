@@ -1,10 +1,12 @@
-using System.Collections.Immutable;
 using Farkle.Domain.GameAggregate;
+using Farkle.Features.KeepDice;
+using Farkle.Features.PassTurn;
+using Farkle.Features.RollDice;
 using Farkle.SharedKernel.Turns;
 using Farkle.Tests.Framework;
 using FluentAssertions;
+using System.Collections.Immutable;
 using Xunit.Abstractions;
-using static Farkle.Domain.GameAggregate.Command;
 using static Farkle.Domain.GameAggregate.DieValue;
 using static Farkle.Domain.GameAggregate.GameEvents.V1;
 
@@ -33,9 +35,9 @@ public class WinShould : GameWithThreePlayersTest
 
     // Roll three 5s (trips = 500 pts) to push total over 5,000
     SetupDiceToRoll(new List<int> { 5, 5, 5, 2, 3, 4 });
-    Game.RollDiceV2(new RollDice(1, p1.Id));
-    Game.KeepDice(new KeepDice(1, p1.Id, new[] { Five, Five, Five }));
-    Game.PassTurn(new PassTurn(1, p1.Id));
+    Game.RollDiceV2(new RollDiceCommand(1, p1.Id));
+    Game.KeepDice(new KeepDiceCommand(1, p1.Id, new[] { Five, Five, Five }));
+    Game.PassTurn(new PassTurnCommand(1, p1.Id));
 
     // Assert
     var won = Changes.Should().ContainSingleEvent<GameWon>();
@@ -50,11 +52,11 @@ public class WinShould : GameWithThreePlayersTest
   {
     // Arrange — a normal turn with a low score
     SetupDiceToRoll(new List<int> { 1, 2, 3, 4, 5, 6 });
-    Game.RollDiceV2(new RollDice(1, 1));
-    Game.KeepDice(new KeepDice(1, 1, new[] { One }));
+    Game.RollDiceV2(new RollDiceCommand(1, 1));
+    Game.KeepDice(new KeepDiceCommand(1, 1, new[] { One }));
 
     // Act
-    Game.PassTurn(new PassTurn(1, 1));
+    Game.PassTurn(new PassTurnCommand(1, 1));
 
     // Assert
     Changes.Should().NotContain(e => e is GameWon);
@@ -79,9 +81,9 @@ public class WinShould : GameWithThreePlayersTest
 
     // Roll two 5s (100 pts) so the total lands on exactly 5,000
     SetupDiceToRoll(new List<int> { 5, 5, 2, 3, 4, 6 });
-    Game.RollDiceV2(new RollDice(1, p1.Id));
-    Game.KeepDice(new KeepDice(1, p1.Id, new[] { Five, Five }));
-    Game.PassTurn(new PassTurn(1, p1.Id));
+    Game.RollDiceV2(new RollDiceCommand(1, p1.Id));
+    Game.KeepDice(new KeepDiceCommand(1, p1.Id, new[] { Five, Five }));
+    Game.PassTurn(new PassTurnCommand(1, p1.Id));
 
     // Assert — the >= 5,000 threshold fires at the exact-equality boundary
     var won = Changes.Should().ContainSingleEvent<GameWon>();
@@ -104,9 +106,9 @@ public class WinShould : GameWithThreePlayersTest
     Game.Load(events);
 
     SetupDiceToRoll(new List<int> { 1, 2, 3, 4, 5, 6 });
-    Game.RollDiceV2(new RollDice(1, p1.Id));
-    Game.KeepDice(new KeepDice(1, p1.Id, new[] { One }));
-    Game.PassTurn(new PassTurn(1, p1.Id));
+    Game.RollDiceV2(new RollDiceCommand(1, p1.Id));
+    Game.KeepDice(new KeepDiceCommand(1, p1.Id, new[] { One }));
+    Game.PassTurn(new PassTurnCommand(1, p1.Id));
 
     State.GameStage.Should().Be(GameStage.Finished);
   }

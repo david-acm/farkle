@@ -13,7 +13,7 @@ internal static class PassTurnDecider
   // A player wins once their banked total reaches this on a pass (#178).
   private const int WinningScore = 5_000;
 
-  public static IEnumerable<object> Decide(Command.PassTurn command, GameState state)
+  public static IEnumerable<object> Decide(PassTurnCommand command, GameState state)
   {
     var inTurn = new PlayerIsInTurn(state, command.PlayerId).IsSatisfied();
     if (!inTurn.IsValid)

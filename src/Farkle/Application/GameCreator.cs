@@ -30,7 +30,7 @@ internal sealed class GameCreator(IDocumentStore store, IGameIdGenerator idGener
         await using var session = store.LightweightSession();
         session.Events.StartStream<GameState>(
           $"game-{id}",
-          StartGameDecider.Decide(new Command.StartGame(id), new GameState()).ToArray());
+          StartGameDecider.Decide(new StartGameCommand(id), new GameState()).ToArray());
         await session.SaveChangesAsync(cancellationToken);
         return id;
       }

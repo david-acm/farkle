@@ -44,6 +44,10 @@ Wolverine directly rather than hiding them behind ports.
   `GameState.Fold`), call `Decide`, assert the emitted events — zero mocks.
 - A slice namespace (`Farkle.Features.StartGame`) collides with its command
   (`Command.StartGame`); slices reference the command qualified (`Command.StartGame`).
+  **Update (2026-07):** resolved by moving each command into the slice that owns it and suffixing it
+  — `Features/StartGame/StartGameCommand.cs`. The name no longer collides with the namespace, the
+  shared `Domain/GameAggregate/Command.cs` grab-bag is gone, and `PlayerId` (a value object, not a
+  command input) moved out to `Domain/GameAggregate/PlayerId.cs`.
 - The deciders are the durable artifact of the migration. The Eventuous aggregate/state/
   command-service that currently delegate to them are replaced wholesale by Wolverine's
   aggregate-handler workflow at the #302 cutover — the deciders carry over unchanged.

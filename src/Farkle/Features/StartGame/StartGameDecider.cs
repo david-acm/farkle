@@ -9,7 +9,7 @@ namespace Farkle.Features.StartGame;
 // appends whatever this returns. Kept pure by the decider-purity arch test.
 internal static class StartGameDecider
 {
-  public static IEnumerable<object> Decide(Command.StartGame command, GameState state)
+  public static IEnumerable<object> Decide(StartGameCommand command, GameState state)
   {
     if (state.GameStage != GameStage.None)
       return [new GameAlreadyStarted(command.GameId)];

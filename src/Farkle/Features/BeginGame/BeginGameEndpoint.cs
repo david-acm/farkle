@@ -20,7 +20,7 @@ public static class BeginGameEndpoint
     [WriteAggregate(FromMethod = nameof(StreamId))] GameState state) =>
     SliceOutcome.From(
       state,
-      BeginGameDecider.Decide(new Command.BeginGame(gameId, body.PlayerId), state),
+      BeginGameDecider.Decide(new BeginGameCommand(gameId, body.PlayerId), state),
       LobbyMapper.ToLobbyState,
       new GameNotifications.GameBegan(gameId));
 }

@@ -21,7 +21,7 @@ public static class SetDiceAsideEndpoint
     SliceOutcome.From(
       state,
       SetDiceAsideDecider.Decide(
-        new Command.SetDiceAside(gameId, playerId, DieValue.FromValue(body.DieValue)), state),
+        new SetDiceAsideCommand(gameId, playerId, DieValue.FromValue(body.DieValue)), state),
       s => new SetAsideResponse(s.Code, s.DiceSetAside.Select(d => d.Value).ToArray()),
       new GameNotifications.TableChanged(gameId));
 }

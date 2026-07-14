@@ -1,8 +1,8 @@
-using System.Collections.Immutable;
 using Farkle.Domain.GameAggregate;
 using Farkle.Features.StartGame;
 using Farkle.SharedKernel.Turns;
 using FluentAssertions;
+using System.Collections.Immutable;
 using static Farkle.Domain.GameAggregate.GameEvents.V1;
 
 namespace Farkle.Tests.Features.StartGame;
@@ -14,7 +14,7 @@ public class StartGameDeciderShould
   [Fact]
   public void EmitGameStartedForANewGame()
   {
-    var events = StartGameDecider.Decide(new Command.StartGame(42), new GameState());
+    var events = StartGameDecider.Decide(new StartGameCommand(42), new GameState());
 
     events.Should().ContainSingle()
       .Which.Should().BeEquivalentTo(new GameStarted(42));
@@ -25,7 +25,7 @@ public class StartGameDeciderShould
   {
     var started = StartedGame(42);
 
-    var events = StartGameDecider.Decide(new Command.StartGame(42), started);
+    var events = StartGameDecider.Decide(new StartGameCommand(42), started);
 
     events.Should().ContainSingle()
       .Which.Should().BeEquivalentTo(new GameAlreadyStarted(42));

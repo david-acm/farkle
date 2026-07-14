@@ -20,7 +20,7 @@ public static class JoinPlayerEndpoint
     [WriteAggregate(FromMethod = nameof(StreamId))] GameState state) =>
     SliceOutcome.From(
       state,
-      JoinPlayerDecider.Decide(new Command.JoinPlayer(gameId, body.PlayerName), state),
+      JoinPlayerDecider.Decide(new JoinPlayerCommand(gameId, body.PlayerName), state),
       s =>
       {
         var lobby = LobbyMapper.ToLobbyState(s);

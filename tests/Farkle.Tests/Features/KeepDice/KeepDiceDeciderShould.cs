@@ -19,7 +19,7 @@ public class KeepDiceDeciderShould
   public void KeepAScoringDieAndScoreIt()
   {
     var events = KeepDiceDecider.Decide(
-      new Command.KeepDice(1, 1, new[] { DieValue.One }), AfterRoll());
+      new KeepDiceCommand(1, 1, new[] { DieValue.One }), AfterRoll());
 
     events.Should().ContainSingle()
       .Which.Should().BeEquivalentTo(
@@ -31,7 +31,7 @@ public class KeepDiceDeciderShould
   {
     // Only one 1 is on the table; keeping two is not allowed.
     var events = KeepDiceDecider.Decide(
-      new Command.KeepDice(1, 1, new[] { DieValue.One, DieValue.One }), AfterRoll());
+      new KeepDiceCommand(1, 1, new[] { DieValue.One, DieValue.One }), AfterRoll());
 
     events.Should().ContainSingle().Which.Should().BeOfType<DiceNotAllowedToBeKept>();
   }
@@ -40,7 +40,7 @@ public class KeepDiceDeciderShould
   public void RejectKeepingNonScoringDice()
   {
     var events = KeepDiceDecider.Decide(
-      new Command.KeepDice(1, 1, new[] { DieValue.Two }), AfterRoll());
+      new KeepDiceCommand(1, 1, new[] { DieValue.Two }), AfterRoll());
 
     events.Should().ContainSingle().Which.Should().BeOfType<DiceNotAllowedToBeKept>();
   }
@@ -49,7 +49,7 @@ public class KeepDiceDeciderShould
   public void RejectKeepingOutOfTurn()
   {
     var events = KeepDiceDecider.Decide(
-      new Command.KeepDice(1, 2, new[] { DieValue.One }), AfterRoll());
+      new KeepDiceCommand(1, 2, new[] { DieValue.One }), AfterRoll());
 
     events.Should().ContainSingle().Which.Should().BeEquivalentTo(new V1.PlayedOutOfTurn(2, 1));
   }

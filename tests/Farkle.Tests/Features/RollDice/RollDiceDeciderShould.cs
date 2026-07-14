@@ -19,7 +19,7 @@ public class RollDiceDeciderShould
   {
     var roll = Dice.FromValues(new[] { 1, 5, 2, 3, 4, 6 });
 
-    var events = RollDiceDecider.Decide(new Command.RollDice(1, 1), InTurnAwaitingRoll(), roll);
+    var events = RollDiceDecider.Decide(new RollDiceCommand(1, 1), InTurnAwaitingRoll(), roll);
 
     events.Should().ContainSingle()
       .Which.Should().BeEquivalentTo(
@@ -31,7 +31,7 @@ public class RollDiceDeciderShould
   {
     var roll = Dice.FromValues(new[] { 1, 5, 2, 3, 4, 6 });
 
-    var events = RollDiceDecider.Decide(new Command.RollDice(1, 2), InTurnAwaitingRoll(), roll);
+    var events = RollDiceDecider.Decide(new RollDiceCommand(1, 2), InTurnAwaitingRoll(), roll);
 
     events.Should().ContainSingle()
       .Which.Should().BeEquivalentTo(new V1.PlayedOutOfTurn(2, 1));
@@ -47,7 +47,7 @@ public class RollDiceDeciderShould
       new V2.DiceRolled(1, new[] { 1, 5, 2, 3, 4, 6 }, new Score(0), GameStage.Keeping));
 
     var events = RollDiceDecider.Decide(
-      new Command.RollDice(1, 1), afterRoll, Dice.FromValues(new[] { 1, 1, 1, 1, 1, 1 }));
+      new RollDiceCommand(1, 1), afterRoll, Dice.FromValues(new[] { 1, 1, 1, 1, 1, 1 }));
 
     events.Should().ContainSingle().Which.Should().BeEquivalentTo(new V1.RolledTwice(1));
   }

@@ -7,7 +7,7 @@ namespace Farkle.Features.BeginGame;
 // is the host) and returns the first failed-validation event, else GamePlayStarted.
 internal static class BeginGameDecider
 {
-  public static IEnumerable<object> Decide(Command.BeginGame command, GameState state)
+  public static IEnumerable<object> Decide(BeginGameCommand command, GameState state)
   {
     var result = new GameIsWaitingForPlayers(state)
       .And(new HasMinimumPlayers(state))

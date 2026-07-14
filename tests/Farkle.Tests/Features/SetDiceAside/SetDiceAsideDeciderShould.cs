@@ -19,7 +19,7 @@ public class SetDiceAsideDeciderShould
   public void EmitDiceSetAsideForADieOnTheTable()
   {
     var events = SetDiceAsideDecider.Decide(
-      new Command.SetDiceAside(1, 1, DieValue.One), AfterRoll());
+      new SetDiceAsideCommand(1, 1, DieValue.One), AfterRoll());
 
     events.Should().ContainSingle().Which.Should().BeEquivalentTo(new V1.DiceSetAside(1, 1));
   }
@@ -35,7 +35,7 @@ public class SetDiceAsideDeciderShould
       new V1.DiceSetAside(1, 1));
 
     var events = SetDiceAsideDecider.Decide(
-      new Command.SetDiceAside(1, 1, DieValue.One), oneAlreadySetAside);
+      new SetDiceAsideCommand(1, 1, DieValue.One), oneAlreadySetAside);
 
     events.Should().ContainSingle()
       .Which.Should().BeEquivalentTo(new V1.DieNotAvailableToSetAside(1, 1));
