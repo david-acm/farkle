@@ -111,7 +111,8 @@ Two solution files exist: **`Farkle.sln`** (full solution — use this) and `src
 
 **Key files:**
 - `src/Farkle/Domain/GameAggregate/GameState.cs` — the snapshot: `Create`/`Apply` (Marten replay) **and** a separate pure static `Fold` (deciders/tests/endpoints), plus `Score`, `GameId`, `Player`.
-- `src/Farkle/Domain/GameAggregate/GameEvents.cs` — versioned event records (`V1` & `V2`), `IErrorEvent` marker, `DieValue` SmartEnum.
+- `src/Farkle/Domain/GameAggregate/GameEvents.cs` — versioned event records (`V1` & `V2`) **only**. Events stay in the shared kernel (they're folded by `GameState` and are the persisted contract) — unlike commands, they do **not** move into slices; an arch test (`DomainPurityShould.NotDependOnTheSlices`) enforces it.
+- `IErrorEvent.cs` / `DieValue.cs` / `Dice.cs` / `IRandom.cs` — the marker, the SmartEnum, the dice value object and the RNG seam, each in its own file alongside the events.
 - `src/Farkle/Domain/GameAggregate/GameValidator.cs` — validator primitives (`PlayerIsInTurn`, `SingleRoll`, `PlayerCanPass`, …).
 - `src/Farkle/Features/<Command>/<Command>Command.cs` — the slice's command record (each slice owns its own).
 - `src/Farkle/Domain/GameAggregate/PlayerId.cs` — the player-id value object (shared by the events, `GameState` and every command).
@@ -179,8 +180,9 @@ pattern semantics + any combo multipliers live in `ScoreCalculator.cs`. `TurnAct
 (same project) is the single source of truth for which action (`CanRoll`/`CanKeep`/`CanPass`) is legal
 at the current stage — consulted by both `GameValidator` and the client's button gating.
 
-### Key value types (`GameState.cs`, `GameEvents.cs`)
-- **DieValue** (Ardalis SmartEnum): One…Six (Unicode pip glyphs ⚀⚁⚂⚃⚄⚅), plus `None`
+### Key value types (`Domain/GameAggregate/`, one file each)
+- **DieValue** (Ardalis SmartEnum, `DieValue.cs`): One…Six (Unicode pip glyphs ⚀⚁⚂⚃⚄⚅), plus `None`
+- **PlayerId** (record, `PlayerId.cs`): int wrapper with implicit conversions
 - **Player** (record): `(int Id, string Name, string Color)`
 - **GameId** (record): int wrapper, `None = new(0)` sentinel
 - **Score** (record): int wrapper with implicit conversions

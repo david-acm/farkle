@@ -27,4 +27,19 @@ public class DomainPurityShould
         InfraAsm, HostAsm)
       .Should().BeEmpty("domain types are the innermost layer — they must not depend on application, web frameworks, or infrastructure");
   }
+
+  [Fact]
+  public void NotDependOnTheSlices()
+  {
+    // #329 moved each command out of the shared kernel and into the slice that owns it, which left
+    // the domain referencing no slice at all. Nothing was stopping that from regressing: the rule
+    // above forbids Application/web/infra but says nothing about Farkle.Features, so a domain type
+    // reaching back into a slice would have stayed green.
+    //
+    // This is also the reason the *events* stay in the shared kernel rather than following the
+    // commands into the slices: GameState folds every event, so a slice-local event would force
+    // Farkle.Domain -> Farkle.Features and fail right here.
+    ForbiddenDependencies(IsDomain, "Farkle.Features")
+      .Should().BeEmpty("the domain is the innermost layer — slices depend on it, never the other way round");
+  }
 }
