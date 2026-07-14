@@ -33,12 +33,16 @@ public static class FarkleModuleServiceExtensions
     // #277 — thin append-only feedback writer (no aggregate), now appending to a Marten stream.
     services.AddSingleton<IFeedbackWriter, FeedbackWriter>();
 
-    // #302 follow-up — register every slice request validator (AbstractValidator<T>) in this
-    // assembly as a scoped IValidator<T>. The host's UseFluentValidationProblemDetailMiddleware picks
-    // these up at codegen time and injects a 400-ProblemDetails guard ahead of the matching endpoint.
-    // The validators are public so Wolverine's generated handler code (in the host assembly) can
-    // inject them directly rather than service-locate (which its ServiceLocationPolicy forbids).
-    services.AddValidatorsFromAssembly(typeof(FarkleModuleServiceExtensions).Assembly);
+    // #302 follow-up — register every slice request validator (AbstractValidator<T>, public so the
+    // FluentValidation HTTP policy wires them) in this assembly as an IValidator<T>. The host's
+    // UseFluentValidationProblemDetailMiddleware picks these up at codegen time and injects a
+    // 400-ProblemDetails guard ahead of the matching endpoint. Singleton (validators are stateless +
+    // thread-safe) makes Wolverine inject IValidator<T> as a constructor field of the generated
+    // handler — a deterministic position. A scoped registration instead nudges Wolverine to `new` the
+    // concrete inline as a floating local, whose ordering drifts between environments (breaking
+    // verify-codegen); the singleton field injection avoids that.
+    services.AddValidatorsFromAssembly(
+      typeof(FarkleModuleServiceExtensions).Assembly, ServiceLifetime.Singleton);
 
     // The write/read store (Marten) + command bus (Wolverine) are wired by the host via
     // AddFarkleCritterStack; SignalR delivery via AddSignalR + MapHub in the host.
