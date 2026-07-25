@@ -39,6 +39,15 @@
   </ItemGroup>
 
 
+  <!-- bUnit 2.7.2 pulls AngleSharp 1.4.0 transitively; NuGet audit flags GHSA-pgww-w46g-26qg
+       (moderate) and TreatWarningsAsErrors turns NU1902 into a restore-time error. AngleSharp is a
+       test-only DOM parser here (bUnit parses our own rendered component markup — never shipped,
+       never parses untrusted input) and has no stable patched release yet (only 1.5/1.6 betas), so
+       suppress this one advisory to keep restore green. Remove once bUnit ships a patched AngleSharp. -->
+  <ItemGroup>
+    <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-pgww-w46g-26qg" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\..\src\Farkle\Farkle.csproj" />
     <ProjectReference Include="..\..\src\WebApp.Client\WebApp.Client.csproj" />
