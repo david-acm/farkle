@@ -69,7 +69,7 @@ src/
 │   └── Program.cs                 # Composition root (Critter Stack + Wolverine.HTTP + WASM)
 ├── WebApp.Client/                 # Blazor WASM client
 │   ├── Features/                  # BlazorState GameState + Actions/ (Redux-like reducers)
-│   ├── Pages/Game/Components/     # Dice, Scoreboard, buttons, drag-and-drop UI
+│   ├── Pages/Game/Components/     # Dice tray (tap-to-select), Scoreboard, buttons
 │   └── Services/                  # IGameService, IGameHubService, RotationCalculator
 └── Blazor.Dice/                   # Reusable CSS-3D dice component (RCL)
 
@@ -234,7 +234,7 @@ WASM uses **BlazorState** (a Redux/MediatR-like pattern). `GameState` (`src/WebA
 | `StartGame` | Calls the API to start a game, stores the game id |
 | `JoinPlayer` | Joins the current game, seeds player id/name + scoreboard |
 | `RollDiceAction` | Rolls dice; on failure sets error state |
-| `SetDiceAside` | Local-only — toggles a die between "Rolled" and "SetAside" zones (drag-and-drop) |
+| `SetDiceAside` | Local-only — a tap toggles a die between rolled and set-aside (selected) in the tray |
 | `KeepDice` | Sends set-aside dice to the API, updates turn score |
 | `PassTurn` | Passes the turn locally (API call), updates scoreboard/winner |
 | `RemoteTurnChanged` | Applies a turn change received via SignalR `OnTurnChanged` |
@@ -249,17 +249,17 @@ Registered via `services.AddBlazorState(...)` in `ClientServiceExtensions.Regist
 - **`IRotationCalculator` / `RotationCalculator`** — maps a `DieValue` to CSS 3D rotation angles `(x, y, z)` for rendering a die face (optional random spin). Registered as a singleton.
 
 ### Components (`src/WebApp.Client/Pages/Game/Components/`)
-`Game.razor` (route `/games/{gameId:int}`) composes: **Scoreboard** (compact MudSimpleTable, leader highlight, winner banner), **DragabbleDice** (MudDropContainer with stable-height "Rolled"/"SetAside" zones and floating titles), **Die** (CSS 3D die using `IRotationCalculator`), **RollDiceButton**, **KeepButton**, **PassTurnButton**, **TurnScore**, **GameTitle**, and the reusable **AppButton**. `Features/Actions/Components/ErrorModal.razor` renders domain errors.
+`Game.razor` (route `/games/{gameId:int}`) composes: **Scoreboard** (compact MudSimpleTable, leader highlight, winner banner), **GameDiceTray** — a thin state binding over the reusable **`Blazor.Dice.DiceTray`** (a *tap-to-select* grid: tapping a die toggles it between rolled and set-aside; the library owns the selected visual), each die a **Die** (CSS 3D die using `IRotationCalculator`), **SelectionScore** (live score of the current set-aside selection), **TurnStatus**, **RollDiceButton**, **KeepButton**, **PassTurnButton**, **TurnScore**, **GameTitle**, and the reusable **AppButton**. `Features/Actions/Components/ErrorModal.razor` renders domain errors.
 
 ### Game-screen UI conventions & gotchas
 
 These were established/learned while polishing the in-game screen (issue #97) and are easy to break. **Verify any UI change with the storyboard capture at all three viewports** (see Testing Patterns).
 
 - **No-scroll constraint (hard requirement).** Every game screen must fit entirely within the viewport — no vertical or horizontal scroll — at *every* stage (landing, lobby, before/after roll, set-aside, keep, pass, win) and at all three supported sizes: **mobile 390×844, medium 1280×800, large 1920×1080**. `Game.razor` lays the in-play view out as a single flex column (`Game.razor.css`).
-- **MudBlazor + component-scoped CSS needs `::deep`.** Blazor scoped `.razor.css` only decorates elements the component renders *directly* — it does **not** reach into child components, so a bare `.zone` / `.mud-button-root` rule silently does nothing against `MudDropZone` / `MudGrid` / `MudButton`. Wrap the MudBlazor markup in a plain element you own (e.g. `<div class="dice-area">`) and target descendants with `::deep` (`.dice-area ::deep .zone { … }`). Prefer scoped classes / MudBlazor props over inline styles.
-- **Dice rendering.** `Die` sizes itself from a `--die-size` custom property; override it on a wrapper (closer than the Die's own `:root`) to resize per breakpoint, and reserve a slot wider than the box (the tilted 3D die overshoots it). On mobile the dice are smaller, laid out **two rows of three** (set the ⅓ width on the `.mud-drop-item` wrapper, not the inner slot), and the `.die.solid` depth body is hidden (it shows as a grey slab at small sizes). Pip margins must scale with `--die-size` (not `vh`) or they overflow the face.
-- **Stable dice-zone height (no flicker).** Drop zones reserve a fixed `--zone-height`, identical empty vs. full — a content-driven height made them resize on every action. Guarded by `tests/Farkle.SpaTests/Components/DragabbleDice/StableZoneHeightShould.razor`. Flex pitfall: `flex: 1 1 0` makes `height` the *main-size* in a column layout and collapses the zone — keep the fixed height and only apply `flex-grow` in the side-by-side (row) layout.
-- **Button labels are load-bearing.** The E2E and storyboard tests click by visible text (`button:has-text('Roll' | 'Set Dice Aside' | 'Pass Turn')`). **Do not rename** these labels — restyle instead (e.g. equalize heights by stretching each button to fill its grid cell; shrink the mobile font to control wrapping).
+- **MudBlazor + component-scoped CSS needs `::deep`.** Blazor scoped `.razor.css` only decorates elements the component renders *directly* — it does **not** reach into child components, so a bare `.mud-button-root` rule silently does nothing against `MudGrid` / `MudButton`. Wrap the MudBlazor markup in a plain element you own (e.g. `<div class="dice-area">`) and target descendants with `::deep` (`.dice-area ::deep .mud-button-root { … }`). Prefer scoped classes / MudBlazor props over inline styles.
+- **Dice rendering.** `Die` sizes itself from a `--die-size` custom property; override it on a wrapper (closer than the Die's own `:root`) to resize per breakpoint, and reserve a slot wider than the box (the tilted 3D die overshoots it). On mobile the dice are smaller, laid out **two rows of three** (set the ⅓ width on the `.dice-tray-die` wrapper, not the inner slot), and the `.die.solid` depth body is hidden (it shows as a grey slab at small sizes). Pip margins must scale with `--die-size` (not `vh`) or they overflow the face.
+- **Tap-to-select dice tray (#196).** The in-play dice are a single grid (`Blazor.Dice.DiceTray`); tapping a die toggles its `.selected` state (a scale transform + selected face), which replaced the old drag-and-drop "Rolled"/"SetAside" drop zones. The tray is presentational and owns the selected visual; `GameDiceTray` maps a tap to the `SetDiceAside` BlazorState action, and `SelectionScore` shows the live score of the current selection. Binding is guarded by `tests/Farkle.SpaTests/Components/DiceTray/BindingShould.razor`. (On touch this is already native — no HTML5 drag-and-drop, which matters for a future MAUI/mobile port; see [`docs/mobile-strategy.md`](docs/mobile-strategy.md).)
+- **Button labels are load-bearing.** The E2E and storyboard tests click by visible text (`button:has-text('Roll' | 'Keep' | 'Pass Turn')`); *set-aside is a tap on a die, not a button*. **Do not rename** these labels — restyle instead (e.g. equalize heights by stretching each button to fill its grid cell; shrink the mobile font to control wrapping).
 - **Contrast.** Yellow is the primary colour; set `PrimaryContrastText` (dark) in the theme so text/icons on filled yellow buttons stay legible. Yellow used as *text* on dark backgrounds (titles, scores, game code) is unaffected.
 
 ---
