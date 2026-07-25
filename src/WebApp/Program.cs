@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
 using Wolverine.Http;
+using Wolverine.Http.FluentValidation;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
@@ -249,6 +250,12 @@ app.MapOpenApi();
 // opt out via [AllowAnonymous].
 app.MapWolverineEndpoints(opts =>
 {
+  // #302 follow-up — run the registered FluentValidation validators (AddValidatorsFromAssembly in
+  // AddFarkleModuleServices) ahead of any endpoint whose request DTO has one, returning a 400
+  // ValidationProblem on failure. Input validity only (out-of-range dice, blank names); business
+  // rules remain validation-as-events in the deciders.
+  opts.UseFluentValidationProblemDetailMiddleware();
+
   if (requireAuth)
     opts.RequireAuthorizeOnAll();
 });

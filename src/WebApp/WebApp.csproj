@@ -24,6 +24,11 @@
          pull a patched version themselves. -->
     <PackageReference Include="Microsoft.OpenApi" Version="2.8.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.5" />
+    <!-- #302 follow-up — FluentValidation input-validation middleware for Wolverine.HTTP. Guards the
+         request DTOs (out-of-range dice, empty names) so bad input becomes a 400 ValidationProblem
+         before the endpoint runs, rather than a 500 from DieValue.FromValue. Business rules stay in
+         the deciders (validation-as-events); this only covers structural/input validity. -->
+    <PackageReference Include="WolverineFx.Http.FluentValidation" Version="6.16.0" />
     <!-- Persistence (EF/Npgsql/Identity), event store and health checks now live in
          Farkle.Infrastructure; the host references them transitively through that project. -->
   </ItemGroup>

@@ -1,6 +1,7 @@
 ﻿using System.Reflection;
 using Farkle.Application;
 using Farkle.Domain.GameAggregate;
+using FluentValidation;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -31,6 +32,17 @@ public static class FarkleModuleServiceExtensions
 
     // #277 — thin append-only feedback writer (no aggregate), now appending to a Marten stream.
     services.AddSingleton<IFeedbackWriter, FeedbackWriter>();
+
+    // #302 follow-up — register every slice request validator (AbstractValidator<T>, public so the
+    // FluentValidation HTTP policy wires them) in this assembly as an IValidator<T>. The host's
+    // UseFluentValidationProblemDetailMiddleware picks these up at codegen time and injects a
+    // 400-ProblemDetails guard ahead of the matching endpoint. Singleton (validators are stateless +
+    // thread-safe) makes Wolverine inject IValidator<T> as a constructor field of the generated
+    // handler — a deterministic position. A scoped registration instead nudges Wolverine to `new` the
+    // concrete inline as a floating local, whose ordering drifts between environments (breaking
+    // verify-codegen); the singleton field injection avoids that.
+    services.AddValidatorsFromAssembly(
+      typeof(FarkleModuleServiceExtensions).Assembly, ServiceLifetime.Singleton);
 
     // The write/read store (Marten) + command bus (Wolverine) are wired by the host via
     // AddFarkleCritterStack; SignalR delivery via AddSignalR + MapHub in the host.
