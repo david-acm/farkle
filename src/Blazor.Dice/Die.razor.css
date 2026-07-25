@@ -12,10 +12,6 @@
     padding: 0;
 }
 
-.draggable {
-    cursor: grab;
-}
-
 .side {
     background-color: #0D0D2E;
     /* The die recolours to the in-turn player's colour (cascaded from .play-area as
