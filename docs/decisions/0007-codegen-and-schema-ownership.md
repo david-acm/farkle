@@ -1,4 +1,4 @@
-# 5. Static codegen in production; Marten owns its schema, EF owns Identity
+# 7. Static codegen in production; Marten owns its schema, EF owns Identity
 
 Status: **Accepted** (#305).
 
