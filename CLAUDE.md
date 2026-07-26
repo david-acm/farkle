@@ -20,6 +20,12 @@ The codebase prioritizes architectural patterns and test-driven development:
 > anatomy, the Critter Stack mindset, dev heuristics, and an "add a slice" walkthrough. This file is the
 > reference; that doc is the tour.
 
+> **Mobile (HotDice, epic #334):** the stack decision is [ADR 0008](docs/decisions/0008-mobile-via-maui-blazor-hybrid.md)
+> (MAUI Blazor Hybrid over a shared RCL; plan in [`docs/mobile-strategy.md`](docs/mobile-strategy.md)); the
+> crosscutting practices ported from the reference app mobile app — CI/CD, test tiers, device evidence loop, store
+> runbooks, tooling — are inventoried in [`docs/mobile-practices-inventory.md`](docs/mobile-practices-inventory.md)
+> with the translation decisions in [ADR 0009](docs/decisions/0009-mobile-practice-port-for-hotdice.md).
+
 ### Key Technologies
 
 | Layer | Stack |
