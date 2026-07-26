@@ -573,21 +573,49 @@ The app re-seeds `player1@email.com` on startup if missing. (Only Identity uses 
 - **Slice isolation**: a slice may use the shared kernel + application layer, but must not reach another slice, Infrastructure, or the host.
 - **Test coverage**: new domain logic needs a decider/unit test; new slices need an integration test; new features need at least one E2E happy-path test.
 - **UI changes**: verify with the storyboard capture and keep the no-scroll constraint at all three viewports; style via component-scoped CSS (`::deep` for MudBlazor children), not inline styles, and don't rename button labels the tests select by text.
+- **Evidence the change**: close every user-facing change with visual proof of the real thing running, attached to the PR — the storyboard frames today (mobile screenshots/video once #339 lands). Actually open the artifact and confirm the change is visible; a green test with a blank recording proves nothing.
 - **Close issues via PR**: every PR that resolves an issue MUST include `Closes #<issue>` (or `Fixes #<issue>`) in the body. A bare `#N` is not enough — the keyword is required.
 - **TDD commit convention** (Red–Green):
   - **Commit 1 (Red):** failing tests only — must fail before the fix.
   - **Commit 2+ (Green):** implementation that makes them pass. Never mix test and fix changes in one commit.
+- **Test-first on touched code**: before modifying *existing* code, add the missing tests that characterize its current behaviour and get them green **on the existing code** — then make the change. This protects what you touch, not only what you add. New code still follows the normal Red→Green.
+- **Fixing a bug: reproduce first**: drive every defect from a failing test through a real entry point, confirm it fails for the *actual* reason, apply the smallest fix, and keep the reproduction as a permanent regression test. Never patch blind.
+- **PR template**: `.github/pull_request_template.md` renders this list as the Definition of Done on every PR. Leave a box unticked with a one-line note rather than ticking it optimistically.
+- **Report faithfully**: if a test failed, say so with the output; if a step was skipped, say that. A PR's Verification section describes what was actually exercised — never "tests pass" when they weren't run.
+
+### Test hygiene
+
+- **Deterministic only** — no `DateTime.Now`, `Random`, or `Thread.Sleep` in a test; use the injected `TimeProvider`/`IRandom` seam and poll rather than sleep. A flaky test is a broken test.
+- **One behaviour per test**, arrange-act-assert, named `Method_State_ExpectedResult` (or the `…Should` convention the existing suites use).
+- **Builders over inline setup** (AutoFixture/harnesses already in `tests/`), and **no shared mutable state** between tests.
+- **Pick the lowest layer that can catch the bug** — reserve the slower layers for what only they can prove (see [Testing Patterns](#testing-patterns)).
+
+### Autonomy boundaries (for AI agents)
+
+Proceed without asking on reversible, in-scope work. **Stop and ask first** before:
+
+- database or event-schema changes (including a new stored event version),
+- exposing a new public HTTP endpoint or changing an existing contract,
+- adding a dependency (NuGet/npm) or upgrading a pinned one,
+- destructive or irreversible operations — data deletes, force-push, rewriting history, infra teardown,
+- anything touching auth, security, or secrets.
+
+When in doubt, do the reversible part and ask about the rest — don't stall the whole task on one question.
 
 ---
 
 ## Agent Workflow for Features
+
+> Repo-scoped commands in `.claude/commands/` encode this workflow: **`/new-story <issue#> <description>`**
+> (branch from fresh `origin/main`, restate the acceptance criteria, record `Closes #N`) and **`/pr`**
+> (review the diff, fill the Definition-of-Done template, open and subscribe).
 
 ### Starting a New Feature
 Always sync with the latest `main` first, then branch from it:
 ```bash
 git checkout main && git pull origin main
 ```
-Never start new work from a stale or unrelated branch.
+Never start new work from a stale or unrelated branch. Branch naming: `feature/<issue#>-<kebab-description>`, so `/pr` can derive the `Closes #N` link.
 
 ### PR & CI Loop
 1. **Write the decider/E2E tests** for the happy path before/alongside the implementation.
