@@ -54,14 +54,22 @@ testability pattern appears to contradict. This ADR pins the translations so the
    port. Foreground connect / background disconnect / `WithAutomaticReconnect` / resume-time
    re-sync get a testable handler seam in #336 and device coverage in #339's smoke.
 
-7. **The evidence loop extends `storyboard.yml`, not a parallel system.** The reference app's
+7. **Deployments are validated, not assumed.** A green build is not a working deployment. The web/API
+   side already does this — `app-release.yml`'s `post-deploy-e2e` job (#231, hardened in #235) polls
+   `/health/ready`, drives the Playwright happy path against the live URL via `E2E_BASE_URL`, and emits
+   a scoped App Insights link, report-only. Mobile gets the same treatment in #345 (happy path against
+   the deployed backend — the only place CORS, token auth without a same-origin cookie, and SignalR over
+   a real network are exercised — plus release-channel checks that a promoted build is available and
+   launches). Neither smoke auto-rolls back; a store build cannot be unshipped, so halting is a human call.
+
+8. **The evidence loop extends `storyboard.yml`, not a parallel system.** The reference app's
    screenshots+video-on-every-user-facing-PR convention is adopted for mobile, delivered through
    the same PR-artifact/comment pattern the storyboard job already established. The device smoke
    tier is deliberately **smaller** than the reference app's, because bUnit + Playwright + storyboard already
    cover the shared RCL; the device tier proves only shell-specific risk (cold launch/blank
    WebView, auth, one action, one SignalR push).
 
-8. **Conventions merge into CLAUDE.md — no forked conventions doc.** The reference app's deltas (agent
+9. **Conventions merge into CLAUDE.md — no forked conventions doc.** The reference app's deltas (agent
    autonomy boundaries, test-first-on-touched-code, determinism hygiene, evidence convention)
    are folded into the existing CLAUDE.md standards (TDD red/green, 5-commit limit,
    generated-files policy, `Closes #N`). Where the two disagree, the existing Farkle rule wins

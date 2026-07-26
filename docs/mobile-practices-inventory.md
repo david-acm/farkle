@@ -1,6 +1,6 @@
 # Mobile practices inventory: what HotDice ports from the reference MAUI app
 
-Deliverable of #335 (step 1/8 of epic #334). One row per crosscutting practice in the
+Deliverable of #335 (step 1/9 of epic #334). One row per crosscutting practice in the
 reference app repo (a private .NET MAUI iOS+Android app by the same developer,
 shipped through Azure DevOps to TestFlight and Google Play), with a **port / adapt / drop**
 verdict for this repo. The cross-cutting decisions the verdicts rest on are recorded in
@@ -33,11 +33,12 @@ this repo. **Drop** — not carried; reason given. *Owner* is the epic step issu
 |---|---|---|---|---|
 | Fast device-free gate blocks the expensive device builds | `test-mobile.yml` (plain SDK agent, no MAUI workload) | **Port** | Linux `workflow_call` job; no workload install; required before device builds | #337 |
 | Templated, parameterized pipeline stages | ADO `stages/templates` + `parameters` (`ci.yml` → `setup.yml`/`ios-build.yml`/…) | **Port (translate)** | Reusable workflows (`workflow_call` + inputs); shared toolchain-setup step | #338 |
-| Cost-aware triggers: Android per-merge (Linux), iOS post-merge only (macOS), UI nightly cron | `ci.yml` conditions + `schedules:` | **Port** | Workflow `if:`/`on.schedule` equivalents | #338, #339 |
+| Cost-aware triggers: Android per-merge (Linux), iOS post-merge only (macOS), UI nightly cron | `ci.yml` conditions + `schedules:` | **Adapt** | The cost premise doesn't transfer: this repo is **public**, so GitHub-hosted runners (incl. **macOS arm64**) are free, and Linux runners expose **KVM** for a hardware-accelerated Android emulator. Device UI moves *forward* to a blocking per-PR happy path (#339); nightly is kept for a breadth matrix, not as the only run | #338, #339 |
 | MAUI workload install pinned to SDK version; Xcode pinned explicitly | `setup.yml`, `ios-build.yml` (`xcode-select`) | **Port** | Setup step honoring `global.json`; explicit Xcode pin on macOS runners | #338 |
 | Signing material out of the repo: keystore / `.p12` / provisioning profile as secure files | ADO secure files + `DownloadSecureFile@1` | **Port (translate)** | Base64 GitHub secrets decoded at build; temp keychain on macOS; encode/rotate runbook | #338 |
 | Monotonic Play-safe versioning `<yyyyMMdd><dailyRev>` with overflow guard | `ci.yml` counter vars + `Get-PlaySafeAndroidVersionCode` | **Port** | Same scheme from a run counter; shared by `versionCode` and `CFBundleVersion` | #338 |
 | CD to TestFlight + Play internal track, triggered by the CI build's artifacts | `cd.yml` (`AppStoreRelease@1`, `GooglePlayRelease@4`, pipeline-resource trigger) | **Port (translate)** | `workflow_run`-triggered release workflow; App Store Connect API key + Play service-account JSON as secrets | #340 |
+| Post-deployment validation of a release | — (the reference app has none: it ships to a track and stops) | **Net-new** | Already solved for web/API by `app-release.yml`'s `post-deploy-e2e` (#231/#235: readiness gate → Playwright happy path against the live URL → telemetry link); the mobile analogue + release-channel checks are #345 | #345 |
 | Deploy approval gates per environment | ADO environments (`TestFlight`, `GooglePlayInternal`) | **Port (translate)** | GitHub environments with required reviewers (pattern already used by infra's `production` gate) | #340 |
 | Validate pipeline YAML cheaply before pushing | ADO preview-run (`previewRun: true`) | **Adapt** | `actionlint` locally / pre-push; note in conventions | #342 |
 | Don't double-trigger CI on merge (batched auto-build vs manual run) | CLAUDE.md CI-helper note | **Drop** | ADO-specific; GitHub Actions triggers don't have the batched-counter interplay | — |
@@ -46,11 +47,11 @@ this repo. **Drop** — not carried; reason given. *Owner* is the epic step issu
 
 | Practice | Reference artifact | Verdict | Target here | Owner |
 |---|---|---|---|---|
-| Black-box device smoke tier, config **entirely via env vars** so local and CI run the same tests | its `UITests` project + README (`UITEST_*`) | **Adapt** | Small WebView-aware device smoke (launch / assets load / login / one action / one SignalR push). Driver decided by spike: Appium (the toolchain pinned by the reference app) vs Playwright-on-WebView. Tier is deliberately smaller — bUnit + Playwright + storyboard already cover the shared RCL | #339 |
+| Black-box device smoke tier, config **entirely via env vars** so local and CI run the same tests | its `UITests` project + README (`UITEST_*`) | **Adapt** | WebView-aware device happy path (launch / assets load / login / one action / one SignalR push), run as a **blocking per-PR gate** on both platforms. Driver decided by spike: Appium (the toolchain pinned by the reference app) vs Playwright-on-WebView. Tier is deliberately narrow — bUnit + Playwright + storyboard already cover the shared RCL | #339 |
 | `AutomationId` selectors + documented cross-platform locator asymmetry | `UiWait.cs`, `LoginPage.cs` | **Adapt** | WebView content uses web selectors (ids/test-ids as in Playwright today); native-shell chrome only needs the reference app locator lore | #339 |
 | Evidence-the-change: screenshots + short video of the real app attached to every user-facing PR, captured by driving the UI test | CLAUDE.md "Evidence the change" + capture gotchas | **Port** | Wrapper script + runbook; extend the existing `storyboard.yml` PR-comment pattern to mobile artifacts | #339 |
 | Capture gotchas: pin `UITEST_UDID`; SIGINT (not kill) to finalize `simctl recordVideo`; run UI classes in isolation; kill stale WDA | CLAUDE.md §Evidence, UITests README | **Port** | `docs/` runbook (symptom → cause → fix, `lessons-learned.md` format) | #339 |
-| Android emulator lore: arm64 AVD needs `-p:RuntimeIdentifier=android-arm64 -p:EmbedAssembliesIntoApk=true`; enable wifi/data via `adb svc`; disable autofill popup | CLAUDE.md §Local UI runs | **Port** | Same runbook; hosted-runner Android emulator marked `continue-on-error` until proven (the reference app paused theirs) | #339 |
+| Android emulator lore: arm64 AVD needs `-p:RuntimeIdentifier=android-arm64 -p:EmbedAssembliesIntoApk=true`; enable wifi/data via `adb svc`; disable autofill popup | CLAUDE.md §Local UI runs | **Port** | Same runbook; the hosted Android emulator starts `continue-on-error` and flips to required once proven — GitHub's KVM-enabled Linux runners remove the acceleration gap that forced the reference app to pause its stage | #339 |
 | MFA-bypass test account for UI login | `ConfigSettings:MfaBypassEmails` | **Drop** | No OTP flow here; the seeded `player1@email.com` account already serves | — |
 | Offline/local mode: app → local API | `scripts/start-local-api.sh`, `USE_LOCAL_API` overlay | **Adapt** | Shell config pointing the app at the local docker-compose backend; one-command local loop | #342 |
 
@@ -103,7 +104,7 @@ Hard-won gotchas to land as `docs/` runbooks when their step executes (format of
 3. **Appium toolchain pinning** — appium 3.5.2 / uiautomator2 8.1.0 / xcuitest 11.17.7 proven together; kill stale WDA/xcodebuild between runs. (Applies if the Appium driver wins the spike.) → #339
 4. **Android emulator on arm64 Macs** — arm64 AVD + `EmbedAssembliesIntoApk=true` or SIGABRT "No assemblies found"; `ANDROID_HOME` exported before Appium; `svc wifi/data enable` for network; autofill popup off. → #339
 5. **UI test classes must run in isolation** — parallel classes fight over one simulator's WebDriverAgent. → #339
-6. **Hosted-runner mobile emulators are the finicky part** — expect iterations; keep the local device loop primary (the reference app's Android UI stage is paused on hosted agents to this day). → #339
+6. **Hosted-runner mobile emulators need care, but are viable here** — the reference app's Android UI stage is paused on ADO hosted agents to this day (software GPU, no KVM). GitHub's Linux runners expose **KVM**, and macOS arm64 runners are free for this public repo, so the device tier runs per PR rather than nightly-only. Expect boot-time/caching iterations, and keep the local loop as the fast path. → #339
 
 ## What Farkle already had (no port needed)
 
