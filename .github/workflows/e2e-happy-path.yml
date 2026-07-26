@@ -77,6 +77,16 @@ jobs:
           --logger "trx;LogFileName=dice-results.trx"
           --results-directory test-results
 
+      # Shared client core (realtime lifecycle + API client). Runs on this plain Linux runner with
+      # no MAUI workload, no emulator and no device — that is the point of the boundary in ADR 0010.
+      - name: Client core tests
+        run: >
+          dotnet test tests/Farkle.Client.Tests/Farkle.Client.Tests.csproj
+          --no-build
+          --collect:"XPlat Code Coverage"
+          --logger "trx;LogFileName=client-results.trx"
+          --results-directory test-results
+
       - name: Upload TRX results
         if: always()
         uses: actions/upload-artifact@v7

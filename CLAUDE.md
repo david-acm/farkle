@@ -22,9 +22,13 @@ The codebase prioritizes architectural patterns and test-driven development:
 
 > **Mobile (HotDice, epic #334):** the stack decision is [ADR 0008](docs/decisions/0008-mobile-via-maui-blazor-hybrid.md)
 > (MAUI Blazor Hybrid over a shared RCL; plan in [`docs/mobile-strategy.md`](docs/mobile-strategy.md)); the
-> crosscutting practices ported from the reference app mobile app — CI/CD, test tiers, device evidence loop, store
+> crosscutting practices ported from the reference mobile app — CI/CD, test tiers, device evidence loop, store
 > runbooks, tooling — are inventoried in [`docs/mobile-practices-inventory.md`](docs/mobile-practices-inventory.md)
 > with the translation decisions in [ADR 0009](docs/decisions/0009-mobile-practice-port-for-hotdice.md).
+> The testable boundary — `src/Farkle.Client` (shared, UI-framework-free, desktop-tested) vs. the thin
+> `src/HotDice.Shell` MAUI host — is [ADR 0010](docs/decisions/0010-mobile-testability-architecture.md).
+> **The shell is deliberately not in `Farkle.sln`** (a solution-wide build on a runner without the MAUI
+> workloads would fail); it has its own `CI - Mobile Shell` workflow.
 
 ### Key Technologies
 
@@ -391,6 +395,8 @@ Pick the layer that can answer the question with the least machinery. Overlap is
 | **Component (bUnit)** | `Farkle.SpaTests/Components` | Rendering, conditional UI (`Disabled`, visibility), event wiring, CSS-class invariants. Mocked `IGameService`/`IGameHubService`. | State-machine internals (handler's job). End-to-end flows (E2E's job). | *"Given this state, does the DOM look right and do clicks fire the right actions?"* |
 | **Web integration** | `Farkle.WebTests` | HTTP contract (status/JSON shape), Wolverine.HTTP routing, Marten round-trip, **outbox broadcast** (TrackedSession), Identity/JWT. Real Postgres via Testcontainers. | Exhaustive business rules (in domain unit) — one happy + one representative error path per slice. Frontend rendering. | *"Does the wire format and the wiring still hold together?"* |
 | **E2E** | `Farkle.E2eTests` | Real-browser flow: WASM hydration, two-player happy path, SignalR turn flip, CSS layout, win condition. Playwright + real backend + Postgres. | Edge-case business rules; every error path. | *"Can a real user, in a real browser, complete a meaningful journey?"* |
+| **Client core (mobile + web)** | `Farkle.Client.Tests` | Rules shared by every client: the realtime **app-lifecycle** (background disconnect, foreground reconnect-then-resync, idempotent resume, retryable failure) and the **API-client factory** over a fake `HttpMessageHandler`. Fakes only — no device, emulator, WebView or server. | Anything needing a real WebView or a real socket (device tier). UI rendering (bUnit). | *"Would this break on a phone for a reason a browser never shows? Then it belongs here, not on a device."* |
+| **Device (mobile)** | *(#339 — not built yet)* | Only what the shell adds: cold launch without a blank WebView, static assets loading, a real-network SignalR round trip. One happy path per platform. | Everything the layers above already prove. | *"Does the packaged app actually run on the platform?"* |
 
 **Anti-patterns to avoid:**
 - Re-asserting "can't roll out of turn" in `Farkle.WebTests` — already covered by the decider test. Integration should prove the rejection becomes an HTTP 400 with the right `ProblemDetails`, not re-prove the rule.
