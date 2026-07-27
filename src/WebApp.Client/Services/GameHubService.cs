@@ -77,9 +77,9 @@ public sealed class GameHubService(HttpClient http, IUiTelemetry telemetry) : IG
     public async Task DisconnectAsync(CancellationToken ct = default)
     {
         if (_connection is null) return;
-        // Best effort: we are tearing the connection down regardless, so a failure to say goodbye
-        // is not worth surfacing. Narrowed to what InvokeAsync can actually raise on a dying
-        // connection — a blanket catch would also swallow real defects.
+        // Best effort: the teardown proceeds whether or not the goodbye lands. The catch is
+        // narrowed to what InvokeAsync can actually raise on a dying connection, so a real defect
+        // still surfaces rather than being swallowed.
         try
         {
             await _connection.InvokeAsync("LeaveGame", _gameId, ct);

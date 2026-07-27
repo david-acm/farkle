@@ -88,13 +88,11 @@ public class MobileApiClientShould
     {
         public bool WasDisposed { get; private set; }
 
-        // The caller (HttpClient) owns the response and disposes it; this handler never sends one
-        // that outlives a request, so there is nothing here for it to hold.
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
-        {
-            var response = new HttpResponseMessage(HttpStatusCode.OK);
-            return Task.FromResult(response);
-        }
+        // This handler exists only to observe disposal — the tests using it never issue a request,
+        // so it manufactures no response to own. Throwing makes an unexpected send obvious instead
+        // of silently passing.
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct) =>
+            throw new NotSupportedException("TrackingHandler observes disposal; it does not send.");
 
         protected override void Dispose(bool disposing)
         {
