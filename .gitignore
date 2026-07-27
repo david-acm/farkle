@@ -57,3 +57,6 @@ test-results/
 # MAUI shell build output
 src/HotDice.Shell/bin/
 src/HotDice.Shell/obj/
+
+# Local coverage report (tests/scripts/coverage.sh)
+coverage-html/

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat Code Coverage">
+        <Configuration>
+          <Format>cobertura</Format>
+
+          <!-- Coverlet takes ONE comma-separated list per element. Repeating <Include> elements
+               does not union them — it silently yields an empty report, which reads exactly like
+               "everything is covered" to a gate. Keep these as single lines. -->
+
+          <!-- Which assemblies the new-code gate can hold you to. Anything absent from every
+               report is out of scope by construction (diff-cover only counts files it can see),
+               so this list is the deliberate half of that decision. -->
+          <Include>[Farkle]*,[Farkle.Client]*,[Farkle.Shared]*,[Farkle.Infrastructure]*,[WebApp]*,[WebApp.Client]*,[Blazor.Dice]*</Include>
+
+          <!-- Generated code is excluded: nobody writes tests for it, and it is verified better
+               elsewhere — `verify-generated` and `verify-codegen` fail on any drift from source. -->
+          <Exclude>[Farkle.ApiClient]*</Exclude>
+          <ExcludeByAttribute>GeneratedCodeAttribute,CompilerGeneratedAttribute,ExcludeFromCodeCoverageAttribute</ExcludeByAttribute>
+          <ExcludeByFile>**/Internal/Generated/**,**/Migrations/**,**/*.g.cs</ExcludeByFile>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>

@@ -403,6 +403,32 @@ Pick the layer that can answer the question with the least machinery. Overlap is
 - Driving the BlazorState `Sender` inside a bUnit component test to set up state. Handler behaviour → `Handlers/` without bUnit. DOM → set state through the store and render.
 - Adding a UI-side copy of a domain rule just to test it. The decider/`TurnActionPolicy` is the source of truth; the client surfaces the resulting error.
 
+### Coverage: the new-code gate
+
+Every line a PR **adds or changes**, in a file the device-free suites actually cover, must be tested
+(`diff-cover`, fail-under 100%). It runs in `CI - Tests` on pull requests and is reproducible locally
+with the same scripts:
+
+```bash
+bash tests/scripts/coverage.sh              # collect + HTML report + gate vs origin/main
+FAST=1 bash tests/scripts/coverage.sh       # skip Farkle.WebTests (no Docker needed)
+FAIL_UNDER=90 bash tests/scripts/coverage.sh   # loosen the threshold while iterating
+```
+
+If that passes locally and CI's gate fails, that's a bug in the setup, not in your change.
+
+- **Scope is set by construction.** Files absent from every coverage report are not counted, so the
+  gate never blocks a change it could not have measured — the MAUI shell (`HotDice.Shell`, built by a
+  separate workflow and not exercised by these suites) and generated code are both out of scope.
+- **What's measured** is listed in [`coverage.runsettings`](coverage.runsettings): `Farkle`,
+  `Farkle.Client`, `Farkle.Shared`, `Farkle.Infrastructure`, `WebApp`, `WebApp.Client`, `Blazor.Dice`.
+  Generated code is excluded — nobody writes tests for it, and `verify-generated` / `verify-codegen`
+  already fail on any drift from its source.
+- **Coverlet takes one comma-separated list per element.** Repeating `<Include>` elements does *not*
+  union them — it silently produces an **empty report**, which reads to a gate exactly like "all
+  covered". This bit during setup; keep those lines single.
+- The run also publishes a browsable HTML report as the `coverage-html-<run-id>` artifact.
+
 ### Layer-specific setup
 
 #### Domain / decider tests (`Farkle.Tests`)

@@ -21,7 +21,11 @@ jobs:
     timeout-minutes: 15
 
     steps:
+      # Full history: the new-code coverage gate diffs this branch against the PR's base.
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
@@ -39,6 +43,7 @@ jobs:
           dotnet test tests/Farkle.Tests/Farkle.Tests.csproj
           --no-build
           --collect:"XPlat Code Coverage"
+          --settings coverage.runsettings
           --logger "trx;LogFileName=unit-results.trx"
           --results-directory test-results
 
@@ -58,6 +63,7 @@ jobs:
           dotnet test tests/Farkle.WebTests/Farkle.WebTests.csproj
           --no-build
           --collect:"XPlat Code Coverage"
+          --settings coverage.runsettings
           --logger "trx;LogFileName=integration-results.trx"
           --results-directory test-results
 
@@ -66,6 +72,7 @@ jobs:
           dotnet test tests/Farkle.SpaTests/Farkle.SpaTests.csproj
           --no-build
           --collect:"XPlat Code Coverage"
+          --settings coverage.runsettings
           --logger "trx;LogFileName=spa-results.trx"
           --results-directory test-results
 
@@ -74,6 +81,7 @@ jobs:
           dotnet test tests/Blazor.Dice.Tests/Blazor.Dice.Tests.csproj
           --no-build
           --collect:"XPlat Code Coverage"
+          --settings coverage.runsettings
           --logger "trx;LogFileName=dice-results.trx"
           --results-directory test-results
 
@@ -84,8 +92,36 @@ jobs:
           dotnet test tests/Farkle.Client.Tests/Farkle.Client.Tests.csproj
           --no-build
           --collect:"XPlat Code Coverage"
+          --settings coverage.runsettings
           --logger "trx;LogFileName=client-results.trx"
           --results-directory test-results
+
+      # New-code coverage gate: every line this PR adds or changes, in a file the suites above
+      # actually cover, must be tested. Files absent from every report (the MAUI shell, generated
+      # code) are out of scope by construction — the gate never blocks what it could not measure.
+      - name: New-code coverage gate (100%)
+        if: github.event_name == 'pull_request'
+        run: |
+          set -euo pipefail
+          TARGET="${GITHUB_BASE_REF:-main}"
+          git fetch --no-tags origin "+refs/heads/${TARGET}:refs/remotes/origin/${TARGET}"
+          bash tests/scripts/diff-coverage.sh "origin/${TARGET}" test-results 100 coverage-diff.md
+
+      - name: Coverage gate summary
+        if: always() && github.event_name == 'pull_request'
+        run: '[ -f coverage-diff.md ] && cat coverage-diff.md >> "$GITHUB_STEP_SUMMARY" || true'
+
+      - name: HTML coverage report
+        if: always()
+        run: bash tests/scripts/coverage-html.sh test-results coverage-html
+
+      - name: Upload HTML coverage report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-html-${{ github.run_id }}
+          path: coverage-html
+          if-no-files-found: warn
 
       - name: Upload TRX results
         if: always()
