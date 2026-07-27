@@ -92,7 +92,20 @@ container), and building one per request would leak sockets. It disposes only th
 creates — a caller-supplied handler stays the caller's to dispose, which is what keeps test doubles
 and shared handlers safe.
 
-### 6. The shell stays out of `Farkle.sln`
+### 6. The coverage gate measures what the fast suites can reach
+
+The new-code gate (`diff-cover`, 100%, #337) is scoped by what the device-free suites actually
+exercise — `Farkle`, `Farkle.Client`, `Farkle.Shared`, `Farkle.Infrastructure`, `WebApp`,
+`WebApp.Client`, `Blazor.Dice` — with generated code excluded (`verify-generated` / `verify-codegen`
+already prove that against its source, and nobody writes tests for it).
+
+`HotDice.Shell` is deliberately **not** gated. It is built by a separate workflow and never loaded by
+these suites, so every line in it would read as uncovered and block shell changes for a reason the
+gate could not act on. That falls out of diff-cover's own rule — a file in no report is not counted —
+rather than needing an exception list. The shell earns its coverage from the device tier (#339), which
+is the only thing that can meaningfully exercise it.
+
+### 7. The shell stays out of `Farkle.sln`
 
 A solution-wide `dotnet build` on a runner without the MAUI workloads would fail, so
 `HotDice.Shell` is built by its own workflow (`CI - Mobile Shell`) after installing
