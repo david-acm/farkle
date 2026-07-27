@@ -55,7 +55,7 @@ jobs:
       # fetch-depth: 0 so MinVer sees the full history + tags (a shallow clone can't compute
       # the version). MinVer runs on the host — the image is built inside the SDK container
       # where .git is .dockerignore'd — and the result is passed in as build-args.
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -75,7 +75,7 @@ jobs:
           echo "### Version: \`${informational}\`" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Azure login (OIDC)
-        uses: azure/login@v2
+        uses: azure/login@v3
         with:
           # Least-privilege app-release identity (AcrPush + container-app update only),
           # federated for ref:refs/heads/main — not the gated subscription-Owner SP.

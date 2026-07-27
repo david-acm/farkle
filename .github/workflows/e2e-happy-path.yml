@@ -22,10 +22,9 @@ jobs:
 
     steps:
       # Full history: the new-code coverage gate diffs this branch against the PR's base.
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
@@ -167,7 +166,7 @@ jobs:
           --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
@@ -220,7 +219,7 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
@@ -252,7 +251,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       # Build the production image the same way CI - Image does (BuildKit, context = repo root) but with
       # NO push and NO Azure — so Dockerfile drift fails the PR instead of only surfacing on the
@@ -272,7 +271,7 @@ jobs:
       fail_msgs: ${{ steps.trx.outputs.msgs }}
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
@@ -391,7 +390,7 @@ jobs:
 
     steps:
       - name: Checkout source (for the page generator)
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Download E2E videos artifact
         # Infra failures before Playwright runs leave no artifact; we still want
