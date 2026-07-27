@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Components;
 
-namespace WebApp.Client.Pages;
+namespace Farkle.Ui.Pages;
 
 public partial class JoinExistingGameCard : ComponentBase
 {

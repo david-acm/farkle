@@ -1,6 +1,6 @@
 using BlazorState;
 
-namespace WebApp.Client.Telemetry;
+namespace Farkle.Ui.Telemetry;
 
 /// <summary>
 /// #244 — marks a user action that issues a <b>server command</b> (an HTTP round-trip that produces

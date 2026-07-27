@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 using FluentAssertions;
 using MudBlazor;
 using MudBlazor.Utilities;
-using WebApp.Client.Layout;
+using Farkle.Ui.Layout;
 using Xunit;
 
 namespace Farkle.SpaTests.Theme;

@@ -3,8 +3,8 @@ using BlazorState;
 using Microsoft.AspNetCore.Components;
 using Moq;
 using MudBlazor.Services;
-using WebApp.Client;
-using WebApp.Client.Services;
+using Farkle.Ui;
+using Farkle.Ui.Services;
 using static Farkle.Contracts.HttpResponses;
 
 namespace Farkle.SpaTests;

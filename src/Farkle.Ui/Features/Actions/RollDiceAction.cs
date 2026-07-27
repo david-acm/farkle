@@ -1,9 +1,9 @@
 ﻿using BlazorState;
-using WebApp.Client.Telemetry;
-using WebApp.Client.Pages.Game.Components;
-using WebApp.Client.Services;
+using Farkle.Ui.Telemetry;
+using Farkle.Ui.Pages.Game.Components;
+using Farkle.Ui.Services;
 
-namespace WebApp.Client.Features;
+namespace Farkle.Ui.Features;
 
 public partial class GameState
 {
@@ -14,7 +14,7 @@ public partial class GameState
     public class Handler(IStore store, IGameService service, ILogger<RollDice> logger) 
       : ActionHandler<Action>(store)
     {
-      private WebApp.Client.Features.GameState State => Store.GetState<WebApp.Client.Features.GameState>();
+      private Farkle.Ui.Features.GameState State => Store.GetState<Farkle.Ui.Features.GameState>();
       
       public override async Task Handle(Action action, CancellationToken aCancellationToken)
       {

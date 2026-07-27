@@ -7,5 +7,5 @@ public class AppVersionShould
 {
     [Fact]
     public void ReturnANonEmptyVersion() =>
-        WebApp.Client.AppVersion.Current.Should().NotBeNullOrWhiteSpace();
+        Farkle.Ui.AppVersion.Current.Should().NotBeNullOrWhiteSpace();
 }

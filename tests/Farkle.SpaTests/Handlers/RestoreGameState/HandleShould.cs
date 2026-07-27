@@ -1,13 +1,13 @@
 using FluentAssertions;
 using Moq;
-using WebApp.Client.Features;
-using WebApp.Client.Pages.Game.Components;
-using WebApp.Client.Services;
+using Farkle.Ui.Features;
+using Farkle.Ui.Pages.Game.Components;
+using Farkle.Ui.Services;
 using static Farkle.Contracts.HttpResponses;
 
 namespace Farkle.SpaTests.Handlers.RestoreGameState;
 
-// Covers WebApp.Client/Features/Actions/RestoreGameState.cs — re-hydrating the
+// Covers Farkle.Ui/Features/Actions/RestoreGameState.cs — re-hydrating the
 // store from a server snapshot + the session-stored identity on refresh/reconnect.
 public class HandleShould : HandlerTestContext
 {

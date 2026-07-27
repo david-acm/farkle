@@ -1,6 +1,6 @@
 using BlazorState;
 
-namespace WebApp.Client.Features;
+namespace Farkle.Ui.Features;
 
 public partial class GameState
 {

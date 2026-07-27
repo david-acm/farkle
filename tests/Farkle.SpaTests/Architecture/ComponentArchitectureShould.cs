@@ -1,6 +1,6 @@
 using System.Reflection;
 using FluentAssertions;
-using WebApp.Client.Pages.Game.Components;
+using Farkle.Ui.Pages.Game.Components;
 
 namespace Farkle.SpaTests.Architecture;
 

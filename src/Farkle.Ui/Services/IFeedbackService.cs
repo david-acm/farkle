@@ -1,4 +1,4 @@
-namespace WebApp.Client.Services;
+namespace Farkle.Ui.Services;
 
 // #277 — submits user feedback to POST /api/feedback (anonymous). The feedback session id (the
 // Feedback-{sessionId} stream key) is generated once and persisted in localStorage, so a browser's

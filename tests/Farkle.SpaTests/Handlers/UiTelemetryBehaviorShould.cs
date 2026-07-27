@@ -4,9 +4,9 @@ using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
-using WebApp.Client.Features;
-using WebApp.Client.Services;
-using WebApp.Client.Telemetry;
+using Farkle.Ui.Features;
+using Farkle.Ui.Services;
+using Farkle.Ui.Telemetry;
 using Xunit;
 using static Farkle.Contracts.HttpResponses;
 

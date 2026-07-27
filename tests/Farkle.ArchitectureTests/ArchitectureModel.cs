@@ -25,12 +25,13 @@ internal static class ArchitectureModel
   public const string ApiClientAsm    = "Farkle.ApiClient";
   public const string InfraAsm        = "Farkle.Infrastructure";
   public const string HostAsm         = "WebApp";
-  public const string ClientAsm       = "WebApp.Client";
+  public const string ClientAsm       = "WebApp.Client";   // the WASM host: an entry point, no types
+  public const string UiAsm           = "Farkle.Ui";       // the shared game UI (web + MAUI shell)
 
   private static readonly string[] AssemblyDlls =
   [
     "Farkle.dll", "Farkle.Shared.dll", "Farkle.ApiClient.dll",
-    "WebApp.dll", "WebApp.Client.dll",
+    "WebApp.dll", "Farkle.Ui.dll", "Farkle.Ui.dll",
     "Farkle.Infrastructure.dll",
   ];
 

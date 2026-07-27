@@ -1,7 +1,7 @@
 using FluentAssertions;
 using Moq;
-using WebApp.Client.Features;
-using WebApp.Client.Services;
+using Farkle.Ui.Features;
+using Farkle.Ui.Services;
 using static Farkle.Contracts.HttpResponses;
 
 namespace Farkle.SpaTests.Handlers.Lobby;

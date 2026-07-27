@@ -2,7 +2,7 @@ using Farkle.ApiClient;
 using Farkle.Client.Api;
 using HotDice.Shell.Lifecycle;
 using Microsoft.Extensions.Logging;
-using WebApp.Client;
+using Farkle.Ui;
 
 namespace HotDice.Shell;
 

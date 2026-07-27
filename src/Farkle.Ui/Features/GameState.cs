@@ -1,12 +1,12 @@
 ﻿using BlazorState;
 using Farkle.SharedKernel.Scoring;
 using Farkle.SharedKernel.Turns;
-using WebApp.Client.Pages.Game.Components;
+using Farkle.Ui.Pages.Game.Components;
 // The class already has a `string GameStage` lobby property, which would shadow the shared
 // GameStage enum type in expression context — alias the enum so we can still name its members.
 using GameStageEnum = Farkle.SharedKernel.Turns.GameStage;
 
-namespace WebApp.Client.Features;
+namespace Farkle.Ui.Features;
 
 public partial class GameState : State<GameState>
 {

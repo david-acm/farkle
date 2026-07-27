@@ -85,9 +85,11 @@ public class DependencyRulesShould
   [Fact]
   public void KeepTheBlazorClientOffTheServerCoreAndInfrastructure()
   {
-    // The WASM client may use Farkle.Contracts / Farkle.SharedKernel / Farkle.ApiClient only.
-    ForbiddenDependencies(ClientAsm,
+    // The client UI may use Farkle.Contracts / Farkle.SharedKernel / Farkle.ApiClient only.
+    // Checked against Farkle.Ui, which is where the UI actually lives — the rule used to name
+    // WebApp.Client, and kept passing vacuously once that became a bare WASM entry point (#348).
+    ForbiddenDependencies(UiAsm,
         "Farkle.Domain", "Farkle.Application", InfraAsm)
-      .Should().BeEmpty("the Blazor client must talk to the server over the API client + contracts, not the server core/infrastructure");
+      .Should().BeEmpty("the shared client UI must talk to the server over the API client + contracts, not the server core/infrastructure");
   }
 }

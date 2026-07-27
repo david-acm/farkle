@@ -1,6 +1,6 @@
 using BlazorState;
 
-namespace WebApp.Client.Features;
+namespace Farkle.Ui.Features;
 
 // Shared base for components that read the Farkle GameState. Centralises the
 // `GameState => GetState<GameState>()` accessor that every game component otherwise

@@ -1,6 +1,6 @@
 ﻿using BlazorState;
 
-namespace WebApp.Client.Features;
+namespace Farkle.Ui.Features;
 
 public partial class GameState
 {
@@ -11,7 +11,7 @@ public partial class GameState
     public class Handler(IStore store)
       : ActionHandler<Action>(store)
     {
-      private WebApp.Client.Features.GameState State => Store.GetState<WebApp.Client.Features.GameState>();
+      private Farkle.Ui.Features.GameState State => Store.GetState<Farkle.Ui.Features.GameState>();
       
       public override Task Handle(Action action, CancellationToken aCancellationToken)
       {

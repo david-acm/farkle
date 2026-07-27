@@ -1,9 +1,9 @@
 using BlazorState;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Kiota.Abstractions;
-using WebApp.Client.Features;
+using Farkle.Ui.Features;
 
-namespace WebApp.Client.Pages;
+namespace Farkle.Ui.Pages;
 
 public partial class StartNewGameCard : BlazorStateComponent
 {

@@ -1,10 +1,10 @@
 using FluentAssertions;
-using WebApp.Client.Features;
-using WebApp.Client.Pages.Game.Components;
+using Farkle.Ui.Features;
+using Farkle.Ui.Pages.Game.Components;
 
 namespace Farkle.SpaTests.Handlers.ConsumeRollAnimation;
 
-// Covers WebApp.Client/Features/Actions/ConsumeRollAnimation.cs — the one-shot that
+// Covers Farkle.Ui/Features/Actions/ConsumeRollAnimation.cs — the one-shot that
 // clears the roll-spin flag so a recreated die (e.g. after a zone move) renders
 // statically instead of replaying the spin (#139).
 public class HandleShould : HandlerTestContext

@@ -1,6 +1,6 @@
 ﻿using System.Text;
 
-namespace WebApp.Client;
+namespace Farkle.Ui;
 
 internal sealed class EmptyBodyJsonHandler(HttpMessageHandler inner) : DelegatingHandler(inner)
 {

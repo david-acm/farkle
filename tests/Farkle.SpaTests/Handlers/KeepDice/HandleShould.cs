@@ -1,13 +1,13 @@
 using FluentAssertions;
 using Moq;
-using WebApp.Client.Features;
-using WebApp.Client.Pages.Game.Components;
-using WebApp.Client.Services;
+using Farkle.Ui.Features;
+using Farkle.Ui.Pages.Game.Components;
+using Farkle.Ui.Services;
 using static Farkle.Contracts.HttpResponses;
 
 namespace Farkle.SpaTests.Handlers.KeepDice;
 
-// H2 — covers WebApp.Client/Features/Actions/KeepDice.cs.
+// H2 — covers Farkle.Ui/Features/Actions/KeepDice.cs.
 public class HandleShould : HandlerTestContext
 {
   [Fact]

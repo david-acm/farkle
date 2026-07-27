@@ -1,5 +1,5 @@
 using FluentAssertions;
-using WebApp.Client.Services;
+using Farkle.Ui.Services;
 using Xunit;
 
 namespace Farkle.SpaTests.Services;

@@ -1,6 +1,6 @@
 using Microsoft.JSInterop;
 
-namespace WebApp.Client.Services;
+namespace Farkle.Ui.Services;
 
 /// <summary>
 /// <see cref="IShareService"/> backed by the <c>window.farkleShare</c> helper

@@ -2,11 +2,11 @@ using System.Text.Json;
 using BlazorState;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
-using WebApp.Client.Features;
-using WebApp.Client.Services;
+using Farkle.Ui.Features;
+using Farkle.Ui.Services;
 using static Farkle.Contracts.HttpResponses;
 
-namespace WebApp.Client.Pages.Game;
+namespace Farkle.Ui.Pages.Game;
 
 public partial class Game : GameStateComponent, IAsyncDisposable
 {

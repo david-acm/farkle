@@ -1,8 +1,8 @@
 using Ardalis.Result;
-using WebApp.Client.Pages.Game.Components;
+using Farkle.Ui.Pages.Game.Components;
 using static Farkle.Contracts.HttpResponses;
 
-namespace WebApp.Client.Services;
+namespace Farkle.Ui.Services;
 
 public interface IGameService
 {

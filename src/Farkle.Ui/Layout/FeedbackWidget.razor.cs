@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
-using WebApp.Client.Services;
+using Farkle.Ui.Services;
 
-namespace WebApp.Client.Layout;
+namespace Farkle.Ui.Layout;
 
 // #277 — global floating feedback widget (rendered in MainLayout, so it's on every page). Clicking
 // it opens a small text + 👍/👎 form that posts to /api/feedback. A client-side rage-click burst

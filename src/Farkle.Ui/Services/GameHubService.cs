@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
 using static Farkle.Contracts.HttpResponses;
 
-namespace WebApp.Client.Services;
+namespace Farkle.Ui.Services;
 
 public sealed class GameHubService(HttpClient http, IUiTelemetry telemetry) : IGameHubService
 {

@@ -1,6 +1,6 @@
 using FluentAssertions;
 using MudBlazor;
-using WebApp.Client.Layout;
+using Farkle.Ui.Layout;
 using Xunit;
 
 namespace Farkle.SpaTests.Theme;

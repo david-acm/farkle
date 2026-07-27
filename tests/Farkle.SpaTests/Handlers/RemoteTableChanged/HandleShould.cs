@@ -1,13 +1,13 @@
 using FluentAssertions;
 using Moq;
-using WebApp.Client.Features;
-using WebApp.Client.Pages.Game.Components;
-using WebApp.Client.Services;
+using Farkle.Ui.Features;
+using Farkle.Ui.Pages.Game.Components;
+using Farkle.Ui.Services;
 using static Farkle.Contracts.HttpResponses;
 
 namespace Farkle.SpaTests.Handlers.RemoteTableChanged;
 
-// #158 — covers WebApp.Client/Features/Actions/RemoteTableChanged.cs.
+// #158 — covers Farkle.Ui/Features/Actions/RemoteTableChanged.cs.
 // Off-turn players watch the in-turn player's rolls/keeps live via a TableChanged snapshot.
 public class HandleShould : HandlerTestContext
 {

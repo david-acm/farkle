@@ -1,9 +1,9 @@
 using BlazorState;
 using MediatR;
-using WebApp.Client.Features;
-using WebApp.Client.Services;
+using Farkle.Ui.Features;
+using Farkle.Ui.Services;
 
-namespace WebApp.Client.Telemetry;
+namespace Farkle.Ui.Telemetry;
 
 /// <summary>
 /// #225 — a MediatR pipeline behavior that emits a UI intent custom event for every dispatched

@@ -1,9 +1,9 @@
 using System.Reflection;
 
-namespace WebApp.Client;
+namespace Farkle.Ui;
 
 // The WASM client build's version. Stamped via /p:InformationalVersion at publish time
-// (the same global property stamps WebApp.Client during the WebApp publish). Local builds
+// (the same global property stamps the WebApp.Client host assembly at publish). Local builds
 // fall back to the assembly version.
 public static class AppVersion
 {

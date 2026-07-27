@@ -3,8 +3,8 @@
 @using MediatR
 @using Moq
 @using Farkle.Contracts
-@using WebApp.Client.Services
-@* Do not @using WebApp.Client.Features here — its TurnScore record collides
+@using Farkle.Ui.Services
+@* Do not @using Farkle.Ui.Features here — its TurnScore record collides
    with the TurnScore component in Pages.Game.Components (already imported
    globally via _Imports.razor). Reference GameState by full name below. *@
 
@@ -17,7 +17,7 @@
   public void RenderInitialZeroScore()
   {
     JSInterop.Mode = JSRuntimeMode.Loose;
-    Services.AddBlazorState(o => o.Assemblies = [typeof(WebApp.Client.Features.GameState).Assembly]);
+    Services.AddBlazorState(o => o.Assemblies = [typeof(Farkle.Ui.Features.GameState).Assembly]);
 
     var cut = Render(@<TurnScore></TurnScore>);
 
@@ -33,7 +33,7 @@
     JSInterop.Mode = JSRuntimeMode.Loose;
     var gameService = Mock.Of<IGameService>();
     Services.AddScoped<IGameService>(_ => gameService);
-    Services.AddBlazorState(o => o.Assemblies = [typeof(WebApp.Client.Features.GameState).Assembly]);
+    Services.AddBlazorState(o => o.Assemblies = [typeof(Farkle.Ui.Features.GameState).Assembly]);
 
     var cut = Render(@<TurnScore></TurnScore>);
     cut.Find("[data-testid='turn-score']").TextContent.Trim().Should().Be("0");
@@ -44,7 +44,7 @@
       .Setup(s => s.KeepDiceAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<IEnumerable<int>>()))
       .ReturnsAsync(new HttpResponses.KeepDiceResponse(0, 200));
     var sender = Services.GetRequiredService<ISender>();
-    await sender.Send(new WebApp.Client.Features.GameState.KeepDice.Action());
+    await sender.Send(new Farkle.Ui.Features.GameState.KeepDice.Action());
 
     cut.WaitForAssertion(() =>
       cut.Find("[data-testid='turn-score']").TextContent.Trim().Should().Be("200"));
