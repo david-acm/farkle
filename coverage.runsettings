@@ -13,7 +13,7 @@
           <!-- Which assemblies the new-code gate can hold you to. Anything absent from every
                report is out of scope by construction (diff-cover only counts files it can see),
                so this list is the deliberate half of that decision. -->
-          <Include>[Farkle]*,[Farkle.Client]*,[Farkle.Shared]*,[Farkle.Infrastructure]*,[WebApp]*,[WebApp.Client]*,[Blazor.Dice]*</Include>
+          <Include>[Farkle]*,[Farkle.Client]*,[Farkle.Shared]*,[Farkle.Infrastructure]*,[Farkle.Ui]*,[WebApp]*,[WebApp.Client]*,[Blazor.Dice]*</Include>
 
           <!-- Generated code is excluded: nobody writes tests for it, and it is verified better
                elsewhere — `verify-generated` and `verify-codegen` fail on any drift from source. -->

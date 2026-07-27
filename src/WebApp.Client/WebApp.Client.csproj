@@ -8,36 +8,15 @@
     <StaticWebAssetProjectMode>Default</StaticWebAssetProjectMode>
   </PropertyGroup>
 
+  <!-- The WASM host: an entry point and its configuration, nothing more. The UI it runs lives in
+       Farkle.Ui, shared with the MAUI Blazor Hybrid app (ADR 0008). -->
+
   <ItemGroup>
-    <PackageReference Include="Ardalis.GuardClauses" Version="5.0.0" />
-    <PackageReference Include="Ardalis.Result" Version="10.1.0" />
-    <PackageReference Include="Ardalis.SmartEnum" Version="8.2.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.9" />
-    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.7" />
-  	<PackageReference Include="MudBlazor" Version="9.4.0" />
-    <PackageReference Include="Blazor-State" Version="10.0.0" />
-    <PackageReference Include="QRCoder" Version="1.6.0" />
-    <PackageReference Include="Serilog" Version="4.3.1" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.8" />
   </ItemGroup>
 
   <ItemGroup>
-    <AdditionalFiles Include="Features\Actions\Components\ErrorModal.razor" />
-  </ItemGroup>
-
-  <!-- Dice UI primitives (Die, DieValue, DraggableDie, rotation calculator) live in
-       this reusable Razor Class Library; exposed app-wide as a global using so the
-       many DieValue/DraggableDie/IRotationCalculator references need no per-file using. -->
-  <ItemGroup>
-    <Using Include="Blazor.Dice" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\Blazor.Dice\Blazor.Dice.csproj" />
-    <ProjectReference Include="..\Farkle.ApiClient\Farkle.ApiClient.csproj" />
-    <!-- Client services shared with the MAUI Blazor Hybrid shell (ADR 0010). -->
-    <ProjectReference Include="..\Farkle.Client\Farkle.Client.csproj" />
-    <!-- Thin, infra-free shared kernel: the ScoreCalculator for the live turn-score preview. -->
-    <ProjectReference Include="..\Farkle.Shared\Farkle.Shared.csproj" />
+    <ProjectReference Include="..\Farkle.Ui\Farkle.Ui.csproj" />
   </ItemGroup>
 
 </Project>
