@@ -3,6 +3,7 @@ using BlazorState;
 using Microsoft.AspNetCore.Components;
 using Moq;
 using MudBlazor.Services;
+using WebApp.Client;
 using WebApp.Client.Services;
 using static Farkle.Contracts.HttpResponses;
 
@@ -29,7 +30,8 @@ public class GameBunitContext : BunitContext, Xunit.IAsyncLifetime
     Services.AddScoped<IRotationCalculator>(_ => Mock.Of<IRotationCalculator>());
     Services.AddScoped<IShareService>(_ => Mock.Of<IShareService>());
     Services.AddMudServices();
-    Services.AddBlazorState(o => o.Assemblies = [typeof(Program).Assembly]);
+    // The store's actions/handlers live in the shared UI library, not in the WASM host.
+    Services.AddBlazorState(o => o.Assemblies = [typeof(ClientServiceExtensions).Assembly]);
   }
 
   protected void JoinGame<TComponent>(IRenderedComponent<TComponent> cut, string playerName = "Tester", int assignedPlayerId = 1)

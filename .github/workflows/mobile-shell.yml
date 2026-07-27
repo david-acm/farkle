@@ -12,6 +12,7 @@ on:
     paths:
       - 'src/HotDice.Shell/**'
       - 'src/Farkle.Client/**'
+      - 'src/Farkle.Ui/**'
       - 'src/Blazor.Dice/**'
       - 'src/Farkle.ApiClient/**'
       - 'src/Farkle.Shared/**'

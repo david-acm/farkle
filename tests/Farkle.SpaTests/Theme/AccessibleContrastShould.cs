@@ -117,7 +117,7 @@ public class AccessibleContrastShould
     var dir = new DirectoryInfo(AppContext.BaseDirectory);
     while (dir is not null)
     {
-      var candidate = Path.Join(dir.FullName, "src", "WebApp.Client", relativePath);
+      var candidate = Path.Join(dir.FullName, "src", "Farkle.Ui", relativePath);
       if (File.Exists(candidate)) return candidate;
       dir = dir.Parent;
     }

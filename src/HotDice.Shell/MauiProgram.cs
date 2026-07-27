@@ -1,9 +1,8 @@
-using Blazor.Dice;
-using Farkle.Client.Api;
-using Farkle.Client.Lifecycle;
 using Farkle.ApiClient;
+using Farkle.Client.Api;
 using HotDice.Shell.Lifecycle;
 using Microsoft.Extensions.Logging;
+using WebApp.Client;
 
 namespace HotDice.Shell;
 
@@ -12,7 +11,7 @@ public static class MauiProgram
     /// <summary>
     /// Unlike the web client — which inherits its origin from the host that served the WASM — a
     /// standalone app must be told where the backend is (docs/mobile-strategy.md, item 1).
-    /// Overridden per environment in a later step; the default points at the deployed app.
+    /// Override with HOTDICE_BACKEND_URL to point the app at a local or preview backend.
     /// </summary>
     public const string DefaultBackendUrl = "https://hotdice.davidacm.dev";
 
@@ -24,15 +23,20 @@ public static class MauiProgram
             .ConfigureFonts(fonts => fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular"));
 
         builder.Services.AddMauiBlazorWebView();
-        builder.Services.AddBlazorDice();
 
-        // Everything below here is the shared, desktop-testable core (ADR 0010) — the shell only
-        // supplies the absolute backend URL and the window-event bridge.
         var backendUrl = Environment.GetEnvironmentVariable("HOTDICE_BACKEND_URL") ?? DefaultBackendUrl;
-        // Registered as a singleton so the container owns the HttpClient's lifetime and disposes
-        // it on shutdown; the client itself is resolved from it.
+
+        // The same UI the website runs, with the same registrations (RegisterClientServices brings
+        // MudBlazor, BlazorState, the dice and the client services). The shell supplies only what a
+        // standalone client cannot infer: an absolute backend address instead of a host origin.
+        builder.Services.AddScoped(_ => new HttpClient { BaseAddress = new Uri(backendUrl) });
+        builder.Services.RegisterClientServices();
+
+        // Owns the HttpClient + Kiota adapter for the app's lifetime; the container disposes it
+        // on shutdown (ADR 0010).
         builder.Services.AddSingleton(_ => new FarkleApiConnection(backendUrl));
         builder.Services.AddSingleton<FarkleApiClient>(sp => sp.GetRequiredService<FarkleApiConnection>().Client);
+
         builder.Services.AddSingleton<MauiAppLifecycleBridge>();
 
 #if DEBUG

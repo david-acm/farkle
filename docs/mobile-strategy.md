@@ -56,10 +56,15 @@ for a turn-based game **provided animation stays in CSS** (it does) and interop 
 
 - **Phase 0 (optional, hours):** make the existing WASM app an installable **PWA** — instant Android
   (via TWA) + iOS home-screen presence while the real app is built. Interim only; no iOS *store* listing.
-- **Phase 1:** extract the Razor UI into a **shared RCL**; scaffold the `maui-blazor-web` shell; wire
-  the absolute backend URL + CORS.
-- **Phase 2:** verify MudBlazor + CSS-3D dice + tap-to-select on **WKWebView** and Android WebView; fix
-  iOS static assets; per-platform CSS tweaks.
+- **Phase 1 (done, #348):** the Razor UI lives in **`src/Farkle.Ui`**, consumed by both the WASM
+  site (`WebApp.Client`, now just an entry point) and `HotDice.Shell`, which hosts the shared
+  `Routes` component and registers the same services against an absolute backend URL
+  (`HOTDICE_BACKEND_URL`). Namespaces stayed `WebApp.Client.*` — same trade as ADR 0006.
+  **CORS and on-device verification are still open.**
+- **Phase 2 (next):** verify MudBlazor + CSS-3D dice + tap-to-select on **WKWebView** and Android
+  WebView on real hardware; fix iOS static assets; per-platform CSS tweaks. The host page already
+  references MudBlazor's `_content/` assets and the scoped-CSS bundle — that it *compiles* says
+  nothing about whether WKWebView serves them, which is exactly the risk below.
 - **Phase 3:** SignalR mobile lifecycle + reconnect + resume re-sync; optionally add **push
   notifications** (APNs/FCM) for "your turn" alerts when backgrounded.
 - **Phase 4:** privacy manifest, signing, **on-device** testing, submit to both stores.

@@ -33,7 +33,9 @@ public static class ClientServiceExtensions
     services.AddScoped<IUiTelemetry, UiTelemetry>();
     services.AddScoped<IFeedbackService, FeedbackService>();
 
-    var assembly = typeof(Program).Assembly;
+    // The BlazorState actions/handlers live in this RCL, not in whichever host is running it —
+    // the WASM site and the MAUI shell both get the same store from here.
+    var assembly = typeof(ClientServiceExtensions).Assembly;
     services.AddBlazorState(o => o.Assemblies = [assembly]);
 
     // #225 — emit a UI intent custom event for every dispatched action. Registered after

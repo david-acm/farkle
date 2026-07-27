@@ -50,7 +50,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Farkle\Farkle.csproj" />
-    <ProjectReference Include="..\..\src\WebApp.Client\WebApp.Client.csproj" />
+    <ProjectReference Include="..\..\src\Farkle.Ui\Farkle.Ui.csproj" />
   </ItemGroup>
 
 </Project>
