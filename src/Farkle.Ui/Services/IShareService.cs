@@ -1,4 +1,4 @@
-namespace WebApp.Client.Services;
+namespace Farkle.Ui.Services;
 
 /// <summary>
 /// Wraps the browser's Web Share API (with a clipboard fallback) so components

@@ -1,6 +1,6 @@
 using Microsoft.JSInterop;
 
-namespace WebApp.Client.Services;
+namespace Farkle.Ui.Services;
 
 /// <summary>
 /// <see cref="IUiTelemetry"/> backed by the <c>window.farkleTelemetry</c> helper

@@ -3,8 +3,8 @@ using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
-using WebApp.Client.Features;
-using WebApp.Client.Services;
+using Farkle.Ui.Features;
+using Farkle.Ui.Services;
 
 namespace Farkle.SpaTests.Handlers;
 

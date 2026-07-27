@@ -1,6 +1,6 @@
 using Farkle.SharedKernel.Scoring;
 
-namespace WebApp.Client.Pages.Game.Components;
+namespace Farkle.Ui.Pages.Game.Components;
 
 // Human-friendly names for the scoring tricks, shared by the turn-score preview and the
 // scoring reference page so the labels never drift. Casual, content-specific wording (#274):

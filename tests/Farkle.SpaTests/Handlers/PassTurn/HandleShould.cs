@@ -1,13 +1,13 @@
 using FluentAssertions;
 using Moq;
-using WebApp.Client.Features;
-using WebApp.Client.Pages.Game.Components;
-using WebApp.Client.Services;
+using Farkle.Ui.Features;
+using Farkle.Ui.Pages.Game.Components;
+using Farkle.Ui.Services;
 using static Farkle.Contracts.HttpResponses;
 
 namespace Farkle.SpaTests.Handlers.PassTurn;
 
-// H3 — covers WebApp.Client/Features/Actions/PassTurn.cs.
+// H3 — covers Farkle.Ui/Features/Actions/PassTurn.cs.
 public class HandleShould : HandlerTestContext
 {
   [Fact]

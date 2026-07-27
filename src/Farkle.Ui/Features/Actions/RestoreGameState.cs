@@ -1,9 +1,9 @@
 using BlazorState;
 using Farkle.SharedKernel.Turns;
-using WebApp.Client.Pages.Game.Components;
-using WebApp.Client.Services;
+using Farkle.Ui.Pages.Game.Components;
+using Farkle.Ui.Services;
 
-namespace WebApp.Client.Features;
+namespace Farkle.Ui.Features;
 
 public partial class GameState
 {

@@ -49,12 +49,12 @@ public class IconButtonAccessibilityShould
     var dir = new DirectoryInfo(AppContext.BaseDirectory);
     while (dir is not null)
     {
-      var candidate = Path.Join(dir.FullName, "src", "WebApp.Client");
+      var candidate = Path.Join(dir.FullName, "src", "Farkle.Ui");
       if (Directory.Exists(candidate)) return candidate;
       dir = dir.Parent;
     }
 
     throw new DirectoryNotFoundException(
-      "Could not locate src/WebApp.Client from " + AppContext.BaseDirectory);
+      "Could not locate src/Farkle.Ui from " + AppContext.BaseDirectory);
   }
 }

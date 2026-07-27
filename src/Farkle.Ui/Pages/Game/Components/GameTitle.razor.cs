@@ -1,7 +1,7 @@
 ﻿using BlazorState;
-using WebApp.Client.Features;
+using Farkle.Ui.Features;
 
-namespace WebApp.Client.Pages.Game.Components;
+namespace Farkle.Ui.Pages.Game.Components;
 
 public partial class GameTitle : BlazorStateComponent
 {

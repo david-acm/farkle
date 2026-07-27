@@ -1,13 +1,13 @@
 using Ardalis.Result;
 using FluentAssertions;
 using Moq;
-using WebApp.Client.Features;
-using WebApp.Client.Pages.Game.Components;
-using WebApp.Client.Services;
+using Farkle.Ui.Features;
+using Farkle.Ui.Pages.Game.Components;
+using Farkle.Ui.Services;
 
 namespace Farkle.SpaTests.Handlers.RollDice;
 
-// H1 — covers WebApp.Client/Features/Actions/RollDiceAction.cs.
+// H1 — covers Farkle.Ui/Features/Actions/RollDiceAction.cs.
 public class HandleShould : HandlerTestContext
 {
   [Fact]

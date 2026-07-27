@@ -1,6 +1,6 @@
 using MudBlazor;
 
-namespace WebApp.Client.Layout;
+namespace Farkle.Ui.Layout;
 
 /// <summary>
 /// The application's MudBlazor theme. Extracted from <c>MainLayout</c> so the

@@ -1,12 +1,12 @@
 using FluentAssertions;
 using Moq;
-using WebApp.Client.Features;
-using WebApp.Client.Pages.Game.Components;
-using WebApp.Client.Services;
+using Farkle.Ui.Features;
+using Farkle.Ui.Pages.Game.Components;
+using Farkle.Ui.Services;
 
 namespace Farkle.SpaTests.Handlers.SetDiceAside;
 
-// Covers WebApp.Client/Features/Actions/SetDiceAside.cs. The duplication and
+// Covers Farkle.Ui/Features/Actions/SetDiceAside.cs. The duplication and
 // cross-turn-leak regressions live in DiceSetAsideStaleShould (sibling file);
 // these tests pin the contract.
 public class HandleShould : HandlerTestContext

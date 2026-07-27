@@ -16,7 +16,7 @@
     <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
         <NavMenu />
         <MudText Typo="Typo.caption" Class="pa-3 mt-auto mud-text-secondary" data-testid="app-version">
-            Farkle v@(WebApp.Client.AppVersion.Current.Split('+')[0])
+            Farkle v@(Farkle.Ui.AppVersion.Current.Split('+')[0])
         </MudText>
     </MudDrawer>
     <MudMainContent Class="mt-16 pa-4">

@@ -2,7 +2,7 @@ using System.Net;
 using Microsoft.Extensions.Logging;
 using Moq;
 using RichardSzalay.MockHttp;
-using WebApp.Client.Services;
+using Farkle.Ui.Services;
 using static Farkle.Contracts.HttpResponses;
 using static Farkle.SpaTests.Services.MockHttpClientBUnitHelpers;
 

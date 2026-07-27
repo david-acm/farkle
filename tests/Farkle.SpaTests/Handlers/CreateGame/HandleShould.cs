@@ -1,11 +1,11 @@
 using FluentAssertions;
 using Moq;
-using WebApp.Client.Features;
-using WebApp.Client.Services;
+using Farkle.Ui.Features;
+using Farkle.Ui.Services;
 
 namespace Farkle.SpaTests.Handlers.CreateGame;
 
-// Covers WebApp.Client/Features/Actions/CreateGame.cs and SetGameId.cs.
+// Covers Farkle.Ui/Features/Actions/CreateGame.cs and SetGameId.cs.
 public class HandleShould : HandlerTestContext
 {
   [Fact]

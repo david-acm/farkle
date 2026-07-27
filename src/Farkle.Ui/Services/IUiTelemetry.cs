@@ -1,4 +1,4 @@
-namespace WebApp.Client.Services;
+namespace Farkle.Ui.Services;
 
 /// <summary>
 /// #225 — emits client-side "user intent" custom events to Application Insights so the UI

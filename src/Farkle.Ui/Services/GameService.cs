@@ -1,11 +1,11 @@
 using Ardalis.Result;
 using Farkle.ApiClient;
 using Microsoft.Kiota.Abstractions;
-using WebApp.Client.Pages.Game.Components;
+using Farkle.Ui.Pages.Game.Components;
 using KiotaModels = Farkle.ApiClient.Models;
 using static Farkle.Contracts.HttpResponses;
 
-namespace WebApp.Client.Services;
+namespace Farkle.Ui.Services;
 
 public class GameService : IGameService
 {

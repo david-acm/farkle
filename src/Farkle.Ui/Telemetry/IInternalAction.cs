@@ -1,6 +1,6 @@
 using BlazorState;
 
-namespace WebApp.Client.Telemetry;
+namespace Farkle.Ui.Telemetry;
 
 /// <summary>
 /// #225 — opt-out marker for the <see cref="UiTelemetryBehavior{TRequest,TResponse}"/>.

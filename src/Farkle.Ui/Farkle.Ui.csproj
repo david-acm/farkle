@@ -5,16 +5,10 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-
-    <!-- The namespaces stay `WebApp.Client.*` while the assembly is `Farkle.Ui`. Same trade as
-         ADR 0006: an assembly is a deployment unit, the namespaces are the logical API, and
-         preserving them keeps this move a project boundary change rather than a rewrite of every
-         using in the repo. A namespace rename can follow separately if it earns its churn. -->
-    <RootNamespace>WebApp.Client</RootNamespace>
     <StaticWebAssetProjectMode>Default</StaticWebAssetProjectMode>
   </PropertyGroup>
 
-  <!-- The game UI, shared by the Blazor WASM website (WebApp.Client) and the MAUI Blazor Hybrid
+  <!-- The game UI, shared by the Blazor WASM website (WebApp.Client hosts it) and the MAUI Hybrid
        app (HotDice.Shell) — the `maui-blazor-web` pattern, ADR 0008. Razor components, BlazorState
        actions/handlers, and the client services; no host, no WASM entry point, no MAUI. -->
 

@@ -2,7 +2,7 @@ using Microsoft.JSInterop;
 using Farkle.ApiClient;
 using KiotaFeedbackRequest = Farkle.ApiClient.Models.SubmitFeedbackRequest;
 
-namespace WebApp.Client.Services;
+namespace Farkle.Ui.Services;
 
 // #277 — adapter over the generated Kiota client for the feedback endpoint. Owns the per-browser
 // feedback session id (localStorage), so the caller only supplies the message + context.

@@ -3,6 +3,6 @@ using System.Runtime.CompilerServices;
 
 [assembly: InternalsVisibleTo("Farkle.SpaTests")]
 [assembly: InternalsVisibleTo("DynamicProxyGenAssembly2")]
-namespace WebApp.Client;
+namespace Farkle.Ui;
 
 public class AssemblyInfo { }

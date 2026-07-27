@@ -1,9 +1,9 @@
 using FluentAssertions;
-using WebApp.Client.Features;
+using Farkle.Ui.Features;
 
 namespace Farkle.SpaTests.Handlers.ToggleErrorModal;
 
-// H4 (state-contract half) — covers WebApp.Client/Features/Actions/ToggleErrorModal.cs.
+// H4 (state-contract half) — covers Farkle.Ui/Features/Actions/ToggleErrorModal.cs.
 // Pinned so future work that wires ErrorModal into a page (currently absent
 // from any layout/page — see PR notes) has a stable contract to rely on.
 public class HandleShould : HandlerTestContext

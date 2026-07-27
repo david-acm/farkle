@@ -27,10 +27,9 @@ The codebase prioritizes architectural patterns and test-driven development:
 > with the translation decisions in [ADR 0009](docs/decisions/0009-mobile-practice-port-for-hotdice.md).
 > The testable boundary — `src/Farkle.Client` (shared, UI-framework-free, desktop-tested) vs. the thin
 > `src/HotDice.Shell` MAUI host — is [ADR 0010](docs/decisions/0010-mobile-testability-architecture.md).
-> **The game UI lives in `src/Farkle.Ui`** (a Razor Class Library) and is shared by the WASM site and
-> the MAUI shell; `WebApp.Client` is now only the WASM entry point. The RCL keeps the
-> `WebApp.Client.*` namespaces while its assembly is `Farkle.Ui` — the same assembly-vs-namespace
-> trade as [ADR 0006](docs/decisions/0006-merge-contracts-and-sharedkernel.md).
+> **The game UI lives in `src/Farkle.Ui`** (a Razor Class Library, namespaces `Farkle.Ui.*`) and is
+> shared by the WASM site and the MAUI shell; `WebApp.Client` is now only the WASM entry point and
+> contributes no types — architecture rules therefore guard `Farkle.Ui`, not it.
 > **The shell is deliberately not in `Farkle.sln`** (a solution-wide build on a runner without the MAUI
 > workloads would fail); it has its own `CI - Mobile Shell` workflow.
 

@@ -4,11 +4,11 @@ using MediatR;
 using Microsoft.Kiota.Abstractions.Authentication;
 using Microsoft.Kiota.Http.HttpClientLibrary;
 using MudBlazor.Services;
-using WebApp.Client.Services;
-using WebApp.Client.Telemetry;
+using Farkle.Ui.Services;
+using Farkle.Ui.Telemetry;
 using Farkle.ApiClient;
 
-namespace WebApp.Client;
+namespace Farkle.Ui;
 
 public static class ClientServiceExtensions
 {

@@ -1,4 +1,4 @@
-namespace WebApp.Client.Services;
+namespace Farkle.Ui.Services;
 
 /// <summary>
 /// Builds the deep-link URL another player can open (or scan from a QR code) to

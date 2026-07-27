@@ -1,7 +1,7 @@
 using Farkle.Client.Realtime;
 using static Farkle.Contracts.HttpResponses;
 
-namespace WebApp.Client.Services;
+namespace Farkle.Ui.Services;
 
 public interface IGameHubService : IGameHubSession, IAsyncDisposable
 {

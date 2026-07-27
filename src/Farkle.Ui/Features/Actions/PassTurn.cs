@@ -1,8 +1,8 @@
 using BlazorState;
-using WebApp.Client.Telemetry;
-using WebApp.Client.Services;
+using Farkle.Ui.Telemetry;
+using Farkle.Ui.Services;
 
-namespace WebApp.Client.Features;
+namespace Farkle.Ui.Features;
 
 public partial class GameState
 {

@@ -1,8 +1,8 @@
 using Microsoft.Extensions.Logging;
 using Moq;
 using RichardSzalay.MockHttp;
-using WebApp.Client.Pages.Game.Components;
-using WebApp.Client.Services;
+using Farkle.Ui.Pages.Game.Components;
+using Farkle.Ui.Services;
 using static Farkle.Contracts.HttpResponses;
 using static Farkle.SpaTests.Services.MockHttpClientBUnitHelpers;
 

@@ -1,4 +1,4 @@
-namespace WebApp.Client.Telemetry;
+namespace Farkle.Ui.Telemetry;
 
 /// <summary>
 /// #221 — marks a BlazorState action that was triggered by a SignalR broadcast and carries the
