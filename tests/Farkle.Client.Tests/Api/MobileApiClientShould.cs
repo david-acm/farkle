@@ -88,8 +88,13 @@ public class MobileApiClientShould
     {
         public bool WasDisposed { get; private set; }
 
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct) =>
-            Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
+        // The caller (HttpClient) owns the response and disposes it; this handler never sends one
+        // that outlives a request, so there is nothing here for it to hold.
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+        {
+            var response = new HttpResponseMessage(HttpStatusCode.OK);
+            return Task.FromResult(response);
+        }
 
         protected override void Dispose(bool disposing)
         {

@@ -87,6 +87,10 @@ public sealed class GameHubService(HttpClient http, IUiTelemetry telemetry) : IG
         catch (Exception ex) when (ex is InvalidOperationException or HubException or IOException
                                       or ObjectDisposedException or OperationCanceledException)
         {
+            // Not silent: the teardown continues regardless, but the failed goodbye is recorded on
+            // the same Realtime.* channel as every other connection event (#242), so a game whose
+            // players never left the server group is visible rather than guesswork.
+            await TrackConnectionAsync("Realtime.LeaveFailed", ex.GetType().Name);
         }
         await _connection.StopAsync(ct);
     }
