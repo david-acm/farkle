@@ -53,3 +53,7 @@ test-results/
 
 # Subagent git worktrees — never commit these
 .claude/worktrees/
+
+# MAUI shell build output
+src/HotDice.Shell/bin/
+src/HotDice.Shell/obj/

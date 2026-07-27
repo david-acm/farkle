@@ -70,8 +70,19 @@ public class GameBunitContext : BunitContext, Xunit.IAsyncLifetime
     public event Action<LobbyStateResponse, string?>? OnGameBegan;
     public event Action<GameStateResponse, string?>? OnTableChanged;
     public event Action<GameStateResponse, string?>? OnDiceRolled;
-    public Task ConnectAsync(int gameId, int playerId) => Task.CompletedTask;
-    public Task DisconnectAsync() => Task.CompletedTask;
+    public bool IsConnected { get; private set; }
+
+    public Task ConnectAsync(int gameId, int playerId, CancellationToken ct = default)
+    {
+      IsConnected = true;
+      return Task.CompletedTask;
+    }
+
+    public Task DisconnectAsync(CancellationToken ct = default)
+    {
+      IsConnected = false;
+      return Task.CompletedTask;
+    }
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     public void Dispose() { }
     public void RaiseTurnChanged(PassTurnResponse payload, string? traceId = null) => OnTurnChanged?.Invoke(payload, traceId);

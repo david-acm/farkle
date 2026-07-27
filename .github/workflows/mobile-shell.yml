@@ -1,0 +1,43 @@
+name: CI - Mobile Shell
+
+# Proves the MAUI Blazor Hybrid shell still compiles, on CI, with no device or emulator involved
+# (ADR 0010). Deliberately a *compile* gate only: the shared client core is covered by the fast
+# desktop tests in `CI - Tests`, and signed device builds are #338's job.
+#
+# The shell is intentionally NOT in Farkle.sln — a solution-wide `dotnet build` on a runner without
+# the MAUI workloads would fail. It is built here, on its own, after installing them.
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/HotDice.Shell/**'
+      - 'src/Farkle.Client/**'
+      - 'src/Blazor.Dice/**'
+      - 'src/Farkle.ApiClient/**'
+      - 'src/Farkle.Shared/**'
+      - '.github/workflows/mobile-shell.yml'
+  workflow_dispatch:
+
+jobs:
+  build-android-head:
+    name: Build shell (Android head)
+    # Linux is enough for the Android head and is the cheap runner; the iOS head needs Xcode and
+    # is covered by the signed device build in #338.
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install MAUI Android workload
+        run: dotnet workload install maui-android
+
+      - name: Build the shell
+        # Explicit -f: the project multi-targets iOS only on macOS, so this pins the head we want
+        # and keeps the failure message obvious if the TFM list changes.
+        run: dotnet build src/HotDice.Shell/HotDice.Shell.csproj -f net10.0-android --configuration Release

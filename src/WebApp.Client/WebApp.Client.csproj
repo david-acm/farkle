@@ -34,6 +34,8 @@
   <ItemGroup>
     <ProjectReference Include="..\Blazor.Dice\Blazor.Dice.csproj" />
     <ProjectReference Include="..\Farkle.ApiClient\Farkle.ApiClient.csproj" />
+    <!-- Client services shared with the MAUI Blazor Hybrid shell (ADR 0010). -->
+    <ProjectReference Include="..\Farkle.Client\Farkle.Client.csproj" />
     <!-- Thin, infra-free shared kernel: the ScoreCalculator for the live turn-score preview. -->
     <ProjectReference Include="..\Farkle.Shared\Farkle.Shared.csproj" />
   </ItemGroup>

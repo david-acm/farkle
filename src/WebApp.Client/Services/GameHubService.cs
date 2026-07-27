@@ -1,3 +1,5 @@
+using Farkle.Client.Realtime;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
 using static Farkle.Contracts.HttpResponses;
 
@@ -25,7 +27,9 @@ public sealed class GameHubService(HttpClient http, IUiTelemetry telemetry) : IG
     public event Action<GameStateResponse, string?>? OnTableChanged;
     public event Action<GameStateResponse, string?>? OnDiceRolled;
 
-    public async Task ConnectAsync(int gameId, int playerId)
+    public bool IsConnected => _connection?.State == HubConnectionState.Connected;
+
+    public async Task ConnectAsync(int gameId, int playerId, CancellationToken ct = default)
     {
         _gameId = gameId;
         _playerId = playerId;
@@ -65,16 +69,30 @@ public sealed class GameHubService(HttpClient http, IUiTelemetry telemetry) : IG
         // non-null is an unexpected drop that auto-reconnect couldn't recover (feeds abandonment).
         _connection.Closed += error => TrackConnectionAsync("Realtime.Disconnected", error is null ? "clean" : error.GetType().Name);
 
-        await _connection.StartAsync();
-        await _connection.InvokeAsync("JoinGame", gameId);
+        await _connection.StartAsync(ct);
+        await _connection.InvokeAsync("JoinGame", gameId, ct);
         await TrackConnectionAsync("Realtime.Connected"); // #242
     }
 
-    public async Task DisconnectAsync()
+    public async Task DisconnectAsync(CancellationToken ct = default)
     {
         if (_connection is null) return;
-        try { await _connection.InvokeAsync("LeaveGame", _gameId); } catch { /* best effort */ }
-        await _connection.StopAsync();
+        // Best effort: the teardown proceeds whether or not the goodbye lands. The catch is
+        // narrowed to what InvokeAsync can actually raise on a dying connection, so a real defect
+        // still surfaces rather than being swallowed.
+        try
+        {
+            await _connection.InvokeAsync("LeaveGame", _gameId, ct);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or HubException or IOException
+                                      or ObjectDisposedException or OperationCanceledException)
+        {
+            // Not silent: the teardown continues regardless, but the failed goodbye is recorded on
+            // the same Realtime.* channel as every other connection event (#242), so a game whose
+            // players never left the server group is visible rather than guesswork.
+            await TrackConnectionAsync("Realtime.LeaveFailed", ex.GetType().Name);
+        }
+        await _connection.StopAsync(ct);
     }
 
     public async ValueTask DisposeAsync()

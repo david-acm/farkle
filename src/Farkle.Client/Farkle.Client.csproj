@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Overrides the net8.0 default in the root Directory.Build.props. -->
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <!-- Client services shared by every Farkle client: the Blazor WASM website today, the MAUI
+       Blazor Hybrid shell (HotDice) next. It holds the realtime session, the app-lifecycle rules a
+       mobile OS forces on us, and the API-client factory — deliberately free of any UI framework
+       and of MAUI, so all of it is unit-testable on the desktop with no device or emulator.
+       See docs/decisions/0010-mobile-testability-architecture.md. -->
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.7" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Farkle.ApiClient\Farkle.ApiClient.csproj" />
+    <ProjectReference Include="..\Farkle.Shared\Farkle.Shared.csproj" />
+  </ItemGroup>
+
+</Project>
