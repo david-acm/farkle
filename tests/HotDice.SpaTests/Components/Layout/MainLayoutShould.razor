@@ -1,0 +1,60 @@
+@inherits BunitContext
+@implements Xunit.IAsyncLifetime
+@using MudBlazor.Services
+@using Moq
+@using HotDice.Ui.Layout
+@using HotDice.Ui.Services
+
+@code {
+  // MudBlazor's providers register IAsyncDisposable-only services, so teardown must be async —
+  // same reason GameBunitContext implements IAsyncLifetime.
+  Task Xunit.IAsyncLifetime.InitializeAsync() => Task.CompletedTask;
+
+  async Task Xunit.IAsyncLifetime.DisposeAsync() => await ((IAsyncDisposable)this).DisposeAsync();
+
+  // The app shell: brand, version caption and theme wiring. Thin, but it is the one component every
+  // page renders inside, and its brand/version strings are product-facing — the kind of thing a
+  // rename moves silently. These assertions make that visible.
+
+  private IRenderedComponent<MainLayout> RenderLayout()
+  {
+    JSInterop.Mode = JSRuntimeMode.Loose;
+    Services.AddMudServices();
+    // The layout embeds the global FeedbackWidget, which needs its service.
+    Services.AddScoped<IFeedbackService>(_ => Mock.Of<IFeedbackService>());
+    Services.AddScoped<IUiTelemetry>(_ => Mock.Of<IUiTelemetry>());
+    return Render<MainLayout>();
+  }
+
+  [Fact]
+  public void ShowTheProductNameInTheAppBar()
+  {
+    var cut = RenderLayout();
+
+    cut.Markup.Should().Contain("HotDice");
+  }
+
+  [Fact]
+  public void ShowTheBuildVersionInTheDrawer()
+  {
+    // Rendered from AppVersion, which is stamped at publish time — assert it is present and not the
+    // raw "+metadata" form, rather than pinning a version that changes every build.
+    var cut = RenderLayout();
+
+    var caption = cut.Find("[data-testid='app-version']").TextContent.Trim();
+
+    caption.Should().StartWith("HotDice v");
+    caption.Should().NotContain("+");
+  }
+
+  [Fact]
+  public void ApplyTheProductThemeToTheProvider()
+  {
+    // Covers the static theme field: without this the layout renders MudBlazor's default palette
+    // and nothing fails.
+    var cut = RenderLayout();
+
+    cut.FindComponent<MudThemeProvider>().Instance.Theme
+       .Should().BeSameAs(HotDiceTheme.Theme);
+  }
+}
