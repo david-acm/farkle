@@ -39,7 +39,7 @@ public class SubmitFeedbackShould
 
     var js = new Mock<IJSRuntime>();
     js.Setup(r => r.InvokeAsync<string?>("localStorage.getItem", It.IsAny<object?[]>()))
-      .ReturnsAsync((string?)null);
+      .ReturnsAsync(() => null);
 
     var sut = new FeedbackService(mock.ToHotDiceApiClient(), js.Object, Mock.Of<ILogger<FeedbackService>>());
 
