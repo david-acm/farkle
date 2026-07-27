@@ -11,7 +11,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="Farkle.WebTests" />
+    <InternalsVisibleTo Include="HotDice.WebTests" />
   </ItemGroup>
 
   <ItemGroup>
@@ -30,7 +30,7 @@
          the deciders (validation-as-events); this only covers structural/input validity. -->
     <PackageReference Include="WolverineFx.Http.FluentValidation" Version="6.16.0" />
     <!-- Persistence (EF/Npgsql/Identity), event store and health checks now live in
-         Farkle.Infrastructure; the host references them transitively through that project. -->
+         HotDice.Infrastructure; the host references them transitively through that project. -->
   </ItemGroup>
 
   <ItemGroup>
@@ -58,9 +58,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Farkle\Farkle.csproj" />
+    <ProjectReference Include="..\HotDice\HotDice.csproj" />
     <ProjectReference Include="..\WebApp.Client\WebApp.Client.csproj" />
-    <ProjectReference Include="..\Farkle.Infrastructure\Farkle.Infrastructure.csproj" />
+    <ProjectReference Include="..\HotDice.Infrastructure\HotDice.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

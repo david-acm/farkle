@@ -1,0 +1,70 @@
+@page "/games/{ParameterGameId:int}"
+@inherits HotDice.Ui.Features.GameStateComponent
+
+<PageTitle>Play HotDice!</PageTitle>
+
+@if (!HasJoined)
+{
+  <MudCard Class="mt-4" Style="max-width: 400px">
+    <MudCardContent>
+      <MudText Typo="Typo.h6" Class="mb-2">Enter your name to join</MudText>
+      <MudTextField @bind-Value="_playerName"
+                    Label="Your name"
+                    Placeholder="Your name"
+                    Variant="Variant.Outlined"
+                    Immediate="true" />
+    </MudCardContent>
+    <MudCardActions>
+      <MudButton Variant="Variant.Filled"
+                 Color="Color.Primary"
+                 Disabled="@(string.IsNullOrWhiteSpace(_playerName))"
+                 OnClick="JoinAsync">Join Game</MudButton>
+    </MudCardActions>
+  </MudCard>
+}
+else if (GameState.IsInLobby)
+{
+  <Lobby />
+}
+else
+{
+  <div class="play-area" style="--active-player-color: @GameState.ActivePlayerColor;">
+    <header class="play-header">
+      <div class="play-id"><GameTitle></GameTitle></div>
+    </header>
+
+    <MudGrid Spacing="1" Class="play-info">
+      <MudItem xs="7" sm="6" md="4">
+        <TurnStatus />
+      </MudItem>
+      <MudItem xs="5" sm="6" md="4">
+        <TurnScore></TurnScore>
+      </MudItem>
+      <MudItem xs="12" sm="12" md="4">
+        <Scoreboard />
+      </MudItem>
+    </MudGrid>
+
+    <div class="play-dice">
+      <GameDiceTray />
+    </div>
+
+    @* #274 — potential score of the current selection, directly under the dice. *@
+    <SelectionScore />
+
+    <div class="play-controls">
+      <MudGrid Spacing="1">
+        <MudItem xs="4">
+          @* #286 — per-action validity via the shared TurnActionPolicy, not just "my turn". *@
+          <RollDiceButton IsDisabled="@(!GameState.CanRoll)" />
+        </MudItem>
+        <MudItem xs="4">
+          <KeepButton IsDisabled="@(!GameState.CanKeep)" />
+        </MudItem>
+        <MudItem xs="4">
+          <PassTurnButton IsDisabled="@(!GameState.CanPass)" />
+        </MudItem>
+      </MudGrid>
+    </div>
+  </div>
+}

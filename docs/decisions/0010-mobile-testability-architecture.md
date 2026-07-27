@@ -25,14 +25,14 @@ somewhere else regardless of philosophy.
 
 ## Decision
 
-### 1. A shared `Farkle.Client` library is the testable core
+### 1. A shared `HotDice.Client` library is the testable core
 
-`src/Farkle.Client` (net10.0) holds the client logic both the website and the app need — the
+`src/HotDice.Client` (net10.0) holds the client logic both the website and the app need — the
 realtime session, the app-lifecycle rules, and the API connection. It references no UI framework
-and no MAUI, so **all of it runs under plain desktop unit tests** (`tests/Farkle.Client.Tests`) on
+and no MAUI, so **all of it runs under plain desktop unit tests** (`tests/HotDice.Client.Tests`) on
 the same Linux runner as the rest of CI.
 
-This is the same move `Farkle.Shared` made for the WASM client (ADR 0006): a framework-free leaf
+This is the same move `HotDice.Shared` made for the WASM client (ADR 0006): a framework-free leaf
 exists when a second consumer genuinely cannot take the dependency. It is a mechanical necessity,
 not a purity boundary.
 
@@ -40,7 +40,7 @@ not a purity boundary.
 
 In a Hybrid app the UI *is* Razor, so the reference app's MVVM/`Core`-ViewModel row does not port —
 components are the unit, and bUnit is the test. `Blazor.Dice` already demonstrates the pattern (an
-RCL consumed by the WASM client and covered by `Blazor.Dice.Tests` + `Farkle.SpaTests`), and the
+RCL consumed by the WASM client and covered by `Blazor.Dice.Tests` + `HotDice.SpaTests`), and the
 shell renders one of its components today to prove Razor from an RCL runs unchanged in the WebView.
 
 Migrating the remaining game UI out of `WebApp.Client` into a shared RCL is `docs/mobile-strategy.md`
@@ -79,7 +79,7 @@ calls and contains no logic. If it ever grows a branch, that branch belongs on t
 
 ### 5. The mobile client consumes the generated API client
 
-`FarkleApiConnection` builds the Kiota `FarkleApiClient` over an **injected `HttpMessageHandler`**
+`HotDiceApiConnection` builds the Kiota `HotDiceApiClient` over an **injected `HttpMessageHandler`**
 (so tests drive real requests with no server) against an **absolute** backend URL — the web client
 inherits its origin from the host that served the WASM; a standalone app has none. It rejects a
 non-http(s) URL: on Unix `Uri.TryCreate("/api", Absolute, …)` succeeds as a `file:` URI, so
@@ -95,7 +95,7 @@ and shared handlers safe.
 ### 6. The coverage gate measures what the fast suites can reach
 
 The new-code gate (`diff-cover`, 100%, #337) is scoped by what the device-free suites actually
-exercise — `Farkle`, `Farkle.Client`, `Farkle.Shared`, `Farkle.Infrastructure`, `WebApp`,
+exercise — `HotDice`, `HotDice.Client`, `HotDice.Shared`, `HotDice.Infrastructure`, `WebApp`,
 `WebApp.Client`, `Blazor.Dice` — with generated code excluded (`verify-generated` / `verify-codegen`
 already prove that against its source, and nobody writes tests for it).
 
@@ -105,7 +105,7 @@ gate could not act on. That falls out of diff-cover's own rule — a file in no 
 rather than needing an exception list. The shell earns its coverage from the device tier (#339), which
 is the only thing that can meaningfully exercise it.
 
-### 7. The shell stays out of `Farkle.sln`
+### 7. The shell stays out of `HotDice.sln`
 
 A solution-wide `dotnet build` on a runner without the MAUI workloads would fail, so
 `HotDice.Shell` is built by its own workflow (`CI - Mobile Shell`) after installing

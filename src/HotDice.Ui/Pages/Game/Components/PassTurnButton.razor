@@ -1,0 +1,25 @@
+@using HotDice.Ui.Features
+@inherits BlazorState.BlazorStateComponent
+
+<MudButton Class="mt-4"
+           Color="Color.Secondary"
+           Disabled="@(IsDisabled || _loading)"
+           FullWidth="true"
+           OnClick="PassTurnAsync"
+           StartIcon="@(_loading ? Icons.Material.Filled.HourglassEmpty : Icons.Material.Filled.SkipNext)"
+           Variant="Variant.Filled">
+  Pass Turn
+</MudButton>
+
+@code {
+  [Parameter] public bool IsDisabled { get; set; }
+
+  private bool _loading;
+
+  private async Task PassTurnAsync()
+  {
+    _loading = true;
+    try { await Mediator.Send(new GameState.PassTurn.Action()); }
+    finally { _loading = false; }
+  }
+}

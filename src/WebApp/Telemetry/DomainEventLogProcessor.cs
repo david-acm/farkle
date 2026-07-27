@@ -49,7 +49,7 @@ public sealed class DomainEventLogProcessor : BaseProcessor<LogRecord>
 
     var attributes = new List<KeyValuePair<string, object?>>(record.Attributes)
     {
-      new(CustomEventNameAttribute, $"Farkle.{eventType}")
+      new(CustomEventNameAttribute, $"HotDice.{eventType}")
     };
     // game → session, (game,player) → user. Synthetic ids only — never a display name (no PII).
     if (gameId is not null)

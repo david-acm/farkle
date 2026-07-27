@@ -11,7 +11,7 @@ namespace Internal.Generated.WolverineHandlers
 
         public override System.Type[] EndpointTypes()
         {
-            return new System.Type[] { typeof(Farkle.Features.BeginGame.BeginGameEndpoint), typeof(Farkle.Features.Feedback.SubmitFeedbackEndpoint), typeof(Farkle.Features.GetGame.GetGameEndpoint), typeof(Farkle.Features.JoinPlayer.JoinPlayerEndpoint), typeof(Farkle.Features.KeepDice.KeepDiceEndpoint), typeof(Farkle.Features.PassTurn.PassTurnEndpoint), typeof(Farkle.Features.ReturnDice.ReturnDiceEndpoint), typeof(Farkle.Features.RollDice.RollDiceEndpoint), typeof(Farkle.Features.SetDiceAside.SetDiceAsideEndpoint), typeof(Farkle.Features.StartGame.StartGameEndpoint) };
+            return new System.Type[] { typeof(HotDice.Features.BeginGame.BeginGameEndpoint), typeof(HotDice.Features.Feedback.SubmitFeedbackEndpoint), typeof(HotDice.Features.GetGame.GetGameEndpoint), typeof(HotDice.Features.JoinPlayer.JoinPlayerEndpoint), typeof(HotDice.Features.KeepDice.KeepDiceEndpoint), typeof(HotDice.Features.PassTurn.PassTurnEndpoint), typeof(HotDice.Features.ReturnDice.ReturnDiceEndpoint), typeof(HotDice.Features.RollDice.RollDiceEndpoint), typeof(HotDice.Features.SetDiceAside.SetDiceAsideEndpoint), typeof(HotDice.Features.StartGame.StartGameEndpoint) };
         }
 
     }

@@ -4,7 +4,7 @@ Status: **Accepted** (#335, epic #334).
 
 ## Context
 
-HotDice (the mobile app for Farkle, [ADR 0008](0008-mobile-via-maui-blazor-hybrid.md): MAUI
+HotDice (the mobile app for HotDice, [ADR 0008](0008-mobile-via-maui-blazor-hybrid.md): MAUI
 Blazor Hybrid over a shared RCL) starts from zero mobile infrastructure, but the **reference app** — a private .NET MAUI iOS+Android app the same developer ships through Azure DevOps to TestFlight
 and Google Play — already paid for the mobile-specific crosscutting practices: testable-core
 architecture, tiered testing with a new-code coverage gate, device build/release pipelines, an
@@ -38,14 +38,14 @@ testability pattern appears to contradict. This ADR pins the translations so the
    on every PR → Android per merge → iOS post-merge on macOS → device-UI nightly.
 
 4. **Seams are argued per-seam, not imported as a pattern.** The reference app's `Core`-library seams exist
-   to keep MAUI types out of unit tests — a mechanical payoff, the same reason `Farkle.Shared`
+   to keep MAUI types out of unit tests — a mechanical payoff, the same reason `HotDice.Shared`
    exists for the WASM client (ADR 0006). That justification survives ADR 0004/0005; dogmatic
    ports-for-purity do not. Concretely: the **shared RCL is the testable core** (bUnit), the MAUI
    shell stays thin, and a shell seam (secure storage, connectivity, lifecycle) is admitted only
    when it buys off-device testability. Verdicts land in #336's ADR.
 
 5. **The mobile client consumes the existing API surface.** No hand-rolled typed clients: the app
-   uses the Kiota **`Farkle.ApiClient`** and **`Farkle.Shared`**, so the `verify-generated` drift
+   uses the Kiota **`HotDice.ApiClient`** and **`HotDice.Shared`**, so the `verify-generated` drift
    discipline automatically covers the mobile client. New standalone-client plumbing (absolute
    backend URL, CORS, token auth) follows `docs/mobile-strategy.md`; the reference app's 401-refresh
    `DelegatingHandler` pattern is adopted if/when refresh tokens exist.
@@ -72,7 +72,7 @@ testability pattern appears to contradict. This ADR pins the translations so the
 9. **Conventions merge into CLAUDE.md — no forked conventions doc.** The reference app's deltas (agent
    autonomy boundaries, test-first-on-touched-code, determinism hygiene, evidence convention)
    are folded into the existing CLAUDE.md standards (TDD red/green, 5-commit limit,
-   generated-files policy, `Closes #N`). Where the two disagree, the existing Farkle rule wins
+   generated-files policy, `Closes #N`). Where the two disagree, the existing HotDice rule wins
    unless the step's PR argues otherwise.
 
 ## Consequences

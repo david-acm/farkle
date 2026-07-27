@@ -17,14 +17,14 @@ vertical we can go — the aggregate state, the event vocabulary, and the projec
 shared by every slice — but the command handling verticalizes cleanly.
 
 We also want the domain to stay framework-agnostic. The classic way is an assembly
-boundary (a pure `Farkle.Domain` project that references no framework). The Critter Stack
+boundary (a pure `HotDice.Domain` project that references no framework). The Critter Stack
 philosophy, however, is deliberately low-ceremony: handlers embrace `IDocumentSession` /
 Wolverine directly rather than hiding them behind ports.
 
 ## Decision
 
 - Command logic is expressed as **pure deciders**: `Decide(command, state) -> events`,
-  one per slice under `src/Farkle/Features/<Command>/`. Validation-as-events lives in the
+  one per slice under `src/HotDice/Features/<Command>/`. Validation-as-events lives in the
   decider (a broken precondition returns the `IErrorEvent`), so the decision is a pure
   function with no I/O and no mocks to test.
 - Side effects stay **out** of the decider: e.g. the dice roll (`IRandom`) happens in the
@@ -42,7 +42,7 @@ Wolverine directly rather than hiding them behind ports.
 
 - Decider tests are the bulk of the domain suite: arrange a state (via the pure
   `GameState.Fold`), call `Decide`, assert the emitted events — zero mocks.
-- A slice namespace (`Farkle.Features.StartGame`) collides with its command
+- A slice namespace (`HotDice.Features.StartGame`) collides with its command
   (`Command.StartGame`); slices reference the command qualified (`Command.StartGame`).
   **Update (2026-07):** resolved by moving each command into the slice that owns it and suffixing it
   — `Features/StartGame/StartGameCommand.cs`. The name no longer collides with the namespace, the

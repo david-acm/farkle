@@ -1,10 +1,10 @@
-name: Farkle CodeQL config
+name: HotDice CodeQL config
 
 # Generated code is never hand-edited, so excluding it keeps generated-code style findings (missing
 # doc-comments, empty blocks, redundant upcasts, etc.) out of the results. Application code is still
 # fully analysed.
-#   - Farkle.ApiClient   — Kiota HTTP client (see docs/api-client-generation.md)
+#   - HotDice.ApiClient   — Kiota HTTP client (see docs/api-client-generation.md)
 #   - Internal/Generated — JasperFx/Wolverine pre-generated handlers + endpoints (#305)
 paths-ignore:
-  - src/Farkle.ApiClient
+  - src/HotDice.ApiClient
   - src/WebApp/Internal/Generated

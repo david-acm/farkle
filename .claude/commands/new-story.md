@@ -1,5 +1,5 @@
 ---
-description: Start a new Farkle issue branch from fresh origin/main
+description: Start a new HotDice issue branch from fresh origin/main
 argument-hint: <issue-number> <brief task description>
 ---
 

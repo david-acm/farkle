@@ -5,7 +5,7 @@ Status: **Accepted** — direction chosen; implementation is phased and deferred
 
 ## Context
 
-We want Farkle available as an installable app on the **Apple App Store and Google Play** (iOS +
+We want HotDice available as an installable app on the **Apple App Store and Google Play** (iOS +
 Android; no desktop for now). The current client is a **Blazor WebAssembly** app (hosted by the Blazor
 Server host) built on **MudBlazor**, **BlazorState**, a **Kiota**-generated API client, and the
 **SignalR .NET client** for real-time two-player multiplayer, plus **CSS-3D dice**. The backend is the

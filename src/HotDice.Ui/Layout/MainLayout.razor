@@ -1,0 +1,39 @@
+@inherits LayoutComponentBase
+@inject NavigationManager Navigation
+
+<MudThemeProvider Theme="_theme" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+    <MudAppBar Elevation="1">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" aria-label="Toggle navigation menu" OnClick="@((e) => DrawerToggle())" />
+        <MudText Typo="Typo.h5" Class="ml-3" Style="cursor: pointer;"
+                 @onclick='() => Navigation.NavigateTo("/")'>🎲 HotDice</MudText>
+        <MudSpacer />
+    </MudAppBar>
+    <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
+        <NavMenu />
+        <MudText Typo="Typo.caption" Class="pa-3 mt-auto mud-text-secondary" data-testid="app-version">
+            HotDice v@(HotDice.Ui.AppVersion.Current.Split('+')[0])
+        </MudText>
+    </MudDrawer>
+    <MudMainContent Class="mt-16 pa-4">
+        @Body
+    </MudMainContent>
+</MudLayout>
+
+@* #277 — global feedback widget: floating icon on every page (position: fixed, no scroll). *@
+<FeedbackWidget />
+
+@code {
+    private bool _drawerOpen = true;
+
+    private void DrawerToggle()
+    {
+        _drawerOpen = !_drawerOpen;
+    }
+
+    private static readonly MudTheme _theme = HotDiceTheme.Theme;
+}

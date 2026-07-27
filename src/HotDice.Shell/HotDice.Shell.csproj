@@ -75,10 +75,10 @@
     </ItemGroup>
 
     <!-- The shell is a thin host: the UI comes from the shared RCL (ADR 0008) and the client
-         rules from the shared core (ADR 0010). Blazor.Dice arrives transitively via Farkle.Ui. -->
+         rules from the shared core (ADR 0010). Blazor.Dice arrives transitively via HotDice.Ui. -->
     <ItemGroup>
-        <ProjectReference Include="..\Farkle.Client\Farkle.Client.csproj" />
-        <ProjectReference Include="..\Farkle.Ui\Farkle.Ui.csproj" />
+        <ProjectReference Include="..\HotDice.Client\HotDice.Client.csproj" />
+        <ProjectReference Include="..\HotDice.Ui\HotDice.Ui.csproj" />
     </ItemGroup>
 
 </Project>

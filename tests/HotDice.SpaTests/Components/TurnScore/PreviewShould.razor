@@ -1,0 +1,107 @@
+@inherits BunitContext
+@using System.IO
+@using System.Text.RegularExpressions
+@using BlazorState
+@using MudBlazor.Services
+@using HotDice.Ui.Features
+@using HotDice.Ui.Pages.Game.Components
+
+@code {
+  // #182 / #274 / #275 — SelectionScore shows the POTENTIAL score of the current selection
+  // ("+{points} ({tricks})") under the dice, in the turn-score font, via the shared
+  // ScoreCalculator, before the player commits Keep. The row is a stable-height placeholder.
+
+  private IStore SetUp()
+  {
+    JSInterop.Mode = JSRuntimeMode.Loose;
+    Services.AddMudServices();
+    Services.AddBlazorState(o => o.Assemblies = [typeof(GameState).Assembly]);
+    return Services.GetRequiredService<IStore>();
+  }
+
+  [Fact]
+  public void ShowThePointsAndTrick_PrependedWithAPlus_ForAScoringSelection()
+  {
+    var store = SetUp();
+    var state = store.GetState<GameState>();
+    state.DiceInPlay.Clear();
+    state.DiceInPlay.Add(DiceInfo.Selected(0, DieValue.Four));
+    state.DiceInPlay.Add(DiceInfo.Selected(1, DieValue.Four));
+    state.DiceInPlay.Add(DiceInfo.Selected(2, DieValue.Four));
+
+    var cut = Render(@<SelectionScore></SelectionScore>);
+
+    cut.Find("[data-testid='selection-preview']").TextContent
+      .Should().Contain("+400").And.Contain("3 of a kind").And.NotContain("("); // three 4s = 4×100; no parentheses
+  }
+
+  [Fact]
+  public void ListEveryTrickAndTheSummedPoints_ForAMultiTrickSelection()
+  {
+    // #270 / #274 — a three-of-a-kind plus a pair of 5s reads "+300 (3 of a kind + fives)".
+    var store = SetUp();
+    var state = store.GetState<GameState>();
+    state.DiceInPlay.Clear();
+    state.DiceInPlay.Add(DiceInfo.Selected(0, DieValue.Two));
+    state.DiceInPlay.Add(DiceInfo.Selected(1, DieValue.Two));
+    state.DiceInPlay.Add(DiceInfo.Selected(2, DieValue.Two));
+    state.DiceInPlay.Add(DiceInfo.Selected(3, DieValue.Five));
+    state.DiceInPlay.Add(DiceInfo.Selected(4, DieValue.Five));
+
+    var cut = Render(@<SelectionScore></SelectionScore>);
+
+    cut.Find("[data-testid='selection-preview']").TextContent
+      .Should().Contain("+300").And.Contain("3 of a kind").And.Contain("fives").And.NotContain("(");
+  }
+
+  [Fact]
+  public void ShowPlusZero_ForANonScoringSelection()
+  {
+    var store = SetUp();
+    var state = store.GetState<GameState>();
+    state.DiceInPlay.Clear();
+    state.DiceInPlay.Add(DiceInfo.Selected(0, DieValue.Two)); // a lone 2 doesn't score
+
+    var cut = Render(@<SelectionScore></SelectionScore>);
+
+    cut.Find("[data-testid='selection-preview']").TextContent.Trim().Should().Be("+0");
+  }
+
+  [Fact]
+  public void ReserveTheRowButShowNothing_WhenNothingIsSelected()
+  {
+    var store = SetUp();
+    var state = store.GetState<GameState>();
+    state.DiceInPlay.Clear();
+    state.DiceInPlay.Add(DiceInfo.Unselected(0, DieValue.Four));
+
+    var cut = Render(@<SelectionScore></SelectionScore>);
+
+    // The placeholder is ALWAYS present (stable height) but carries no score text.
+    var row = cut.Find("[data-testid='selection-preview']");
+    row.TextContent.Trim().Should().BeEmpty();
+  }
+
+  [Fact]
+  public void ReserveAStableHeight_InScopedCss()
+  {
+    var css = File.ReadAllText(LocateScopedCss());
+
+    // The row reserves an explicit min-height so the layout never shifts as the selection
+    // appears/clears (the stable-placeholder requirement, #275).
+    css.Should().MatchRegex(@"\.selection-score\b[^{}]*\{[^}]*min-height:\s*[\d.]+rem");
+  }
+
+  private static string LocateScopedCss()
+  {
+    var dir = new DirectoryInfo(AppContext.BaseDirectory);
+    while (dir is not null)
+    {
+      var candidate = Path.Join(dir.FullName,
+        "src", "HotDice.Ui", "Pages", "Game", "Components", "SelectionScore.razor.css");
+      if (File.Exists(candidate)) return candidate;
+      dir = dir.Parent;
+    }
+    throw new FileNotFoundException("Could not locate SelectionScore.razor.css from " + AppContext.BaseDirectory);
+  }
+}

@@ -1,6 +1,6 @@
 # Infrastructure (Azure Bicep)
 
-Repeatable Infrastructure-as-Code for deploying Farkle to **Azure Container Apps**,
+Repeatable Infrastructure-as-Code for deploying HotDice to **Azure Container Apps**,
 using [Azure Verified Modules](https://aka.ms/avm). Replaces the old manual
 PowerShell + Container App YAML that used to live under `src/Scripts/`.
 

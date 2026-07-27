@@ -1,0 +1,25 @@
+@using HotDice.Ui.Features
+@inherits BlazorStateComponent
+
+<MudButton Class="mt-4"
+           Color="Color.Primary"
+           Disabled="@(IsDisabled || _loading)"
+           FullWidth="true"
+           OnClick="KeepAsync"
+           StartIcon="@(_loading ? Icons.Material.Filled.HourglassEmpty : Icons.Material.Filled.Done)"
+           Variant="Variant.Filled">
+  Keep
+</MudButton>
+
+@code {
+  [Parameter] public bool IsDisabled { get; set; }
+
+  private bool _loading;
+
+  private async Task KeepAsync()
+  {
+    _loading = true;
+    try { await Mediator.Send(new GameState.KeepDice.Action()); }
+    finally { _loading = false; }
+  }
+}

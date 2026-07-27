@@ -1,6 +1,6 @@
 using System.Security.Claims;
 using System.Text;
-using Farkle.Infrastructure.Identity;
+using HotDice.Infrastructure.Identity;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;

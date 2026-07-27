@@ -1,11 +1,11 @@
 # Critter Stack onboarding
 
-> **Read this once and you can add a feature to Farkle.** It explains how the app is
+> **Read this once and you can add a feature to HotDice.** It explains how the app is
 > organized (vertical slices around a shared aggregate kernel), the mindset the
 > [Critter Stack](https://jasperfx.net/) (Marten + Wolverine) asks for, the day-to-day
 > decision rules, and an end-to-end walkthrough of adding a slice.
 >
-> Farkle is a teaching sample. After the #295 migration it teaches the Critter Stack the way
+> HotDice is a teaching sample. After the #295 migration it teaches the Critter Stack the way
 > the stack itself recommends: low-ceremony, framework-embracing slices with a pure decision
 > core. This doc is the map; [`CLAUDE.md`](../CLAUDE.md) is the reference; the
 > [`docs/decisions/`](decisions/) ADRs are the "why".
@@ -14,15 +14,15 @@
 
 ## 1. Slice anatomy — open one folder
 
-A feature lives in **one folder** under `src/Farkle/Features/<Command>/`. Everything for the
+A feature lives in **one folder** under `src/HotDice/Features/<Command>/`. Everything for the
 use case is colocated: the command, the pure decider, the Wolverine.HTTP endpoint, the response
 mapping, and (if it broadcasts) the cascaded notification. Its tests live next to their layer —
-the pure decider test in `tests/Farkle.Tests/Features/<Command>/`, the HTTP/broadcast test in
-`tests/Farkle.WebTests/Slices/`.
+the pure decider test in `tests/HotDice.Tests/Features/<Command>/`, the HTTP/broadcast test in
+`tests/HotDice.WebTests/Slices/`.
 
 ### The shape of a mutating slice
 
-Take `PassTurn` (`src/Farkle/Features/PassTurn/`):
+Take `PassTurn` (`src/HotDice/Features/PassTurn/`):
 
 ```csharp
 // PassTurnDecider.cs — PURE. (command, state) -> events. No framework types.
@@ -95,7 +95,7 @@ Features/GameNotifications.cs            (LobbyChanged, GameBegan, DiceRolled, T
   -> Application/GameBroadcastHandler.cs (Wolverine Handle(...) per notification)
   -> Application/GameNotifier.cs         (reloads the fresh GameState via IQuerySession, then pushes it
                                           straight through IHubContext<GameHub> — no port, ADR 0005)
-  -> SignalR group "game-{id}"           (GameHub lives in Farkle/Realtime/, in the core)
+  -> SignalR group "game-{id}"           (GameHub lives in HotDice/Realtime/, in the core)
 ```
 
 The client (`WebApp.Client`) listens on the SignalR hub and dispatches a BlazorState action so
@@ -122,10 +122,10 @@ expressed directly against Marten and Wolverine, and the one thing we keep pure 
   model — a self-aggregating `Inline` snapshot with conventional `Create`/`Apply` methods. The domain
   is allowed to reference Marten/Wolverine/Npgsql; the guardrail forbids the *web/EF/SignalR*
   frameworks and outward dependencies, not the Critter Stack itself.
-- **Vertical slices over horizontal layers.** There is no `Farkle.Application` layer *for features* and
-  no `Farkle.Endpoints` project — a change to one behaviour touches one folder. The only cross-slice
+- **Vertical slices over horizontal layers.** There is no `HotDice.Application` layer *for features* and
+  no `HotDice.Endpoints` project — a change to one behaviour touches one folder. The only cross-slice
   code is the **shared aggregate kernel**: `GameState`, the event vocabulary, value objects, the
-  validator primitives, and `Farkle.SharedKernel` (`ScoreCalculator`, `TurnActionPolicy`). Sharing
+  validator primitives, and `HotDice.SharedKernel` (`ScoreCalculator`, `TurnActionPolicy`). Sharing
   *vocabulary* is not the scatter VSA fights — event sourcing forces one stream/state, so all slices
   legitimately share it.
 - **Validation-as-events, surfaced once.** A broken rule is a domain fact: the decider returns an
@@ -141,11 +141,11 @@ expressed directly against Marten and Wolverine, and the one thing we keep pure 
 | **New behaviour** | Create or point at a `Features/<Command>/` folder. Write the **pure decider test first** (`(command, state) → events`), then `Decide`, then the endpoint. |
 | **The decider needs an input the command doesn't carry** (a dice roll, the clock) | Inject the dependency into the **endpoint** and pass the resolved value into `Decide` (e.g. `RollDice` injects `IRandom`, rolls, and hands the dice to the decider). Keep `Decide` pure and deterministic. |
 | **You need cross-slice data** | Don't reach into another slice. Go through the **shared kernel** (`GameState`, validator primitives, `ScoreCalculator`, `TurnActionPolicy`). `KeepSlicesOffTheInfrastructureAndHostLayers` and the decider-purity rule enforce this. |
-| **A test needs a messaging side effect** (broadcast, outbox) | Use **`TrackAsync` (TrackedSession)** in `Farkle.WebTests` and assert on `tracked.Executed.SingleMessage<GameNotifications.X>()`. Never `Task.Delay`/poll. Plain Alba (no tracking) for pure request/response. |
+| **A test needs a messaging side effect** (broadcast, outbox) | Use **`TrackAsync` (TrackedSession)** in `HotDice.WebTests` and assert on `tracked.Executed.SingleMessage<GameNotifications.X>()`. Never `Task.Delay`/poll. Plain Alba (no tracking) for pure request/response. |
 | **A read-model change** | Read the `GameState` snapshot via `IQuerySession` (it's an `Inline` projection — read-your-own-writes, no daemon). Never query the write side. |
 | **An event's shape must change** | **Add a new version** (`GameEvents.V2.*`) and a matching `Apply`/`Handle` — never mutate a stored `V1` schema. `GameState` registers handlers for both. |
 | **A business rule is violated** | Return the `IErrorEvent` from the decider. The endpoint turns the first one into a 400 `ProblemDetails`. Do not add the rule again in middleware or the client. |
-| **You changed a contract** (`Farkle.Contracts` DTO or a route) | Regenerate the OpenAPI doc + Kiota client and commit them (CI `verify-generated` enforces it). See [`api-client-generation.md`](api-client-generation.md). |
+| **You changed a contract** (`HotDice.Contracts` DTO or a route) | Regenerate the OpenAPI doc + Kiota client and commit them (CI `verify-generated` enforces it). See [`api-client-generation.md`](api-client-generation.md). |
 | **You changed a handler/endpoint signature** | Regenerate the static codegen and commit it: `dotnet run --project src/WebApp --no-launch-profile -- codegen write` (CI `verify-codegen` enforces it). |
 
 ---
@@ -194,7 +194,7 @@ migrations). ASP.NET **Identity keeps its EF migrations**. See [`../infra/OPERAT
 
 ## 6. Guardrails (arch-tests)
 
-`tests/Farkle.ArchitectureTests/` (ArchUnitNET) load the built assemblies and assert the model. The
+`tests/HotDice.ArchitectureTests/` (ArchUnitNET) load the built assemblies and assert the model. The
 ones you'll bump into:
 
 - **`KeepDecidersPureAndFrameworkFree`** — a `*Decider` must not touch Marten, Wolverine, ASP.NET,
@@ -217,25 +217,25 @@ slice → infra/host forbidden), and the **core embraces Marten/Wolverine while 
 Say you're adding a `ForfeitGame` command. (This replaces the old FastEndpoints "add an endpoint"
 recipe.)
 
-1. **Folder.** `src/Farkle/Features/ForfeitGame/`.
+1. **Folder.** `src/HotDice/Features/ForfeitGame/`.
 2. **Command.** Add `ForfeitGameCommand(GameId GameId, PlayerId PlayerId)` as `Features/ForfeitGame/ForfeitGameCommand.cs` — the command lives in the slice that owns it.
 3. **Event(s).** Add `V1.GameForfeited(int GameId, int PlayerId)` to `GameEvents.cs`, and a
    `HandleGameForfeited` + a `GameState.Apply(V1.GameForfeited)` overload *and* a `Fold` case in
    `GameState.cs` (so both Marten replay and the pure `Fold` see it). If it's an error path, mark the
    error record `: IErrorEvent` (no `Apply` — error events are inert on replay).
-4. **Decider test (red).** In `tests/Farkle.Tests/Features/ForfeitGame/ForfeitGameDeciderShould.cs`,
+4. **Decider test (red).** In `tests/HotDice.Tests/Features/ForfeitGame/ForfeitGameDeciderShould.cs`,
    arrange state with `GameState.Fold(...events)` and assert the events `Decide` emits.
 5. **Decider (green).** `ForfeitGameDecider.Decide(command, state)` — pure, kernel-only, returns the
    event or an `IErrorEvent`.
 6. **Endpoint.** `ForfeitGameEndpoint` with `StreamId(int) => $"game-{id}"`, `[WolverinePost(...)]`,
    `[WriteAggregate(FromMethod = nameof(StreamId))] GameState state`, the error→400 check, and a tuple
    return `(result, new Events(events), notification?)`.
-7. **Response + mapper.** Add the DTO to `Farkle.Contracts/HttpResponses.cs` and a mapper under
+7. **Response + mapper.** Add the DTO to `HotDice.Contracts/HttpResponses.cs` and a mapper under
    `Features/Responses/` if the shape is non-trivial.
 8. **Broadcast (optional).** If other players should see it, add a `GameNotifications.GameForfeited`
    record and return it from the endpoint; add a `Handle(...)` to `GameBroadcastHandler` and a client
    listener.
-9. **Integration test.** `tests/Farkle.WebTests/Slices/ForfeitGameShould.cs` via the Kiota client;
+9. **Integration test.** `tests/HotDice.WebTests/Slices/ForfeitGameShould.cs` via the Kiota client;
    use `TrackAsync` if it broadcasts.
 10. **Regenerate.** `codegen write` (new endpoint) and, if the contract changed, the OpenAPI + Kiota
     client. Commit both — CI's `verify-codegen` and `verify-generated` enforce them.

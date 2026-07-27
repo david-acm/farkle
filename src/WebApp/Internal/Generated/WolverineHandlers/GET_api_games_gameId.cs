@@ -31,7 +31,7 @@ namespace Internal.Generated.WolverineHandlers
             var messageContext = new Wolverine.Runtime.MessageContext(_wolverineRuntime);
             // Building the Marten session
             await using var documentSession = _outboxedSessionFactory.OpenSession(messageContext);
-            System.Diagnostics.Activity.Current?.SetTag("handler.type", "Farkle.Features.GetGame.GetGameEndpoint");
+            System.Diagnostics.Activity.Current?.SetTag("handler.type", "HotDice.Features.GetGame.GetGameEndpoint");
             string gameId_rawValue = (string?)httpContext.GetRouteValue("gameId");
             int gameId = default;
 
@@ -48,7 +48,7 @@ namespace Internal.Generated.WolverineHandlers
 
             
             // The actual HTTP request handler execution
-            var resultsOfOkOfGameStateResponseAndNotFound = await Farkle.Features.GetGame.GetGameEndpoint.Get(gameId, ((Marten.IQuerySession)documentSession), httpContext.RequestAborted).ConfigureAwait(false);
+            var resultsOfOkOfGameStateResponseAndNotFound = await HotDice.Features.GetGame.GetGameEndpoint.Get(gameId, ((Marten.IQuerySession)documentSession), httpContext.RequestAborted).ConfigureAwait(false);
 
             await resultsOfOkOfGameStateResponseAndNotFound.ExecuteAsync(httpContext).ConfigureAwait(false);
         }

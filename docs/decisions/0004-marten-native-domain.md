@@ -14,13 +14,13 @@ Status: **Accepted** (#302). Supersedes ADR 0001 and ADR 0003.
 
 ## Context
 
-ADR 0001 kept the domain **framework-free** — no Marten/Wolverine reference in `Farkle`,
+ADR 0001 kept the domain **framework-free** — no Marten/Wolverine reference in `HotDice`,
 purity enforced by an architecture test — and expressed command logic as pure `Decide`
 deciders. ADR 0003 then had to bridge that pure domain to Marten with a `GameDocument`
 **wrapper** (Marten-native string id + the pure `GameState` nested inside) folded by a
 **manual `Evolve`** override, because Marten 9's aggregation source generator (which
 discovers conventional `Create`/`Apply` methods) only runs in the assembly that references
-the analyzer — and `Farkle` deliberately did not.
+the analyzer — and `HotDice` deliberately did not.
 
 Reviewing that shape against how the Critter Stack is actually meant to be used, the wrapper
 and the manual `Evolve` exist **only** to preserve a purity boundary the framework's authors
@@ -39,7 +39,7 @@ cost of that fight.
 
 ## Decision
 
-**Reference Marten (and its source-gen analyzer) from `Farkle` and make `GameState` a
+**Reference Marten (and its source-gen analyzer) from `HotDice` and make `GameState` a
 Marten-native self-aggregating snapshot.** Embrace the framework directly.
 
 1. **`GameState` is the aggregate.** It carries a Marten-native `string` id (the
@@ -57,9 +57,9 @@ Marten-native self-aggregating snapshot.** Embrace the framework directly.
    snapshot (via `FetchForWriting`) and the read model; the `GetGame` slice queries it with
    `IQuerySession.LoadAsync`/`FetchLatest` and maps it to the `GameView` DTO. Registered
    **Inline** for read-your-own-writes.
-4. **Collapse `Farkle.Features` into `Farkle`.** With the domain referencing Marten there is
+4. **Collapse `HotDice.Features` into `HotDice`.** With the domain referencing Marten there is
    no purity boundary left to justify a second project; the Marten-aware vertical slices and
-   `AddFarkleCritterStack` live in `Farkle`.
+   `AddHotDiceCritterStack` live in `HotDice`.
 5. **Drop the framework-free architecture tests** (`KeepDecidersPureAndFrameworkFree` and the
    slice-isolation rule that forbade infrastructure references). Slice cohesion guardrails
    that do not depend on the purity boundary are kept.
@@ -85,7 +85,7 @@ public static class StartGameHandler
         /* #301 StartGameDecider body, verbatim */;
 }
 
-// Registration (in Farkle)
+// Registration (in HotDice)
 services.AddMarten(opts =>
 {
     opts.Connection(connectionString);
@@ -95,7 +95,7 @@ services.AddMarten(opts =>
     // Verified by spike: STJ + the SmartEnum value converter is required for GameState to
     // round-trip as a stored document. Without it, ImmutableArray<DieValue> (a SmartEnum)
     // does not serialize. ImmutableArray<T> and the int-keyed ScoreTable round-trip cleanly
-    // under STJ. Needs the Ardalis.SmartEnum.SystemTextJson (8.1.0) package in Farkle.
+    // under STJ. Needs the Ardalis.SmartEnum.SystemTextJson (8.1.0) package in HotDice.
     opts.UseSystemTextJsonForSerialization(configure: o =>
         o.Converters.Add(new SmartEnumValueConverter<DieValue, int>()));
 }).IntegrateWithWolverine();
@@ -200,12 +200,12 @@ candidate at #303 for keeping the int game code first-class alongside a surrogat
 - **The five ADR 0003 gotchas still apply** to the registration (runtime compiler package in
   dev, `AutoApplyTransactions`, string identity on a clean schema, native id) — but gotcha #4
   (source generator only runs where the analyzer is referenced) is now *resolved* rather than
-  *worked around*, because the analyzer references `Farkle`.
+  *worked around*, because the analyzer references `HotDice`.
 
 ## Phase A implementation checklist (supersedes ADR 0003's)
 
-1. `Farkle.csproj`: add `Marten`, `WolverineFx.Marten`, `WolverineFx.RuntimeCompilation`;
-   remove the `Farkle.Features` project from the solution and fold its file in.
+1. `HotDice.csproj`: add `Marten`, `WolverineFx.Marten`, `WolverineFx.RuntimeCompilation`;
+   remove the `HotDice.Features` project from the solution and fold its file in.
 2. `GameState`: drop the Eventuous `State<>` base + the `On<>` ctor; make it `public record` with
    public-init properties (STJ rehydration); add the `string Id`, `int Code`, `Create`, and `Apply`
    conventions. Keep the pure `Fold` (decider/handler unit tests arrange state through it).
@@ -214,7 +214,7 @@ candidate at #303 for keeping the int game code first-class alongside a surrogat
 4. One thin `[AggregateHandler]` handler per stream-mutating slice (JoinPlayer, BeginGame, RollDice,
    KeepDice, SetDiceAside, ReturnDice, PassTurn) that calls its kept #301 decider and returns
    `(Result, Events)`; `StartGame` is a plain `StartStream` handler.
-5. `AddFarkleCritterStack` in `Farkle`: Marten (`StreamIdentity.AsString`,
+5. `AddHotDiceCritterStack` in `HotDice`: Marten (`StreamIdentity.AsString`,
    `Snapshot<GameState>(Inline)`, `UseSystemTextJsonForSerialization` + `SmartEnumValueConverter<DieValue,int>`)
    + `IntegrateWithWolverine` + Wolverine `AutoApplyTransactions`.
 6. Endpoints call `IMessageBus.InvokeAsync<Result<TResponse>>`; `IErrorEvent` still maps to HTTP 400.
@@ -226,10 +226,10 @@ candidate at #303 for keeping the int game code first-class alongside a surrogat
 
 These refine the checklist above with what the actual cutover required:
 
-- **Response mappers moved into `Farkle.Features`.** `LobbyMapper` / `GameStateMapper` /
-  `PassTurnMapper` (GameState → Contracts DTO) used to sit in `Farkle.Application`. The slice
+- **Response mappers moved into `HotDice.Features`.** `LobbyMapper` / `GameStateMapper` /
+  `PassTurnMapper` (GameState → Contracts DTO) used to sit in `HotDice.Application`. The slice
   `[AggregateHandler]`s now map to their response inside the slice, so the mappers were moved to
-  the `Farkle.Features` namespace (`src/Farkle/Features/Responses/`). This keeps
+  the `HotDice.Features` namespace (`src/HotDice/Features/Responses/`). This keeps
   `KeepSlicesOffTheApplicationAndInfrastructureLayers` satisfied (a slice must not reach into the
   application layer). `GameNotifier` (application) and the read endpoint reference them the other
   way, which no guardrail forbids.
@@ -271,5 +271,5 @@ backoff (50/100/250 ms). The retry re-runs the endpoint, which re-fetches the no
 (e.g. `RolledTwice` → 400). It is safe because the conflict is thrown at commit, before any response
 is written (guarded by `!Response.HasStarted`); the request body is buffered so a retried POST rebinds.
 This keeps every slice unchanged (no `[WriteAggregate]` → manual-loop rewrite, no move to
-`IMessageBus.InvokeAsync`). Covered by `tests/Farkle.WebTests/CrossCutting/ConcurrencyShould.cs`, which
+`IMessageBus.InvokeAsync`). Covered by `tests/HotDice.WebTests/CrossCutting/ConcurrencyShould.cs`, which
 fires concurrent rolls at one stream and asserts no 412/500 leaks (it failed with a 500 before the fix).

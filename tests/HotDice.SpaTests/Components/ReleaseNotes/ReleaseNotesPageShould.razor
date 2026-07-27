@@ -1,0 +1,23 @@
+@inherits BunitContext
+@using MudBlazor.Services
+@using HotDice.Ui.Pages
+
+@code {
+  private void SetUp()
+  {
+    JSInterop.Mode = JSRuntimeMode.Loose;
+    Services.AddMudServices();
+  }
+
+  [Fact]
+  public void ListReleaseEntriesHeadedByCurrentVersion()
+  {
+    SetUp();
+
+    var cut = Render(@<ReleaseNotes></ReleaseNotes>);
+
+    cut.Find("[data-testid='current-version']").TextContent.Should().MatchRegex(@"Currently running\s+\S+");
+    cut.FindAll("[data-testid='release-entry']").Count.Should().BeGreaterThan(0);
+    cut.Markup.Should().Contain("Player colours").And.Contain("Blazor.Dice");
+  }
+}

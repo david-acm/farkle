@@ -36,10 +36,10 @@ jobs:
           config-file: ./.github/codeql/codeql-config.yml
 
       - name: Restore
-        run: dotnet restore Farkle.sln
+        run: dotnet restore HotDice.sln
 
       - name: Build
-        run: dotnet build Farkle.sln --no-restore
+        run: dotnet build HotDice.sln --no-restore
 
       - name: Perform CodeQL analysis
         uses: github/codeql-action/analyze@v4

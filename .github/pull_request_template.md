@@ -11,7 +11,7 @@ Closes #<!-- issue number — the keyword is required; a bare #N does not close 
 - [ ] Tests at the right layer and green — decider/unit for domain logic, integration for a new slice, at least one E2E happy path for a new feature (see `CLAUDE.md` → Testing Patterns)
 - [ ] TDD cadence followed where applicable — Red commit (failing tests only) before Green
 - [ ] Build clean with **warnings as errors**
-- [ ] Generated files regenerated + committed if contracts or handlers changed — `swagger.json` + `Farkle.ApiClient/` (`verify-generated`), `Internal/Generated` (`verify-codegen`)
+- [ ] Generated files regenerated + committed if contracts or handlers changed — `swagger.json` + `HotDice.ApiClient/` (`verify-generated`), `Internal/Generated` (`verify-codegen`)
 - [ ] No stored V1 event modified (new version instead); no secrets committed
 - [ ] UI change: storyboard capture reviewed, **no-scroll** holds at all three viewports, no test-selected button labels renamed
 - [ ] Docs / runbooks / ADRs updated in this PR if behaviour or a decision changed

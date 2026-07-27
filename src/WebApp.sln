@@ -7,13 +7,13 @@ Project("{940B40AA-7CEA-402D-AEF4-8EA4A7888089}") = "WebApp", "WebApp\WebApp.csp
 EndProject
 Project("{940B40AA-7CEA-402D-AEF4-8EA4A7888089}") = "WebApp.Client", "WebApp.Client\WebApp.Client.csproj", "{520A061A-A025-429C-A1F5-D53A438AFD5C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Farkle.Infrastructure", "Farkle.Infrastructure\Farkle.Infrastructure.csproj", "{16FE6289-2D6D-4BA3-B5FD-524F0A0CB1A6}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HotDice.Infrastructure", "HotDice.Infrastructure\HotDice.Infrastructure.csproj", "{16FE6289-2D6D-4BA3-B5FD-524F0A0CB1A6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Farkle", "Farkle\Farkle.csproj", "{19798B33-2C29-4955-AFFD-ACBB1227232D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HotDice", "HotDice\HotDice.csproj", "{19798B33-2C29-4955-AFFD-ACBB1227232D}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Blazor.Dice", "Blazor.Dice\Blazor.Dice.csproj", "{1B7F738F-481F-4B57-BC57-81E6ECFA6A1C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Farkle.Shared", "Farkle.Shared\Farkle.Shared.csproj", "{EBB46020-0181-4263-A06E-5DD7D442833F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HotDice.Shared", "HotDice.Shared\HotDice.Shared.csproj", "{EBB46020-0181-4263-A06E-5DD7D442833F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

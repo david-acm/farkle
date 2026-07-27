@@ -31,7 +31,7 @@ namespace Internal.Generated.WolverineHandlers
             var messageContext = new Wolverine.Runtime.MessageContext(_wolverineRuntime);
             // Building the Marten session
             await using var documentSession = _outboxedSessionFactory.OpenSession(messageContext);
-            System.Diagnostics.Activity.Current?.SetTag("handler.type", "Farkle.Features.PassTurn.PassTurnEndpoint");
+            System.Diagnostics.Activity.Current?.SetTag("handler.type", "HotDice.Features.PassTurn.PassTurnEndpoint");
             string gameId_rawValue = (string?)httpContext.GetRouteValue("gameId");
             int gameId = default;
 
@@ -60,10 +60,10 @@ namespace Internal.Generated.WolverineHandlers
                 return;
             }
 
-            var result_of_StreamId = Farkle.Features.PassTurn.PassTurnEndpoint.StreamId(gameId);
+            var result_of_StreamId = HotDice.Features.PassTurn.PassTurnEndpoint.StreamId(gameId);
             var batchedQuery = documentSession.CreateBatchQuery();
 
-            var stream_state_BatchItem = batchedQuery.Events.FetchForWriting<Farkle.Domain.GameAggregate.GameState>(result_of_StreamId);
+            var stream_state_BatchItem = batchedQuery.Events.FetchForWriting<HotDice.Domain.GameAggregate.GameState>(result_of_StreamId);
 
             await batchedQuery.Execute(httpContext.RequestAborted);
 
@@ -71,7 +71,7 @@ namespace Internal.Generated.WolverineHandlers
             var stream_state = await stream_state_BatchItem.ConfigureAwait(false);
 
             System.Diagnostics.Activity.Current?.SetTag("wolverine.stream.id", result_of_StreamId.ToString());
-            System.Diagnostics.Activity.Current?.SetTag("wolverine.stream.type", "Farkle.Domain.GameAggregate.GameState");
+            System.Diagnostics.Activity.Current?.SetTag("wolverine.stream.type", "HotDice.Domain.GameAggregate.GameState");
             // 404 if this required object is null
             if (stream_state.Aggregate == null)
             {
@@ -81,7 +81,7 @@ namespace Internal.Generated.WolverineHandlers
 
             
             // The actual HTTP request handler execution
-            (var resultsOfOkOfPassTurnResponseAndProblemHttpResult, var events, var turnChanged) = Farkle.Features.PassTurn.PassTurnEndpoint.Post(gameId, playerId, stream_state.Aggregate);
+            (var resultsOfOkOfPassTurnResponseAndProblemHttpResult, var events, var turnChanged) = HotDice.Features.PassTurn.PassTurnEndpoint.Post(gameId, playerId, stream_state.Aggregate);
 
             if (events != null)
             {

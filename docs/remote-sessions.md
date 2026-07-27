@@ -56,6 +56,6 @@ allowlisted `packages.microsoft.com` and point Playwright at it via the
 ```bash
 DEBIAN_FRONTEND=noninteractive apt-get install -y microsoft-edge-stable powershell
 PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/microsoft-edge \
-  dotnet test tests/Farkle.E2eTests/Farkle.E2eTests.csproj --no-build \
+  dotnet test tests/HotDice.E2eTests/HotDice.E2eTests.csproj --no-build \
   --filter "Category=Storyboard"
 ```

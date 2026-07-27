@@ -1,7 +1,7 @@
 name: CI - Storyboard
 # Multi-viewport storyboard screenshots (issue #98). Runs as its own workflow so the
 # capture executes in parallel with the e2e job rather than behind it. The storyboard
-# tests live in the same project as the happy-path E2E (tests/Farkle.E2eTests) but are
+# tests live in the same project as the happy-path E2E (tests/HotDice.E2eTests) but are
 # selected by the "Category=Storyboard" trait. Post-cutover (ADR 0004) they boot the real
 # Marten + Wolverine backend on a lightweight Postgres Testcontainer — no ESDB.
 on:
@@ -11,7 +11,7 @@ on:
     paths:
       - 'src/**'
       - 'tests/**'
-      - 'Farkle.sln'
+      - 'HotDice.sln'
       - 'Directory.Build.props'
       - 'global.json'
       - '.github/workflows/storyboard.yml'
@@ -35,15 +35,15 @@ jobs:
         run: dotnet workload install wasm-tools
 
       - name: Restore dependencies
-        run: dotnet restore tests/Farkle.E2eTests/Farkle.E2eTests.csproj
+        run: dotnet restore tests/HotDice.E2eTests/HotDice.E2eTests.csproj
 
       - name: Build
-        run: dotnet build tests/Farkle.E2eTests/Farkle.E2eTests.csproj --no-restore
+        run: dotnet build tests/HotDice.E2eTests/HotDice.E2eTests.csproj --no-restore
 
       - name: Install Playwright Chromium
         # Use the playwright.ps1 bundled with the build output — it matches the exact
         # Microsoft.Playwright NuGet version so browsers are installed to the right path.
-        run: pwsh tests/Farkle.E2eTests/bin/Debug/net10.0/playwright.ps1 install chromium --with-deps
+        run: pwsh tests/HotDice.E2eTests/bin/Debug/net10.0/playwright.ps1 install chromium --with-deps
 
       - name: Pull Postgres image for the storyboard backend
         run: docker pull postgres:16-alpine
@@ -53,7 +53,7 @@ jobs:
         # (ADR 0004); only the Storyboard-tagged tests run, so the heavyweight happy-path
         # fixture is never instantiated.
         run: >
-          dotnet test tests/Farkle.E2eTests/Farkle.E2eTests.csproj
+          dotnet test tests/HotDice.E2eTests/HotDice.E2eTests.csproj
           --no-build
           --filter "Category=Storyboard"
           --logger "trx;LogFileName=storyboard-results.trx"

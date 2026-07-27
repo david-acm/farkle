@@ -1,0 +1,54 @@
+@using HotDice.Ui.Features
+@inherits BlazorState.BlazorStateComponent
+
+@{
+  var state   = GetState<GameState>();
+  var leader  = state.Scoreboard.OrderByDescending(p => p.Score).FirstOrDefault();
+}
+
+<MudPaper data-testid="scoreboard" Class="scoreboard pa-2" Elevation="1">
+  <MudText Typo="Typo.subtitle2" Class="mb-1">Scoreboard</MudText>
+  @if (state.IsGameOver)
+  {
+    <MudPaper Class="pa-2 mb-2 text-center"
+              Style="background: linear-gradient(135deg, #7A5C12 0%, #8B1A1A 100%);">
+      <MudText Typo="Typo.subtitle1" Style="color: #F5F0E8;">🏆 @state.WinnerName wins!</MudText>
+    </MudPaper>
+  }
+  <MudSimpleTable Dense="true" Hover="true" Class="scoreboard-table">
+    <tbody>
+      @foreach (var p in state.Scoreboard.OrderByDescending(p => p.Score))
+      {
+        var isLeader = leader is not null && p.PlayerId == leader.PlayerId && leader.Score > 0;
+        var isInTurn = !state.IsGameOver && p.PlayerId == state.CurrentPlayerId;
+        // Each player's name and score wear their own identity colour (#170); the in-turn
+        // player and the leader are additionally emphasised (bold).
+        var colorStyle = string.IsNullOrWhiteSpace(p.Color) ? null : $"color: {p.Color};";
+        var emphasise  = isInTurn || isLeader;
+        <tr data-testid="@(isLeader ? "scoreboard-leader" : "scoreboard-row")"
+            data-current="@(isInTurn ? "true" : null)">
+          <td>
+            @* Turn marker (#179): 🎲 sits next to whoever is in turn, for everyone. Its
+               test id reflects the local perspective so the e2e can still tell "my turn"
+               (this browser) from "waiting" (someone else's turn). *@
+            @if (isInTurn)
+            {
+              <span class="turn-emoji" title="Current turn"
+                    data-testid="@(state.IsMyTurn ? "my-turn-indicator" : "waiting-indicator")">🎲</span>
+            }
+            <MudText Typo="Typo.body2" Class="d-inline" Style="@colorStyle">
+              @if (emphasise) { <strong>@p.Name</strong> } else { @p.Name }
+            </MudText>
+          </td>
+          <td class="scoreboard-score">
+            <MudText Typo="Typo.body2" Style="@colorStyle">
+              @if (emphasise) { <strong>@p.Score</strong> } else { @p.Score }
+            </MudText>
+          </td>
+        </tr>
+      }
+    </tbody>
+  </MudSimpleTable>
+</MudPaper>
+
+@code { }

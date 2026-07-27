@@ -1,6 +1,6 @@
 # Maintainability: before vs. after the Critter Stack migration
 
-This records the code-health impact of migrating Farkle from **Eventuous + EventStoreDB +
+This records the code-health impact of migrating HotDice from **Eventuous + EventStoreDB +
 FastEndpoints** to the **native Critter Stack** (Marten + Wolverine) with vertical slices (epic #295).
 It's a point-in-time snapshot for the record — not a gate — so the numbers can be re-derived any time
 with the commands below.
@@ -9,7 +9,7 @@ with the commands below.
 
 | | Commit | Architecture |
 |---|---|---|
-| **Before** | `b99525f` (#292) | Eventuous command service, EventStoreDB, FastEndpoints, a separate `Farkle.Endpoints` project |
+| **Before** | `b99525f` (#292) | Eventuous command service, EventStoreDB, FastEndpoints, a separate `HotDice.Endpoints` project |
 | **After** | `191ff37` (`main`) | Marten `Inline` snapshot, Wolverine.HTTP endpoints-as-handlers, vertical slices, SignalR embraced in the core |
 
 ## How to reproduce
@@ -19,7 +19,7 @@ Complexity/size uses [`lizard`](http://www.lizard.ws) (`pip install lizard`), au
 hand-written code only:
 
 ```bash
-lizard src   -x "*/bin/*" -x "*/obj/*" -x "*/Generated/*" -x "*/Farkle.ApiClient/*"
+lizard src   -x "*/bin/*" -x "*/obj/*" -x "*/Generated/*" -x "*/HotDice.ApiClient/*"
 lizard tests -x "*/bin/*" -x "*/obj/*"
 ```
 
@@ -60,7 +60,7 @@ it covers. That's the "easy to iterate" goal showing up in the *shape* of the su
 
 | Metric | Before | After | Δ |
 |---|---|---|---|
-| Projects in `src/` | 9 | 7 | −2 (`Contracts`+`SharedKernel` → `Farkle.Shared`; `Farkle.Endpoints` deleted) |
+| Projects in `src/` | 9 | 7 | −2 (`Contracts`+`SharedKernel` → `HotDice.Shared`; `HotDice.Endpoints` deleted) |
 | **Project-reference edges** | 14 | **9** | **−5 (−36%)** |
 | Abstraction interfaces (`interface I…`) | 18 | 14 | −4 (removed ports incl. `IGameEventBroadcaster`) |
 | Vertical-slice folders | — | 11 | — |
