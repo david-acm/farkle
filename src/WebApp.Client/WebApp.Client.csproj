@@ -9,14 +9,14 @@
   </PropertyGroup>
 
   <!-- The WASM host: an entry point and its configuration, nothing more. The UI it runs lives in
-       Farkle.Ui, shared with the MAUI Blazor Hybrid app (ADR 0008). -->
+       HotDice.Ui, shared with the MAUI Blazor Hybrid app (ADR 0008). -->
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.8" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Farkle.Ui\Farkle.Ui.csproj" />
+    <ProjectReference Include="..\HotDice.Ui\HotDice.Ui.csproj" />
   </ItemGroup>
 
 </Project>

@@ -22,17 +22,17 @@ collect() {
     --nologo -v q "${@:2}"
 }
 
-# The device-free tiers — no emulator, no device, no MAUI workload. Farkle.WebTests needs Docker
+# The device-free tiers — no emulator, no device, no MAUI workload. HotDice.WebTests needs Docker
 # (Testcontainers/Postgres); pass --fast to skip it when you only touched client/domain code.
-collect tests/Farkle.Tests/Farkle.Tests.csproj
-collect tests/Farkle.ArchitectureTests/Farkle.ArchitectureTests.csproj
-collect tests/Farkle.Client.Tests/Farkle.Client.Tests.csproj
-collect tests/Farkle.SpaTests/Farkle.SpaTests.csproj
+collect tests/HotDice.Tests/HotDice.Tests.csproj
+collect tests/HotDice.ArchitectureTests/HotDice.ArchitectureTests.csproj
+collect tests/HotDice.Client.Tests/HotDice.Client.Tests.csproj
+collect tests/HotDice.SpaTests/HotDice.SpaTests.csproj
 collect tests/Blazor.Dice.Tests/Blazor.Dice.Tests.csproj
 if [ "${FAST:-}" != "1" ]; then
-  collect tests/Farkle.WebTests/Farkle.WebTests.csproj
+  collect tests/HotDice.WebTests/HotDice.WebTests.csproj
 else
-  echo "coverage: FAST=1 — skipping Farkle.WebTests (Docker). The gate may flag server lines it covers."
+  echo "coverage: FAST=1 — skipping HotDice.WebTests (Docker). The gate may flag server lines it covers."
 fi
 
 bash tests/scripts/coverage-html.sh "$COV" coverage-html

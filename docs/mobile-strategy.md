@@ -1,4 +1,4 @@
-# Mobile strategy: publishing Farkle to iOS + Android
+# Mobile strategy: publishing HotDice to iOS + Android
 
 **Decision (see [ADR 0008](decisions/0008-mobile-via-maui-blazor-hybrid.md)):** ship mobile as a
 **.NET MAUI Blazor Hybrid** app that hosts our existing Razor UI in a `BlazorWebView`, with the UI
@@ -56,7 +56,7 @@ for a turn-based game **provided animation stays in CSS** (it does) and interop 
 
 - **Phase 0 (optional, hours):** make the existing WASM app an installable **PWA** — instant Android
   (via TWA) + iOS home-screen presence while the real app is built. Interim only; no iOS *store* listing.
-- **Phase 1 (done, #348):** the Razor UI lives in **`src/Farkle.Ui`**, consumed by both the WASM
+- **Phase 1 (done, #348):** the Razor UI lives in **`src/HotDice.Ui`**, consumed by both the WASM
   site (`WebApp.Client`, now just an entry point) and `HotDice.Shell`, which hosts the shared
   `Routes` component and registers the same services against an absolute backend URL
   (`HOTDICE_BACKEND_URL`). Namespaces stayed `WebApp.Client.*` — same trade as ADR 0006.

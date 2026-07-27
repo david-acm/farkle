@@ -16,12 +16,12 @@ namespace Internal.Generated.WolverineHandlers
     public sealed class POST_api_games_gameId_players_playerId_keeps : Wolverine.Http.HttpHandler
     {
         private readonly Wolverine.Http.WolverineHttpOptions _wolverineHttpOptions;
-        private readonly FluentValidation.IValidator<Farkle.Contracts.HttpRequests.KeepDiceRequest> _validatorOfKeepDiceRequest;
-        private readonly Wolverine.Http.FluentValidation.IProblemDetailSource<Farkle.Contracts.HttpRequests.KeepDiceRequest> _problemDetailSourceOfKeepDiceRequest;
+        private readonly FluentValidation.IValidator<HotDice.Contracts.HttpRequests.KeepDiceRequest> _validatorOfKeepDiceRequest;
+        private readonly Wolverine.Http.FluentValidation.IProblemDetailSource<HotDice.Contracts.HttpRequests.KeepDiceRequest> _problemDetailSourceOfKeepDiceRequest;
         private readonly Wolverine.Marten.Publishing.OutboxedSessionFactory _outboxedSessionFactory;
         private readonly Wolverine.Runtime.IWolverineRuntime _wolverineRuntime;
 
-        public POST_api_games_gameId_players_playerId_keeps(Wolverine.Http.WolverineHttpOptions wolverineHttpOptions, FluentValidation.IValidator<Farkle.Contracts.HttpRequests.KeepDiceRequest> validatorOfKeepDiceRequest, Wolverine.Http.FluentValidation.IProblemDetailSource<Farkle.Contracts.HttpRequests.KeepDiceRequest> problemDetailSourceOfKeepDiceRequest, Wolverine.Marten.Publishing.OutboxedSessionFactory outboxedSessionFactory, Wolverine.Runtime.IWolverineRuntime wolverineRuntime) : base(wolverineHttpOptions)
+        public POST_api_games_gameId_players_playerId_keeps(Wolverine.Http.WolverineHttpOptions wolverineHttpOptions, FluentValidation.IValidator<HotDice.Contracts.HttpRequests.KeepDiceRequest> validatorOfKeepDiceRequest, Wolverine.Http.FluentValidation.IProblemDetailSource<HotDice.Contracts.HttpRequests.KeepDiceRequest> problemDetailSourceOfKeepDiceRequest, Wolverine.Marten.Publishing.OutboxedSessionFactory outboxedSessionFactory, Wolverine.Runtime.IWolverineRuntime wolverineRuntime) : base(wolverineHttpOptions)
         {
             _wolverineHttpOptions = wolverineHttpOptions;
             _validatorOfKeepDiceRequest = validatorOfKeepDiceRequest;
@@ -38,11 +38,11 @@ namespace Internal.Generated.WolverineHandlers
             // Building the Marten session
             await using var documentSession = _outboxedSessionFactory.OpenSession(messageContext);
             // Reading the request body via JSON deserialization
-            var (body, jsonContinue) = await ReadJsonAsync<Farkle.Contracts.HttpRequests.KeepDiceRequest>(httpContext);
+            var (body, jsonContinue) = await ReadJsonAsync<HotDice.Contracts.HttpRequests.KeepDiceRequest>(httpContext);
             if (jsonContinue == Wolverine.HandlerContinuation.Stop) return;
             
             // Execute FluentValidation validators
-            var result1 = await Wolverine.Http.FluentValidation.Internals.FluentValidationHttpExecutor.ExecuteOne<Farkle.Contracts.HttpRequests.KeepDiceRequest>(_validatorOfKeepDiceRequest, _problemDetailSourceOfKeepDiceRequest, body).ConfigureAwait(false);
+            var result1 = await Wolverine.Http.FluentValidation.Internals.FluentValidationHttpExecutor.ExecuteOne<HotDice.Contracts.HttpRequests.KeepDiceRequest>(_validatorOfKeepDiceRequest, _problemDetailSourceOfKeepDiceRequest, body).ConfigureAwait(false);
 
             // Evaluate whether or not the execution should be stopped based on the IResult value
             if (result1 != null && !(result1 is Wolverine.Http.WolverineContinue))
@@ -52,7 +52,7 @@ namespace Internal.Generated.WolverineHandlers
             }
 
 
-            System.Diagnostics.Activity.Current?.SetTag("handler.type", "Farkle.Features.KeepDice.KeepDiceEndpoint");
+            System.Diagnostics.Activity.Current?.SetTag("handler.type", "HotDice.Features.KeepDice.KeepDiceEndpoint");
             string gameId_rawValue = (string?)httpContext.GetRouteValue("gameId");
             int gameId = default;
 
@@ -81,10 +81,10 @@ namespace Internal.Generated.WolverineHandlers
                 return;
             }
 
-            var result_of_StreamId = Farkle.Features.KeepDice.KeepDiceEndpoint.StreamId(gameId);
+            var result_of_StreamId = HotDice.Features.KeepDice.KeepDiceEndpoint.StreamId(gameId);
             var batchedQuery = documentSession.CreateBatchQuery();
 
-            var stream_state_BatchItem = batchedQuery.Events.FetchForWriting<Farkle.Domain.GameAggregate.GameState>(result_of_StreamId);
+            var stream_state_BatchItem = batchedQuery.Events.FetchForWriting<HotDice.Domain.GameAggregate.GameState>(result_of_StreamId);
 
             await batchedQuery.Execute(httpContext.RequestAborted);
 
@@ -92,7 +92,7 @@ namespace Internal.Generated.WolverineHandlers
             var stream_state = await stream_state_BatchItem.ConfigureAwait(false);
 
             System.Diagnostics.Activity.Current?.SetTag("wolverine.stream.id", result_of_StreamId.ToString());
-            System.Diagnostics.Activity.Current?.SetTag("wolverine.stream.type", "Farkle.Domain.GameAggregate.GameState");
+            System.Diagnostics.Activity.Current?.SetTag("wolverine.stream.type", "HotDice.Domain.GameAggregate.GameState");
             // 404 if this required object is null
             if (stream_state.Aggregate == null)
             {
@@ -102,7 +102,7 @@ namespace Internal.Generated.WolverineHandlers
 
             
             // The actual HTTP request handler execution
-            (var resultsOfOkOfKeepDiceResponseAndProblemHttpResult, var events, var tableChanged) = Farkle.Features.KeepDice.KeepDiceEndpoint.Post(gameId, playerId, body, stream_state.Aggregate);
+            (var resultsOfOkOfKeepDiceResponseAndProblemHttpResult, var events, var tableChanged) = HotDice.Features.KeepDice.KeepDiceEndpoint.Post(gameId, playerId, body, stream_state.Aggregate);
 
             if (events != null)
             {

@@ -7,7 +7,7 @@ on:
     paths:
       - 'src/**'
       - 'tests/**'
-      - 'Farkle.sln'
+      - 'HotDice.sln'
       - 'Directory.Build.props'
       - 'global.json'
       - '.config/dotnet-tools.json'
@@ -32,14 +32,14 @@ jobs:
           dotnet-version: '10.0.x'
 
       - name: Restore
-        run: dotnet restore Farkle.sln
+        run: dotnet restore HotDice.sln
 
       - name: Build
-        run: dotnet build Farkle.sln --no-restore
+        run: dotnet build HotDice.sln --no-restore
 
       - name: Unit tests
         run: >
-          dotnet test tests/Farkle.Tests/Farkle.Tests.csproj
+          dotnet test tests/HotDice.Tests/HotDice.Tests.csproj
           --no-build
           --collect:"XPlat Code Coverage"
           --settings coverage.runsettings
@@ -48,7 +48,7 @@ jobs:
 
       - name: Architecture tests
         run: >
-          dotnet test tests/Farkle.ArchitectureTests/Farkle.ArchitectureTests.csproj
+          dotnet test tests/HotDice.ArchitectureTests/HotDice.ArchitectureTests.csproj
           --no-build
           --logger "trx;LogFileName=architecture-results.trx"
           --results-directory test-results
@@ -59,7 +59,7 @@ jobs:
 
       - name: Integration tests
         run: >
-          dotnet test tests/Farkle.WebTests/Farkle.WebTests.csproj
+          dotnet test tests/HotDice.WebTests/HotDice.WebTests.csproj
           --no-build
           --collect:"XPlat Code Coverage"
           --settings coverage.runsettings
@@ -68,7 +68,7 @@ jobs:
 
       - name: SPA component tests
         run: >
-          dotnet test tests/Farkle.SpaTests/Farkle.SpaTests.csproj
+          dotnet test tests/HotDice.SpaTests/HotDice.SpaTests.csproj
           --no-build
           --collect:"XPlat Code Coverage"
           --settings coverage.runsettings
@@ -88,7 +88,7 @@ jobs:
       # no MAUI workload, no emulator and no device — that is the point of the boundary in ADR 0010.
       - name: Client core tests
         run: >
-          dotnet test tests/Farkle.Client.Tests/Farkle.Client.Tests.csproj
+          dotnet test tests/HotDice.Client.Tests/HotDice.Client.Tests.csproj
           --no-build
           --collect:"XPlat Code Coverage"
           --settings coverage.runsettings
@@ -190,20 +190,20 @@ jobs:
         run: dotnet tool restore
 
       - name: Regenerate Kiota client
-        working-directory: src/Farkle.ApiClient
+        working-directory: src/HotDice.ApiClient
         # Clean-regenerate so a removed path/schema can't leave an orphan file behind.
         run: >
           rm -rf Api Models &&
           dotnet kiota generate -l CSharp
           -d ../WebApp.Client/swagger.json
-          -c FarkleApiClient
-          -n Farkle.ApiClient
+          -c HotDiceApiClient
+          -n HotDice.ApiClient
           -o .
 
       - name: Fail if generated files differ from committed
         run: |
-          if ! git diff --exit-code -- src/WebApp.Client/swagger.json src/Farkle.ApiClient/; then
-            echo "::error::swagger.json or Farkle.ApiClient/ are out of sync with the source."
+          if ! git diff --exit-code -- src/WebApp.Client/swagger.json src/HotDice.ApiClient/; then
+            echo "::error::swagger.json or HotDice.ApiClient/ are out of sync with the source."
             echo "::error::Run the generation commands documented in CLAUDE.md and commit the result."
             exit 1
           fi
@@ -256,7 +256,7 @@ jobs:
       # Build the production image the same way CI - Image does (BuildKit, context = repo root) but with
       # NO push and NO Azure — so Dockerfile drift fails the PR instead of only surfacing on the
       # push-to-main CI - Image build. A stale per-project COPY line after a project rename/merge (the
-      # Farkle.Shared merge, #322) broke CI - Image post-merge precisely because PRs never built the image.
+      # HotDice.Shared merge, #322) broke CI - Image post-merge precisely because PRs never built the image.
       - name: docker build (no push)
         run: docker build -f src/WebApp/Dockerfile -t farkle-webapp:pr-validate .
 
@@ -282,22 +282,22 @@ jobs:
         run: dotnet workload install wasm-tools
 
       - name: Restore dependencies
-        run: dotnet restore tests/Farkle.E2eTests/Farkle.E2eTests.csproj
+        run: dotnet restore tests/HotDice.E2eTests/HotDice.E2eTests.csproj
 
       - name: Clean
-        run: dotnet clean tests/Farkle.E2eTests/Farkle.E2eTests.csproj
+        run: dotnet clean tests/HotDice.E2eTests/HotDice.E2eTests.csproj
 
       - name: Build
-        run: dotnet build tests/Farkle.E2eTests/Farkle.E2eTests.csproj --no-restore
+        run: dotnet build tests/HotDice.E2eTests/HotDice.E2eTests.csproj --no-restore
 
       - name: Install Playwright Chromium
         # Use the playwright.ps1 bundled with the build output — it matches the exact
         # Microsoft.Playwright NuGet version so browsers are installed to the right path.
-        run: pwsh tests/Farkle.E2eTests/bin/Debug/net10.0/playwright.ps1 install chromium --with-deps
+        run: pwsh tests/HotDice.E2eTests/bin/Debug/net10.0/playwright.ps1 install chromium --with-deps
 
       - name: Run happy-path e2e tests
         run: >
-          dotnet test tests/Farkle.E2eTests/Farkle.E2eTests.csproj
+          dotnet test tests/HotDice.E2eTests/HotDice.E2eTests.csproj
           --no-build
           --filter "FullyQualifiedName~GameHappyPath"
           --logger "trx;LogFileName=e2e-results.trx"

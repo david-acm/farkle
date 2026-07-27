@@ -154,13 +154,13 @@ jobs:
         run: dotnet workload install wasm-tools
 
       - name: Restore dependencies
-        run: dotnet restore tests/Farkle.E2eTests/Farkle.E2eTests.csproj
+        run: dotnet restore tests/HotDice.E2eTests/HotDice.E2eTests.csproj
 
       - name: Build
-        run: dotnet build tests/Farkle.E2eTests/Farkle.E2eTests.csproj --no-restore
+        run: dotnet build tests/HotDice.E2eTests/HotDice.E2eTests.csproj --no-restore
 
       - name: Install Playwright Chromium
-        run: pwsh tests/Farkle.E2eTests/bin/Debug/net10.0/playwright.ps1 install chromium --with-deps
+        run: pwsh tests/HotDice.E2eTests/bin/Debug/net10.0/playwright.ps1 install chromium --with-deps
 
       - name: Wait for the deployment to be ready
         # #235 — the roll just bumped the revision; its EventStore dependency can still be
@@ -192,7 +192,7 @@ jobs:
           E2E_BASE_URL: ${{ needs.release.outputs.fqdn }}
           E2E_STEP_DELAY_MS: '0'
         run: >
-          dotnet test tests/Farkle.E2eTests/Farkle.E2eTests.csproj
+          dotnet test tests/HotDice.E2eTests/HotDice.E2eTests.csproj
           --no-build
           --filter "FullyQualifiedName~GameHappyPathShould.HappyPath"
           --logger "trx;LogFileName=post-deploy-e2e.trx"

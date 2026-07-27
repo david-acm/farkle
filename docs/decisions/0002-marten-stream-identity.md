@@ -6,7 +6,7 @@ string key is now `GameState`'s Marten-native document id.
 
 ## Context
 
-Farkle identifies a game by an `int` code in `[100_000, 1_000_000)` that players type to
+HotDice identifies a game by an `int` code in `[100_000, 1_000_000)` that players type to
 join (e.g. `992615`) — today an Eventuous `GameId : Id`. Marten event streams are keyed by
 either `Guid` (`StartStream<T>()`) or `string` (`StartStream<T>(streamKey)`). The migration
 (#302) must pick one, and the choice touches the HTTP routes, the read model, and the

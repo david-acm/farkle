@@ -8,7 +8,7 @@
     "/api/games/{gameId}/start": {
       "post": {
         "tags": [
-          "Farkle.Features.BeginGame.BeginGameEndpoint"
+          "HotDice.Features.BeginGame.BeginGameEndpoint"
         ],
         "summary": "POST_api_games_gameId_start",
         "description": "POST_api_games_gameId_start",
@@ -59,7 +59,7 @@
     "/api/feedback": {
       "post": {
         "tags": [
-          "Farkle.Features.Feedback.SubmitFeedbackEndpoint"
+          "HotDice.Features.Feedback.SubmitFeedbackEndpoint"
         ],
         "summary": "POST_api_feedback",
         "description": "POST_api_feedback",
@@ -101,7 +101,7 @@
     "/api/games/{gameId}": {
       "get": {
         "tags": [
-          "Farkle.Features.GetGame.GetGameEndpoint"
+          "HotDice.Features.GetGame.GetGameEndpoint"
         ],
         "summary": "GET_api_games_gameId",
         "description": "GET_api_games_gameId",
@@ -142,7 +142,7 @@
     "/api/games/{gameId}/players": {
       "post": {
         "tags": [
-          "Farkle.Features.JoinPlayer.JoinPlayerEndpoint"
+          "HotDice.Features.JoinPlayer.JoinPlayerEndpoint"
         ],
         "summary": "POST_api_games_gameId_players",
         "description": "POST_api_games_gameId_players",
@@ -203,7 +203,7 @@
     "/api/games/{gameId}/players/{playerId}/keeps": {
       "post": {
         "tags": [
-          "Farkle.Features.KeepDice.KeepDiceEndpoint"
+          "HotDice.Features.KeepDice.KeepDiceEndpoint"
         ],
         "summary": "POST_api_games_gameId_players_playerId_keeps",
         "description": "POST_api_games_gameId_players_playerId_keeps",
@@ -273,7 +273,7 @@
     "/api/games/{gameId}/players/{playerId}/turns": {
       "post": {
         "tags": [
-          "Farkle.Features.PassTurn.PassTurnEndpoint"
+          "HotDice.Features.PassTurn.PassTurnEndpoint"
         ],
         "summary": "POST_api_games_gameId_players_playerId_turns",
         "description": "POST_api_games_gameId_players_playerId_turns",
@@ -323,7 +323,7 @@
     "/api/games/{gameId}/players/{playerId}/putbacks": {
       "post": {
         "tags": [
-          "Farkle.Features.ReturnDice.ReturnDiceEndpoint"
+          "HotDice.Features.ReturnDice.ReturnDiceEndpoint"
         ],
         "summary": "POST_api_games_gameId_players_playerId_putbacks",
         "description": "POST_api_games_gameId_players_playerId_putbacks",
@@ -393,7 +393,7 @@
     "/api/games/{gameId}/players/{playerId}/rolls": {
       "post": {
         "tags": [
-          "Farkle.Features.RollDice.RollDiceEndpoint"
+          "HotDice.Features.RollDice.RollDiceEndpoint"
         ],
         "summary": "POST_api_games_gameId_players_playerId_rolls",
         "description": "POST_api_games_gameId_players_playerId_rolls",
@@ -443,7 +443,7 @@
     "/api/games/{gameId}/players/{playerId}/setasides": {
       "post": {
         "tags": [
-          "Farkle.Features.SetDiceAside.SetDiceAsideEndpoint"
+          "HotDice.Features.SetDiceAside.SetDiceAsideEndpoint"
         ],
         "summary": "POST_api_games_gameId_players_playerId_setasides",
         "description": "POST_api_games_gameId_players_playerId_setasides",
@@ -513,7 +513,7 @@
     "/api/games": {
       "post": {
         "tags": [
-          "Farkle.Features.StartGame.StartGameEndpoint"
+          "HotDice.Features.StartGame.StartGameEndpoint"
         ],
         "summary": "POST_api_games",
         "description": "POST_api_games",
@@ -1187,34 +1187,34 @@
   },
   "tags": [
     {
-      "name": "Farkle.Features.BeginGame.BeginGameEndpoint"
+      "name": "HotDice.Features.BeginGame.BeginGameEndpoint"
     },
     {
-      "name": "Farkle.Features.Feedback.SubmitFeedbackEndpoint"
+      "name": "HotDice.Features.Feedback.SubmitFeedbackEndpoint"
     },
     {
-      "name": "Farkle.Features.GetGame.GetGameEndpoint"
+      "name": "HotDice.Features.GetGame.GetGameEndpoint"
     },
     {
-      "name": "Farkle.Features.JoinPlayer.JoinPlayerEndpoint"
+      "name": "HotDice.Features.JoinPlayer.JoinPlayerEndpoint"
     },
     {
-      "name": "Farkle.Features.KeepDice.KeepDiceEndpoint"
+      "name": "HotDice.Features.KeepDice.KeepDiceEndpoint"
     },
     {
-      "name": "Farkle.Features.PassTurn.PassTurnEndpoint"
+      "name": "HotDice.Features.PassTurn.PassTurnEndpoint"
     },
     {
-      "name": "Farkle.Features.ReturnDice.ReturnDiceEndpoint"
+      "name": "HotDice.Features.ReturnDice.ReturnDiceEndpoint"
     },
     {
-      "name": "Farkle.Features.RollDice.RollDiceEndpoint"
+      "name": "HotDice.Features.RollDice.RollDiceEndpoint"
     },
     {
-      "name": "Farkle.Features.SetDiceAside.SetDiceAsideEndpoint"
+      "name": "HotDice.Features.SetDiceAside.SetDiceAsideEndpoint"
     },
     {
-      "name": "Farkle.Features.StartGame.StartGameEndpoint"
+      "name": "HotDice.Features.StartGame.StartGameEndpoint"
     },
     {
       "name": "Auth"

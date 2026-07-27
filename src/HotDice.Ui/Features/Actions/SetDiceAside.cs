@@ -1,0 +1,58 @@
+using BlazorState;
+using HotDice.Ui.Telemetry;
+using HotDice.Ui.Pages.Game.Components;
+using HotDice.Ui.Services;
+
+namespace HotDice.Ui.Features;
+
+public partial class GameState
+{
+  public static class SetDiceAside
+  {
+    // Carries the target selection state explicitly so the UI never mutates the tapped
+    // die outside an action handler. Backwards-compatible single-arg form is kept for
+    // callers (and tests) that already encode the selection on the die.
+    public record Action(DiceInfo Die, bool Selected) : IAction, IServerCommandIntent
+    {
+      public Action(DiceInfo die) : this(die, die.IsSelected) { }
+    }
+
+    public class Handler(IStore store, IGameService service, ILogger<Handler> logger)
+      : ActionHandler<Action>(store)
+    {
+      private HotDice.Ui.Features.GameState State => Store.GetState<HotDice.Ui.Features.GameState>();
+
+      public override async Task Handle(Action action, CancellationToken aCancellationToken)
+      {
+        // DiceInPlay is the single source of truth; the set-aside payload is
+        // derived from it. Sync the tapped die's selection.
+        var die = State.DiceInPlay.First(d => d.Index == action.Die.Index);
+        if (action.Selected) die.Select();
+        else die.Deselect();
+
+        // Setting a die aside means the roll is over — clear the animation on every die so
+        // none re-spins when the drop container recreates their components for the
+        // zone change (covers a move made before the roll animation's own consume
+        // fires). A move is never a roll (#139).
+        foreach (DiceInfo d in State.DiceInPlay)
+          d.DisableAnimation();
+
+        // Promote the (formerly UI-only) selection to a domain command so it's persisted
+        // and broadcast to spectators (#159). The local move already happened above for
+        // instant feedback; the server broadcast won't echo back to us (RemoteTableChanged
+        // is guarded by IsMyTurn). Best-effort: a failed sync must not break the local selection.
+        try
+        {
+          if (action.Selected)
+            await service.SetDiceAsideAsync(State.GameId, State.PlayerId, (int)die.Value);
+          else
+            await service.ReturnDiceAsync(State.GameId, State.PlayerId, (int)die.Value);
+        }
+        catch (Exception ex)
+        {
+          logger.LogWarning(ex, "Set-aside sync failed for game {GameId}", State.GameId.Value);
+        }
+      }
+    }
+  }
+}

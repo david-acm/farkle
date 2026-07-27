@@ -1,5 +1,5 @@
 #!/bin/bash
-# SessionStart hook — prepares a Claude Code on the web container to build/test Farkle.
+# SessionStart hook — prepares a Claude Code on the web container to build/test HotDice.
 #
 # Fresh remote containers ship without the .NET SDK and with PostgreSQL stopped, so
 # build/test/Kiota and the Marten (#302) integration work all fail until both are set up.

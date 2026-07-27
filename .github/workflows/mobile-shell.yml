@@ -4,18 +4,18 @@ name: CI - Mobile Shell
 # (ADR 0010). Deliberately a *compile* gate only: the shared client core is covered by the fast
 # desktop tests in `CI - Tests`, and signed device builds are #338's job.
 #
-# The shell is intentionally NOT in Farkle.sln — a solution-wide `dotnet build` on a runner without
+# The shell is intentionally NOT in HotDice.sln — a solution-wide `dotnet build` on a runner without
 # the MAUI workloads would fail. It is built here, on its own, after installing them.
 on:
   pull_request:
     branches: [main]
     paths:
       - 'src/HotDice.Shell/**'
-      - 'src/Farkle.Client/**'
-      - 'src/Farkle.Ui/**'
+      - 'src/HotDice.Client/**'
+      - 'src/HotDice.Ui/**'
       - 'src/Blazor.Dice/**'
-      - 'src/Farkle.ApiClient/**'
-      - 'src/Farkle.Shared/**'
+      - 'src/HotDice.ApiClient/**'
+      - 'src/HotDice.Shared/**'
       - '.github/workflows/mobile-shell.yml'
   workflow_dispatch:
 

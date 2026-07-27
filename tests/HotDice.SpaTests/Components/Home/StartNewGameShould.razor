@@ -1,0 +1,26 @@
+@inherits GameBunitContext
+@using Microsoft.AspNetCore.Components
+@using Moq
+@using HotDice.Ui.Pages
+@using HotDice.Ui.Services
+
+@code {
+  // Starting a new game creates it server-side, then navigates to the game page
+  // carrying the resolved id and the player's name in the query string.
+  [Fact]
+  public void CreateGameThenNavigateWithResolvedId()
+  {
+    Mock.Get(GameService)
+      .Setup(s => s.CreateGameAsync())
+      .ReturnsAsync(4242);
+
+    var nav = Services.GetRequiredService<NavigationManager>();
+    var cut = Render(@<Home/>);
+
+    // The Start card is rendered first, so its name field is the first 'Your name' input.
+    cut.FindAll("[placeholder='Your name']").First().Input("Alice");
+    cut.Find("[data-testid='start-new-game']").Click();
+
+    nav.Uri.Should().EndWith("/games/4242?name=Alice");
+  }
+}

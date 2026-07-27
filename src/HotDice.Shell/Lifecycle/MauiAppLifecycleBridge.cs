@@ -1,4 +1,4 @@
-using Farkle.Client.Lifecycle;
+using HotDice.Client.Lifecycle;
 
 namespace HotDice.Shell.Lifecycle;
 

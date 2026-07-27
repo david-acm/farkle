@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
-using Farkle.Ui;
+using HotDice.Ui;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 

@@ -9,13 +9,13 @@ validated end-to-end against a local PostgreSQL 16 on Marten 9.12.0 / WolverineF
 > forced the **`GameDocument` wrapper + manual `Evolve`** design recorded here. With the domain
 > referencing Marten, `GameState` is the self-aggregating snapshot directly (conventional
 > `Create`/`Apply`), so the wrapper and the manual projection are removed — and gotcha #4 is
-> *resolved* (the analyzer now runs over `Farkle`) rather than worked around.
+> *resolved* (the analyzer now runs over `HotDice`) rather than worked around.
 
 ## Context
 
 #302 cuts the write/read path over from Eventuous + ESDB to the Critter Stack. The domain
 was reshaped into pure deciders + `GameState.Fold` in #301, and must stay **framework-free**
-(`Farkle` references no Marten/Wolverine). Several Marten 9 / Wolverine 6 behaviours are not
+(`HotDice` references no Marten/Wolverine). Several Marten 9 / Wolverine 6 behaviours are not
 obvious and were pinned by spike rather than guessed.
 
 ## Gotchas found (each cost a real debug cycle; all handled below)
@@ -29,7 +29,7 @@ obvious and were pinned by spike rather than guessed.
    existing Guid-keyed schema fails Marten DDL. Greenfield migration avoids this.
 4. **Marten 9 dispatches `Apply`/`Create` via a compile-time source generator with no runtime
    fallback, only for types defined in the assembly where the analyzer runs.** `GameState`
-   lives in the Marten-free `Farkle`, so it cannot use the conventions. Use a manual `Evolve`
+   lives in the Marten-free `HotDice`, so it cannot use the conventions. Use a manual `Evolve`
    override instead.
 5. **A stored projection document needs a Marten-native id** (string/Guid/int). `GameState`'s
    id is the strongly-typed `GameId`, which Marten rejects.
@@ -37,7 +37,7 @@ obvious and were pinned by spike rather than guessed.
 ## Decision
 
 Keep `GameState` **pure and unchanged**. Introduce a thin Marten-side **wrapper aggregate** in
-`Farkle.Features` that carries the pure state plus the string stream key, folded by a manual
+`HotDice.Features` that carries the pure state plus the string stream key, folded by a manual
 `Evolve` override that delegates to `GameState.Fold`. Commands become **public** records (they
 are the Wolverine messages; Wolverine does not discover internal handlers/messages). Events
 stay internal — they flow through Marten as `object`.
@@ -55,7 +55,7 @@ services.AddWolverine(opts => opts.Policies.AutoApplyTransactions());
 // + WolverineFx.RuntimeCompilation referenced (dev codegen)
 ```
 
-### Wrapper aggregate + projection (in Farkle.Features, where Marten's analyzer runs)
+### Wrapper aggregate + projection (in HotDice.Features, where Marten's analyzer runs)
 
 ```csharp
 public record GameDocument                    // Marten doc: string id + the pure state
@@ -71,7 +71,7 @@ public class GameProjection : SingleStreamProjection<GameDocument, string>
 }
 ```
 
-### Handlers (public, in Farkle.Features) — the decider slots into FetchForWriting
+### Handlers (public, in HotDice.Features) — the decider slots into FetchForWriting
 
 ```csharp
 public static class StartGameHandler
@@ -108,11 +108,11 @@ Reads: `querySession.LoadAsync<GameDocument>($"game-{code}")` (or `FetchLatest`)
 
 ## Phase A implementation checklist (next step)
 
-1. `Farkle`: make `Command.*`, `GameId`, `PlayerId`, `DieValue` public; add
-   `[InternalsVisibleTo("Farkle.Features")]` (for events/deciders/`Fold`/`GameState`).
-2. `Farkle.Features`: `GameDocument` + `GameProjection`; register the projection in
+1. `HotDice`: make `Command.*`, `GameId`, `PlayerId`, `DieValue` public; add
+   `[InternalsVisibleTo("HotDice.Features")]` (for events/deciders/`Fold`/`GameState`).
+2. `HotDice.Features`: `GameDocument` + `GameProjection`; register the projection in
    `CritterStackServiceExtensions`.
-3. `Farkle.Features`: seven public handlers (StartGame, JoinPlayer, BeginGame, RollDice,
+3. `HotDice.Features`: seven public handlers (StartGame, JoinPlayer, BeginGame, RollDice,
    KeepDice, SetDiceAside, ReturnDice, PassTurn) following the template above.
 4. A Marten integration test (local Postgres) driving a game through the handlers.
 5. Build green; Eventuous still serves the endpoints (the flip + deletion is Phase B/C).

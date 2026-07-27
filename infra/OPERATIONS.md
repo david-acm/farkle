@@ -1,6 +1,6 @@
 # Operations runbook — Azure deployment
 
-How the Farkle app is deployed and operated on Azure Container Apps. For the
+How the HotDice app is deployed and operated on Azure Container Apps. For the
 Bicep resource breakdown see [`README.md`](./README.md); for the *why* behind
 the non-obvious settings see [`docs/lessons-learned.md`](../docs/lessons-learned.md).
 

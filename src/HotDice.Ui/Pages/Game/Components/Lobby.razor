@@ -1,0 +1,95 @@
+@inherits HotDice.Ui.Features.GameStateComponent
+@using HotDice.Ui.Features
+@using HotDice.Ui.Services
+@inject IJSRuntime JS
+@inject NavigationManager Nav
+@inject IShareService Share
+@inject ISnackbar Snackbar
+
+<MudCard Class="mt-4" data-testid="lobby" Style="max-width: 520px">
+  <MudCardContent>
+    <MudText Typo="Typo.h5" Class="mb-3">Game Lobby</MudText>
+
+    <div class="d-flex align-center flex-wrap mb-4" data-testid="share-game-id">
+      <MudText Typo="Typo.subtitle1" Class="mr-1">Game code:</MudText>
+      <MudText Typo="Typo.h6" Color="Color.Primary" Class="mr-1">@GameState.GameId.Value</MudText>
+      <MudIconButton Icon="@Icons.Material.Filled.ContentCopy"
+                     Size="Size.Small"
+                     Color="Color.Primary"
+                     aria-label="Copy game code"
+                     OnClick="CopyGameId" />
+    </div>
+    <MudText Typo="Typo.body2" Class="mb-3">Share this code so friends can join.</MudText>
+
+    <div class="d-flex flex-column align-center mb-4" data-testid="join-share">
+      <JoinQrCode JoinUrl="@JoinUrl" />
+      <MudButton Variant="Variant.Filled"
+                 Color="Color.Primary"
+                 StartIcon="@Icons.Material.Filled.Share"
+                 Class="mt-2"
+                 data-testid="share-join-link"
+                 OnClick="ShareAsync">Share</MudButton>
+    </div>
+
+    <MudText Typo="Typo.subtitle2" Class="mb-1">Players (@GameState.Roster.Count)</MudText>
+    @foreach (var p in GameState.Roster)
+    {
+      <div data-testid="roster-player" class="d-flex align-center py-1">
+        <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" Class="mr-2" />
+        <MudText>
+          @p.Name@(p.PlayerId == GameState.HostPlayerId ? " (host)" : string.Empty)
+        </MudText>
+      </div>
+    }
+  </MudCardContent>
+  <MudCardActions>
+    @if (GameState.IsHost)
+    {
+      <MudButton Variant="Variant.Filled"
+                 Color="Color.Primary"
+                 FullWidth="true"
+                 StartIcon="@Icons.Material.Filled.PlayArrow"
+                 data-testid="start-game-button"
+                 Disabled="@(GameState.Roster.Count < 1)"
+                 OnClick="StartGameAsync">Start the game</MudButton>
+    }
+    else
+    {
+      <MudAlert Severity="Severity.Info" Dense="true" Class="flex-grow-1" data-testid="waiting-for-host">
+        Waiting for the host to start the game…
+      </MudAlert>
+    }
+  </MudCardActions>
+</MudCard>
+
+@code {
+  private string JoinUrl => JoinLink.For(Nav.BaseUri, GameState.GameId.Value);
+
+  private async Task StartGameAsync() =>
+    await Mediator.Send(new GameState.BeginGame.Action());
+
+  private async Task ShareAsync()
+  {
+    var url = JoinUrl;
+    var shared = await Share.ShareAsync("Join my HotDice game", "Tap to join my HotDice game", url);
+    if (shared) return;
+
+    // No Web Share API (most desktops) — copy the link instead.
+    var copied = await Share.CopyAsync(url);
+    Snackbar.Add(
+      copied ? "Join link copied to clipboard" : "Couldn't share the join link",
+      copied ? Severity.Success : Severity.Warning);
+  }
+
+  private async Task CopyGameId()
+  {
+    try
+    {
+      await JS.InvokeVoidAsync("navigator.clipboard.writeText", GameState.GameId.Value.ToString());
+    }
+    catch
+    {
+      // Clipboard access may be denied; copying is a convenience, not essential.
+    }
+  }
+}

@@ -31,7 +31,7 @@ namespace Internal.Generated.WolverineHandlers
             var messageContext = new Wolverine.Runtime.MessageContext(_wolverineRuntime);
             // Building the Marten session
             await using var documentSession = _outboxedSessionFactory.OpenSession(messageContext);
-            System.Diagnostics.Activity.Current?.SetTag("handler.type", "Farkle.Features.BeginGame.BeginGameEndpoint");
+            System.Diagnostics.Activity.Current?.SetTag("handler.type", "HotDice.Features.BeginGame.BeginGameEndpoint");
             string gameId_rawValue = (string?)httpContext.GetRouteValue("gameId");
             int gameId = default;
 
@@ -47,12 +47,12 @@ namespace Internal.Generated.WolverineHandlers
             }
 
             // Reading the request body via JSON deserialization
-            var (body, jsonContinue) = await ReadJsonAsync<Farkle.Contracts.HttpRequests.BeginGameRequest>(httpContext);
+            var (body, jsonContinue) = await ReadJsonAsync<HotDice.Contracts.HttpRequests.BeginGameRequest>(httpContext);
             if (jsonContinue == Wolverine.HandlerContinuation.Stop) return;
-            var result_of_StreamId = Farkle.Features.BeginGame.BeginGameEndpoint.StreamId(gameId);
+            var result_of_StreamId = HotDice.Features.BeginGame.BeginGameEndpoint.StreamId(gameId);
             var batchedQuery = documentSession.CreateBatchQuery();
 
-            var stream_state_BatchItem = batchedQuery.Events.FetchForWriting<Farkle.Domain.GameAggregate.GameState>(result_of_StreamId);
+            var stream_state_BatchItem = batchedQuery.Events.FetchForWriting<HotDice.Domain.GameAggregate.GameState>(result_of_StreamId);
 
             await batchedQuery.Execute(httpContext.RequestAborted);
 
@@ -60,7 +60,7 @@ namespace Internal.Generated.WolverineHandlers
             var stream_state = await stream_state_BatchItem.ConfigureAwait(false);
 
             System.Diagnostics.Activity.Current?.SetTag("wolverine.stream.id", result_of_StreamId.ToString());
-            System.Diagnostics.Activity.Current?.SetTag("wolverine.stream.type", "Farkle.Domain.GameAggregate.GameState");
+            System.Diagnostics.Activity.Current?.SetTag("wolverine.stream.type", "HotDice.Domain.GameAggregate.GameState");
             // 404 if this required object is null
             if (stream_state.Aggregate == null)
             {
@@ -70,7 +70,7 @@ namespace Internal.Generated.WolverineHandlers
 
             
             // The actual HTTP request handler execution
-            (var resultsOfOkOfLobbyStateResponseAndProblemHttpResult, var events, var gameBegan) = Farkle.Features.BeginGame.BeginGameEndpoint.Post(gameId, body, stream_state.Aggregate);
+            (var resultsOfOkOfLobbyStateResponseAndProblemHttpResult, var events, var gameBegan) = HotDice.Features.BeginGame.BeginGameEndpoint.Post(gameId, body, stream_state.Aggregate);
 
             if (events != null)
             {

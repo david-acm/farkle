@@ -11,7 +11,7 @@ namespace Internal.Generated.WolverineHandlers
 
         public override System.Type[] HandlerTypes()
         {
-            return new System.Type[] { typeof(Farkle.Application.GameBroadcastHandler) };
+            return new System.Type[] { typeof(HotDice.Application.GameBroadcastHandler) };
         }
 
 

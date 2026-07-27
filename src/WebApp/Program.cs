@@ -1,6 +1,6 @@
 using System.Reflection;
 using System.Text;
-using Farkle;
+using HotDice;
 using JasperFx;
 using JasperFx.CodeGeneration;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -13,22 +13,22 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Npgsql;
 using WebApp.Auth;
-using Farkle.Ui.Pages;
+using HotDice.Ui.Pages;
 using WebApp.Components;
 using MudBlazor.Services;
 using Serilog;
-using Farkle.Ui;
+using HotDice.Ui;
 using WebApp.Telemetry;
-using Farkle.Infrastructure;
-using Farkle.Infrastructure.Identity;
-using Farkle.Realtime;
+using HotDice.Infrastructure;
+using HotDice.Infrastructure.Identity;
+using HotDice.Realtime;
 
 var logger = Log.Logger = new LoggerConfiguration()
   .Enrich.FromLogContext()
   .WriteTo.Console()
   .CreateLogger();
 
-logger.Information("Starting Farkle WebApp {Version}", WebApp.AppVersion.Current);
+logger.Information("Starting HotDice WebApp {Version}", WebApp.AppVersion.Current);
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -49,7 +49,7 @@ var services = builder.Services;
 // event-store spans with causation across the async handling hop), metrics, and logs to
 // Application Insights. Gated on the connection string so local dev/tests don't phone home.
 var appInsightsConn = builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"];
-services.AddFarkleTelemetry(appInsightsConn);
+services.AddHotDiceTelemetry(appInsightsConn);
 
 // #303 — OpenAPI is now sourced from ASP.NET's built-in document generator (Microsoft.AspNetCore.
 // OpenApi), which sees the Wolverine.HTTP endpoints. It replaces FastEndpoints.Swagger + NSwag; the
@@ -57,12 +57,12 @@ services.AddFarkleTelemetry(appInsightsConn);
 services.AddOpenApi();
 
 // Identity persistence (DbContext + stores + the Entra/managed-identity data-source decision)
-// lives in Farkle.Infrastructure; it returns the data source so the read model reuses it.
+// lives in HotDice.Infrastructure; it returns the data source so the read model reuses it.
 var identityConn = builder.Configuration.GetConnectionString("Identity");
-var identityDataSource = services.AddFarkleIdentity(identityConn);
+var identityDataSource = services.AddHotDiceIdentity(identityConn);
 
 // Readiness checks for the two backing services (tagged "ready"); liveness runs none.
-services.AddFarkleHealthChecks();
+services.AddHotDiceHealthChecks();
 
 // #303 — standard ASP.NET JWT bearer (replacing FastEndpoints.Security). HMAC-SHA256 over
 // Auth:JwtSecret; issuer/audience are not used, so validate signature + lifetime only. The login
@@ -91,7 +91,7 @@ services.AddSignalR();
 // no cross-origin access until configured). Never combine AllowAnyOrigin with
 // credentials — that is a CORS misconfiguration browsers reject.
 services.AddCors(o =>
-  o.AddPolicy("FarklePolicy", p => p
+  o.AddPolicy("HotDicePolicy", p => p
     .WithOrigins(builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>())
     .AllowAnyHeader()
     .AllowAnyMethod()));
@@ -100,9 +100,9 @@ services.AddCors(o =>
 // PostgreSQL event store (GameState is the Inline self-aggregating snapshot GET reads) + Wolverine as
 // the command bus (ADR 0004). Marten shares the one Postgres with Identity (its own schema). NSwag
 // boots DB-free (lightweight: Marten lazy, Wolverine mediator-only) for swagger extraction.
-services.AddFarkleModuleServices(builder.Configuration, logger, new List<Assembly>());
+services.AddHotDiceModuleServices(builder.Configuration, logger, new List<Assembly>());
 var martenConn = identityConn ?? "Host=localhost;Database=farkle;Username=postgres;Password=postgres";
-services.AddFarkleCritterStack(martenConn, lightweight: builder.Environment.IsEnvironment("NSwag"));
+services.AddHotDiceCritterStack(martenConn, lightweight: builder.Environment.IsEnvironment("NSwag"));
 
 // #305 — JasperFx owns the Critter Stack codegen + resource strategy per environment and lights up the
 // `dotnet run -- describe | resources | codegen | db-apply | projections` CLI (dispatched at the bottom
@@ -118,8 +118,8 @@ var useStaticCodegen = builder.Environment.IsProduction();
 services.AddJasperFx(opts =>
 {
   // The generated handler/endpoint code is committed under this host project (src/WebApp/Internal/
-  // Generated) and compiled into WebApp. AddWolverine is called from the Farkle assembly, so without
-  // this JasperFx would look for the pre-built types in Farkle and throw ExpectedTypeMissingException
+  // Generated) and compiled into WebApp. AddWolverine is called from the HotDice assembly, so without
+  // this JasperFx would look for the pre-built types in HotDice and throw ExpectedTypeMissingException
   // under Static. Point it at the host assembly where the code actually lives.
   opts.ApplicationAssembly = typeof(Program).Assembly;
 
@@ -193,11 +193,11 @@ if (!app.Environment.IsEnvironment("NSwag"))
     app.MapStaticAssets();
 
 if (!app.Environment.IsEnvironment("NSwag"))
-    app.SetUpFarkleModule();
+    app.SetUpHotDiceModule();
 
 // Before authentication and the endpoints so preflight + Wolverine.HTTP/OpenAPI
 // responses carry the CORS headers.
-app.UseCors("FarklePolicy");
+app.UseCors("HotDicePolicy");
 
 var requireAuth = builder.Configuration.GetValue<bool>("Auth:RequireAuthorization");
 if(requireAuth)
@@ -251,7 +251,7 @@ app.MapOpenApi();
 app.MapWolverineEndpoints(opts =>
 {
   // #302 follow-up — run the registered FluentValidation validators (AddValidatorsFromAssembly in
-  // AddFarkleModuleServices) ahead of any endpoint whose request DTO has one, returning a 400
+  // AddHotDiceModuleServices) ahead of any endpoint whose request DTO has one, returning a 400
   // ValidationProblem on failure. Input validity only (out-of-range dice, blank names); business
   // rules remain validation-as-events in the deciders.
   opts.UseFluentValidationProblemDetailMiddleware();

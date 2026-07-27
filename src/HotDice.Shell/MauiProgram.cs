@@ -1,8 +1,8 @@
-using Farkle.ApiClient;
-using Farkle.Client.Api;
+using HotDice.ApiClient;
+using HotDice.Client.Api;
 using HotDice.Shell.Lifecycle;
 using Microsoft.Extensions.Logging;
-using Farkle.Ui;
+using HotDice.Ui;
 
 namespace HotDice.Shell;
 
@@ -34,8 +34,8 @@ public static class MauiProgram
 
         // Owns the HttpClient + Kiota adapter for the app's lifetime; the container disposes it
         // on shutdown (ADR 0010).
-        builder.Services.AddSingleton(_ => new FarkleApiConnection(backendUrl));
-        builder.Services.AddSingleton<FarkleApiClient>(sp => sp.GetRequiredService<FarkleApiConnection>().Client);
+        builder.Services.AddSingleton(_ => new HotDiceApiConnection(backendUrl));
+        builder.Services.AddSingleton<HotDiceApiClient>(sp => sp.GetRequiredService<HotDiceApiConnection>().Client);
 
         builder.Services.AddSingleton<MauiAppLifecycleBridge>();
 

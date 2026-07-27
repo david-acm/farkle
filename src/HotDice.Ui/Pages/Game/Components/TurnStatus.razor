@@ -1,0 +1,11 @@
+@inherits HotDice.Ui.Features.GameStateComponent
+@using HotDice.Ui.Features
+
+@* Whose turn it is is signalled by the 🎲 emoji next to the player in the Scoreboard
+   (#179); this just identifies the local player. *@
+<MudText Typo="Typo.subtitle2" Class="mb-1">
+  Playing as: <strong style="color: @GameState.PlayerColorFor(GameState.PlayerId.Value)">@GameState.PlayerName.Value</strong>
+</MudText>
+
+@code {
+}

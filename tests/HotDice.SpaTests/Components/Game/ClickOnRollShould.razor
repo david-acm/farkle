@@ -1,0 +1,34 @@
+@using BlazorState
+@using Moq
+@using MudBlazor.Services
+@using HotDice.Ui.Pages.Game.Components
+@using HotDice.Ui.Pages.Game
+@using HotDice.Ui.Services
+@using Die = Blazor.Dice.Die
+@inherits GameBunitContext
+
+@code {
+  [Fact]
+  public async Task UpdateDiceWithReceivedValues()
+  {
+    // Given
+    var expectedDieValue = DieValue.Five;
+    Mock.Get(GameService)
+      .Setup(g => g.RollDiceAsync(It.IsAny<int>(), It.IsAny<int>()))
+      .ReturnsAsync(new List<DieValue>()
+      {
+        expectedDieValue
+      });
+    var cut = Render(@<Game></Game>);
+    JoinGame(cut);
+    var button = cut.FindComponent<RollDiceButton>().Find("button");
+
+    // When
+    await cut.InvokeAsync(() => button.Click());
+
+    // Then
+    Mock.Get(GameService).Verify(s => s.RollDiceAsync(It.IsAny<int>(), It.IsAny<int>()), Times.Once);
+    cut.FindComponent<Die>().Instance.DieValue.Should().Be(expectedDieValue);
+  }
+
+}

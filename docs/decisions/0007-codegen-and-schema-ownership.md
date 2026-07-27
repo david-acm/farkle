@@ -12,7 +12,7 @@ decisions had to be pinned down for #305 (tooling & ops):
    (`TypeLoadMode.Dynamic`, needs Roslyn at runtime) or load pre-generated, committed code
    (`TypeLoadMode.Static`, no runtime Roslyn — faster, more predictable cold start).
 2. **Who owns database schema?** Marten can create/patch its own event + projection tables; ASP.NET
-   Identity uses EF Core migrations. Farkle runs both on **one** PostgreSQL.
+   Identity uses EF Core migrations. HotDice runs both on **one** PostgreSQL.
 
 ## Decision
 
@@ -24,14 +24,14 @@ decisions had to be pinned down for #305 (tooling & ops):
    - **Development**, tests, and the OpenAPI `GetDocument` boot (the `NSwag` environment) → `Dynamic`
      (regenerated in-memory), so none of them depend on the committed code being current.
    - `opts.ApplicationAssembly = typeof(Program).Assembly` — the generated code compiles into the
-     **WebApp** host assembly, so the Static loader must look there (not in `Farkle`, where
+     **WebApp** host assembly, so the Static loader must look there (not in `HotDice`, where
      `AddWolverine` is called and which JasperFx would otherwise default to).
 2. **Committed generated code** lives in `src/WebApp/Internal/Generated/`; a **`verify-codegen`** CI
    job regenerates it (`codegen write` in the NSwag env — no DB, no WASM) and fails on drift, the exact
    analogue of `verify-generated` for the OpenAPI/Kiota client.
 3. **Schema ownership is split.** **Marten manages its own schema** (`AutoCreate.CreateOrUpdate` — no
    hand-written event/projection migrations). **ASP.NET Identity keeps its EF migrations**
-   (`src/Farkle.Infrastructure/Migrations/`), applied on startup. Operators use the **JasperFx CLI**
+   (`src/HotDice.Infrastructure/Migrations/`), applied on startup. Operators use the **JasperFx CLI**
    (`dotnet run --project src/WebApp -- describe | resources | db-apply | projections`) against the real
    configuration.
 
@@ -46,7 +46,7 @@ decisions had to be pinned down for #305 (tooling & ops):
 - One PostgreSQL, two schema owners: Marten (events + the `GameState` snapshot) auto-manages; EF
   (Identity) migrates. There is no hand-written migration for game data.
 - The Static loader's assembly (`ApplicationAssembly = WebApp`) is load-bearing: without it, Static
-  throws `ExpectedTypeMissingException` looking for the types in `Farkle`. (This bit the #305 PR's
+  throws `ExpectedTypeMissingException` looking for the types in `HotDice`. (This bit the #305 PR's
   OpenAPI build before the `ApplicationAssembly` fix.)
 
 Runbook: [`../../infra/OPERATIONS.md`](../../infra/OPERATIONS.md). Onboarding cheatsheet:

@@ -191,7 +191,7 @@ if [ "$MODE" = "videos" ]; then
     printf '<!DOCTYPE html>\n<html lang="en">\n<head>\n'
     printf '<meta charset="utf-8">\n'
     printf '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
-    printf '<title>E2E run %s — Farkle</title>\n' "$(esc "$RUN_ID")"
+    printf '<title>E2E run %s — HotDice</title>\n' "$(esc "$RUN_ID")"
     printf '<style>\n%s\n</style>\n</head>\n<body>\n' "$PAGE_STYLE"
     printf '<p><a href="../../">← All runs</a></p>\n'
     printf '<h1>E2E run %s</h1>\n' "$(esc "$RUN_ID")"
@@ -218,7 +218,7 @@ else
     printf '<!DOCTYPE html>\n<html lang="en">\n<head>\n'
     printf '<meta charset="utf-8">\n'
     printf '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
-    printf '<title>Storyboard run %s — Farkle</title>\n' "$(esc "$RUN_ID")"
+    printf '<title>Storyboard run %s — HotDice</title>\n' "$(esc "$RUN_ID")"
     printf '<style>\n%s\n</style>\n</head>\n<body>\n' "$PAGE_STYLE"
     printf '<p><a href="../../">← All runs</a></p>\n'
     printf '<h1>Storyboard run %s</h1>\n' "$(esc "$RUN_ID")"
@@ -347,7 +347,7 @@ done
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Farkle — E2E test reports</title>
+<title>HotDice — E2E test reports</title>
 <style>
   :root { color-scheme: light dark; }
   body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
@@ -364,7 +364,7 @@ done
 </style>
 </head>
 <body>
-<h1>Farkle — E2E test reports</h1>
+<h1>HotDice — E2E test reports</h1>
 <p class="sub">Playwright happy-path recordings (🎬) and storyboard screenshots (📸), newest first.</p>
 HTML
 

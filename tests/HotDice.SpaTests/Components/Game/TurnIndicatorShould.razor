@@ -1,0 +1,47 @@
+@inherits GameBunitContext
+@using BlazorState
+@using MediatR
+@using Moq
+@using HotDice.Ui.Features
+@using HotDice.Ui.Pages.Game
+@using static HotDice.Contracts.HttpResponses
+
+@code {
+  // B3 — Turn indicator (#179): the 🎲 marker sits next to the in-turn player in the
+  // scoreboard, tagged my-turn-indicator in the local player's browser and
+  // waiting-indicator otherwise.
+
+  [Fact]
+  public void ShowMyTurnIndicator_AfterJoining()
+  {
+    var cut = Render(@<Game></Game>);
+    JoinGame(cut, "Alice", assignedPlayerId: 1);
+
+    cut.Find("[data-testid='my-turn-indicator']")
+      .TextContent.Should().Contain("🎲");
+    cut.FindAll("[data-testid='waiting-indicator']").Should().BeEmpty();
+  }
+
+  [Fact]
+  public async Task ShowWaitingIndicatorWithOpponentName_WhenItIsNotMyTurn()
+  {
+    var cut = Render(@<Game></Game>);
+    JoinGame(cut, "Alice", assignedPlayerId: 1);
+
+    var sender = Services.GetRequiredService<ISender>();
+    await sender.Send(new GameState.RemoteTurnChanged.Action(
+      new PassTurnResponse(
+        GameId:          0,
+        PlayerId:        1,
+        NewScore:        0,
+        Winner:          null,
+        CurrentPlayerId: 2,
+        Scoreboard:      [new PlayerScore(1, "Alice", 0), new PlayerScore(2, "Bob", 0)])));
+
+    // The marker sits in the in-turn player's scoreboard row — the cell holds 🎲 + the name.
+    var waiting = cut.Find("[data-testid='waiting-indicator']");
+    waiting.TextContent.Should().Contain("🎲");
+    waiting.ParentElement!.TextContent.Should().Contain("Bob");
+    cut.FindAll("[data-testid='my-turn-indicator']").Should().BeEmpty();
+  }
+}

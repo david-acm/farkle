@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <!-- Pure, dependency-free leaf shared by the HotDice server core and the Blazor WASM client.
+         Two logical namespaces live here: HotDice.Contracts (the HTTP + SignalR wire DTOs) and
+         HotDice.SharedKernel (shared domain logic — scoring, turn policy, GameStage). Merged from
+         the former HotDice.Contracts + HotDice.SharedKernel projects; kept web-framework-free so the
+         WASM client can reference it without dragging in Marten/Wolverine/ASP.NET. -->
+
+</Project>

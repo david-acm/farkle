@@ -1,0 +1,64 @@
+@namespace HotDice.Ui.Layout
+
+<div class="feedback-widget @(_pulsing ? "pulsing" : null)">
+    @if (_hint && !_open)
+    {
+        <div class="feedback-hint" data-testid="feedback-hint">Found an issue? Let us know.</div>
+    }
+
+    <MudIconButton Icon="@Icons.Material.Filled.Feedback"
+                   Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Class="feedback-fab"
+                   aria-label="Send feedback"
+                   data-testid="feedback-button"
+                   OnClick="Toggle" />
+
+    @if (_open)
+    {
+        <MudPaper Class="feedback-form" Elevation="8" data-testid="feedback-form">
+            <MudText Typo="Typo.subtitle2" Class="mb-2">Send feedback</MudText>
+
+            @if (_sent)
+            {
+                <MudText Typo="Typo.body2" Color="Color.Success" data-testid="feedback-thanks">
+                    Thanks for the feedback!
+                </MudText>
+            }
+            else
+            {
+                <MudTextField @bind-Value="_message"
+                              Immediate="true"
+                              Lines="3"
+                              Variant="Variant.Outlined"
+                              Placeholder="What's on your mind?"
+                              data-testid="feedback-message" />
+
+                <div class="feedback-sentiment">
+                    <MudIconButton Icon="@Icons.Material.Filled.ThumbUp"
+                                   Color="@(_sentiment == Up ? Color.Success : Color.Default)"
+                                   aria-label="Thumbs up"
+                                   data-testid="feedback-up"
+                                   OnClick="@(() => _sentiment = Up)" />
+                    <MudIconButton Icon="@Icons.Material.Filled.ThumbDown"
+                                   Color="@(_sentiment == Down ? Color.Error : Color.Default)"
+                                   aria-label="Thumbs down"
+                                   data-testid="feedback-down"
+                                   OnClick="@(() => _sentiment = Down)" />
+                </div>
+            }
+
+            <div class="feedback-actions">
+                <MudButton OnClick="Close" data-testid="feedback-close">Close</MudButton>
+                @if (!_sent)
+                {
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               Disabled="@(_sending || string.IsNullOrWhiteSpace(_message))"
+                               data-testid="feedback-submit"
+                               OnClick="SubmitAsync">Submit</MudButton>
+                }
+            </div>
+        </MudPaper>
+    }
+</div>

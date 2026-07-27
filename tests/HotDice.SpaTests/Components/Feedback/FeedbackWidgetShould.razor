@@ -1,0 +1,70 @@
+@inherits BunitContext
+@using System.Collections.Generic
+@using Bunit
+@using FluentAssertions
+@using Microsoft.Extensions.DependencyInjection
+@using Moq
+@using MudBlazor.Services
+@using HotDice.Ui.Layout
+@using HotDice.Ui.Services
+
+@code {
+  // #277 — the global feedback widget: renders on every page, opens a text + 👍/👎 form that
+  // submits through IFeedbackService, and pulses + records UI.RageClick telemetry on a rage burst.
+  private readonly IFeedbackService _feedback  = Mock.Of<IFeedbackService>();
+  private readonly IUiTelemetry     _telemetry = Mock.Of<IUiTelemetry>();
+
+  public FeedbackWidgetShould()
+  {
+    JSInterop.Mode = JSRuntimeMode.Loose; // farkleRageClick.start in OnAfterRender is a no-op here
+    Services.AddMudServices();
+    Services.AddScoped(_ => _feedback);
+    Services.AddScoped(_ => _telemetry);
+  }
+
+  [Fact]
+  public void RenderTheFloatingButton_FormClosed()
+  {
+    var cut = Render<FeedbackWidget>();
+
+    cut.Find("[data-testid='feedback-button']");
+    cut.FindAll("[data-testid='feedback-form']").Should().BeEmpty("the form is closed until the icon is clicked");
+  }
+
+  [Fact]
+  public void OpenTheForm_WhenTheIconIsClicked()
+  {
+    var cut = Render<FeedbackWidget>();
+
+    cut.Find("[data-testid='feedback-button']").Click();
+
+    cut.Find("[data-testid='feedback-form']");
+  }
+
+  [Fact]
+  public void SubmitFeedback_ThroughTheService_ThenThank()
+  {
+    var cut = Render<FeedbackWidget>();
+    cut.Find("[data-testid='feedback-button']").Click();
+
+    cut.Find("textarea").Input("The dice are gorgeous");
+    cut.Find("[data-testid='feedback-submit']").Click();
+
+    Mock.Get(_feedback).Verify(s => s.SubmitFeedbackAsync(
+      "The dice are gorgeous", "Up", It.IsAny<int?>(), It.IsAny<string?>()), Times.Once);
+    cut.Find("[data-testid='feedback-thanks']");
+  }
+
+  [Fact]
+  public async Task Pulse_AndRecordTelemetry_OnRageBurst()
+  {
+    var cut = Render<FeedbackWidget>();
+
+    await cut.InvokeAsync(() => cut.Instance.OnRageBurst(5));
+
+    Mock.Get(_telemetry).Verify(t => t.TrackIntentAsync(
+      "UI.RageClick", It.IsAny<IReadOnlyDictionary<string, string?>>()), Times.Once);
+    cut.Find("[data-testid='feedback-hint']");
+    cut.Find(".feedback-widget").ClassList.Should().Contain("pulsing");
+  }
+}
