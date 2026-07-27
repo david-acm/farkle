@@ -29,7 +29,10 @@ public static class MauiProgram
         // Everything below here is the shared, desktop-testable core (ADR 0010) — the shell only
         // supplies the absolute backend URL and the window-event bridge.
         var backendUrl = Environment.GetEnvironmentVariable("HOTDICE_BACKEND_URL") ?? DefaultBackendUrl;
-        builder.Services.AddSingleton<FarkleApiClient>(_ => FarkleApiClientFactory.Create(backendUrl));
+        // Registered as a singleton so the container owns the HttpClient's lifetime and disposes
+        // it on shutdown; the client itself is resolved from it.
+        builder.Services.AddSingleton(_ => new FarkleApiConnection(backendUrl));
+        builder.Services.AddSingleton<FarkleApiClient>(sp => sp.GetRequiredService<FarkleApiConnection>().Client);
         builder.Services.AddSingleton<MauiAppLifecycleBridge>();
 
 #if DEBUG

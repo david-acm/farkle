@@ -1,4 +1,5 @@
 using Farkle.Client.Realtime;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
 using static Farkle.Contracts.HttpResponses;
 
@@ -76,7 +77,17 @@ public sealed class GameHubService(HttpClient http, IUiTelemetry telemetry) : IG
     public async Task DisconnectAsync(CancellationToken ct = default)
     {
         if (_connection is null) return;
-        try { await _connection.InvokeAsync("LeaveGame", _gameId, ct); } catch { /* best effort */ }
+        // Best effort: we are tearing the connection down regardless, so a failure to say goodbye
+        // is not worth surfacing. Narrowed to what InvokeAsync can actually raise on a dying
+        // connection — a blanket catch would also swallow real defects.
+        try
+        {
+            await _connection.InvokeAsync("LeaveGame", _gameId, ct);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or HubException or IOException
+                                      or ObjectDisposedException or OperationCanceledException)
+        {
+        }
         await _connection.StopAsync(ct);
     }
 

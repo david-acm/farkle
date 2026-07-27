@@ -28,7 +28,7 @@ somewhere else regardless of philosophy.
 ### 1. A shared `Farkle.Client` library is the testable core
 
 `src/Farkle.Client` (net10.0) holds the client logic both the website and the app need — the
-realtime session, the app-lifecycle rules, and the API-client factory. It references no UI framework
+realtime session, the app-lifecycle rules, and the API connection. It references no UI framework
 and no MAUI, so **all of it runs under plain desktop unit tests** (`tests/Farkle.Client.Tests`) on
 the same Linux runner as the rest of CI.
 
@@ -79,12 +79,18 @@ calls and contains no logic. If it ever grows a branch, that branch belongs on t
 
 ### 5. The mobile client consumes the generated API client
 
-`FarkleApiClientFactory` builds the Kiota `FarkleApiClient` over an **injected `HttpMessageHandler`**
+`FarkleApiConnection` builds the Kiota `FarkleApiClient` over an **injected `HttpMessageHandler`**
 (so tests drive real requests with no server) against an **absolute** backend URL — the web client
-inherits its origin from the host that served the WASM; a standalone app has none. The factory
-rejects a non-http(s) URL: on Unix `Uri.TryCreate("/api", Absolute, …)` succeeds as a `file:` URI, so
+inherits its origin from the host that served the WASM; a standalone app has none. It rejects a
+non-http(s) URL: on Unix `Uri.TryCreate("/api", Absolute, …)` succeeds as a `file:` URI, so
 absoluteness alone would let a relative path through and fail on a device as an opaque connection
 error. `verify-generated` therefore covers the mobile client too, for free.
+
+It is a *connection* rather than a static factory because something must own the `HttpClient` and its
+handler chain: they live for the app's lifetime (registered as a singleton, disposed by the
+container), and building one per request would leak sockets. It disposes only the transport it
+creates — a caller-supplied handler stays the caller's to dispose, which is what keeps test doubles
+and shared handlers safe.
 
 ### 6. The shell stays out of `Farkle.sln`
 
