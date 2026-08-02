@@ -23,7 +23,7 @@
          high-severity advisory (GHSA-v5pm-xwqc-g5wc, NU1903). Remove once the direct deps
          pull a patched version themselves. -->
     <PackageReference Include="Microsoft.OpenApi" Version="2.8.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.5" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.10" />
     <!-- #302 follow-up — FluentValidation input-validation middleware for Wolverine.HTTP. Guards the
          request DTOs (out-of-range dice, empty names) so bad input becomes a 400 ValidationProblem
          before the endpoint runs, rather than a 500 from DieValue.FromValue. Business rules stay in
