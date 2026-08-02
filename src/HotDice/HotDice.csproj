@@ -23,7 +23,7 @@
     <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.0.0" />
     <!-- Critter Stack (#302): Marten 9 event store + Wolverine 6 aggregate handlers over PostgreSQL.
          RuntimeCompilation is the dev codegen path; prod switches to static codegen (#305). -->
-    <PackageReference Include="Marten" Version="9.12.0" />
+    <PackageReference Include="Marten" Version="9.22.2" />
     <PackageReference Include="WolverineFx.Marten" Version="6.16.0" />
     <PackageReference Include="WolverineFx.Http" Version="6.16.0" />
     <PackageReference Include="WolverineFx.RuntimeCompilation" Version="6.16.0" />
