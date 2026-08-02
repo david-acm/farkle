@@ -19,7 +19,7 @@
          The Wolverine.HTTP FluentValidation middleware (registered in the host) runs them ahead of
          the endpoint so bad input becomes a 400 ValidationProblem; DependencyInjectionExtensions
          auto-registers every AbstractValidator<T> in this assembly as a scoped IValidator<T>. -->
-    <PackageReference Include="FluentValidation" Version="12.0.0" />
+    <PackageReference Include="FluentValidation" Version="12.1.1" />
     <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.0.0" />
     <!-- Critter Stack (#302): Marten 9 event store + Wolverine 6 aggregate handlers over PostgreSQL.
          RuntimeCompilation is the dev codegen path; prod switches to static codegen (#305). -->
