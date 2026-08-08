@@ -32,7 +32,7 @@
     <PackageReference Include="Azure.Messaging.ServiceBus" Version="7.20.2" />
     <!-- #292 — FastEndpoints moved to the HotDice.Endpoints project with the HTTP endpoints, so
          the domain/application core no longer compiles against the web framework. -->
-    <PackageReference Include="Mapster" Version="10.0.10" />
+    <PackageReference Include="Mapster" Version="10.0.11" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.7" />
     <!-- Transitive pin (via Swashbuckle / Microsoft.AspNetCore.OpenApi): force off 2.4.1, which
          has a high-severity advisory (GHSA-v5pm-xwqc-g5wc, NU1903). Remove once the direct deps
