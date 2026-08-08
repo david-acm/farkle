@@ -1,0 +1,48 @@
+name: CD - Mobile Device Builds
+
+# Produces signed, store-ready iOS + Android artifacts of the HotDice MAUI Blazor Hybrid shell on
+# merge to main (#338) — the inputs to store CD (#340). This is the post-merge, signed counterpart
+# to the PR-time CI - Mobile Shell compile gate (mobile-shell.yml).
+#
+# Cost/coverage note (ADR 0009 / docs/mobile-practices-inventory.md): the reference app pushed the
+# pricey iOS build to a nightly cron because Azure DevOps macOS minutes were billed. This repo is
+# public, so GitHub's macOS runners are free — so BOTH platforms build on every merge. Android is
+# the cheap Linux runner; iOS is the free macOS runner. Signing material is supplied per platform as
+# base64 secrets (docs/mobile-signing-secrets.md); before those exist each job still runs and
+# produces an unsigned build so the gate is proven from day one.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/HotDice.Shell/**'
+      - 'src/HotDice.Ui/**'
+      - 'src/HotDice.Client/**'
+      - 'src/Blazor.Dice/**'
+      - 'src/HotDice.ApiClient/**'
+      - 'src/HotDice.Shared/**'
+      - '.github/workflows/mobile-build.yml'
+      - '.github/workflows/mobile-android-build.yml'
+      - '.github/workflows/mobile-ios-build.yml'
+      - '.github/actions/setup-maui/**'
+      - '.github/scripts/mobile-version.sh'
+  workflow_dispatch:
+
+# A newer merge supersedes an in-flight device build of an older commit.
+concurrency:
+  group: mobile-device-builds
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    name: Android
+    uses: ./.github/workflows/mobile-android-build.yml
+    secrets: inherit
+
+  ios:
+    name: iOS
+    uses: ./.github/workflows/mobile-ios-build.yml
+    secrets: inherit
