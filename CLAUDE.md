@@ -373,6 +373,10 @@ Push/PR to `main` + weekly. Builds the solution and runs CodeQL C# analysis (gen
 ### `.github/workflows/infra-validate.yml` (name: **CI - Infra Validate**) — PRs touching `infra/**`
 Builds + lints the Bicep + PSRule, credential-free. This is the gate for infra changes (Bicep can't be linted in remote dev containers).
 
+### Mobile shell (HotDice) — compile gate + signed device builds
+- **`CI - Mobile Shell` (`mobile-shell.yml`)** — PR compile gate. Builds `HotDice.Shell` for the Android head on Linux (installs `maui-android`), **no signing, no device**. The shell is deliberately not in `HotDice.sln`, so it's built on its own here.
+- **`CD - Mobile Device Builds` (`mobile-build.yml`, #338)** — on merge to `main`, produces signed store-ready **`.aab`** (Android/Linux) and **`.ipa`** (iOS/macOS) via the reusable `mobile-android-build.yml` / `mobile-ios-build.yml` (`workflow_call`) + the `setup-maui` composite action. Version is Play-safe monotonic from `.github/scripts/mobile-version.sh` (`version_code = github.run_number`, guarded against the 2.1e9 ceiling; tested by `tests/scripts/mobile-version.test.sh`). Signing material is base64 **repository secrets** decoded at build time (never in the repo) — encode/rotate runbook: [`docs/mobile-signing-secrets.md`](docs/mobile-signing-secrets.md). Until those secrets exist each job builds **unsigned** with a warning, so the gate is provable from day one. Store upload is #340.
+
 ### Deployment (CD) — two paths
 Deploys to Azure run on push to `main` (full runbook in [`infra/OPERATIONS.md`](../infra/OPERATIONS.md)). The line is *resource topology/config vs. just the running app version*:
 - **`CD - App Release` (`app-release.yml`)** — the everyday path. A `src/**` change triggers **`CI - Image`** (`build-image.yml`), which builds/pushes `webapp:<sha>` + `:latest` to the persistent ACR, then chains App Release: a fast `az containerapp update` (no ARM, seconds). **Ungated** except `vars.DEPLOY_ENABLED == 'true'`, so its OIDC ids come from **repository** variables, not the gated `production` environment.
