@@ -1,8 +1,8 @@
 name: Setup MAUI toolchain
 description: >
   Shared toolchain setup for the HotDice device builds (#338) — the GitHub analogue of the reference
-  app's setup.yml ADO template. Pins the .NET SDK from global.json, installs the requested MAUI
-  workload, and (on macOS) pins Xcode explicitly rather than trusting the runner default.
+  app's setup.yml ADO template. Pins the .NET SDK from global.json, installs the MAUI workload(s) the
+  target frameworks need, and (on macOS) optionally pins Xcode rather than trusting the runner default.
 
 inputs:
   workload:
@@ -39,6 +39,17 @@ runs:
           echo "::warning title=Xcode pin skipped::Xcode ${{ inputs.xcode-version }} is not installed on this runner; using the default ($(xcode-select -p)). Update the xcode-version input to a version the runner provides if a specific one is required."
         fi
 
-    - name: Install MAUI workload (maui-${{ inputs.workload }})
+    # Install the MAUI workload(s). Subtlety: the shell is a SingleProject that multi-targets
+    # net10.0-android + net10.0-ios on macOS (only net10.0-android on Linux — see the csproj), and
+    # `dotnet build`/`publish` RESTORES every one of a project's TFMs regardless of the `-f` you pass.
+    # Restore runs the workload-manifest check per TFM, so an iOS-only build on macOS still fails with
+    # NETSDK1147 ("install the android workload") unless the android workload is present too. Hence on
+    # macOS we install BOTH phone workloads; on Linux the single requested workload is enough.
+    - name: Install MAUI workload(s)
       shell: bash
-      run: dotnet workload install "maui-${{ inputs.workload }}"
+      run: |
+        if [ "${{ runner.os }}" = "macOS" ]; then
+          dotnet workload install maui-android maui-ios
+        else
+          dotnet workload install "maui-${{ inputs.workload }}"
+        fi
