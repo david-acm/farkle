@@ -1,0 +1,110 @@
+name: Mobile — Android build
+
+# Reusable (workflow_call) build of the HotDice MAUI Blazor Hybrid shell for Android — the GitHub
+# translation of the reference app's android-build.yml ADO template (#338). Produces a store-ready
+# signed .aab named by the monotonic version, uploaded as a workflow artifact (the input to CD, #340).
+#
+# Runs on Linux (the cheap runner; the Android head needs no macOS). Signing material never lives in
+# the repo: the keystore is a base64 GitHub secret decoded to a temp file at build time and deleted
+# after (see docs/mobile-signing-secrets.md for the encode/rotate procedure). Until the secrets are
+# configured the job still runs and builds an UNSIGNED .aab with a warning, so the build gate is
+# proven before the store credentials exist.
+
+on:
+  workflow_call:
+    inputs:
+      configuration:
+        description: 'Build configuration.'
+        type: string
+        default: Release
+    secrets:
+      ANDROID_KEYSTORE_BASE64:
+        description: 'Base64 of the upload keystore (.keystore/.jks). Absent → unsigned build.'
+        required: false
+      ANDROID_KEYSTORE_PASSWORD:
+        required: false
+      ANDROID_KEY_ALIAS:
+        required: false
+      ANDROID_KEY_PASSWORD:
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    name: Build shell (.aab)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup MAUI toolchain
+        uses: ./.github/actions/setup-maui
+        with:
+          workload: android
+
+      - name: Compute version
+        id: version
+        env:
+          RUN_NUMBER: ${{ github.run_number }}
+        run: bash .github/scripts/mobile-version.sh
+
+      - name: Decode signing keystore
+        id: signing
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/upload.keystore"
+            echo "signed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning title=Unsigned build::ANDROID_KEYSTORE_BASE64 is not set — building an UNSIGNED .aab. Configure the signing secrets (docs/mobile-signing-secrets.md) for a store-ready artifact."
+            echo "signed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish signed .aab
+        if: steps.signing.outputs.signed == 'true'
+        env:
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: >
+          dotnet publish src/HotDice.Shell/HotDice.Shell.csproj
+          -f net10.0-android -c ${{ inputs.configuration }}
+          -p:AndroidPackageFormat=aab
+          -p:ApplicationVersion=${{ steps.version.outputs.version_code }}
+          -p:ApplicationDisplayVersion=${{ steps.version.outputs.display_version }}
+          -p:AndroidKeyStore=true
+          -p:AndroidSigningKeyStore="$RUNNER_TEMP/upload.keystore"
+          -p:AndroidSigningStorePass="$KS_PASS"
+          -p:AndroidSigningKeyAlias="$KEY_ALIAS"
+          -p:AndroidSigningKeyPass="$KEY_PASS"
+
+      - name: Publish unsigned .aab
+        if: steps.signing.outputs.signed == 'false'
+        run: >
+          dotnet publish src/HotDice.Shell/HotDice.Shell.csproj
+          -f net10.0-android -c ${{ inputs.configuration }}
+          -p:AndroidPackageFormat=aab
+          -p:ApplicationVersion=${{ steps.version.outputs.version_code }}
+          -p:ApplicationDisplayVersion=${{ steps.version.outputs.display_version }}
+
+      - name: Remove keystore
+        if: always()
+        run: rm -f "$RUNNER_TEMP/upload.keystore"
+
+      - name: Collect the .aab
+        id: collect
+        run: |
+          aab="$(find src/HotDice.Shell/bin -name '*.aab' -print -quit)"
+          [ -n "$aab" ] || { echo "::error::no .aab produced"; exit 1; }
+          echo "path=$aab" >> "$GITHUB_OUTPUT"
+
+      - name: Upload .aab artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hotdice-android-${{ steps.version.outputs.build_version }}
+          path: ${{ steps.collect.outputs.path }}
+          retention-days: 14
+          if-no-files-found: error
