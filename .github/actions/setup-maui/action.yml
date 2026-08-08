@@ -21,13 +21,23 @@ runs:
       with:
         dotnet-version: '10.0.x'
 
-    # Xcode is pinned before the workload install so maui-ios resolves against the intended SDK.
-    # Reference-app lesson: select Xcode in the workflow — never rely on the image default, which
-    # drifts and silently changes the iOS SDK you build against.
+    # Optionally pin Xcode before the workload install so maui-ios resolves against a known SDK
+    # (reference-app lesson: don't silently drift with the image default). But a *hard* pin to a
+    # version that isn't on the runner is worse than no pin — it fails the whole build before it
+    # starts (which is exactly what a hardcoded 16.2 did on macos-latest). So only pin when the
+    # requested Xcode is actually installed; otherwise warn and fall back to the runner default.
+    # Pinning is opt-in (empty default) precisely because the available versions drift.
     - name: Pin Xcode (macOS only)
       if: runner.os == 'macOS' && inputs.xcode-version != ''
       shell: bash
-      run: sudo xcode-select -s "/Applications/Xcode_${{ inputs.xcode-version }}.app/Contents/Developer"
+      run: |
+        dev_dir="/Applications/Xcode_${{ inputs.xcode-version }}.app/Contents/Developer"
+        if [ -d "$dev_dir" ]; then
+          sudo xcode-select -s "$dev_dir"
+          echo "Selected Xcode ${{ inputs.xcode-version }}."
+        else
+          echo "::warning title=Xcode pin skipped::Xcode ${{ inputs.xcode-version }} is not installed on this runner; using the default ($(xcode-select -p)). Update the xcode-version input to a version the runner provides if a specific one is required."
+        fi
 
     - name: Install MAUI workload (maui-${{ inputs.workload }})
       shell: bash
