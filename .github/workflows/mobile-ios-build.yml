@@ -20,9 +20,13 @@ on:
         type: string
         default: Release
       xcode-version:
-        description: 'Xcode version to pin on the runner.'
+        description: >
+          Xcode version to pin on the runner (e.g. 16.2). Empty (default) uses the runner's default
+          Xcode, which GitHub keeps at a recent MAUI-supported stable — the robust choice, since the
+          exact versions installed on macos-latest drift. A pin is honoured only if that Xcode is
+          actually present (setup-maui warns and falls back otherwise).
         type: string
-        default: '16.2'
+        default: ''
     secrets:
       IOS_DIST_CERT_P12_BASE64:
         description: 'Base64 of the Apple Distribution certificate (.p12). Absent → unsigned simulator build.'
