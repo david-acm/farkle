@@ -84,6 +84,18 @@ These are the reference app's hard-won lessons, ported because they each cost re
 - **Fix:** use `http://10.0.2.2:<port>/` for the host loopback (the wrapper's default). iOS simulators
   share the host network, so `http://127.0.0.1:<port>/` works there.
 
+### The app renders but nothing happens after "Start" (no lobby / stuck on the landing page)
+- **Cause:** the backend round-trip (`POST /api/games`) never completed — either the backend is
+  unreachable, or Android blocked the request as **cleartext** (http is disallowed by default).
+- **Fix:** two parts. (1) Point the app at a reachable backend — the CI gate boots the real WebApp
+  locally (`dotnet run` on plain http, Postgres service) and **bakes** its host-loopback address into
+  the APK with `-p:HotDiceBackendUrl=http://10.0.2.2:5000` (a device can't read the host's
+  `HOTDICE_BACKEND_URL` env var). (2) Allow cleartext to that host: `network_security_config.xml`
+  permits http **only** to `10.0.2.2`/`localhost`, so a dev/CI build reaches a local backend while
+  everything else stays HTTPS-only. Running against the *deployed* backend is #345's post-deploy job.
+- **Aside:** in Blazor Hybrid, navigation doesn't change the WebView's document URL — detect a page by
+  its DOM (`[data-testid='lobby']`), never by `driver.Url`.
+
 ## What the happy path proves (and its one known gap)
 
 Launch (no blank WebView) → enter a name → start a game → a **SignalR-pushed** lobby update (a second

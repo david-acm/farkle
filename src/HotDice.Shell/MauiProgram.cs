@@ -1,3 +1,4 @@
+using System.Reflection;
 using HotDice.ApiClient;
 using HotDice.Client.Api;
 using HotDice.Shell.Lifecycle;
@@ -15,6 +16,25 @@ public static class MauiProgram
     /// </summary>
     public const string DefaultBackendUrl = "https://hotdice.davidacm.dev";
 
+    /// <summary>
+    /// The backend the app targets, resolved in priority order: the HOTDICE_BACKEND_URL env var
+    /// (desktop/dev), then a value baked in at publish time via -p:HotDiceBackendUrl=… (the device
+    /// tests point the app at a CI-local backend this way, since a device can't read host env vars),
+    /// then the production default.
+    /// </summary>
+    internal static string ResolveBackendUrl()
+    {
+        var fromEnv = Environment.GetEnvironmentVariable("HOTDICE_BACKEND_URL");
+        if (!string.IsNullOrWhiteSpace(fromEnv)) return fromEnv;
+
+        var baked = typeof(MauiProgram).Assembly
+            .GetCustomAttributes<AssemblyMetadataAttribute>()
+            .FirstOrDefault(a => a.Key == "HotDiceBackendUrl")?.Value;
+        if (!string.IsNullOrWhiteSpace(baked)) return baked;
+
+        return DefaultBackendUrl;
+    }
+
     public static MauiApp CreateMauiApp()
     {
         var builder = MauiApp.CreateBuilder();
@@ -24,7 +44,7 @@ public static class MauiProgram
 
         builder.Services.AddMauiBlazorWebView();
 
-        var backendUrl = Environment.GetEnvironmentVariable("HOTDICE_BACKEND_URL") ?? DefaultBackendUrl;
+        var backendUrl = ResolveBackendUrl();
 
         // The same UI the website runs, with the same registrations (RegisterClientServices brings
         // MudBlazor, BlazorState, the dice and the client services). The shell supplies only what a
