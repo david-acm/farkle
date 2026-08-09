@@ -87,9 +87,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+      # Install the Appium server and the UiAutomator2 driver at their mutually-compatible latest.
+      # (Pinning only the server floated the driver to a version that required a newer server —
+      # `uiautomator2 requires ^3.0.0-rc.2`. Installing both unpinned keeps them in lockstep.)
       - run: |
-          npm install -g appium@2
+          npm install -g appium
           appium driver install uiautomator2
+          appium --version
 
       # Cache the AVD snapshot so subsequent runs restore instead of cold-booting.
       - name: AVD cache
