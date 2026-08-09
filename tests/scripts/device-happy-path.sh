@@ -64,7 +64,10 @@ APPIUM_PID=""
 if [ -z "${UITEST_APPIUM_URL:-}" ]; then
   if command -v appium >/dev/null 2>&1; then
     log "Starting a local Appium server…"
-    appium --log "$DIAG_DIR/appium.log" >/dev/null 2>&1 &
+    # Allow on-demand Chromedriver download so the driver can automate the WebView whatever the
+    # System WebView's Chromium version is (paired with the chromedriverAutodownload capability).
+    appium --log "$DIAG_DIR/appium.log" \
+      --allow-insecure=uiautomator2:chromedriver_autodownload >/dev/null 2>&1 &
     APPIUM_PID=$!
     export UITEST_APPIUM_URL="http://127.0.0.1:4723/"
     sleep 5

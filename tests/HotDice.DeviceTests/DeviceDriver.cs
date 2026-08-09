@@ -39,6 +39,10 @@ internal static class DeviceDriver
             // The Hybrid app hosts a WebView; make sure Appium can see it and screenshot the web layer.
             options.AddAdditionalAppiumOption("ensureWebviewsHavePages", true);
             options.AddAdditionalAppiumOption("nativeWebScreenshot", true);
+            // Automating the WebView needs a Chromedriver matching the System WebView's Chromium
+            // version, which isn't bundled. Let Appium fetch the right one on demand (the server must
+            // also allow the insecure feature — see the wrapper's `--allow-insecure`).
+            options.AddAdditionalAppiumOption("chromedriverAutodownload", true);
             options.AddAdditionalAppiumOption("newCommandTimeout", 300);
             return new AndroidDriver(config.AppiumServerUri, options, DefaultTimeout);
         }
