@@ -46,10 +46,12 @@ public sealed partial class DeviceHappyPathShould
             driver.FindElements(Selectors.NameInput).First().SendKeys("Alice");
             driver.WaitForEnabled(Selectors.StartNewGame).Click();
 
-            var url    = driver.WaitForUrl(u => GameUrl().IsMatch(u));
-            var gameId = int.Parse(GameUrl().Match(url).Groups[1].Value);
-
-            driver.WaitForVisible(Selectors.Lobby);
+            // Detect the game via the DOM, not the WebView URL: Blazor Hybrid drives navigation
+            // through the router without changing the document URL, so a URL-based wait never
+            // resolves on-device. The lobby appearing also proves the backend round-trip (create
+            // game + host auto-join) actually completed.
+            driver.WaitForVisible(Selectors.Lobby, DeviceDriver.HydrationTimeout);
+            var gameId = ParseGameId(driver.FindElement(Selectors.ShareGameId).Text);
             driver.Count(Selectors.RosterPlayer).Should().Be(1, "the host auto-joins the lobby");
             evidence.Capture("lobby");
 
@@ -91,7 +93,11 @@ public sealed partial class DeviceHappyPathShould
         }
         catch
         {
+            // Dump the WebView DOM alongside the screenshot — in a headless emulator the page source
+            // is the most reliable evidence of where the flow actually stopped (e.g. an error modal
+            // vs. a still-loading page vs. a backend that never answered).
             evidence.Capture("failure");
+            evidence.CapturePageSource("failure");
             throw;
         }
         finally
@@ -112,6 +118,14 @@ public sealed partial class DeviceHappyPathShould
         return false;
     }
 
-    [GeneratedRegex(@"/games/(\d+)")]
-    private static partial Regex GameUrl();
+    private static int ParseGameId(string shareText)
+    {
+        var match = GameIdDigits().Match(shareText);
+        if (!match.Success)
+            throw new InvalidOperationException($"No game id found in the lobby share text: '{shareText}'.");
+        return int.Parse(match.Value);
+    }
+
+    [GeneratedRegex(@"\d+")]
+    private static partial Regex GameIdDigits();
 }

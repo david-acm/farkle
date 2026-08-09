@@ -21,6 +21,7 @@ internal static class Selectors
 
     // Lobby.
     public static readonly By Lobby           = TestId("lobby");
+    public static readonly By ShareGameId     = TestId("share-game-id");
     public static readonly By RosterPlayer    = TestId("roster-player");
     public static readonly By StartGameButton = TestId("start-game-button");
     public static readonly By WaitingForHost  = TestId("waiting-for-host");

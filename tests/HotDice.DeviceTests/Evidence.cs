@@ -29,4 +29,20 @@ internal sealed class Evidence(AppiumDriver driver, string diagnosticsDir, strin
             // diagnostic gap, not a test outcome.
         }
     }
+
+    /// <summary>Dumps the current WebView DOM as <c>{platform}-{NN}-{label}.html</c>.</summary>
+    public void CapturePageSource(string label)
+    {
+        _step++;
+        var safe = label.Replace(' ', '-');
+        var path = Path.Combine(diagnosticsDir, $"{platform}-{_step:D2}-{safe}.html");
+        try
+        {
+            File.WriteAllText(path, driver.PageSource);
+        }
+        catch (WebDriverException)
+        {
+            // Same rationale as Capture — best-effort diagnostics, never a masked failure.
+        }
+    }
 }
