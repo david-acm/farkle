@@ -1,0 +1,169 @@
+name: CI - Mobile Device UI
+
+# Per-PR on-device UI happy-path gate (#339, ADR 0011). Drives the REAL packaged app through one
+# happy path with Appium against the WebView context, and attaches screenshots + video to the PR.
+#
+# First increment: ANDROID only, and NON-BLOCKING (continue-on-error) — the run reports pass/fail
+# in a PR comment but does not fail the PR check, per #339's "start continue-on-error, flip to
+# required once green across a week of real PRs" (that flip, the iOS gate, and the nightly breadth
+# matrix are follow-ups). The gate is gated behind a fast device-free preflight so emulator time is
+# only spent on PRs that already pass cheaply.
+#
+# Backend note (first increment): the app uses its built-in default backend
+# (https://hotdice.davidacm.dev). Pointing the gate at a locally-booted backend needs a build-time
+# backend-URL seam in the shell (and enables the deterministic-dice Keep step) — a follow-up, tied
+# to #345's post-deploy reuse.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/HotDice.Shell/**'
+      - 'src/HotDice.Ui/**'
+      - 'src/HotDice.Client/**'
+      - 'src/Blazor.Dice/**'
+      - 'src/HotDice.ApiClient/**'
+      - 'src/HotDice.Shared/**'
+      - 'tests/HotDice.DeviceTests/**'
+      - 'tests/scripts/device-happy-path.sh'
+      - '.github/workflows/mobile-device-uitest.yml'
+      - '.github/actions/setup-maui/**'
+  workflow_dispatch:
+
+concurrency:
+  group: mobile-device-uitest-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write   # upsert the evidence comment
+
+jobs:
+  # Fast, device-free preflight (#337): don't spin an emulator for a PR that fails cheaply.
+  preflight:
+    name: Device-free preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+      - name: Client-core tests (the device-free tier)
+        run: dotnet test tests/HotDice.Client.Tests/HotDice.Client.Tests.csproj -c Release
+
+  android:
+    name: Android happy path
+    needs: preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+
+      # KVM permissions for a hardware-accelerated emulator (the capability the reference app lacked).
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Setup MAUI toolchain
+        uses: ./.github/actions/setup-maui
+        with:
+          workload: android
+
+      - name: Build the Android app (unsigned APK)
+        id: build
+        run: |
+          dotnet publish src/HotDice.Shell/HotDice.Shell.csproj \
+            -f net10.0-android -c Release -p:AndroidPackageFormat=apk
+          apk="$(find src/HotDice.Shell/bin -name '*-Signed.apk' -print -quit)"
+          [ -n "$apk" ] || apk="$(find src/HotDice.Shell/bin -name '*.apk' -print -quit)"
+          [ -n "$apk" ] || { echo "::error::no APK produced"; exit 1; }
+          echo "apk=$apk" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Node + Appium
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: |
+          npm install -g appium@2
+          appium driver install uiautomator2
+
+      # Cache the AVD snapshot so subsequent runs restore instead of cold-booting.
+      - name: AVD cache
+        uses: actions/cache@v4
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-34
+
+      - name: Create AVD snapshot (cache miss only)
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot-load
+          disable-animations: true
+          script: echo "Primed AVD snapshot for caching."
+
+      - name: Run the device happy path
+        id: happypath
+        continue-on-error: true   # NON-BLOCKING first increment; flip to required once stable (#339)
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot-save
+          disable-animations: true
+          script: |
+            UITEST_PLATFORM=android \
+            UITEST_APP_PATH="${{ steps.build.outputs.apk }}" \
+            UITEST_BACKEND_URL="https://hotdice.davidacm.dev/" \
+            UITEST_DIAG_DIR="$GITHUB_WORKSPACE/test-results/device/android" \
+              bash tests/scripts/device-happy-path.sh
+
+      - name: Upload evidence (screenshots + video + logs)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: device-android-${{ github.run_id }}
+          path: test-results/device/android/
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Report on the PR
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        env:
+          OUTCOME: ${{ steps.happypath.outcome }}
+          RUN_ID: ${{ github.run_id }}
+        with:
+          script: |
+            const ok = process.env.OUTCOME === 'success';
+            const marker = '<!-- device-uitest-report -->';
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${process.env.RUN_ID}`;
+            const body = [
+              marker,
+              `### ${ok ? '✅' : '❌'} Android device happy path (non-blocking)`,
+              '',
+              `The on-device UI happy path ${ok ? 'passed' : 'failed'} on the Android emulator.`,
+              `Screenshots + video are attached to the run as the \`device-android-${process.env.RUN_ID}\` artifact.`,
+              '',
+              `[Actions run](${runUrl}) · This gate is \`continue-on-error\` (informational) until it's proven stable (#339).`,
+            ].join('\n');
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+            const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number, per_page: 100 });
+            const existing = comments.find(c => c.body && c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            }

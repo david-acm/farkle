@@ -1,0 +1,117 @@
+using System.Text.RegularExpressions;
+using FluentAssertions;
+using OpenQA.Selenium.Appium;
+using Xunit;
+
+namespace HotDice.DeviceTests;
+
+/// <summary>
+/// The one on-device happy path (#339, ADR 0011), driven through the WebView context with Appium.
+/// It mirrors <c>GameHappyPathShould.HappyPath</c>'s selectors but is intentionally SHORTER than a
+/// full game-to-win: the device tier proves only what it uniquely can (ADR 0010) —
+///
+///   launch (no blank WebView) → enter a name → start a game → a SignalR-pushed lobby update →
+///   roll → set a die aside → keep (best-effort, see below).
+///
+/// It skips (not fails) when no device is configured, so it is inert outside the device workflow.
+///
+/// Deterministic-Keep limitation (ADR 0011): die faces are not in the DOM (a 3-D CSS cube), and
+/// Appium can't intercept the /rolls response the way Playwright does, so we cannot guarantee a
+/// scoring die without a scripted-dice backend (a follow-up). Set-aside always works (the tray is
+/// presentational); Keep is tapped only when the roll happens to score.
+/// </summary>
+public sealed partial class DeviceHappyPathShould
+{
+    [SkippableFact]
+    public async Task DriveTheOpeningFlowOnDevice()
+    {
+        Skip.IfNot(UITestConfig.IsConfigured,
+            "No device configured (set UITEST_PLATFORM + UITEST_APP_PATH — see the README).");
+
+        var config   = UITestConfig.FromEnvironment();
+        var platform = config.IsAndroid ? "android" : "ios";
+        using var backend = new BackendClient(config.BackendUri);
+
+        var driver = DeviceDriver.Create(config);
+        var evidence = new Evidence(driver, config.DiagnosticsDir, platform);
+        try
+        {
+            // ── 1. Cold launch: the WebView must render the real landing page, not a blank ──
+            driver.SwitchToWebView();
+            driver.WaitForVisible(Selectors.StartNewGame, DeviceDriver.HydrationTimeout)
+                .Should().NotBeNull("a cold launch must render the game UI, not a blank WebView");
+            evidence.Capture("launch");
+
+            // ── 2. Enter a name and host a game ──
+            driver.FindElements(Selectors.NameInput).First().SendKeys("Alice");
+            driver.WaitForEnabled(Selectors.StartNewGame).Click();
+
+            var url    = driver.WaitForUrl(u => GameUrl().IsMatch(u));
+            var gameId = int.Parse(GameUrl().Match(url).Groups[1].Value);
+
+            driver.WaitForVisible(Selectors.Lobby);
+            driver.Count(Selectors.RosterPlayer).Should().Be(1, "the host auto-joins the lobby");
+            evidence.Capture("lobby");
+
+            // ── 3. A SignalR-pushed update: a second player joins from OUTSIDE the device ──
+            await backend.JoinAsync(gameId, "Bob");
+            WaitForRosterCount(driver, 2)
+                .Should().BeTrue("the lobby roster should grow to 2 via a SignalR LobbyChanged push, no interaction");
+            evidence.Capture("signalr-join");
+
+            // ── 4. Start the game (enabled once the second player arrived) ──
+            driver.WaitForEnabled(Selectors.StartGameButton).Click();
+            driver.WaitForVisible(Selectors.MyTurnIndicator)
+                .Should().NotBeNull("the host is in turn once the game begins");
+            evidence.Capture("in-turn");
+
+            // ── 5. Roll ──
+            driver.WaitForEnabled(Selectors.RollButton).Click();
+            driver.WaitForVisible(Selectors.DieContainer)
+                .Should().NotBeNull("rolling puts dice on the table");
+            evidence.Capture("rolled");
+
+            // ── 6. Set a die aside (tap-to-select; always works, the tray is presentational) ──
+            driver.WaitForVisible(Selectors.TrayDie).Click();
+            driver.WaitForVisible(Selectors.SelectedTrayDie)
+                .Should().NotBeNull("tapping a die selects it (set-aside)");
+            evidence.Capture("set-aside");
+
+            // ── 7. Keep — best-effort until deterministic dice land (see the class summary) ──
+            if (driver.Exists(Selectors.KeepButton, TimeSpan.FromSeconds(2))
+                && driver.FindElement(Selectors.KeepButton).Enabled)
+            {
+                driver.FindElement(Selectors.KeepButton).Click();
+                evidence.Capture("kept");
+            }
+            else
+            {
+                evidence.Capture("farkle-no-scoring-die");
+            }
+        }
+        catch
+        {
+            evidence.Capture("failure");
+            throw;
+        }
+        finally
+        {
+            driver.Quit();
+            driver.Dispose();
+        }
+    }
+
+    private static bool WaitForRosterCount(AppiumDriver driver, int expected)
+    {
+        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(15);
+        while (DateTime.UtcNow < deadline)
+        {
+            if (driver.Count(Selectors.RosterPlayer) >= expected) return true;
+            Thread.Sleep(300);
+        }
+        return false;
+    }
+
+    [GeneratedRegex(@"/games/(\d+)")]
+    private static partial Regex GameUrl();
+}
