@@ -126,14 +126,13 @@ jobs:
           force-avd-creation: false
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot-save
           disable-animations: true
-          # The emulator-runner passes `script` to `sh -c`; backslash line-continuations break there
-          # (`sh: 1: \: not found`), so use complete `export` statements, one per line.
+          # Pass every UITEST_* value as a single-line env PREFIX on the bash invocation. `export`
+          # statements do NOT carry into the child shell in the emulator-runner's script context
+          # (a first attempt saw the wrapper rebuild the APK and the test skip because the vars
+          # weren't visible), whereas a one-line env prefix is guaranteed to reach bash and its
+          # children (dotnet test). Keep it on ONE physical line — no backslash continuations.
           script: |
-            export UITEST_PLATFORM=android
-            export UITEST_APP_PATH="${{ steps.build.outputs.apk }}"
-            export UITEST_BACKEND_URL="https://hotdice.davidacm.dev/"
-            export UITEST_DIAG_DIR="$GITHUB_WORKSPACE/test-results/device/android"
-            bash tests/scripts/device-happy-path.sh
+            UITEST_PLATFORM=android UITEST_APP_PATH="${{ steps.build.outputs.apk }}" UITEST_BACKEND_URL="https://hotdice.davidacm.dev/" UITEST_DIAG_DIR="test-results/device/android" bash tests/scripts/device-happy-path.sh
 
       - name: Upload evidence (screenshots + video + logs)
         if: always()

@@ -90,10 +90,16 @@ start_recording() {
 }
 finalize_recording() {
   [ -n "$REC_PID" ] || return 0
-  kill -INT "$REC_PID" 2>/dev/null || true   # SIGINT — the gotcha; a plain kill truncates the file
+  # SIGINT (the gotcha) so the recorder flushes a valid file instead of truncating. On Android the
+  # local `adb shell screenrecord` client won't relay the signal to the device-side recorder, so
+  # signal it there too — otherwise the wait blocks until screenrecord's own 180s limit.
+  if [ "$PLATFORM" = "android" ]; then
+    adb -s "$UDID" shell pkill -INT screenrecord >/dev/null 2>&1 || true
+  fi
+  kill -INT "$REC_PID" 2>/dev/null || true
   wait "$REC_PID" 2>/dev/null || true
   if [ "$PLATFORM" = "android" ]; then
-    sleep 1
+    sleep 2
     adb -s "$UDID" pull /sdcard/happy-path.mp4 "$VIDEO" >/dev/null 2>&1 || true
     adb -s "$UDID" shell rm -f /sdcard/happy-path.mp4 >/dev/null 2>&1 || true
   fi
@@ -112,9 +118,16 @@ set +e
 dotnet test "$TEST_CSPROJ" -c "$CONFIGURATION" \
   --filter "FullyQualifiedName~DeviceHappyPathShould" \
   --logger "trx;LogFileName=device-happy-path.trx" \
-  --results-directory "$DIAG_DIR"
-STATUS=$?
+  --results-directory "$DIAG_DIR" 2>&1 | tee "$DIAG_DIR/dotnet-test.log"
+STATUS=${PIPESTATUS[0]}
 set -e
+
+# A SKIPPED happy path must not read as success — a skipped xUnit test exits 0, which would let an
+# unconfigured/misdriven run report a false green. If the test skipped, fail loudly.
+if grep -q "DriveTheOpeningFlowOnDevice \[SKIP\]" "$DIAG_DIR/dotnet-test.log" 2>/dev/null; then
+  echo "::error::The device happy path SKIPPED — UITEST_* was not visible to the test process. Treating as failure."
+  STATUS=1
+fi
 
 finalize_recording; trap - EXIT; [ -n "$APPIUM_PID" ] && kill "$APPIUM_PID" 2>/dev/null || true
 
