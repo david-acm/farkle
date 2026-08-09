@@ -126,12 +126,14 @@ jobs:
           force-avd-creation: false
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot-save
           disable-animations: true
+          # The emulator-runner passes `script` to `sh -c`; backslash line-continuations break there
+          # (`sh: 1: \: not found`), so use complete `export` statements, one per line.
           script: |
-            UITEST_PLATFORM=android \
-            UITEST_APP_PATH="${{ steps.build.outputs.apk }}" \
-            UITEST_BACKEND_URL="https://hotdice.davidacm.dev/" \
-            UITEST_DIAG_DIR="$GITHUB_WORKSPACE/test-results/device/android" \
-              bash tests/scripts/device-happy-path.sh
+            export UITEST_PLATFORM=android
+            export UITEST_APP_PATH="${{ steps.build.outputs.apk }}"
+            export UITEST_BACKEND_URL="https://hotdice.davidacm.dev/"
+            export UITEST_DIAG_DIR="$GITHUB_WORKSPACE/test-results/device/android"
+            bash tests/scripts/device-happy-path.sh
 
       - name: Upload evidence (screenshots + video + logs)
         if: always()
