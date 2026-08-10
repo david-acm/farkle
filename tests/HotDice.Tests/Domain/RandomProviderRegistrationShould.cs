@@ -36,13 +36,13 @@ public class RandomProviderRegistrationShould
 
   private static System.Type? RegisteredRandom(string? scripted)
   {
-    var configuration = new ConfigurationManager();
+    using var configuration = new ConfigurationManager();
     if (scripted is not null)
       configuration.AddInMemoryCollection(new Dictionary<string, string?> { ["Dice:Scripted"] = scripted });
 
+    using var logger = new Serilog.LoggerConfiguration().CreateLogger();
     var services = new ServiceCollection();
-    services.AddHotDiceModuleServices(
-      configuration, new Serilog.LoggerConfiguration().CreateLogger(), new List<Assembly>());
+    services.AddHotDiceModuleServices(configuration, logger, new List<Assembly>());
 
     return services.Single(d => d.ServiceType == typeof(IRandom)).ImplementationType;
   }
