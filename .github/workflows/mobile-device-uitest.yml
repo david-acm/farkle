@@ -125,6 +125,9 @@ jobs:
           ASPNETCORE_ENVIRONMENT: Development
           ASPNETCORE_URLS: "http://0.0.0.0:5000"
           Auth__RequireAuthorization: "false"
+          # Deterministic dice (every roll is six 1s) so the happy path's set-aside → keep step has a
+          # guaranteed scoring die in slot 0 (#339). Production never sets this.
+          Dice__Scripted: "true"
         run: |
           dotnet run --project src/WebApp/WebApp.csproj -c Release --no-launch-profile > backend.log 2>&1 &
           for i in $(seq 1 100); do

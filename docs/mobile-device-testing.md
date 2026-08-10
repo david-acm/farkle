@@ -96,11 +96,11 @@ These are the reference app's hard-won lessons, ported because they each cost re
 - **Aside:** in Blazor Hybrid, navigation doesn't change the WebView's document URL — detect a page by
   its DOM (`[data-testid='lobby']`), never by `driver.Url`.
 
-## What the happy path proves (and its one known gap)
+## What the happy path proves
 
 Launch (no blank WebView) → enter a name → start a game → a **SignalR-pushed** lobby update (a second
-player joins from outside the device) → roll → set a die aside. **Keep** is tapped only when the roll
-happens to score: die faces aren't in the DOM (a 3-D CSS cube) and Appium can't intercept the `/rolls`
-response the way Playwright does, so a guaranteed-scoring die needs a **scripted-dice backend** — a
-follow-up (which also unblocks #345's post-deploy reuse). This is called out in ADR 0011 rather than
-faked.
+player joins from outside the device) → roll → set a die aside → **keep** (asserting the turn score
+banks). Die faces aren't in the DOM (a 3-D CSS cube) and Appium can't intercept the `/rolls` response
+the way Playwright does, so Keep needs a guaranteed scoring die: the gate boots the backend with
+**`Dice:Scripted=true`** (a config-gated host seam — every roll is six 1s, so slot 0 always scores;
+production never sets it). The same flag is what #345's post-deploy check reuses.

@@ -15,10 +15,10 @@ namespace HotDice.DeviceTests;
 ///
 /// It skips (not fails) when no device is configured, so it is inert outside the device workflow.
 ///
-/// Deterministic-Keep limitation (ADR 0011): die faces are not in the DOM (a 3-D CSS cube), and
-/// Appium can't intercept the /rolls response the way Playwright does, so we cannot guarantee a
-/// scoring die without a scripted-dice backend (a follow-up). Set-aside always works (the tray is
-/// presentational); Keep is tapped only when the roll happens to score.
+/// Die faces are not in the DOM (a 3-D CSS cube) and Appium can't intercept the /rolls response the
+/// way Playwright does, so Keep needs a guaranteed scoring die. The gate boots the backend with
+/// Dice:Scripted=true (every roll is six 1s), so slot 0 is always a scoring die and Keep is a firm,
+/// asserted step rather than best-effort.
 /// </summary>
 public sealed partial class DeviceHappyPathShould
 {
@@ -73,23 +73,18 @@ public sealed partial class DeviceHappyPathShould
                 .Should().NotBeNull("rolling puts dice on the table");
             evidence.Capture("rolled");
 
-            // ── 6. Set a die aside (tap-to-select; always works, the tray is presentational) ──
+            // ── 6. Set a scoring die aside (scripted dice guarantee a 1 in slot 0) ──
             driver.WaitForVisible(Selectors.TrayDie).Click();
             driver.WaitForVisible(Selectors.SelectedTrayDie)
                 .Should().NotBeNull("tapping a die selects it (set-aside)");
             evidence.Capture("set-aside");
 
-            // ── 7. Keep — best-effort until deterministic dice land (see the class summary) ──
-            if (driver.Exists(Selectors.KeepButton, TimeSpan.FromSeconds(2))
-                && driver.FindElement(Selectors.KeepButton).Enabled)
-            {
-                driver.FindElement(Selectors.KeepButton).Click();
-                evidence.Capture("kept");
-            }
-            else
-            {
-                evidence.Capture("farkle-no-scoring-die");
-            }
+            // ── 7. Keep the selected die and confirm the turn score banked it ──
+            driver.WaitForEnabled(Selectors.KeepButton).Click();
+            driver.WaitForVisible(Selectors.TurnScore);
+            driver.FindElement(Selectors.TurnScore).Text.Trim()
+                .Should().NotBe("0", "keeping a scoring die banks it into the turn score");
+            evidence.Capture("kept");
         }
         catch
         {
