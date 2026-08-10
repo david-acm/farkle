@@ -45,6 +45,15 @@ this repo. **Drop** — not carried; reason given. *Owner* is the epic step issu
 
 ## Device/UI testing & evidence
 
+> **Status (#339, first increment landed):** driver decided — **Appium** over Playwright-on-WebView
+> ([ADR 0011](decisions/0011-mobile-ui-test-driver.md), because Playwright can't drive the iOS
+> `WKWebView`). Shipped: the Appium harness (`tests/HotDice.DeviceTests`), the `UITEST_*` config, the
+> one-command local repro (`tests/scripts/device-happy-path.sh`), the evidence loop + PR comment
+> (extending `storyboard.yml`'s pattern), the capture runbook
+> ([`docs/mobile-device-testing.md`](mobile-device-testing.md)), and the **Android** per-PR gate
+> (`CI - Mobile Device UI`) as `continue-on-error`. Follow-ups: the **iOS** gate, the **nightly breadth
+> matrix**, the flip to **required**, and a scripted-dice backend for the deterministic Keep step.
+
 | Practice | Reference artifact | Verdict | Target here | Owner |
 |---|---|---|---|---|
 | Black-box device smoke tier, config **entirely via env vars** so local and CI run the same tests | its `UITests` project + README (`UITEST_*`) | **Adapt** | WebView-aware device happy path (launch / assets load / login / one action / one SignalR push), run as a **blocking per-PR gate** on both platforms. Driver decided by spike: Appium (the toolchain pinned by the reference app) vs Playwright-on-WebView. Tier is deliberately narrow — bUnit + Playwright + storyboard already cover the shared RCL | #339 |

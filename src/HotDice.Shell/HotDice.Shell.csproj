@@ -50,6 +50,14 @@
         <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">24.0</SupportedOSPlatformVersion>
     </PropertyGroup>
 
+    <!-- Build-time backend URL seam (device tests, #339): a device app can't read the host's
+         HOTDICE_BACKEND_URL env var at runtime, so allow baking one in at publish time with
+         -p:HotDiceBackendUrl=… . MauiProgram prefers the env var, then this baked value, then the
+         production default. Absent (a normal build), nothing is baked and the default is used. -->
+    <ItemGroup Condition="'$(HotDiceBackendUrl)' != ''">
+        <AssemblyMetadata Include="HotDiceBackendUrl" Value="$(HotDiceBackendUrl)" />
+    </ItemGroup>
+
     <ItemGroup>
         <!-- App Icon -->
         <MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg.svg" Color="#512BD4" />

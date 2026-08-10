@@ -1,0 +1,212 @@
+name: CI - Mobile Device UI
+
+# Per-PR on-device UI happy-path gate (#339, ADR 0011). Drives the REAL packaged app through one
+# happy path with Appium against the WebView context, and attaches screenshots + video to the PR.
+#
+# First increment: ANDROID only, and NON-BLOCKING (continue-on-error) — the run reports pass/fail
+# in a PR comment but does not fail the PR check, per #339's "start continue-on-error, flip to
+# required once green across a week of real PRs" (that flip, the iOS gate, and the nightly breadth
+# matrix are follow-ups). The gate is gated behind a fast device-free preflight so emulator time is
+# only spent on PRs that already pass cheaply.
+#
+# Backend: the gate boots the REAL WebApp locally (Postgres service + `dotnet run` on plain http) and
+# bakes that address into the APK via -p:HotDiceBackendUrl (a device can't read a host env var). This
+# keeps the PR gate self-contained instead of depending on a deployed environment being up — running
+# the happy path against the *deployed* backend is #345's post-deploy validation job.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/HotDice.Shell/**'
+      - 'src/HotDice.Ui/**'
+      - 'src/HotDice.Client/**'
+      - 'src/Blazor.Dice/**'
+      - 'src/HotDice.ApiClient/**'
+      - 'src/HotDice.Shared/**'
+      - 'tests/HotDice.DeviceTests/**'
+      - 'tests/scripts/device-happy-path.sh'
+      - '.github/workflows/mobile-device-uitest.yml'
+      - '.github/actions/setup-maui/**'
+  workflow_dispatch:
+
+concurrency:
+  group: mobile-device-uitest-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write   # upsert the evidence comment
+
+jobs:
+  # Fast, device-free preflight (#337): don't spin an emulator for a PR that fails cheaply.
+  preflight:
+    name: Device-free preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+      - name: Client-core tests (the device-free tier)
+        run: dotnet test tests/HotDice.Client.Tests/HotDice.Client.Tests.csproj -c Release
+
+  android:
+    name: Android happy path
+    needs: preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    # The happy path drives a REAL backend round-trip (create game + SignalR-pushed join), so the gate
+    # boots the actual WebApp locally and points the app at it — rather than depending on a deployed
+    # environment being up (that's #345's post-deploy job). Postgres backs Marten + Identity.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: farkle
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v7
+
+      # KVM permissions for a hardware-accelerated emulator (the capability the reference app lacked).
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Setup MAUI toolchain
+        uses: ./.github/actions/setup-maui
+        with:
+          workload: android
+
+      # Building/running the WebApp compiles its Blazor WASM client, which needs the wasm-tools workload.
+      - name: Install wasm-tools (to build the backend)
+        run: dotnet workload install wasm-tools
+
+      - name: Build the Android app (unsigned APK)
+        id: build
+        run: |
+          # Bake the emulator's host-loopback backend URL into the APK — a device can't read the
+          # host's HOTDICE_BACKEND_URL env var (10.0.2.2 is the emulator's alias for the host).
+          dotnet publish src/HotDice.Shell/HotDice.Shell.csproj \
+            -f net10.0-android -c Release -p:AndroidPackageFormat=apk \
+            -p:HotDiceBackendUrl=http://10.0.2.2:5000
+          apk="$(find src/HotDice.Shell/bin -name '*-Signed.apk' -print -quit)"
+          [ -n "$apk" ] || apk="$(find src/HotDice.Shell/bin -name '*.apk' -print -quit)"
+          [ -n "$apk" ] || { echo "::error::no APK produced"; exit 1; }
+          echo "apk=$apk" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Node + Appium
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      # Install the Appium server and the UiAutomator2 driver at their mutually-compatible latest.
+      # (Pinning only the server floated the driver to a version that required a newer server —
+      # `uiautomator2 requires ^3.0.0-rc.2`. Installing both unpinned keeps them in lockstep.)
+      - run: |
+          npm install -g appium
+          appium driver install uiautomator2
+          appium --version
+
+      # Boot the real backend on plain HTTP (Development skips the HTTPS redirect) and wait until its
+      # readiness probe passes. The background process survives into the emulator step. Validated
+      # locally: POST /api/games returns 200 with a game id over http, anonymous (auth off).
+      - name: Boot the backend
+        env:
+          ConnectionStrings__Identity: "Host=localhost;Port=5432;Database=farkle;Username=postgres;Password=postgres"
+          ASPNETCORE_ENVIRONMENT: Development
+          ASPNETCORE_URLS: "http://0.0.0.0:5000"
+          Auth__RequireAuthorization: "false"
+        run: |
+          dotnet run --project src/WebApp/WebApp.csproj -c Release --no-launch-profile > backend.log 2>&1 &
+          for i in $(seq 1 100); do
+            if curl -sf http://localhost:5000/health/ready >/dev/null 2>&1; then echo "Backend ready."; exit 0; fi
+            sleep 3
+          done
+          echo "::error title=Backend never became ready::"; tail -80 backend.log; exit 1
+
+      # Cache the AVD snapshot so subsequent runs restore instead of cold-booting.
+      - name: AVD cache
+        uses: actions/cache@v4
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-34
+
+      - name: Create AVD snapshot (cache miss only)
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot-load
+          disable-animations: true
+          script: echo "Primed AVD snapshot for caching."
+
+      - name: Run the device happy path
+        id: happypath
+        continue-on-error: true   # NON-BLOCKING first increment; flip to required once stable (#339)
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot-save
+          disable-animations: true
+          # Pass every UITEST_* value as a single-line env PREFIX on the bash invocation. `export`
+          # statements do NOT carry into the child shell in the emulator-runner's script context
+          # (a first attempt saw the wrapper rebuild the APK and the test skip because the vars
+          # weren't visible), whereas a one-line env prefix is guaranteed to reach bash and its
+          # children (dotnet test). Keep it on ONE physical line — no backslash continuations.
+          script: |
+            UITEST_PLATFORM=android UITEST_APP_PATH="${{ steps.build.outputs.apk }}" UITEST_BACKEND_URL="http://localhost:5000/" UITEST_DIAG_DIR="test-results/device/android" bash tests/scripts/device-happy-path.sh
+
+      - name: Upload evidence (screenshots + video + logs)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: device-android-${{ github.run_id }}
+          path: test-results/device/android/
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Report on the PR
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        env:
+          OUTCOME: ${{ steps.happypath.outcome }}
+          RUN_ID: ${{ github.run_id }}
+        with:
+          script: |
+            const ok = process.env.OUTCOME === 'success';
+            const marker = '<!-- device-uitest-report -->';
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${process.env.RUN_ID}`;
+            const body = [
+              marker,
+              `### ${ok ? '✅' : '❌'} Android device happy path (non-blocking)`,
+              '',
+              `The on-device UI happy path ${ok ? 'passed' : 'failed'} on the Android emulator.`,
+              `Screenshots + video are attached to the run as the \`device-android-${process.env.RUN_ID}\` artifact.`,
+              '',
+              `[Actions run](${runUrl}) · This gate is \`continue-on-error\` (informational) until it's proven stable (#339).`,
+            ].join('\n');
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+            const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number, per_page: 100 });
+            const existing = comments.find(c => c.body && c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            }

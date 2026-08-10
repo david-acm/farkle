@@ -61,10 +61,13 @@ for a turn-based game **provided animation stays in CSS** (it does) and interop 
   `Routes` component and registers the same services against an absolute backend URL
   (`HOTDICE_BACKEND_URL`). Namespaces stayed `WebApp.Client.*` — same trade as ADR 0006.
   **CORS and on-device verification are still open.**
-- **Phase 2 (next):** verify MudBlazor + CSS-3D dice + tap-to-select on **WKWebView** and Android
-  WebView on real hardware; fix iOS static assets; per-platform CSS tweaks. The host page already
-  references MudBlazor's `_content/` assets and the scoped-CSS bundle — that it *compiles* says
-  nothing about whether WKWebView serves them, which is exactly the risk below.
+- **Phase 2 (in progress, #339):** verify MudBlazor + CSS-3D dice + tap-to-select on **WKWebView** and
+  Android WebView on real hardware; fix iOS static assets; per-platform CSS tweaks. The host page
+  already references MudBlazor's `_content/` assets and the scoped-CSS bundle — that it *compiles* says
+  nothing about whether WKWebView serves them, which is exactly the risk below. The **device UI tier**
+  ([ADR 0011](decisions/0011-mobile-ui-test-driver.md), `tests/HotDice.DeviceTests`) now drives this on
+  a real Android emulator per PR (`CI - Mobile Device UI`); the iOS gate is the follow-up that closes
+  the WKWebView half. Runbook: [`docs/mobile-device-testing.md`](mobile-device-testing.md).
 - **Phase 3:** SignalR mobile lifecycle + reconnect + resume re-sync; optionally add **push
   notifications** (APNs/FCM) for "your turn" alerts when backgrounded.
 - **Phase 4:** privacy manifest, signing, **on-device** testing, submit to both stores.

@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Device UI tier (#339, ADR 0011). Drives the REAL packaged MAUI Blazor Hybrid app through one
+    happy path per platform via Appium (UiAutomator2/XCUITest) against the app's WebView context.
+
+    Deliberately NOT in HotDice.sln (same rationale as HotDice.Shell, ADR 0010 §7): the normal
+    `dotnet test HotDice.sln` job has no device/emulator, so running these there would only ever
+    fail. This project is built and run solely by the device workflow (mobile-device-uitest.yml);
+    with no UITEST_* config the single test SKIPS rather than fails, so a stray local run is inert.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <RootNamespace>HotDice.DeviceTests</RootNamespace>
+    <!-- Not exercised by the coverage gate (ADR 0010 §6): the device tier exercises the shell,
+         which is intentionally ungated. Keep collectors off to avoid noise. -->
+    <CollectCoverage>false</CollectCoverage>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Appium.WebDriver" Version="5.2.0" />
+    <PackageReference Include="FluentAssertions" Version="8.10.0" />
+    <PackageReference Include="Xunit.SkippableFact" Version="1.5.23" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+</Project>
