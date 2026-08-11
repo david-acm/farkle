@@ -28,12 +28,11 @@ public sealed partial class DeviceHappyPathShould
         Skip.IfNot(UITestConfig.IsConfigured,
             "No device configured (set UITEST_PLATFORM + UITEST_APP_PATH — see the README).");
 
-        var config   = UITestConfig.FromEnvironment();
-        var platform = config.IsAndroid ? "android" : "ios";
+        var config = UITestConfig.FromEnvironment();
         using var backend = new BackendClient(config.BackendUri);
 
         var driver = DeviceDriver.Create(config);
-        var evidence = new Evidence(driver, config.DiagnosticsDir, platform);
+        var evidence = new Evidence(driver, config);
         try
         {
             // ── 1. Cold launch: the WebView must render the real landing page, not a blank ──

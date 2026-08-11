@@ -134,5 +134,18 @@ fi
 
 finalize_recording; trap - EXIT; [ -n "$APPIUM_PID" ] && kill "$APPIUM_PID" 2>/dev/null || true
 
+# Evidence guard: a green run with no real evidence proves nothing (CLAUDE.md "evidence the change").
+# A real ~30s screen recording is comfortably over 50 KB — a blank/truncated one is a few KB — and the
+# device-level screencap writes one PNG per state. Fail the run if either is missing.
+video_bytes="$([ -f "$VIDEO" ] && wc -c < "$VIDEO" 2>/dev/null || echo 0)"
+if [ "${video_bytes:-0}" -lt 51200 ]; then
+  echo "::error::Evidence check — video missing or under 50 KB (${video_bytes} bytes at $VIDEO); recording is blank or truncated."
+  STATUS=1
+fi
+if [ -z "$(find "$DIAG_DIR" -maxdepth 1 -name '*.png' -print -quit 2>/dev/null)" ]; then
+  echo "::error::Evidence check — no per-state screenshots (*.png) captured in $DIAG_DIR."
+  STATUS=1
+fi
+
 log "Artifacts in $DIAG_DIR:"; ls -1 "$DIAG_DIR" || true
 exit $STATUS

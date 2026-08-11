@@ -54,6 +54,14 @@ These are the reference app's hard-won lessons, ported because they each cost re
 - **Fix:** finalize with `kill -INT "$REC_PID"` and **`wait`** for it before collecting the file. The
   wrapper's `finalize_recording` does exactly this; don't shortcut it.
 
+### Screenshots come out empty / no PNGs in the artifact
+- **Cause:** Appium's `GetScreenshot` (via the driver) silently no-ops in the Android **WebView**
+  context, so driver-level frames never land.
+- **Fix:** capture at the **device** level instead — `adb -s <udid> exec-out screencap -p` (Android) /
+  `xcrun simctl io <udid> screenshot` (iOS), which grab the real framebuffer regardless of context.
+  The `Evidence` helper does this; the wrapper then **fails the run if no `*.png` frames (or a
+  blank/tiny video) were produced**, so a green result always carries real evidence.
+
 ### The wrong device is driven or recorded
 - **Cause:** an unpinned run picks "the first booted device", and CI/local often has more than one
   (a leftover simulator, a second AVD). The driver attaches to one and the recorder to another.
