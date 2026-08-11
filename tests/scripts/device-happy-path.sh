@@ -21,6 +21,11 @@ TEST_CSPROJ="$REPO_ROOT/tests/HotDice.DeviceTests/HotDice.DeviceTests.csproj"
 CONFIGURATION="${UITEST_CONFIGURATION:-Release}"
 
 rm -rf "$DIAG_DIR"; mkdir -p "$DIAG_DIR"
+# Absolutise: the .NET test host resolves a RELATIVE UITEST_DIAG_DIR against its own working
+# directory (the test bin dir), not this script's, so a relative path made the test write its
+# screenshots/breadcrumbs somewhere that was never uploaded. An absolute path makes the wrapper and
+# the test agree on one directory.
+DIAG_DIR="$(cd "$DIAG_DIR" && pwd)"
 export UITEST_PLATFORM UITEST_DIAG_DIR="$DIAG_DIR"
 
 log() { printf '\n\033[1;36m[device-happy-path]\033[0m %s\n' "$*"; }
