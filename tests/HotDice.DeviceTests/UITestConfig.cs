@@ -41,6 +41,12 @@ public sealed record UITestConfig
     /// <summary>Overall app-bundle id, needed by XCUITest to (re)launch on iOS.</summary>
     public string BundleId { get; init; } = "com.davidacm.hotdice";
 
+    /// <summary>
+    /// Path to the <c>adb</c> binary for device-level screenshots. The wrapper passes the resolved
+    /// absolute path (a bare "adb" isn't always on the test process's PATH); defaults to "adb".
+    /// </summary>
+    public string AdbPath { get; init; } = "adb";
+
     public bool IsAndroid => Platform == DevicePlatform.Android;
     public bool IsIos => Platform == DevicePlatform.IOS;
 
@@ -72,6 +78,8 @@ public sealed record UITestConfig
             DiagnosticsDir  = diagDir,
             BundleId        = Environment.GetEnvironmentVariable("UITEST_BUNDLE_ID")
                               ?? "com.davidacm.hotdice",
+            AdbPath         = Environment.GetEnvironmentVariable("UITEST_ADB") is { Length: > 0 } adb
+                              ? adb : "adb",
         };
     }
 

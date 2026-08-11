@@ -22,25 +22,33 @@ internal sealed class Evidence(AppiumDriver driver, UITestConfig config)
     public void Capture(string label)
     {
         var path = NextPath(label, "png");
+        string error;
         try
         {
             if (config.IsAndroid)
             {
                 // `exec-out screencap -p` streams raw PNG bytes on stdout — captures the whole screen
                 // (WebView included), unlike the driver's context-scoped screenshot.
-                var png = RunForStdout("adb", WithUdid("exec-out", "screencap", "-p"));
-                if (png is { Length: > 0 }) File.WriteAllBytes(path, png);
+                var png = RunForStdout(config.AdbPath, WithUdid("exec-out", "screencap", "-p"));
+                if (png is { Length: > 0 }) { File.WriteAllBytes(path, png); return; }
+                error = $"adb ({config.AdbPath}) exec-out screencap produced no output.";
             }
             else
             {
                 Run("xcrun", "simctl", "io", config.Udid ?? "booted", "screenshot", path);
+                if (File.Exists(path)) return;
+                error = "xcrun simctl io screenshot produced no file.";
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // Best-effort: a lost frame is a diagnostic gap, never a masked test failure. The
-            // wrapper's evidence guard fails the run if NO frames land, so a silent gap can't hide.
+            error = ex.Message;
         }
+
+        // A lost frame never masks the real test outcome, but it must not vanish silently either:
+        // leave a breadcrumb next to where the PNG should have been so the gap is diagnosable.
+        try { File.WriteAllText(Path.ChangeExtension(path, ".capture-error.txt"), error); }
+        catch { /* ignore */ }
     }
 
     /// <summary>Dumps the current WebView DOM as <c>{platform}-{NN}-{label}.html</c>.</summary>
