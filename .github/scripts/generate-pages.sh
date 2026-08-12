@@ -2,28 +2,35 @@
 #
 # generate-pages.sh — build the GitHub Pages site for E2E artifacts.
 #
-# Runs in one of two MODEs, each publishing into the same runs/{run_id}/ tree and the
-# same root table (different column / different per-run page), so the two parallel CI
-# publishers (e2e videos + storyboard screenshots) don't clobber each other:
+# Runs in one of three MODEs, each publishing into the same runs/{run_id}/ tree and the
+# same root table (different column / different per-run page), so the parallel CI
+# publishers (e2e videos + storyboard screenshots + mobile device evidence) don't clobber
+# each other:
 #
 #   MODE=videos       (default) copies Playwright *.webm recordings into runs/{id}/ and
 #                     writes runs/{id}/index.html      (embedded <video> tags)
 #   MODE=screenshots            copies *.png frames into runs/{id}/screenshots/ and
 #                     writes runs/{id}/storyboard.html (frames grouped by viewport)
+#   MODE=device                 copies the on-device *.mp4 recording + *.png frames into
+#                     runs/{id}/device/ and writes runs/{id}/device.html (inline <video>
+#                     + per-state frames). This is why the device video finally plays: the
+#                     mp4 lived only inside the CI artifact zip (which previews images, not
+#                     video); an inline <video> on Pages plays it in the browser.
 #
-# Both modes:
-#   - merge metadata.json (preserving the other mode's artifact list + the videos run's
+# Every mode:
+#   - merges metadata.json (preserving the other modes' artifact lists + the videos run's
 #     status/scalars), so publishing order doesn't matter
-#   - regenerate the root index.html (table of all recent runs, Videos + Storyboard cols)
-#   - prune runs older than 90 days or beyond the 50-run limit
-#   - ensure .nojekyll exists
+#   - regenerates the root index.html (table of all recent runs, Videos + Storyboard + Device)
+#   - prunes runs older than 90 days or beyond the 50-run limit
+#   - ensures .nojekyll exists
 #
 # All inputs are passed via environment variables (see tests/scripts/generate-pages.test.sh):
 #
 #   PAGES_DIR       (required) checkout of the gh-pages branch to write into
-#   MODE            (optional) "videos" (default) | "screenshots"
+#   MODE            (optional) "videos" (default) | "screenshots" | "device"
 #   VIDEOS_DIR      (optional) directory containing the downloaded *.webm files (videos mode)
 #   SCREENSHOTS_DIR (optional) directory containing the downloaded *.png files (screenshots mode)
+#   DEVICE_DIR      (optional) directory containing the downloaded *.mp4 + *.png files (device mode)
 #   RUN_ID          (required) GitHub Actions run id
 #   PR_NUMBER       (optional) pull-request number
 #   BRANCH          (optional) head branch name
@@ -40,6 +47,7 @@ PAGES_DIR="${PAGES_DIR:?PAGES_DIR is required}"
 MODE="${MODE:-videos}"
 VIDEOS_DIR="${VIDEOS_DIR:-}"
 SCREENSHOTS_DIR="${SCREENSHOTS_DIR:-}"
+DEVICE_DIR="${DEVICE_DIR:-}"
 RUN_ID="${RUN_ID:?RUN_ID is required}"
 PR_NUMBER="${PR_NUMBER:-}"
 BRANCH="${BRANCH:-}"
@@ -95,39 +103,65 @@ extract_scalar() { # <key> <metafile>
     | head -1 | sed 's/.*:[[:space:]]*"//; s/"$//'
 }
 
-# --- 1. Collect artifacts for this mode; preserve the other mode's list -------
-if [ "$MODE" = "videos" ]; then
-  VIDEOS=()
-  if [ -n "$VIDEOS_DIR" ] && [ -d "$VIDEOS_DIR" ]; then
-    while IFS= read -r -d '' webm; do
-      cp "$webm" "$RUN_DIR/"
-      VIDEOS+=("$(basename "$webm")")
-    done < <(find "$VIDEOS_DIR" -type f -name '*.webm' -print0 | sort -z)
-  fi
-  VIDEOS_JSON="$( [ "${#VIDEOS[@]}" -gt 0 ] && json_array "${VIDEOS[@]}" || true )"
-  SHOTS_JSON="$(extract_array screenshots "$META")"
-  # The videos run (the e2e result) owns the status + scalar metadata.
-  M_STATUS="$STATUS"; M_PR="$PR_NUMBER"; M_BRANCH="$BRANCH"; M_COMMIT="$COMMIT_SHA"; M_TS="$TIMESTAMP"
-else
-  SHOTS=()
-  if [ -n "$SCREENSHOTS_DIR" ] && [ -d "$SCREENSHOTS_DIR" ]; then
-    mkdir -p "$RUN_DIR/screenshots"
-    while IFS= read -r -d '' png; do
-      cp "$png" "$RUN_DIR/screenshots/"
-      SHOTS+=("$(basename "$png")")
-    done < <(find "$SCREENSHOTS_DIR" -type f -name '*.png' -print0 | sort -z)
-  fi
-  SHOTS_JSON="$( [ "${#SHOTS[@]}" -gt 0 ] && json_array "${SHOTS[@]}" || true )"
-  VIDEOS_JSON="$(extract_array videos "$META")"
-  # Don't overwrite the videos run's status/scalars if it already published this run.
-  if [ -f "$META" ]; then
-    M_STATUS="$(extract_scalar status "$META")"; M_PR="$(extract_scalar pr_number "$META")"
-    M_BRANCH="$(extract_scalar branch "$META")"; M_COMMIT="$(extract_scalar commit "$META")"
-    M_TS="$(extract_scalar timestamp "$META")"
-  else
+# --- 1. Collect artifacts for this mode; preserve the other modes' lists ------
+case "$MODE" in
+  videos)
+    VIDEOS=()
+    if [ -n "$VIDEOS_DIR" ] && [ -d "$VIDEOS_DIR" ]; then
+      while IFS= read -r -d '' webm; do
+        cp "$webm" "$RUN_DIR/"
+        VIDEOS+=("$(basename "$webm")")
+      done < <(find "$VIDEOS_DIR" -type f -name '*.webm' -print0 | sort -z)
+    fi
+    VIDEOS_JSON="$( [ "${#VIDEOS[@]}" -gt 0 ] && json_array "${VIDEOS[@]}" || true )"
+    SHOTS_JSON="$(extract_array screenshots "$META")"
+    DEVICE_JSON="$(extract_array device "$META")"
+    # The videos run (the e2e result) owns the status + scalar metadata.
     M_STATUS="$STATUS"; M_PR="$PR_NUMBER"; M_BRANCH="$BRANCH"; M_COMMIT="$COMMIT_SHA"; M_TS="$TIMESTAMP"
-  fi
-fi
+    ;;
+  screenshots)
+    SHOTS=()
+    if [ -n "$SCREENSHOTS_DIR" ] && [ -d "$SCREENSHOTS_DIR" ]; then
+      mkdir -p "$RUN_DIR/screenshots"
+      while IFS= read -r -d '' png; do
+        cp "$png" "$RUN_DIR/screenshots/"
+        SHOTS+=("$(basename "$png")")
+      done < <(find "$SCREENSHOTS_DIR" -type f -name '*.png' -print0 | sort -z)
+    fi
+    SHOTS_JSON="$( [ "${#SHOTS[@]}" -gt 0 ] && json_array "${SHOTS[@]}" || true )"
+    VIDEOS_JSON="$(extract_array videos "$META")"
+    DEVICE_JSON="$(extract_array device "$META")"
+    # Don't overwrite the videos run's status/scalars if it already published this run.
+    if [ -f "$META" ]; then
+      M_STATUS="$(extract_scalar status "$META")"; M_PR="$(extract_scalar pr_number "$META")"
+      M_BRANCH="$(extract_scalar branch "$META")"; M_COMMIT="$(extract_scalar commit "$META")"
+      M_TS="$(extract_scalar timestamp "$META")"
+    else
+      M_STATUS="$STATUS"; M_PR="$PR_NUMBER"; M_BRANCH="$BRANCH"; M_COMMIT="$COMMIT_SHA"; M_TS="$TIMESTAMP"
+    fi
+    ;;
+  device)
+    # The device recording (*.mp4) and per-state frames (*.png) live together under device/.
+    DEVICE=()
+    if [ -n "$DEVICE_DIR" ] && [ -d "$DEVICE_DIR" ]; then
+      mkdir -p "$RUN_DIR/device"
+      while IFS= read -r -d '' f; do
+        cp "$f" "$RUN_DIR/device/"
+        DEVICE+=("$(basename "$f")")
+      done < <(find "$DEVICE_DIR" -type f \( -name '*.mp4' -o -name '*.png' \) -print0 | sort -z)
+    fi
+    DEVICE_JSON="$( [ "${#DEVICE[@]}" -gt 0 ] && json_array "${DEVICE[@]}" || true )"
+    VIDEOS_JSON="$(extract_array videos "$META")"
+    SHOTS_JSON="$(extract_array screenshots "$META")"
+    # A device run is its own workflow run_id (no other mode publishes into it), so it owns
+    # the status + scalar metadata.
+    M_STATUS="$STATUS"; M_PR="$PR_NUMBER"; M_BRANCH="$BRANCH"; M_COMMIT="$COMMIT_SHA"; M_TS="$TIMESTAMP"
+    ;;
+  *)
+    echo "Unknown MODE: '$MODE' (expected videos | screenshots | device)." >&2
+    exit 1
+    ;;
+esac
 
 # --- 2. metadata.json (merged) ------------------------------------------------
 {
@@ -139,7 +173,8 @@ fi
   printf '  "timestamp": "%s",\n'   "$M_TS"
   printf '  "status": "%s",\n'      "$M_STATUS"
   printf '  "videos": [%s],\n'      "$VIDEOS_JSON"
-  printf '  "screenshots": [%s]\n'  "$SHOTS_JSON"
+  printf '  "screenshots": [%s],\n' "$SHOTS_JSON"
+  printf '  "device": [%s]\n'       "$DEVICE_JSON"
   printf '}\n'
 } > "$META"
 
@@ -184,6 +219,7 @@ PAGE_STYLE='  :root { color-scheme: light dark; }
   video { width: 100%; background: #000; border-radius: 8px; margin: .5rem 0 1.5rem; }
   img.frame { width: 100%; border: 1px solid #e5e7eb; border-radius: 8px; margin: .5rem 0 1.5rem; }
   h2 { margin-top: 2rem; }
+  .sub { color: #6b7280; margin-top: -.5rem; }
   .empty { color: #9ca3af; font-style: italic; }'
 
 if [ "$MODE" = "videos" ]; then
@@ -213,6 +249,46 @@ if [ "$MODE" = "videos" ]; then
     fi
     printf '</body>\n</html>\n'
   } > "$RUN_DIR/index.html"
+elif [ "$MODE" = "device" ]; then
+  {
+    printf '<!DOCTYPE html>\n<html lang="en">\n<head>\n'
+    printf '<meta charset="utf-8">\n'
+    printf '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
+    printf '<title>Device run %s — HotDice</title>\n' "$(esc "$RUN_ID")"
+    printf '<style>\n%s\n</style>\n</head>\n<body>\n' "$PAGE_STYLE"
+    printf '<p><a href="../../">← All runs</a></p>\n'
+    printf '<h1>Device run %s</h1>\n' "$(esc "$RUN_ID")"
+    printf '<p><strong>%s</strong></p>\n' "$(status_badge "$M_STATUS")"
+    printf '<p class="sub">On-device (Android emulator) UI happy path — Appium against the WebView (#339).</p>\n'
+    print_meta_block
+    if [ -z "$(printf '%s' "$DEVICE_JSON" | tr -d ' ')" ]; then
+      printf '<p class="empty">No device evidence was captured for this run.</p>\n'
+    else
+      # Split the merged device artifact list into the recording(s) and the per-state frames.
+      mapfile -t DFILES < <(printf '%s' "$DEVICE_JSON" | grep -o '"[^"]*"' | sed 's/^"//; s/"$//')
+      printf '<h2>Recording</h2>\n'
+      dv=0
+      for f in "${DFILES[@]}"; do
+        case "$f" in
+          *.mp4)
+            printf '<video controls preload="metadata" src="device/%s"></video>\n' "$(esc "$f")"
+            dv=1 ;;
+        esac
+      done
+      [ "$dv" -eq 1 ] || printf '<p class="empty">No screen recording for this run.</p>\n'
+      printf '<h2>Per-state frames</h2>\n'
+      df=0
+      for f in "${DFILES[@]}"; do
+        case "$f" in
+          *.png)
+            printf '<img class="frame" loading="lazy" src="device/%s" alt="%s">\n' "$(esc "$f")" "$(esc "$f")"
+            df=1 ;;
+        esac
+      done
+      [ "$df" -eq 1 ] || printf '<p class="empty">No per-state frames for this run.</p>\n'
+    fi
+    printf '</body>\n</html>\n'
+  } > "$RUN_DIR/device.html"
 else
   {
     printf '<!DOCTYPE html>\n<html lang="en">\n<head>\n'
@@ -292,6 +368,7 @@ for meta in "$PAGES_DIR"/runs/*/metadata.json; do
   r_status="$(extract_scalar status "$meta")"
   r_vcount="$( { printf '%s' "$(extract_array videos "$meta")" | grep -o '\.webm' || true; } | wc -l | tr -d ' ')"
   r_scount="$( { printf '%s' "$(extract_array screenshots "$meta")" | grep -o '\.png' || true; } | wc -l | tr -d ' ')"
+  r_dcount="$( { printf '%s' "$(extract_array device "$meta")" | grep -oE '\.(mp4|png)' || true; } | wc -l | tr -d ' ')"
   [ -n "$r_id" ] || continue
 
   pr_cell="—"
@@ -307,11 +384,13 @@ for meta in "$PAGES_DIR"/runs/*/metadata.json; do
     commit_cell="<code>$(esc "$(short_sha "$r_commit")")</code>"
   fi
 
-  # The run-id link points at whichever per-run page exists (videos page preferred).
+  # The run-id link points at whichever per-run page exists (videos > storyboard > device).
   if [ -f "$PAGES_DIR/runs/$r_id/index.html" ]; then
     id_link="runs/$(esc "$r_id")/"
-  else
+  elif [ -f "$PAGES_DIR/runs/$r_id/storyboard.html" ]; then
     id_link="runs/$(esc "$r_id")/storyboard.html"
+  else
+    id_link="runs/$(esc "$r_id")/device.html"
   fi
 
   if [ "$r_vcount" -gt 0 ]; then
@@ -324,6 +403,11 @@ for meta in "$PAGES_DIR"/runs/*/metadata.json; do
   else
     story_cell="—"
   fi
+  if [ "$r_dcount" -gt 0 ]; then
+    device_cell="<a href=\"runs/$(esc "$r_id")/device.html\">${r_dcount} 📱</a>"
+  else
+    device_cell="—"
+  fi
 
   row="<tr>"
   row+="<td><a href=\"${id_link}\">$(esc "$r_id")</a></td>"
@@ -334,6 +418,7 @@ for meta in "$PAGES_DIR"/runs/*/metadata.json; do
   row+="<td>$(esc "${r_ts:-—}")</td>"
   row+="<td>${videos_cell}</td>"
   row+="<td>${story_cell}</td>"
+  row+="<td>${device_cell}</td>"
   row+="</tr>"
 
   # Prefix with run id for sorting (newest first), tab-separated.
@@ -365,12 +450,12 @@ done
 </head>
 <body>
 <h1>HotDice — E2E test reports</h1>
-<p class="sub">Playwright happy-path recordings (🎬) and storyboard screenshots (📸), newest first.</p>
+<p class="sub">Playwright happy-path recordings (🎬), storyboard screenshots (📸) and on-device evidence (📱), newest first.</p>
 HTML
 
   if [ -s "$ROWS_TMP" ]; then
     printf '<table>\n<thead><tr>'
-    printf '<th>Run</th><th>Status</th><th>PR</th><th>Branch</th><th>Commit</th><th>Time (UTC)</th><th>Videos</th><th>Storyboard</th>'
+    printf '<th>Run</th><th>Status</th><th>PR</th><th>Branch</th><th>Commit</th><th>Time (UTC)</th><th>Videos</th><th>Storyboard</th><th>Device</th>'
     printf '</tr></thead>\n<tbody>\n'
     sort -t"$(printf '\t')" -k1,1 -rn "$ROWS_TMP" | cut -f2-
     printf '</tbody>\n</table>\n'

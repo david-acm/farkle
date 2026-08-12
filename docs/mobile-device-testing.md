@@ -10,6 +10,11 @@ by the device-free tiers.
 - **One-command local run:** `tests/scripts/device-happy-path.sh` (see below).
 - **CI gate:** `.github/workflows/mobile-device-uitest.yml` (Android per-PR; iOS + nightly breadth are
   follow-ups on #339).
+- **Evidence on the PR:** the `deploy-device` job publishes the recording + per-state frames to
+  **GitHub Pages** (`runs/{run_id}/device.html`) and upserts a PR comment linking it. The video plays
+  **inline in the browser** there — the CI artifact zip only previews images, so the `.mp4` never
+  actually played from the download. Same mechanism as the web E2E videos and storyboard screenshots
+  (one `runs/{id}/` tree, one root table with a 📱 Device column, the shared `gh-pages-publish` lock).
 
 ## Running it locally
 
@@ -54,6 +59,14 @@ These are the reference app's hard-won lessons, ported because they each cost re
 - **Fix:** finalize with `kill -INT "$REC_PID"` and **`wait`** for it before collecting the file. The
   wrapper's `finalize_recording` does exactly this; don't shortcut it.
 
+### Screenshots come out empty / no PNGs in the artifact
+- **Cause:** Appium's `GetScreenshot` (via the driver) silently no-ops in the Android **WebView**
+  context, so driver-level frames never land.
+- **Fix:** capture at the **device** level instead — `adb -s <udid> exec-out screencap -p` (Android) /
+  `xcrun simctl io <udid> screenshot` (iOS), which grab the real framebuffer regardless of context.
+  The `Evidence` helper does this; the wrapper then **fails the run if no `*.png` frames (or a
+  blank/tiny video) were produced**, so a green result always carries real evidence.
+
 ### The wrong device is driven or recorded
 - **Cause:** an unpinned run picks "the first booted device", and CI/local often has more than one
   (a leftover simulator, a second AVD). The driver attaches to one and the recorder to another.
@@ -96,11 +109,11 @@ These are the reference app's hard-won lessons, ported because they each cost re
 - **Aside:** in Blazor Hybrid, navigation doesn't change the WebView's document URL — detect a page by
   its DOM (`[data-testid='lobby']`), never by `driver.Url`.
 
-## What the happy path proves (and its one known gap)
+## What the happy path proves
 
 Launch (no blank WebView) → enter a name → start a game → a **SignalR-pushed** lobby update (a second
-player joins from outside the device) → roll → set a die aside. **Keep** is tapped only when the roll
-happens to score: die faces aren't in the DOM (a 3-D CSS cube) and Appium can't intercept the `/rolls`
-response the way Playwright does, so a guaranteed-scoring die needs a **scripted-dice backend** — a
-follow-up (which also unblocks #345's post-deploy reuse). This is called out in ADR 0011 rather than
-faked.
+player joins from outside the device) → roll → set a die aside → **keep** (asserting the turn score
+banks). Die faces aren't in the DOM (a 3-D CSS cube) and Appium can't intercept the `/rolls` response
+the way Playwright does, so Keep needs a guaranteed scoring die: the gate boots the backend with
+**`Dice:Scripted=true`** (a config-gated host seam — every roll is six 1s, so slot 0 always scores;
+production never sets it). The same flag is what #345's post-deploy check reuses.

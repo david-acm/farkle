@@ -23,8 +23,14 @@ public static class HotDiceModuleServiceExtensions
     services.AddSingleton<IGameIdGenerator, RandomGameIdGenerator>();
     services.AddSingleton<IGameCreator, GameCreator>();
     // Dice source seam (#93): the default RNG, resolved by Wolverine's generated handler code into
-    // the RollDice handler. Hosts/tests can replace it (e.g. a deterministic ScriptedRandom).
-    services.AddSingleton<IRandom, DefaultRandomProvider>();
+    // the RollDice handler. A host may set Dice:Scripted=true to swap in a deterministic provider so
+    // black-box runs (the device happy path #339; #345's post-deploy check) get a guaranteed scoring
+    // die; production leaves the flag unset and uses the real RNG. Hosts/tests can also replace it
+    // directly via the DI seam (e.g. the storyboard's ScriptedRandom).
+    if (configuration.GetValue<bool>("Dice:Scripted"))
+      services.AddSingleton<IRandom, ScriptedRandomProvider>();
+    else
+      services.AddSingleton<IRandom, DefaultRandomProvider>();
 
     // Post-commit SignalR broadcast (ADR 0004): the endpoints call this after a committed command
     // to push the up-to-date GameState snapshot. Scoped — it uses Marten's scoped IQuerySession.

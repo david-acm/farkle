@@ -65,11 +65,12 @@ the seams in ADR 0010.
 - **First increment (this PR):** the harness, the shared selectors, the evidence loop, the local wrapper,
   the runbook, and the **Android** per-PR gate as `continue-on-error`. The **iOS** gate, the **nightly
   breadth matrix**, and the flip from `continue-on-error` to **required** are follow-ups, tracked on #339.
-- **Known limitation of the first increment:** the "keep a *scoring* die" step needs deterministic dice,
+- **Deterministic dice for Keep:** the "keep a *scoring* die" step needs a guaranteed scoring die,
   because die faces are not in the DOM (a 3-D CSS cube — the Playwright suite intercepts the `/rolls`
-  response instead, which Appium cannot do as cleanly). Until a scripted-dice backend lands (a follow-up,
-  which also unblocks #345's post-deploy reuse), the happy path proves launch → name → start →
-  SignalR-pushed join → roll → **set-aside**, and taps **Keep** only when the roll happens to score. This
-  is honest about what the gate proves today rather than faking a guaranteed win.
+  response instead, which Appium cannot do as cleanly). The gate boots the backend with
+  `Dice:Scripted=true`, a config-gated seam in the host that swaps in a deterministic provider (every
+  roll is six 1s, so slot 0 always scores); production leaves the flag unset and uses the real RNG.
+  The happy path therefore proves launch → name → start → SignalR-pushed join → roll → **set-aside** →
+  **keep** (asserting the turn score banks), and the same flag is what #345's post-deploy check reuses.
 </content>
 </invoke>
