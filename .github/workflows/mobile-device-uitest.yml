@@ -57,6 +57,10 @@ jobs:
     needs: preflight
     runs-on: ubuntu-latest
     timeout-minutes: 50
+    # Surface the (continue-on-error) happy-path outcome so the publish job can report the
+    # real pass/fail alongside the Pages link — the job itself always "succeeds".
+    outputs:
+      happypath: ${{ steps.happypath.outcome }}
     # The happy path drives a REAL backend round-trip (create game + SignalR-pushed join), so the gate
     # boots the actual WebApp locally and points the app at it — rather than depending on a deployed
     # environment being up (that's #345's post-deploy job). Postgres backs Marten + Identity.
@@ -184,32 +188,129 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
-      - name: Report on the PR
-        if: always() && github.event_name == 'pull_request'
-        uses: actions/github-script@v7
+  # Publish the device video + per-state frames to GitHub Pages and upsert the PR comment with an
+  # inline, browser-playable link. The CI artifact zip only previews images, so the recording never
+  # actually played from there — an inline <video> on Pages fixes that (same mechanism as the e2e
+  # videos + storyboard screenshots; shared runs/{id} tree + gh-pages-publish concurrency group).
+  deploy-device:
+    name: Publish device evidence to GitHub Pages
+    needs: android
+    if: always() && github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: gh-pages-publish
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout source (for the page generator)
+        uses: actions/checkout@v7
+
+      - name: Download device evidence artifact
+        # An infra failure before the happy path leaves no artifact; still publish a run entry
+        # with the status, so don't fail the job.
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: device-android-${{ github.run_id }}
+          path: device
+
+      - name: Prepare gh-pages working tree
         env:
-          OUTCOME: ${{ steps.happypath.outcome }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          REMOTE="https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          if git clone --quiet --branch gh-pages --single-branch "$REMOTE" gh-pages 2>/dev/null; then
+            echo "Cloned existing gh-pages branch."
+          else
+            echo "gh-pages branch not found — creating an orphan branch."
+            git clone --quiet "$REMOTE" gh-pages
+            git -C gh-pages checkout --orphan gh-pages
+            git -C gh-pages rm -rf --quiet . 2>/dev/null || true
+          fi
+          git -C gh-pages config user.name  "github-actions[bot]"
+          git -C gh-pages config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Generate pages (device)
+        env:
+          PAGES_DIR: ${{ github.workspace }}/gh-pages
+          MODE: device
+          DEVICE_DIR: ${{ github.workspace }}/device
+          RUN_ID: ${{ github.run_id }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          BRANCH: ${{ github.head_ref }}
+          COMMIT_SHA: ${{ github.event.pull_request.head.sha }}
+          STATUS: ${{ needs.android.outputs.happypath }}
+          REPO: ${{ github.repository }}
+        run: bash .github/scripts/generate-pages.sh
+
+      - name: Commit and push to gh-pages (single-commit history)
+        working-directory: gh-pages
+        # Re-root gh-pages to ONE orphan commit each publish so video/screenshot blobs never
+        # accumulate in branch history. The shared `gh-pages-publish` concurrency group serialises
+        # this with the e2e + storyboard publishers, and we clone the latest gh-pages first, so
+        # collapsing preserves every publisher's run dirs.
+        run: |
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to publish."
+            exit 0
+          fi
+          git checkout --orphan publish-root
+          git add -A
+          git commit --quiet -m "ci: publish device evidence for run ${{ github.run_id }}"
+          for attempt in 1 2 3; do
+            if git push --force origin publish-root:gh-pages; then
+              echo "Published (history squashed) on attempt $attempt."
+              exit 0
+            fi
+            echo "Force-push failed (attempt $attempt) — retrying."
+            sleep 5
+          done
+          echo "Failed to push after retries." >&2
+          exit 1
+
+      - name: Upsert PR comment with the device evidence link
+        uses: actions/github-script@v9
+        env:
+          HAPPYPATH_RESULT: ${{ needs.android.outputs.happypath }}
           RUN_ID: ${{ github.run_id }}
         with:
           script: |
-            const ok = process.env.OUTCOME === 'success';
+            const owner = context.repo.owner;
+            const repo  = context.repo.repo;
+            const runId = process.env.RUN_ID;
+            const ok = process.env.HAPPYPATH_RESULT === 'success';
+            const outcome = ok ? '✅ passed' : '❌ failed';
+
+            const pagesRun  = `https://${owner}.github.io/${repo}/runs/${runId}/device.html`;
+            const pagesRoot = `https://${owner}.github.io/${repo}/`;
+            const actionsRun = `https://github.com/${owner}/${repo}/actions/runs/${runId}`;
+
             const marker = '<!-- device-uitest-report -->';
-            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${process.env.RUN_ID}`;
             const body = [
               marker,
-              `### ${ok ? '✅' : '❌'} Android device happy path (non-blocking)`,
+              `### Android device happy path (non-blocking) ${outcome}`,
               '',
               `The on-device UI happy path ${ok ? 'passed' : 'failed'} on the Android emulator.`,
-              `Screenshots + video are attached to the run as the \`device-android-${process.env.RUN_ID}\` artifact.`,
               '',
-              `[Actions run](${runUrl}) · This gate is \`continue-on-error\` (informational) until it's proven stable (#339).`,
+              `📱 **[Watch the on-device recording + per-state frames](${pagesRun})** — the video plays inline in the browser.`,
+              '',
+              `[All runs](${pagesRoot}) · [Actions run](${actionsRun}) · This gate is \`continue-on-error\` (informational) until it's proven stable (#339).`,
             ].join('\n');
-            const { owner, repo } = context.repo;
-            const issue_number = context.issue.number;
-            const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number, per_page: 100 });
+
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner, repo, issue_number: context.issue.number, per_page: 100,
+            });
             const existing = comments.find(c => c.body && c.body.includes(marker));
             if (existing) {
               await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
             } else {
-              await github.rest.issues.createComment({ owner, repo, issue_number, body });
+              await github.rest.issues.createComment({
+                owner, repo, issue_number: context.issue.number, body,
+              });
             }

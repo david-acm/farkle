@@ -100,6 +100,35 @@ grep -q 'View storyboard screenshots' "$P4/runs/3001/index.html"; check "videos 
 grep -q '🎬' "$P4/index.html" && grep -q '📸' "$P4/index.html"
 check "root table shows both Videos and Storyboard entries" $?
 
+echo "Test 7: a device run writes its own page with the inline video + frames"
+P5="$WORK/pages5"; mkdir -p "$P5"
+dev="$WORK/d1"; mkdir -p "$dev"
+# A ~60 KB stand-in mp4 (the real guard rejects a blank/tiny recording) + per-state frames.
+head -c 61440 /dev/zero > "$dev/happy-path.mp4"
+for f in 01-launch 02-lobby 03-signalr-join 04-in-turn 05-rolled 06-set-aside 07-kept; do
+  printf 'x' > "$dev/android-$f.png"
+done
+PAGES_DIR="$P5" MODE=device DEVICE_DIR="$dev" RUN_ID=4001 PR_NUMBER=9 \
+  BRANCH=feature/d COMMIT_SHA=abcdef1234567 STATUS=success \
+  REPO=david-acm/farkle TIMESTAMP=2026-05-29T10:00:00Z bash "$GEN" >/dev/null
+[ -f "$P5/runs/4001/device.html" ]; check "device page written" $?
+[ ! -f "$P5/runs/4001/index.html" ]; check "device mode does not write the videos page" $?
+[ -f "$P5/runs/4001/device/happy-path.mp4" ]; check "device video copied" $?
+[ -f "$P5/runs/4001/device/android-01-launch.png" ]; check "device frame copied" $?
+grep -q '<video' "$P5/runs/4001/device.html"; check "device page embeds <video>" $?
+grep -q 'device/happy-path.mp4' "$P5/runs/4001/device.html"; check "device page points <video> at the mp4" $?
+grep -q '<img' "$P5/runs/4001/device.html"; check "device page embeds the frames" $?
+grep -q 'happy-path.mp4' "$P5/runs/4001/metadata.json"; check "metadata lists device artifacts" $?
+grep -q 'device.html' "$P5/index.html"; check "root table links to the device page" $?
+grep -q '📱' "$P5/index.html"; check "root table shows a Device column entry" $?
+
+echo "Test 8: an unknown MODE fails loudly"
+if PAGES_DIR="$WORK/pagesX" RUN_ID=5001 MODE=bogus bash "$GEN" >/dev/null 2>&1; then
+  check "unknown MODE rejected" 1
+else
+  check "unknown MODE rejected" 0
+fi
+
 if [ "$fail" -ne 0 ]; then
   echo "FAILED"; exit 1
 fi

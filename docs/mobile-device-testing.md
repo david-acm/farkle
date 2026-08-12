@@ -10,6 +10,11 @@ by the device-free tiers.
 - **One-command local run:** `tests/scripts/device-happy-path.sh` (see below).
 - **CI gate:** `.github/workflows/mobile-device-uitest.yml` (Android per-PR; iOS + nightly breadth are
   follow-ups on #339).
+- **Evidence on the PR:** the `deploy-device` job publishes the recording + per-state frames to
+  **GitHub Pages** (`runs/{run_id}/device.html`) and upserts a PR comment linking it. The video plays
+  **inline in the browser** there — the CI artifact zip only previews images, so the `.mp4` never
+  actually played from the download. Same mechanism as the web E2E videos and storyboard screenshots
+  (one `runs/{id}/` tree, one root table with a 📱 Device column, the shared `gh-pages-publish` lock).
 
 ## Running it locally
 
