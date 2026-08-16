@@ -1,0 +1,10 @@
+{
+  "run_id": "31318040458",
+  "pr_number": "370",
+  "branch": "feature/339-device-happy-path-gate",
+  "commit": "297a819d78d24c95b0bac67dea9397a1b4c96cee",
+  "timestamp": "2026-08-09T14:22:19Z",
+  "status": "success",
+  "videos": ["ActivePlayerColour-Bob.webm", "ActivePlayerColourDrivesTheSharedUi.webm", "HappyPath-Bob.webm", "HappyPath.webm", "RestoreStateAfterRefresh-Bob.webm", "RestoreStateAfterRefresh.webm"],
+  "screenshots": []
+}

@@ -1,0 +1,10 @@
+{
+  "run_id": "31335651808",
+  "pr_number": "375",
+  "branch": "dependabot/nuget/src/HotDice.Infrastructure/Microsoft.AspNetCore.Identity.EntityFrameworkCore-10.0.10",
+  "commit": "7dd676c7e93dbdbcd41b61a030b3c89651f976af",
+  "timestamp": "2026-08-09T21:05:40Z",
+  "status": "success",
+  "videos": ["ActivePlayerColour-Bob.webm", "ActivePlayerColourDrivesTheSharedUi.webm", "HappyPath-Bob.webm", "HappyPath.webm", "RestoreStateAfterRefresh-Bob.webm", "RestoreStateAfterRefresh.webm"],
+  "screenshots": []
+}

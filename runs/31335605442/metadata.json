@@ -1,0 +1,10 @@
+{
+  "run_id": "31335605442",
+  "pr_number": "373",
+  "branch": "dependabot/nuget/src/WebApp.Client/Microsoft.AspNetCore.Components.WebAssembly-10.0.10",
+  "commit": "0b3c6d80fa00e14739f8aac7a3df7ef6fe33df50",
+  "timestamp": "2026-08-09T21:03:27Z",
+  "status": "success",
+  "videos": ["ActivePlayerColour-Bob.webm", "ActivePlayerColourDrivesTheSharedUi.webm", "HappyPath-Bob.webm", "HappyPath.webm", "RestoreStateAfterRefresh-Bob.webm", "RestoreStateAfterRefresh.webm"],
+  "screenshots": []
+}

@@ -1,0 +1,10 @@
+{
+  "run_id": "31335685726",
+  "pr_number": "376",
+  "branch": "dependabot/nuget/tests/HotDice.E2eTests/Microsoft.AspNetCore.Mvc.Testing-10.0.10",
+  "commit": "4a2f2048d295a116c34d2bfe02391f40c312170d",
+  "timestamp": "2026-08-09T21:06:10Z",
+  "status": "success",
+  "videos": ["ActivePlayerColour-Bob.webm", "ActivePlayerColourDrivesTheSharedUi.webm", "HappyPath-Bob.webm", "HappyPath.webm", "RestoreStateAfterRefresh-Bob.webm", "RestoreStateAfterRefresh.webm"],
+  "screenshots": []
+}

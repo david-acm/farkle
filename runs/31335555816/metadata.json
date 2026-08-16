@@ -1,0 +1,10 @@
+{
+  "run_id": "31335555816",
+  "pr_number": "372",
+  "branch": "dependabot/nuget/src/HotDice/Marten-9.22.5",
+  "commit": "29cb6d6bf310812cd2ecf3aa9f69024405bf88ec",
+  "timestamp": "2026-08-09T21:00:46Z",
+  "status": "success",
+  "videos": [],
+  "screenshots": ["01-landing-large.png", "01-landing-medium.png", "01-landing-mobile.png", "02-lobby-large.png", "02-lobby-medium.png", "02-lobby-mobile.png", "03-roll-large.png", "03-roll-medium.png", "03-roll-mobile.png", "04-select-large.png", "04-select-medium.png", "04-select-mobile.png", "05-keep-large.png", "05-keep-medium.png", "05-keep-mobile.png", "06-pass-large.png", "06-pass-medium.png", "06-pass-mobile.png"]
+}

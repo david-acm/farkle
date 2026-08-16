@@ -1,0 +1,11 @@
+{
+  "run_id": "31972131181",
+  "pr_number": "385",
+  "branch": "dependabot/nuget/src/WebApp.Client/Microsoft.AspNetCore.Components.WebAssembly-10.0.11",
+  "commit": "dafdf7a821fc83180e280f46b11892c6d2b754f1",
+  "timestamp": "2026-08-16T21:00:13Z",
+  "status": "failure",
+  "videos": [],
+  "screenshots": [],
+  "device": []
+}

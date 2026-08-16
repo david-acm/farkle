@@ -1,0 +1,10 @@
+{
+  "run_id": "31335685796",
+  "pr_number": "376",
+  "branch": "dependabot/nuget/tests/HotDice.E2eTests/Microsoft.AspNetCore.Mvc.Testing-10.0.10",
+  "commit": "4a2f2048d295a116c34d2bfe02391f40c312170d",
+  "timestamp": "2026-08-09T21:04:40Z",
+  "status": "success",
+  "videos": [],
+  "screenshots": ["01-landing-large.png", "01-landing-medium.png", "01-landing-mobile.png", "02-lobby-large.png", "02-lobby-medium.png", "02-lobby-mobile.png", "03-roll-large.png", "03-roll-medium.png", "03-roll-mobile.png", "04-select-large.png", "04-select-medium.png", "04-select-mobile.png", "05-keep-large.png", "05-keep-medium.png", "05-keep-mobile.png", "06-pass-large.png", "06-pass-medium.png", "06-pass-mobile.png"]
+}

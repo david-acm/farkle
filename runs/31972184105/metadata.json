@@ -1,0 +1,11 @@
+{
+  "run_id": "31972184105",
+  "pr_number": "387",
+  "branch": "dependabot/nuget/src/HotDice.Infrastructure/Microsoft.AspNetCore.Identity.EntityFrameworkCore-10.0.11",
+  "commit": "cb85bbef475bd57d6ad17208dc0aecd7720d76ce",
+  "timestamp": "2026-08-16T21:01:23Z",
+  "status": "failure",
+  "videos": [],
+  "screenshots": [],
+  "device": []
+}
