@@ -32,7 +32,8 @@ ARG BUILD_CONFIGURATION=Release
 ARG VERSION=0.0.0-local
 ARG INFORMATIONAL=0.0.0-local
 RUN dotnet publish "src/WebApp/WebApp.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false \
-    /p:Version="$VERSION" /p:InformationalVersion="$INFORMATIONAL"
+    /p:Version="$VERSION" /p:InformationalVersion="$INFORMATIONAL" \
+    $([ "$BUILD_CONFIGURATION" = "Debug" ] && echo "/p:WasmDebugLevel=-1" || true)
 
 FROM base AS final
 WORKDIR /app

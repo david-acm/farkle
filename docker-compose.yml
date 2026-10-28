@@ -1,5 +1,7 @@
 services:
   farkle.web:
+    profiles:
+      - app          # excluded from plain `docker compose up`; started only in prod/CI
     depends_on:
     - postgres
     image: webapp
