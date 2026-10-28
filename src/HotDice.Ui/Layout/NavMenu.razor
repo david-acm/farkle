@@ -1,5 +1,8 @@
+@inherits HotDice.Ui.Features.GameStateComponent
+
 <MudNavMenu>
-  <MudNavLink Href=""
+  @* #390 — once joined, "Play" leads back to the current game; the landing page would start a new one. *@
+  <MudNavLink Href="@PlayHref"
               Match="NavLinkMatch.All"
               Icon="@Icons.Material.Filled.Casino">
     Play
@@ -20,3 +23,8 @@
     Release notes
   </MudNavLink>
 </MudNavMenu>
+
+@code {
+  private string PlayHref =>
+    GameState.HasJoined ? $"games/{GameState.GameId.Value}" : string.Empty;
+}

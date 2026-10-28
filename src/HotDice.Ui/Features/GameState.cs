@@ -13,6 +13,7 @@ public partial class GameState : State<GameState>
   public GameId     GameId          { get; private set; } = new GameId(0);
   public PlayerId   PlayerId        { get; private set; } = new PlayerId(0);
   public PlayerName PlayerName      { get; private set; } = new(string.Empty);
+  public bool       HasJoined       => !string.IsNullOrEmpty(PlayerName.Value);
   public TurnScore  TurnScore       { get; private set; } = new(0);
   // #244 — server-assigned turn ordinal, carried for telemetry (a turn entity key). Updated from
   // the DTOs on turn-boundary events (begin / pass / remote turn change / restore).

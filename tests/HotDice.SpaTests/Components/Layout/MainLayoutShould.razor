@@ -1,5 +1,6 @@
 @inherits BunitContext
 @implements Xunit.IAsyncLifetime
+@using BlazorState
 @using MudBlazor.Services
 @using Moq
 @using HotDice.Ui.Layout
@@ -23,6 +24,8 @@
     // The layout embeds the global FeedbackWidget, which needs its service.
     Services.AddScoped<IFeedbackService>(_ => Mock.Of<IFeedbackService>());
     Services.AddScoped<IUiTelemetry>(_ => Mock.Of<IUiTelemetry>());
+    // The nav menu reads the game store to point "Play" at the current game (#390).
+    Services.AddBlazorState(o => o.Assemblies = [typeof(HotDice.Ui.ClientServiceExtensions).Assembly]);
     return Render<MainLayout>();
   }
 
