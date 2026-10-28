@@ -33,7 +33,7 @@ public partial class Game : GameStateComponent, IAsyncDisposable
 
   private GameId    GameId    => new(ParameterGameId);
 
-  private bool HasJoined => !string.IsNullOrEmpty(GameState.PlayerName.Value);
+  private bool HasJoined => GameState.HasJoined;
 
   protected override async Task OnParametersSetAsync()
   {
