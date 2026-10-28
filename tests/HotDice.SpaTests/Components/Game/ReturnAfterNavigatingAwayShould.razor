@@ -1,0 +1,44 @@
+@inherits GameBunitContext
+@using HotDice.Ui.Pages.Game
+@using HotDice.Ui.Pages.Game.Components
+@using static HotDice.Contracts.HttpResponses
+
+@code {
+  // #390 — leaving the game page (e.g. to Scoring) disposes Game, which disconnects the hub. The
+  // store survives the SPA navigation, so on return the player is already "joined" and the page
+  // must re-open the realtime connection, or every later broadcast is missed.
+
+  private static readonly LobbyPlayer[] Players = [new(1, "Alice"), new(2, "Bob")];
+
+  private async Task<IRenderedComponent<Game>> JoinThenNavigateAwayAndBack()
+  {
+    var cut = Render<Game>();
+    JoinLobby(cut, "Bob", assignedPlayerId: 2, hostPlayerId: 1, roster: Players);
+    cut.FindComponents<Lobby>().Should().ContainSingle("Bob is waiting in the lobby");
+
+    await DisposeComponentsAsync();
+    HubService.IsConnected.Should().BeFalse("leaving the page disconnects the hub");
+
+    return Render<Game>();
+  }
+
+  [Fact]
+  public async Task ReconnectTheHub_WhenReturningToTheSameGame()
+  {
+    await JoinThenNavigateAwayAndBack();
+
+    HubService.IsConnected.Should().BeTrue();
+  }
+
+  [Fact]
+  public async Task FollowTheGameIntoPlay_WhenItBeganAfterReturning()
+  {
+    var cut = await JoinThenNavigateAwayAndBack();
+
+    await cut.InvokeAsync(() => HubService.RaiseGameBegan(
+      new LobbyStateResponse(GameId: 0, Stage: "Rolling", Roster: Players, HostPlayerId: 1, CurrentPlayerId: 1)));
+
+    cut.FindComponents<Lobby>().Should().BeEmpty("the host started the game");
+    cut.FindComponents<RollDiceButton>().Should().ContainSingle();
+  }
+}
