@@ -3,11 +3,15 @@ using Microsoft.Playwright;
 namespace HotDice.E2eTests;
 
 /// <summary>
-/// #390 — a player who opens another page (Scoring) and comes back with the browser's Back button
-/// must still be live in their game. The round trip is an in-app navigation (no reload), so it
-/// unmounts and remounts the game page without restarting WASM — the path a refresh never takes.
-/// Before the fix the remount never reopened the realtime connection, so when the host started,
-/// the returning player was left on the lobby.
+/// #390 — a player who opens another page (Scoring) and comes back must still be live in their game.
+/// Both ways back are in-app navigations (no reload): they unmount and remount the game page without
+/// restarting WASM — the path a refresh never takes.
+/// <list type="bullet">
+/// <item>Browser Back: the remount never reopened the realtime connection, so when the host
+/// started, the returning player was left on the lobby.</item>
+/// <item>The "Play" menu link: it always opened the landing page, so the player lost their game and
+/// starting again made a brand-new lobby.</item>
+/// </list>
 /// </summary>
 [Collection(StoryboardCollection.Name)]
 [Trait("Category", "Storyboard")]
@@ -20,17 +24,25 @@ public class ReturnToGameAfterNavigatingAwayShould(StoryboardFixture fixture)
         Path.GetFullPath(Path.Join(AppContext.BaseDirectory, "..", "..", "..", "..", "..",
             "test-results", "storyboard"));
 
-    private static Task CaptureAsync(IPage page, string step) =>
-        page.ScreenshotAsync(new() { Path = Path.Join(StoryboardDir, $"390-{step}-medium.png"), FullPage = true });
+    [Fact]
+    public Task FollowTheHostIntoPlay_AfterVisitingScoringAndGoingBack() =>
+        FollowTheHostIntoPlayAfterReturningAsync("back",
+            bob => bob.GoBackAsync(new() { WaitUntil = WaitUntilState.Commit }));
 
     [Fact]
-    public async Task FollowTheHostIntoPlay_AfterVisitingScoringAndGoingBack()
+    public Task FollowTheHostIntoPlay_AfterVisitingScoringAndClickingPlay() =>
+        FollowTheHostIntoPlayAfterReturningAsync("play",
+            bob => bob.GetByRole(AriaRole.Link, new() { Name = "Play" }).ClickAsync());
+
+    private async Task FollowTheHostIntoPlayAfterReturningAsync(string way, Func<IPage, Task> returnToGame)
     {
         var aliceContext = await fixture.NewContextAsync(1280, 800);
         var bobContext   = await fixture.NewContextAsync(1280, 800);
         var alice = await aliceContext.NewPageAsync();
         var bob   = await bobContext.NewPageAsync();
         Directory.CreateDirectory(StoryboardDir);
+        Task CaptureAsync(string step) =>
+            bob.ScreenshotAsync(new() { Path = Path.Join(StoryboardDir, $"390-{way}-{step}-medium.png"), FullPage = true });
         try
         {
             var gameId = await GameFlow.StartNewGameFromLandingAsync(alice, "Alice");
@@ -38,15 +50,15 @@ public class ReturnToGameAfterNavigatingAwayShould(StoryboardFixture fixture)
 
             await GameFlow.JoinExistingGameFromLandingAsync(bob, "Bob", gameId);
             await bob.WaitForSelectorAsync("[data-testid='waiting-for-host']", new() { Timeout = UiTimeoutMs });
-            await CaptureAsync(bob, "1-lobby");
+            await CaptureAsync("1-lobby");
 
             await bob.GetByRole(AriaRole.Link, new() { Name = "Scoring" }).ClickAsync();
             await bob.WaitForURLAsync("**/scoring", new() { Timeout = UiTimeoutMs });
-            await CaptureAsync(bob, "2-scoring");
-            await bob.GoBackAsync(new() { WaitUntil = WaitUntilState.Commit });
+            await CaptureAsync("2-scoring");
+            await returnToGame(bob);
             await bob.WaitForURLAsync($"**/games/{gameId}*", new() { Timeout = UiTimeoutMs });
             await bob.WaitForSelectorAsync("[data-testid='waiting-for-host']", new() { Timeout = UiTimeoutMs });
-            await CaptureAsync(bob, "3-back");
+            await CaptureAsync("3-returned");
 
             await alice.WaitForSelectorAsync("[data-testid='start-game-button']:not([disabled])",
                 new() { Timeout = UiTimeoutMs });
@@ -58,7 +70,7 @@ public class ReturnToGameAfterNavigatingAwayShould(StoryboardFixture fixture)
         finally
         {
             // Bob's view once the host has started — on a failure, it shows where he got stuck.
-            await CaptureAsync(bob, "4-after-start");
+            await CaptureAsync("4-after-start");
             await aliceContext.CloseAsync();
             await bobContext.CloseAsync();
         }

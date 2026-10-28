@@ -1,8 +1,13 @@
 @inherits GameBunitContext
 @using HotDice.Ui.Layout
+@using HotDice.Ui.Pages.Game
 
 @code {
-  // "Play" is how a player gets back from Scoring/About; outside a game it opens the landing page.
+  // #390 — "Play" is how a player gets back from Scoring/About. Outside a game it opens the
+  // landing page; once they have joined one, it must lead back to that game, not to the landing
+  // page, where starting again creates a brand-new lobby.
+
+  private const int GameCode = 471099;
 
   private static string? PlayHref(IRenderedComponent<NavMenu> menu) =>
     menu.FindAll("a").Single(a => a.TextContent.Trim() == "Play").GetAttribute("href");
@@ -15,4 +20,14 @@
     PlayHref(menu).Should().BeEmpty();
   }
 
+  [Fact]
+  public void PointPlayAtTheCurrentGame_OnceThePlayerHasJoined()
+  {
+    var menu = Render<NavMenu>();
+    var game = Render<Game>(p => p.Add(g => g.ParameterGameId, GameCode));
+
+    JoinGame(game, "Alice", assignedPlayerId: 1);
+
+    menu.WaitForAssertion(() => PlayHref(menu).Should().Be($"games/{GameCode}"));
+  }
 }
