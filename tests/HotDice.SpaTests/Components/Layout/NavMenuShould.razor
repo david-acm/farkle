@@ -1,0 +1,18 @@
+@inherits GameBunitContext
+@using HotDice.Ui.Layout
+
+@code {
+  // "Play" is how a player gets back from Scoring/About; outside a game it opens the landing page.
+
+  private static string? PlayHref(IRenderedComponent<NavMenu> menu) =>
+    menu.FindAll("a").Single(a => a.TextContent.Trim() == "Play").GetAttribute("href");
+
+  [Fact]
+  public void PointPlayAtTheLandingPage_WhenNotInAGame()
+  {
+    var menu = Render<NavMenu>();
+
+    PlayHref(menu).Should().BeEmpty();
+  }
+
+}
