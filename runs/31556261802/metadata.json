@@ -1,0 +1,11 @@
+{
+  "run_id": "31556261802",
+  "pr_number": "379",
+  "branch": "feature/339-newer-webview-image",
+  "commit": "029556f59e0d78c54b9e5351f34883e57e40d57f",
+  "timestamp": "2026-08-12T02:23:30Z",
+  "status": "success",
+  "videos": [],
+  "screenshots": [],
+  "device": ["android-01-launch.png", "android-02-lobby.png", "android-03-signalr-join.png", "android-04-in-turn.png", "android-05-rolled.png", "android-06-set-aside.png", "android-07-kept.png", "happy-path.mp4"]
+}

@@ -1,0 +1,11 @@
+{
+  "run_id": "41547452973",
+  "pr_number": "393",
+  "branch": "feature/390-restore-game-on-navigation",
+  "commit": "328c00474a8dc70fa3c837473fc25da90192b744",
+  "timestamp": "2026-11-02T23:47:36Z",
+  "status": "success",
+  "videos": ["ActivePlayerColour-Bob.webm", "ActivePlayerColourDrivesTheSharedUi.webm", "HappyPath-Bob.webm", "HappyPath.webm", "RestoreStateAfterRefresh-Bob.webm", "RestoreStateAfterRefresh.webm"],
+  "screenshots": [],
+  "device": []
+}

@@ -1,0 +1,11 @@
+{
+  "run_id": "31973309838",
+  "pr_number": "389",
+  "branch": "dependabot/nuget/src/HotDice/multi-aae9d488cb",
+  "commit": "c801e38da79688217aaf970069413f29da9a9b5a",
+  "timestamp": "2026-08-16T21:24:07Z",
+  "status": "failure",
+  "videos": [],
+  "screenshots": [],
+  "device": []
+}

@@ -1,0 +1,11 @@
+{
+  "run_id": "41547453048",
+  "pr_number": "393",
+  "branch": "feature/390-restore-game-on-navigation",
+  "commit": "328c00474a8dc70fa3c837473fc25da90192b744",
+  "timestamp": "2026-11-02T23:45:46Z",
+  "status": "success",
+  "videos": [],
+  "screenshots": ["01-landing-large.png", "01-landing-medium.png", "01-landing-mobile.png", "02-lobby-large.png", "02-lobby-medium.png", "02-lobby-mobile.png", "03-roll-large.png", "03-roll-medium.png", "03-roll-mobile.png", "04-select-large.png", "04-select-medium.png", "04-select-mobile.png", "05-keep-large.png", "05-keep-medium.png", "05-keep-mobile.png", "06-pass-large.png", "06-pass-medium.png", "06-pass-mobile.png", "390-back-1-lobby-medium.png", "390-back-2-scoring-medium.png", "390-back-3-returned-medium.png", "390-back-4-after-start-medium.png", "390-play-1-lobby-medium.png", "390-play-2-scoring-medium.png", "390-play-3-returned-medium.png", "390-play-4-after-start-medium.png"],
+  "device": []
+}

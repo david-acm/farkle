@@ -1,0 +1,10 @@
+{
+  "run_id": "31335766625",
+  "pr_number": "377",
+  "branch": "dependabot/nuget/src/HotDice/multi-e497b04ca6",
+  "commit": "11b991ddf5cde9aa3c4ef41caede6ea00fc18cd3",
+  "timestamp": "2026-08-09T21:07:16Z",
+  "status": "success",
+  "videos": ["ActivePlayerColour-Bob.webm", "ActivePlayerColourDrivesTheSharedUi.webm", "HappyPath-Bob.webm", "HappyPath.webm", "RestoreStateAfterRefresh-Bob.webm", "RestoreStateAfterRefresh.webm"],
+  "screenshots": []
+}

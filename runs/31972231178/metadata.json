@@ -1,0 +1,11 @@
+{
+  "run_id": "31972231178",
+  "pr_number": "388",
+  "branch": "dependabot/nuget/tests/HotDice.E2eTests/Microsoft.AspNetCore.Mvc.Testing-10.0.11",
+  "commit": "31f55c6993959af8d93e5b26fed6de4b6ceb032d",
+  "timestamp": "2026-08-16T21:02:18Z",
+  "status": "failure",
+  "videos": [],
+  "screenshots": [],
+  "device": []
+}

@@ -1,0 +1,11 @@
+{
+  "run_id": "31972038183",
+  "pr_number": "384",
+  "branch": "dependabot/nuget/src/HotDice/Marten-9.25.0",
+  "commit": "108db16605dd3d51e030c580c6b11d86dbd688ee",
+  "timestamp": "2026-08-16T20:58:12Z",
+  "status": "failure",
+  "videos": [],
+  "screenshots": [],
+  "device": []
+}

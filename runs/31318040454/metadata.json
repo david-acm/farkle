@@ -1,0 +1,10 @@
+{
+  "run_id": "31318040454",
+  "pr_number": "370",
+  "branch": "feature/339-device-happy-path-gate",
+  "commit": "297a819d78d24c95b0bac67dea9397a1b4c96cee",
+  "timestamp": "2026-08-09T14:20:01Z",
+  "status": "success",
+  "videos": [],
+  "screenshots": ["01-landing-large.png", "01-landing-medium.png", "01-landing-mobile.png", "02-lobby-large.png", "02-lobby-medium.png", "02-lobby-mobile.png", "03-roll-large.png", "03-roll-medium.png", "03-roll-mobile.png", "04-select-large.png", "04-select-medium.png", "04-select-mobile.png", "05-keep-large.png", "05-keep-medium.png", "05-keep-mobile.png", "06-pass-large.png", "06-pass-medium.png", "06-pass-mobile.png"]
+}

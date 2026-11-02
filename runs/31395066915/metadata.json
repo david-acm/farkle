@@ -1,0 +1,10 @@
+{
+  "run_id": "31395066915",
+  "pr_number": "378",
+  "branch": "feature/339-scripted-dice-keep",
+  "commit": "8c2da7c9e82d790e3a15efacbcecb099e58f670e",
+  "timestamp": "2026-08-10T13:54:55Z",
+  "status": "success",
+  "videos": [],
+  "screenshots": ["01-landing-large.png", "01-landing-medium.png", "01-landing-mobile.png", "02-lobby-large.png", "02-lobby-medium.png", "02-lobby-mobile.png", "03-roll-large.png", "03-roll-medium.png", "03-roll-mobile.png", "04-select-large.png", "04-select-medium.png", "04-select-mobile.png", "05-keep-large.png", "05-keep-medium.png", "05-keep-mobile.png", "06-pass-large.png", "06-pass-medium.png", "06-pass-mobile.png"]
+}

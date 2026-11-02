@@ -1,0 +1,10 @@
+{
+  "run_id": "31395066882",
+  "pr_number": "378",
+  "branch": "feature/339-scripted-dice-keep",
+  "commit": "8c2da7c9e82d790e3a15efacbcecb099e58f670e",
+  "timestamp": "2026-08-10T13:57:43Z",
+  "status": "success",
+  "videos": ["ActivePlayerColour-Bob.webm", "ActivePlayerColourDrivesTheSharedUi.webm", "HappyPath-Bob.webm", "HappyPath.webm", "RestoreStateAfterRefresh-Bob.webm", "RestoreStateAfterRefresh.webm"],
+  "screenshots": []
+}

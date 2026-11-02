@@ -1,0 +1,11 @@
+{
+  "run_id": "31971888772",
+  "pr_number": "381",
+  "branch": "dependabot/github_actions/actions/download-artifact-8",
+  "commit": "f8b063fda7d477f0ba0f6b3c87c9d6a76ef8daaf",
+  "timestamp": "2026-08-16T21:03:46Z",
+  "status": "success",
+  "videos": [],
+  "screenshots": [],
+  "device": ["android-01-launch.png", "android-02-lobby.png", "android-03-signalr-join.png", "android-04-in-turn.png", "android-05-rolled.png", "android-06-set-aside.png", "android-07-kept.png", "happy-path.mp4"]
+}
