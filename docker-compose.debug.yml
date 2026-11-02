@@ -1,0 +1,43 @@
+services:
+  farkle.web:
+    depends_on:
+      - postgres
+    build:
+      context: .
+      dockerfile: src/WebApp/Dockerfile
+      args:
+        BUILD_CONFIGURATION: Debug
+    ports:
+      - 8080:8080
+      - 8081:8081
+    environment:
+      ASPNETCORE_HTTP_PORTS: 8080
+      ASPNETCORE_HTTPS_PORTS: 8081
+      ASPNETCORE_Kestrel__Certificates__Default__Password: ${KESTREL_CERT_PASSWORD}
+      ASPNETCORE_Kestrel__Certificates__Default__Path: /https/aspnetapp.pfx
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings:Identity: Host=postgres;Port=5432;Database=farkle_identity;Username=farkle;Password=${POSTGRES_PASSWORD}
+      DOTNET_USE_POLLING_FILE_WATCHER: "true"
+    volumes:
+      - ${HOME}/.aspnet/https:/https/
+    networks:
+      - my-network
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: farkle
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: farkle_identity
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - my-network
+
+volumes:
+  postgres-data:
+
+networks:
+  my-network:

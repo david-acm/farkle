@@ -33,7 +33,7 @@ public partial class Game : GameStateComponent, IAsyncDisposable
 
   private GameId    GameId    => new(ParameterGameId);
 
-  private bool HasJoined => !string.IsNullOrEmpty(GameState.PlayerName.Value);
+  private bool HasJoined => GameState.HasJoined;
 
   protected override async Task OnParametersSetAsync()
   {
@@ -69,6 +69,12 @@ public partial class Game : GameStateComponent, IAsyncDisposable
       _playerName = JoinName!;
       await JoinAsync();
     }
+
+    // #390 — returning from another page remounts Game with the player still joined in the store,
+    // but the previous instance's dispose closed the hub. Reconnect (which also resyncs anything
+    // missed while away); ConnectHubAsync is a no-op once this instance is connected.
+    if (HasJoined)
+      await ConnectHubAsync();
 
     await base.OnParametersSetAsync();
   }
