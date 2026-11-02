@@ -89,8 +89,16 @@ These are the reference app's hard-won lessons, ported because they each cost re
 ### The emulator boot dominates the wall clock (Android CI)
 - **Cause:** cold-booting an AVD every run is slow.
 - **Fix:** CI uses `reactivecircus/android-emulator-runner` with **KVM** and an **AVD snapshot cache**
-  keyed on the API level, so subsequent runs restore from snapshot. Budget is ≲15 min/platform
-  including boot + app build; if it drifts over, cut scope rather than raise the timeout (#339).
+  keyed on the API level + image target, so subsequent runs restore from snapshot. Budget is ≲15
+  min/platform including boot + app build; if it drifts over, cut scope rather than raise the timeout (#339).
+
+### The rendered app looks dated / an old-Chromium WebView
+- **Cause:** the AOSP `default` system image ships an **old bundled System WebView** (Chromium 113 for
+  API 34). Because the app is Blazor Hybrid, that WebView renders the entire UI, so the whole app looked
+  old even though the emulator OS (Android 14) is current.
+- **Fix:** run the emulator on the **`target: google_apis`** image at the same API level — it ships a
+  current, auto-updated Google System WebView (no Play Store / Play Services needed). Bump the AVD cache
+  key when changing the target so a fresh image is primed instead of restoring the old snapshot.
 
 ### The app can't reach the backend from the emulator
 - **Cause:** `localhost` inside the Android emulator is the emulator, not the host.

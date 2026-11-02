@@ -140,7 +140,9 @@ jobs:
           done
           echo "::error title=Backend never became ready::"; tail -80 backend.log; exit 1
 
-      # Cache the AVD snapshot so subsequent runs restore instead of cold-booting.
+      # Cache the AVD snapshot so subsequent runs restore instead of cold-booting. The cache key
+      # includes the system-image target so switching images (AOSP default → google_apis) primes a
+      # fresh AVD instead of restoring the old one.
       - name: AVD cache
         uses: actions/cache@v4
         id: avd-cache
@@ -148,13 +150,19 @@ jobs:
           path: |
             ~/.android/avd/*
             ~/.android/adb*
-          key: avd-34
+          key: avd-34-google_apis
 
       - name: Create AVD snapshot (cache miss only)
         if: steps.avd-cache.outputs.cache-hit != 'true'
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 34
+          # Use the google_apis image, not the AOSP `default` one: the default image ships an old
+          # bundled System WebView (Chromium 113 for API 34), and since the app is Blazor Hybrid,
+          # that WebView is what renders the whole UI — so it looked dated. google_apis ships a
+          # current, auto-updated Google System WebView at the same Android version (14). No Play
+          # Store needed (we don't use Play Services), which keeps the image lighter to boot.
+          target: google_apis
           arch: x86_64
           force-avd-creation: false
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot-load
@@ -167,6 +175,7 @@ jobs:
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 34
+          target: google_apis
           arch: x86_64
           force-avd-creation: false
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot-save
